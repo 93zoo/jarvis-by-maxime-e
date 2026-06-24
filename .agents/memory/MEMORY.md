@@ -1,0 +1,1 @@
+- [JARVIS AI streaming fix](jarvis-streaming.md) — buffered SSE parser required; build apiMessages before state update to avoid duplicate user message
