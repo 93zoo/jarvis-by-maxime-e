@@ -93,6 +93,10 @@ function JarvisIntro({ onDone }: { onDone: () => void }) {
           JUST A RATHER VERY INTELLIGENT SYSTEM
         </Animated.Text>
 
+        <Animated.Text style={[styles.introTagline, { opacity: subtitleOpacity }]}>
+          Votre agent IA de poche JARVIS{'\n'}codé par Maxime Etivant
+        </Animated.Text>
+
         <Animated.View style={[styles.initRow, { opacity: dotsOpacity }]}>
           <View style={styles.initDot} />
           <Text style={styles.initText}>INITIALISATION DU SYSTÈME...</Text>
@@ -200,11 +204,20 @@ const styles = StyleSheet.create({
     letterSpacing: 3,
     textAlign: 'center',
   },
+  introTagline: {
+    fontSize: 12,
+    fontFamily: 'Inter_400Regular',
+    color: '#ffffff99',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginTop: 14,
+    letterSpacing: 0.3,
+  },
   initRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 8,
+    marginTop: 18,
   },
   initDot: {
     width: 5,
