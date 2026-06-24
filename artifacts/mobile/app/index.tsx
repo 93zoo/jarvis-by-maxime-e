@@ -21,7 +21,7 @@ import { ChatInput } from '@/components/ChatInput';
 export default function ChatScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { messages, isStreaming, sendMessage, clearConversation, error, clearError, apiKey } = useJarvis();
+  const { messages, isStreaming, sendMessage, clearConversation, error, clearError } = useJarvis();
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -92,22 +92,8 @@ export default function ChatScreen() {
               Online and ready, sir.
             </Text>
             <Text style={[styles.emptySubtitle, { color: colors.mutedForeground }]}>
-              {apiKey ? 'How may I assist you today?' : 'Add your OpenAI key in Settings to begin.'}
+              Comment puis-je vous aider ?
             </Text>
-            {!apiKey && (
-              <Pressable
-                onPress={() => router.push('/settings')}
-                style={({ pressed }) => [
-                  styles.setupBtn,
-                  { backgroundColor: colors.primary + '20', borderColor: colors.primary, opacity: pressed ? 0.7 : 1 },
-                ]}
-              >
-                <Feather name="key" size={14} color={colors.primary} />
-                <Text style={[styles.setupBtnText, { color: colors.primary }]}>
-                  Configure API Key
-                </Text>
-              </Pressable>
-            )}
           </View>
         ) : (
           <FlatList
@@ -151,7 +137,7 @@ export default function ChatScreen() {
         <ChatInput
           onSend={sendMessage}
           isStreaming={isStreaming}
-          disabled={!apiKey}
+          disabled={false}
         />
       </KeyboardAvoidingView>
     </View>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Platform,
   Pressable,
@@ -6,7 +6,6 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,29 +16,23 @@ import { useColors } from '@/hooks/useColors';
 import { useJarvis } from '@/context/JarvisContext';
 
 const MODELS = [
-  { id: 'gpt-4o-mini', label: 'GPT-4o Mini', desc: 'Fast & cost-effective' },
-  { id: 'gpt-4o', label: 'GPT-4o', desc: 'Most capable' },
-  { id: 'gpt-4-turbo', label: 'GPT-4 Turbo', desc: 'High intelligence' },
+  { id: 'gpt-4o-mini', label: 'GPT-4o Mini', desc: 'Rapide et économique' },
+  { id: 'gpt-4o', label: 'GPT-4o', desc: 'Le plus puissant' },
+  { id: 'gpt-4-turbo', label: 'GPT-4 Turbo', desc: 'Haute intelligence' },
 ];
 
 export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { apiKey, setApiKey, model, setModel, clearConversation, voiceEnabled, setVoiceEnabled, isSpeaking, stopSpeaking } = useJarvis();
-
-  const [keyInput, setKeyInput] = useState(apiKey);
-  const [showKey, setShowKey] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const {
+    model, setModel,
+    clearConversation,
+    voiceEnabled, setVoiceEnabled,
+    isSpeaking, stopSpeaking,
+  } = useJarvis();
 
   const topPad = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPad = Platform.OS === 'web' ? 34 : insets.bottom;
-
-  async function handleSave() {
-    await setApiKey(keyInput.trim());
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  }
 
   async function handleModelSelect(m: string) {
     await setModel(m);
@@ -62,7 +55,7 @@ export default function SettingsScreen() {
         >
           <Feather name="chevron-left" size={24} color={colors.primary} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>Settings</Text>
+        <Text style={[styles.headerTitle, { color: colors.foreground }]}>Paramètres</Text>
         <View style={{ width: 36 }} />
       </View>
       <View style={[styles.headerGlow, { backgroundColor: colors.primary + '20' }]} />
@@ -72,73 +65,45 @@ export default function SettingsScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 24 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* API Key section */}
+        {/* Voice section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-            OPENAI API KEY
-          </Text>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>VOIX</Text>
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.keyInputRow}>
-              <TextInput
-                style={[styles.keyInput, { color: colors.foreground, fontFamily: 'Inter_400Regular' }]}
-                value={keyInput}
-                onChangeText={(t) => { setKeyInput(t); setSaved(false); }}
-                placeholder="sk-..."
-                placeholderTextColor={colors.mutedForeground}
-                secureTextEntry={!showKey}
-                autoCapitalize="none"
-                autoCorrect={false}
+            <View style={styles.toggleRow}>
+              <View style={styles.toggleInfo}>
+                <Text style={[styles.toggleLabel, { color: colors.foreground }]}>Réponse vocale</Text>
+                <Text style={[styles.toggleDesc, { color: colors.mutedForeground }]}>
+                  JARVIS vous répond à voix haute
+                </Text>
+              </View>
+              <Switch
+                value={voiceEnabled}
+                onValueChange={setVoiceEnabled}
+                trackColor={{ false: colors.muted, true: colors.primary + '60' }}
+                thumbColor={voiceEnabled ? colors.primary : colors.mutedForeground}
               />
-              <Pressable
-                onPress={() => setShowKey((v) => !v)}
-                style={({ pressed }) => [styles.eyeBtn, { opacity: pressed ? 0.5 : 1 }]}
-                hitSlop={6}
-              >
-                <Feather
-                  name={showKey ? 'eye-off' : 'eye'}
-                  size={16}
-                  color={colors.mutedForeground}
-                />
-              </Pressable>
             </View>
-
-            <Pressable
-              onPress={handleSave}
-              disabled={!keyInput.trim()}
-              style={({ pressed }) => [
-                styles.saveBtn,
-                {
-                  backgroundColor: saved ? colors.accent + '20' : colors.primary + '18',
-                  borderColor: saved ? colors.accent : colors.primary,
-                  opacity: pressed ? 0.7 : keyInput.trim() ? 1 : 0.4,
-                },
-              ]}
-            >
-              <Feather
-                name={saved ? 'check' : 'save'}
-                size={14}
-                color={saved ? colors.accent : colors.primary}
-              />
-              <Text
-                style={[
-                  styles.saveBtnText,
-                  { color: saved ? colors.accent : colors.primary },
+            {isSpeaking && (
+              <Pressable
+                onPress={stopSpeaking}
+                style={({ pressed }) => [
+                  styles.stopRow,
+                  { borderTopColor: colors.border, opacity: pressed ? 0.6 : 1 },
                 ]}
               >
-                {saved ? 'Saved' : 'Save Key'}
-              </Text>
-            </Pressable>
+                <Feather name="volume-x" size={16} color={colors.accent} />
+                <Text style={[styles.stopText, { color: colors.accent }]}>Arrêter la lecture</Text>
+              </Pressable>
+            )}
           </View>
           <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-            Your key is stored locally on this device. Get one at platform.openai.com
+            🎤 Appuie sur le micro pour parler à JARVIS — pas besoin de clé API.
           </Text>
         </View>
 
         {/* Model selection */}
         <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-            AI MODEL
-          </Text>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>MODÈLE IA</Text>
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             {MODELS.map((m, i) => (
               <Pressable
@@ -151,23 +116,12 @@ export default function SettingsScreen() {
                 ]}
               >
                 <View style={styles.modelInfo}>
-                  <Text style={[styles.modelName, { color: colors.foreground }]}>
-                    {m.label}
-                  </Text>
-                  <Text style={[styles.modelDesc, { color: colors.mutedForeground }]}>
-                    {m.desc}
-                  </Text>
+                  <Text style={[styles.modelName, { color: colors.foreground }]}>{m.label}</Text>
+                  <Text style={[styles.modelDesc, { color: colors.mutedForeground }]}>{m.desc}</Text>
                 </View>
                 {model === m.id && (
-                  <View
-                    style={[
-                      styles.selectedDot,
-                      { backgroundColor: colors.primary + '20', borderColor: colors.primary },
-                    ]}
-                  >
-                    <View
-                      style={[styles.selectedDotInner, { backgroundColor: colors.primary }]}
-                    />
+                  <View style={[styles.selectedDot, { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}>
+                    <View style={[styles.selectedDotInner, { backgroundColor: colors.primary }]} />
                   </View>
                 )}
               </Pressable>
@@ -175,56 +129,9 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Voice section */}
+        {/* Conversation */}
         <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-            VOIX
-          </Text>
-          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            {/* TTS toggle */}
-            <View style={styles.toggleRow}>
-              <View style={styles.toggleInfo}>
-                <Text style={[styles.toggleLabel, { color: colors.foreground }]}>
-                  Réponse vocale
-                </Text>
-                <Text style={[styles.toggleDesc, { color: colors.mutedForeground }]}>
-                  JARVIS vous répond à voix haute
-                </Text>
-              </View>
-              <Switch
-                value={voiceEnabled}
-                onValueChange={(v) => setVoiceEnabled(v)}
-                trackColor={{ false: colors.muted, true: colors.primary + '60' }}
-                thumbColor={voiceEnabled ? colors.primary : colors.mutedForeground}
-              />
-            </View>
-
-            {/* Stop speaking button */}
-            {isSpeaking && (
-              <Pressable
-                onPress={stopSpeaking}
-                style={({ pressed }) => [
-                  styles.stopSpeakRow,
-                  { borderTopColor: colors.border, opacity: pressed ? 0.6 : 1 },
-                ]}
-              >
-                <Feather name="volume-x" size={16} color={colors.accent} />
-                <Text style={[styles.stopSpeakText, { color: colors.accent }]}>
-                  Arrêter la lecture
-                </Text>
-              </Pressable>
-            )}
-          </View>
-          <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-            Appuyez sur le micro 🎤 pour parler à JARVIS. La transcription utilise OpenAI Whisper.
-          </Text>
-        </View>
-
-        {/* Danger zone */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-            CONVERSATION
-          </Text>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>CONVERSATION</Text>
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Pressable
               onPress={handleClear}
@@ -232,7 +139,7 @@ export default function SettingsScreen() {
             >
               <Feather name="trash-2" size={16} color={colors.destructive} />
               <Text style={[styles.dangerText, { color: colors.destructive }]}>
-                Clear conversation history
+                Effacer l'historique
               </Text>
             </Pressable>
           </View>
@@ -250,9 +157,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -260,28 +165,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
   },
-  backBtn: {
-    padding: 4,
-  },
+  backBtn: { padding: 4 },
   headerTitle: {
     fontSize: 17,
     fontWeight: '600' as const,
     fontFamily: 'Inter_600SemiBold',
   },
-  headerGlow: {
-    height: 1,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    paddingTop: 24,
-    paddingHorizontal: 16,
-    gap: 24,
-  },
-  section: {
-    gap: 8,
-  },
+  headerGlow: { height: 1 },
+  scroll: { flex: 1 },
+  content: { paddingTop: 24, paddingHorizontal: 16, gap: 24 },
+  section: { gap: 8 },
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600' as const,
@@ -289,50 +182,39 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     paddingLeft: 4,
   },
-  card: {
-    borderRadius: 14,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  keyInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingTop: 14,
-    paddingBottom: 8,
-    gap: 8,
-  },
-  keyInput: {
-    flex: 1,
-    fontSize: 14,
-    height: 36,
-    padding: 0,
-  },
-  eyeBtn: {
-    padding: 4,
-  },
-  saveBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginHorizontal: 14,
-    marginBottom: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    borderWidth: 1,
-    justifyContent: 'center',
-  },
-  saveBtnText: {
-    fontSize: 14,
-    fontWeight: '500' as const,
-    fontFamily: 'Inter_500Medium',
-  },
+  card: { borderRadius: 14, borderWidth: 1, overflow: 'hidden' },
   hint: {
     fontSize: 12,
     fontFamily: 'Inter_400Regular',
     paddingLeft: 4,
     lineHeight: 17,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  toggleInfo: { flex: 1, gap: 2 },
+  toggleLabel: {
+    fontSize: 15,
+    fontFamily: 'Inter_500Medium',
+    fontWeight: '500' as const,
+  },
+  toggleDesc: { fontSize: 12, fontFamily: 'Inter_400Regular' },
+  stopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+  },
+  stopText: {
+    fontSize: 14,
+    fontFamily: 'Inter_500Medium',
+    fontWeight: '500' as const,
   },
   modelRow: {
     flexDirection: 'row',
@@ -341,21 +223,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
-  modelDivider: {
-    borderBottomWidth: 1,
-  },
-  modelInfo: {
-    gap: 2,
-  },
+  modelDivider: { borderBottomWidth: 1 },
+  modelInfo: { gap: 2 },
   modelName: {
     fontSize: 15,
     fontFamily: 'Inter_500Medium',
     fontWeight: '500' as const,
   },
-  modelDesc: {
-    fontSize: 12,
-    fontFamily: 'Inter_400Regular',
-  },
+  modelDesc: { fontSize: 12, fontFamily: 'Inter_400Regular' },
   selectedDot: {
     width: 22,
     height: 22,
@@ -364,44 +239,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  selectedDotInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  toggleRow: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'space-between' as const,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  toggleInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  toggleLabel: {
-    fontSize: 15,
-    fontFamily: 'Inter_500Medium',
-    fontWeight: '500' as const,
-  },
-  toggleDesc: {
-    fontSize: 12,
-    fontFamily: 'Inter_400Regular',
-  },
-  stopSpeakRow: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-  },
-  stopSpeakText: {
-    fontSize: 14,
-    fontFamily: 'Inter_500Medium',
-    fontWeight: '500' as const,
-  },
+  selectedDotInner: { width: 10, height: 10, borderRadius: 5 },
   dangerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -414,10 +252,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_500Medium',
     fontWeight: '500' as const,
   },
-  aboutContainer: {
-    alignItems: 'center',
-    paddingTop: 8,
-  },
+  aboutContainer: { alignItems: 'center', paddingTop: 8 },
   aboutText: {
     fontSize: 12,
     fontFamily: 'Inter_400Regular',
