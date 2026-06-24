@@ -12,13 +12,14 @@ function getOpenAI() {
   return new OpenAI({ apiKey: key });
 }
 
-const SYSTEM_PROMPT = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), an advanced AI assistant. You are highly intelligent, precise, and helpful. You speak in a calm, sophisticated manner — like the AI from Iron Man. You are concise but thorough. You refer to the user as "sir" or "ma'am" occasionally. Keep responses clear and actionable.`;
+const DEFAULT_SYSTEM_PROMPT = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), an advanced AI assistant created by Maxime-E. You are highly intelligent, precise, and helpful. You speak in a calm, sophisticated manner — like the AI from Iron Man. You are concise but thorough. You refer to the user as "sir" or "ma'am" occasionally. Keep responses clear and actionable.`;
 
 // ── POST /api/ai/chat — streaming chat completions ────────────────────────────
 router.post("/chat", async (req, res) => {
-  const { messages, model = "gpt-4o-mini" } = req.body as {
+  const { messages, model = "gpt-4o-mini", systemPrompt } = req.body as {
     messages: Array<{ role: string; content: string }>;
     model?: string;
+    systemPrompt?: string;
   };
 
   if (!Array.isArray(messages) || messages.length === 0) {
@@ -36,7 +37,7 @@ router.post("/chat", async (req, res) => {
     const stream = await openai.chat.completions.create({
       model,
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt?.trim() || DEFAULT_SYSTEM_PROMPT },
         ...messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
       ],
       stream: true,
@@ -74,6 +75,107 @@ router.post("/transcribe", upload.single("file"), async (req, res) => {
     });
 
     res.json({ text: transcription.text });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    res.status(500).json({ error: msg });
+  }
+});
+
+// ── POST /api/ai/image — DALL·E 3 image generation ───────────────────────────
+router.post("/image", async (req, res) => {
+  const { prompt } = req.body as { prompt: string };
+  if (!prompt?.trim()) {
+    res.status(400).json({ error: "prompt required" });
+    return;
+  }
+
+  try {
+    const openai = getOpenAI();
+    const result = await openai.images.generate({
+      model: "dall-e-3",
+      prompt: prompt.trim(),
+      n: 1,
+      size: "1024x1024",
+      quality: "standard",
+    });
+
+    const image = result.data?.[0];
+    res.json({ url: image?.url ?? null, revisedPrompt: image?.revised_prompt ?? null });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    res.status(500).json({ error: msg });
+  }
+});
+
+// ── POST /api/ai/search — Web search via GPT-4o mini search preview ───────────
+router.post("/search", async (req, res) => {
+  const { query } = req.body as { query: string };
+  if (!query?.trim()) {
+    res.status(400).json({ error: "query required" });
+    return;
+  }
+
+  try {
+    const openai = getOpenAI();
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini-search-preview",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are JARVIS, an AI assistant. Answer the user's question with current, accurate information from the web. Be concise and cite sources when relevant. Speak in JARVIS's sophisticated tone.",
+        },
+        { role: "user", content: query.trim() },
+      ],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...(({ web_search_options: {} } as any)),
+    });
+
+    const content = completion.choices[0]?.message?.content || "No results found.";
+    res.json({ result: content });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    res.status(500).json({ error: msg });
+  }
+});
+
+// ── GET /api/ai/weather — Weather via wttr.in ─────────────────────────────────
+router.get("/weather", async (req, res) => {
+  const city = (req.query.city as string)?.trim();
+  if (!city) {
+    res.status(400).json({ error: "city query param required" });
+    return;
+  }
+
+  try {
+    const encoded = encodeURIComponent(city);
+    const response = await fetch(`https://wttr.in/${encoded}?format=j1`);
+    if (!response.ok) throw new Error(`wttr.in returned ${response.status}`);
+    const data = await response.json() as {
+      current_condition: Array<{
+        temp_C: string;
+        weatherDesc: Array<{ value: string }>;
+        humidity: string;
+        windspeedKmph: string;
+        FeelsLikeC: string;
+      }>;
+      nearest_area: Array<{
+        areaName: Array<{ value: string }>;
+        country: Array<{ value: string }>;
+      }>;
+    };
+
+    const current = data.current_condition[0];
+    const area = data.nearest_area[0];
+
+    res.json({
+      city: `${area.areaName[0].value}, ${area.country[0].value}`,
+      tempC: current.temp_C,
+      feelsLikeC: current.FeelsLikeC,
+      condition: current.weatherDesc[0].value,
+      humidity: current.humidity,
+      windKmph: current.windspeedKmph,
+    });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     res.status(500).json({ error: msg });

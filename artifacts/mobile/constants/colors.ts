@@ -1,35 +1,38 @@
 /**
- * JARVIS AI — dark holographic design tokens
+ * JARVIS AI — dark holographic design tokens (v2)
  */
 
 const colors = {
   light: {
-    text: '#cce8ff',
+    text: '#d0eeff',
     tint: '#00d4ff',
 
-    background: '#04080f',
-    foreground: '#cce8ff',
+    background: '#020b14',
+    foreground: '#d0eeff',
 
-    card: '#08121e',
-    cardForeground: '#cce8ff',
+    card: '#060f1c',
+    cardForeground: '#d0eeff',
 
     primary: '#00d4ff',
-    primaryForeground: '#000814',
+    primaryForeground: '#000a14',
 
-    secondary: '#0a1f35',
+    secondary: '#091a2e',
     secondaryForeground: '#7ec8e3',
 
-    muted: '#0d2035',
-    mutedForeground: '#4a8aaa',
+    muted: '#0b1d32',
+    mutedForeground: '#3d7a9a',
 
     accent: '#00ff9d',
-    accentForeground: '#000814',
+    accentForeground: '#000a14',
+
+    gold: '#ffb700',
+    goldForeground: '#000a14',
 
     destructive: '#ff4d4d',
     destructiveForeground: '#ffffff',
 
-    border: '#0d2a45',
-    input: '#0d2a45',
+    border: '#0c2840',
+    input: '#0c2840',
   },
 
   radius: 12,

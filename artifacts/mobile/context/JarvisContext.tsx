@@ -2,12 +2,29 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetch } from 'expo/fetch';
 import * as Speech from 'expo-speech';
+import { Share } from 'react-native';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+export type MessageType = 'text' | 'image' | 'weather';
+
+export interface WeatherData {
+  city: string;
+  tempC: string;
+  feelsLikeC: string;
+  condition: string;
+  humidity: string;
+  windKmph: string;
+}
 
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+  type?: MessageType;
+  imageUrl?: string;
+  weatherData?: WeatherData;
 }
 
 interface JarvisContextType {
@@ -16,21 +33,33 @@ interface JarvisContextType {
   model: string;
   voiceEnabled: boolean;
   isSpeaking: boolean;
+  systemPrompt: string;
   sendMessage: (text: string) => Promise<void>;
+  generateImage: (prompt: string) => Promise<void>;
+  searchWeb: (query: string) => Promise<void>;
+  fetchWeather: (city: string) => Promise<void>;
+  exportConversation: () => Promise<void>;
   clearConversation: () => void;
   setModel: (model: string) => Promise<void>;
   setVoiceEnabled: (v: boolean) => Promise<void>;
+  setSystemPrompt: (p: string) => Promise<void>;
   stopSpeaking: () => void;
   transcribeAudio: (uri: string) => Promise<string | null>;
   error: string | null;
   clearError: () => void;
 }
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+
 const JarvisContext = createContext<JarvisContextType | null>(null);
 
 const STORAGE_MESSAGES_KEY = '@jarvis_messages';
 const STORAGE_MODEL_KEY = '@jarvis_model';
 const STORAGE_VOICE_KEY = '@jarvis_voice_enabled';
+const STORAGE_SYSTEM_PROMPT_KEY = '@jarvis_system_prompt';
+
+const DEFAULT_SYSTEM_PROMPT =
+  "You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), an advanced AI assistant created by Maxime-E. You are highly intelligent, precise, and helpful. You speak in a calm, sophisticated manner — like the AI from Iron Man. You are concise but thorough. You refer to the user as \"sir\" or \"ma'am\" occasionally.";
 
 // Backend base URL — uses env var in dev, falls back to deployed prod server in APK builds
 const PROD_DOMAIN = 'jarvis-ai--maximeetivant.replit.app';
@@ -74,12 +103,15 @@ function parseSSEChunk(
   return { tokens, nextLeftover };
 }
 
+// ── Provider ──────────────────────────────────────────────────────────────────
+
 export function JarvisProvider({ children }: { children: React.ReactNode }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [model, setModelState] = useState('gpt-4o-mini');
   const [voiceEnabled, setVoiceEnabledState] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [systemPrompt, setSystemPromptState] = useState(DEFAULT_SYSTEM_PROMPT);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -88,14 +120,16 @@ export function JarvisProvider({ children }: { children: React.ReactNode }) {
 
   async function loadPersistedData() {
     try {
-      const [savedMessages, savedModel, savedVoice] = await Promise.all([
+      const [savedMessages, savedModel, savedVoice, savedPrompt] = await Promise.all([
         AsyncStorage.getItem(STORAGE_MESSAGES_KEY),
         AsyncStorage.getItem(STORAGE_MODEL_KEY),
         AsyncStorage.getItem(STORAGE_VOICE_KEY),
+        AsyncStorage.getItem(STORAGE_SYSTEM_PROMPT_KEY),
       ]);
       if (savedMessages) setMessages(JSON.parse(savedMessages));
       if (savedModel) setModelState(savedModel);
       if (savedVoice !== null) setVoiceEnabledState(savedVoice === 'true');
+      if (savedPrompt) setSystemPromptState(savedPrompt);
     } catch {}
   }
 
@@ -116,6 +150,11 @@ export function JarvisProvider({ children }: { children: React.ReactNode }) {
     if (!v) Speech.stop();
   }, []);
 
+  const setSystemPrompt = useCallback(async (p: string) => {
+    setSystemPromptState(p);
+    await AsyncStorage.setItem(STORAGE_SYSTEM_PROMPT_KEY, p);
+  }, []);
+
   const stopSpeaking = useCallback(() => {
     Speech.stop();
     setIsSpeaking(false);
@@ -130,7 +169,7 @@ export function JarvisProvider({ children }: { children: React.ReactNode }) {
 
   const clearError = useCallback(() => setError(null), []);
 
-  /** Transcribe a recorded audio file via the backend (Whisper) */
+  // ── Transcription ───────────────────────────────────────────────────────────
   const transcribeAudio = useCallback(async (uri: string): Promise<string | null> => {
     try {
       const formData = new FormData();
@@ -154,6 +193,7 @@ export function JarvisProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // ── Chat (streaming) ────────────────────────────────────────────────────────
   const sendMessage = useCallback(
     async (text: string) => {
       if (!text.trim() || isStreaming) return;
@@ -168,15 +208,16 @@ export function JarvisProvider({ children }: { children: React.ReactNode }) {
         setMessages((prev) => { resolve(prev); return prev; });
       });
 
-      const apiMessages = currentMessages.map((m) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-      }));
+      const apiMessages = currentMessages
+        .filter((m) => m.type === 'text' || !m.type)
+        .map((m) => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        }));
 
-      // Optimistic bubbles
-      const userMsg: Message = { id: generateId(), role: 'user', content: trimmed, timestamp: Date.now() };
+      const userMsg: Message = { id: generateId(), role: 'user', content: trimmed, timestamp: Date.now(), type: 'text' };
       const assistantMsgId = generateId();
-      const assistantMsg: Message = { id: assistantMsgId, role: 'assistant', content: '', timestamp: Date.now() };
+      const assistantMsg: Message = { id: assistantMsgId, role: 'assistant', content: '', timestamp: Date.now(), type: 'text' };
 
       setMessages((prev) => [...prev, userMsg, assistantMsg]);
       setIsStreaming(true);
@@ -189,6 +230,7 @@ export function JarvisProvider({ children }: { children: React.ReactNode }) {
           body: JSON.stringify({
             messages: [...apiMessages, { role: 'user', content: trimmed }],
             model,
+            systemPrompt,
           }),
         });
 
@@ -248,9 +290,210 @@ export function JarvisProvider({ children }: { children: React.ReactNode }) {
         setIsStreaming(false);
       }
     },
-    [isStreaming, model, voiceEnabled]
+    [isStreaming, model, voiceEnabled, systemPrompt]
   );
 
+  // ── Image generation (DALL·E 3) ─────────────────────────────────────────────
+  const generateImage = useCallback(async (prompt: string) => {
+    if (!prompt.trim() || isStreaming) return;
+
+    const trimmed = prompt.trim();
+    const userMsg: Message = {
+      id: generateId(),
+      role: 'user',
+      content: `🖼 Génère une image : ${trimmed}`,
+      timestamp: Date.now(),
+      type: 'text',
+    };
+    const loadingId = generateId();
+    const loadingMsg: Message = {
+      id: loadingId,
+      role: 'assistant',
+      content: '✨ Génération en cours...',
+      timestamp: Date.now(),
+      type: 'text',
+    };
+
+    setMessages((prev) => [...prev, userMsg, loadingMsg]);
+    setIsStreaming(true);
+    setError(null);
+
+    try {
+      const response = await globalThis.fetch(`${API_BASE}/image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: trimmed }),
+      });
+
+      if (!response.ok) throw new Error(`Erreur serveur ${response.status}`);
+      const data = await response.json() as { url: string; revisedPrompt?: string };
+
+      const imageMsg: Message = {
+        id: loadingId,
+        role: 'assistant',
+        content: data.revisedPrompt || trimmed,
+        timestamp: Date.now(),
+        type: 'image',
+        imageUrl: data.url,
+      };
+
+      setMessages((prev) => {
+        const updated = prev.map((m) => (m.id === loadingId ? imageMsg : m));
+        persistMessages(updated);
+        return updated;
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur inconnue';
+      setError(msg);
+      setMessages((prev) => {
+        const filtered = prev.filter((m) => m.id !== loadingId);
+        persistMessages(filtered);
+        return filtered;
+      });
+    } finally {
+      setIsStreaming(false);
+    }
+  }, [isStreaming]);
+
+  // ── Web search ───────────────────────────────────────────────────────────────
+  const searchWeb = useCallback(async (query: string) => {
+    if (!query.trim() || isStreaming) return;
+
+    const trimmed = query.trim();
+    const userMsg: Message = {
+      id: generateId(),
+      role: 'user',
+      content: `🔍 ${trimmed}`,
+      timestamp: Date.now(),
+      type: 'text',
+    };
+    const loadingId = generateId();
+    const loadingMsg: Message = {
+      id: loadingId,
+      role: 'assistant',
+      content: '🌐 Recherche en cours...',
+      timestamp: Date.now(),
+      type: 'text',
+    };
+
+    setMessages((prev) => [...prev, userMsg, loadingMsg]);
+    setIsStreaming(true);
+    setError(null);
+
+    try {
+      const response = await globalThis.fetch(`${API_BASE}/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: trimmed }),
+      });
+
+      if (!response.ok) throw new Error(`Erreur serveur ${response.status}`);
+      const data = await response.json() as { result: string };
+
+      const resultMsg: Message = {
+        id: loadingId,
+        role: 'assistant',
+        content: data.result,
+        timestamp: Date.now(),
+        type: 'text',
+      };
+
+      setMessages((prev) => {
+        const updated = prev.map((m) => (m.id === loadingId ? resultMsg : m));
+        persistMessages(updated);
+        return updated;
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur inconnue';
+      setError(msg);
+      setMessages((prev) => {
+        const filtered = prev.filter((m) => m.id !== loadingId);
+        persistMessages(filtered);
+        return filtered;
+      });
+    } finally {
+      setIsStreaming(false);
+    }
+  }, [isStreaming]);
+
+  // ── Weather ──────────────────────────────────────────────────────────────────
+  const fetchWeather = useCallback(async (city: string) => {
+    if (!city.trim() || isStreaming) return;
+
+    const trimmed = city.trim();
+    const userMsg: Message = {
+      id: generateId(),
+      role: 'user',
+      content: `🌤 Météo à ${trimmed}`,
+      timestamp: Date.now(),
+      type: 'text',
+    };
+    const loadingId = generateId();
+    const loadingMsg: Message = {
+      id: loadingId,
+      role: 'assistant',
+      content: '🌍 Récupération météo...',
+      timestamp: Date.now(),
+      type: 'text',
+    };
+
+    setMessages((prev) => [...prev, userMsg, loadingMsg]);
+    setIsStreaming(true);
+    setError(null);
+
+    try {
+      const encoded = encodeURIComponent(trimmed);
+      const response = await globalThis.fetch(`${API_BASE}/weather?city=${encoded}`);
+
+      if (!response.ok) throw new Error(`Erreur serveur ${response.status}`);
+      const data = await response.json() as WeatherData;
+
+      const weatherMsg: Message = {
+        id: loadingId,
+        role: 'assistant',
+        content: `Météo pour ${data.city}`,
+        timestamp: Date.now(),
+        type: 'weather',
+        weatherData: data,
+      };
+
+      setMessages((prev) => {
+        const updated = prev.map((m) => (m.id === loadingId ? weatherMsg : m));
+        persistMessages(updated);
+        return updated;
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur inconnue';
+      setError(msg);
+      setMessages((prev) => {
+        const filtered = prev.filter((m) => m.id !== loadingId);
+        persistMessages(filtered);
+        return filtered;
+      });
+    } finally {
+      setIsStreaming(false);
+    }
+  }, [isStreaming]);
+
+  // ── Export conversation ──────────────────────────────────────────────────────
+  const exportConversation = useCallback(async () => {
+    if (messages.length === 0) return;
+
+    const lines = messages.map((m) => {
+      const time = new Date(m.timestamp).toLocaleString();
+      const role = m.role === 'user' ? 'Vous' : 'JARVIS';
+      const content = m.type === 'image' ? `[Image générée] ${m.imageUrl}` :
+                      m.type === 'weather' ? `[Météo] ${m.weatherData?.city} — ${m.weatherData?.tempC}°C, ${m.weatherData?.condition}` :
+                      m.content;
+      return `[${time}] ${role}: ${content}`;
+    });
+
+    const text = `JARVIS BY Maxime-E — Conversation\n${'─'.repeat(40)}\n\n${lines.join('\n\n')}`;
+
+    await Share.share({ message: text, title: 'Conversation JARVIS' });
+  }, [messages]);
+
+  // ── Provider value ───────────────────────────────────────────────────────────
   return (
     <JarvisContext.Provider
       value={{
@@ -259,10 +502,16 @@ export function JarvisProvider({ children }: { children: React.ReactNode }) {
         model,
         voiceEnabled,
         isSpeaking,
+        systemPrompt,
         sendMessage,
+        generateImage,
+        searchWeb,
+        fetchWeather,
+        exportConversation,
         clearConversation,
         setModel,
         setVoiceEnabled,
+        setSystemPrompt,
         stopSpeaking,
         transcribeAudio,
         error,
