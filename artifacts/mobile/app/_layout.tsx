@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   introTagline: {
     fontSize: 12,
     fontFamily: 'Inter_400Regular',
-    color: '#ffffff99',
+    color: CYAN + 'cc',
     textAlign: 'center',
     lineHeight: 20,
     marginTop: 6,
