@@ -23,31 +23,35 @@ interface ToolsMenuProps {
 }
 
 const TOOLS = [
-  { key: 'image', icon: '🖼', label: 'Générer une image', desc: 'DALL·E 3', color: '#a855f7' },
   { key: 'search', icon: '🔍', label: 'Recherche web', desc: 'Temps réel', color: '#3b82f6' },
   { key: 'weather', icon: '🌤', label: 'Météo', desc: 'N\'importe quelle ville', color: '#06b6d4' },
+  { key: 'email', icon: '📧', label: 'Envoyer un email', desc: 'Via Gmail', color: '#22c55e' },
 ] as const;
 
 type ToolKey = typeof TOOLS[number]['key'];
 
 export function ToolsMenu({ visible, onClose }: ToolsMenuProps) {
   const colors = useColors();
-  const { generateImage, searchWeb, fetchWeather, isStreaming } = useJarvis();
+  const { searchWeb, fetchWeather, sendEmail, isStreaming } = useJarvis();
 
   const [activeInput, setActiveInput] = useState<ToolKey | null>(null);
   const [inputValue, setInputValue] = useState('');
+  const [emailTo, setEmailTo] = useState('');
+  const [emailSubject, setEmailSubject] = useState('');
   const inputRef = useRef<TextInput>(null);
 
   const placeholders: Record<ToolKey, string> = {
-    image: 'Décrivez l\'image à créer...',
     search: 'Que voulez-vous rechercher ?',
     weather: 'Entrez une ville (ex: Paris)',
+    email: 'Corps du message...',
   };
 
   const handleToolSelect = async (key: ToolKey) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActiveInput(key);
     setInputValue('');
+    setEmailTo('');
+    setEmailSubject('');
     setTimeout(() => inputRef.current?.focus(), 100);
   };
 
@@ -59,9 +63,9 @@ export function ToolsMenu({ visible, onClose }: ToolsMenuProps) {
     onClose();
 
     switch (activeInput) {
-      case 'image': await generateImage(val); break;
       case 'search': await searchWeb(val); break;
       case 'weather': await fetchWeather(val); break;
+      case 'email': await sendEmail({ to: emailTo.trim(), subject: emailSubject.trim(), body: val }); break;
     }
 
     setActiveInput(null);
@@ -138,6 +142,35 @@ export function ToolsMenu({ visible, onClose }: ToolsMenuProps) {
               {TOOLS.find((t) => t.key === activeInput)?.icon}{' '}
               {TOOLS.find((t) => t.key === activeInput)?.label}
             </Text>
+
+            {/* Extra fields for email */}
+            {activeInput === 'email' && (
+              <>
+                <View style={[styles.inputWrapper, { backgroundColor: colors.background, borderColor: emailTo ? colors.primary + '60' : colors.border }]}>
+                  <TextInput
+                    value={emailTo}
+                    onChangeText={setEmailTo}
+                    placeholder="Destinataire (ex: ami@gmail.com)"
+                    placeholderTextColor={colors.mutedForeground}
+                    style={[styles.textInput, { color: colors.foreground }]}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    returnKeyType="next"
+                  />
+                </View>
+                <View style={[styles.inputWrapper, { backgroundColor: colors.background, borderColor: emailSubject ? colors.primary + '60' : colors.border }]}>
+                  <TextInput
+                    value={emailSubject}
+                    onChangeText={setEmailSubject}
+                    placeholder="Objet"
+                    placeholderTextColor={colors.mutedForeground}
+                    style={[styles.textInput, { color: colors.foreground }]}
+                    returnKeyType="next"
+                  />
+                </View>
+              </>
+            )}
+
             <View style={[styles.inputWrapper, { backgroundColor: colors.background, borderColor: inputValue ? colors.primary + '60' : colors.border }]}>
               <TextInput
                 ref={inputRef}
@@ -146,31 +179,31 @@ export function ToolsMenu({ visible, onClose }: ToolsMenuProps) {
                 placeholder={placeholders[activeInput]}
                 placeholderTextColor={colors.mutedForeground}
                 style={[styles.textInput, { color: colors.foreground }]}
-                multiline={activeInput === 'image'}
-                maxLength={activeInput === 'image' ? 400 : 120}
-                onSubmitEditing={Platform.OS !== 'web' ? handleSubmit : undefined}
-                returnKeyType="send"
-                autoFocus
+                multiline={activeInput === 'email'}
+                maxLength={activeInput === 'email' ? 2000 : 200}
+                onSubmitEditing={activeInput !== 'email' && Platform.OS !== 'web' ? handleSubmit : undefined}
+                returnKeyType={activeInput === 'email' ? 'default' : 'send'}
+                autoFocus={activeInput !== 'email'}
               />
             </View>
 
             <View style={styles.inputActions}>
               <Pressable
-                onPress={() => { setActiveInput(null); setInputValue(''); }}
+                onPress={() => { setActiveInput(null); setInputValue(''); setEmailTo(''); setEmailSubject(''); }}
                 style={({ pressed }) => [styles.cancelBtn, { borderColor: colors.border, opacity: pressed ? 0.6 : 1 }]}
               >
                 <Text style={[styles.cancelText, { color: colors.mutedForeground }]}>Retour</Text>
               </Pressable>
               <Pressable
                 onPress={handleSubmit}
-                disabled={!inputValue.trim()}
-                style={({ pressed }) => [
-                  styles.submitBtn,
-                  { backgroundColor: inputValue.trim() ? colors.primary : colors.muted, opacity: pressed ? 0.75 : 1 },
-                ]}
+                disabled={!inputValue.trim() || (activeInput === 'email' && !emailTo.trim())}
+                style={({ pressed }) => {
+                  const canSubmit = inputValue.trim() && (activeInput !== 'email' || emailTo.trim());
+                  return [styles.submitBtn, { backgroundColor: canSubmit ? colors.primary : colors.muted, opacity: pressed ? 0.75 : 1 }];
+                }}
               >
-                <Text style={[styles.submitText, { color: inputValue.trim() ? colors.primaryForeground : colors.mutedForeground }]}>
-                  Envoyer
+                <Text style={[styles.submitText, { color: (inputValue.trim() && (activeInput !== 'email' || emailTo.trim())) ? colors.primaryForeground : colors.mutedForeground }]}>
+                  {activeInput === 'email' ? '📧 Envoyer' : 'Lancer'}
                 </Text>
               </Pressable>
             </View>

@@ -6,7 +6,7 @@ import { Share } from 'react-native';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type MessageType = 'text' | 'image' | 'weather';
+export type MessageType = 'text' | 'weather';
 
 export interface WeatherData {
   city: string;
@@ -23,7 +23,6 @@ export interface Message {
   content: string;
   timestamp: number;
   type?: MessageType;
-  imageUrl?: string;
   weatherData?: WeatherData;
 }
 
@@ -35,7 +34,7 @@ interface JarvisContextType {
   isSpeaking: boolean;
   systemPrompt: string;
   sendMessage: (text: string) => Promise<void>;
-  generateImage: (prompt: string) => Promise<void>;
+  sendEmail: (opts: { to: string; subject: string; body: string }) => Promise<void>;
   searchWeb: (query: string) => Promise<void>;
   fetchWeather: (city: string) => Promise<void>;
   exportConversation: () => Promise<void>;
@@ -293,68 +292,6 @@ export function JarvisProvider({ children }: { children: React.ReactNode }) {
     [isStreaming, model, voiceEnabled, systemPrompt]
   );
 
-  // ── Image generation (DALL·E 3) ─────────────────────────────────────────────
-  const generateImage = useCallback(async (prompt: string) => {
-    if (!prompt.trim() || isStreaming) return;
-
-    const trimmed = prompt.trim();
-    const userMsg: Message = {
-      id: generateId(),
-      role: 'user',
-      content: `🖼 Génère une image : ${trimmed}`,
-      timestamp: Date.now(),
-      type: 'text',
-    };
-    const loadingId = generateId();
-    const loadingMsg: Message = {
-      id: loadingId,
-      role: 'assistant',
-      content: '✨ Génération en cours...',
-      timestamp: Date.now(),
-      type: 'text',
-    };
-
-    setMessages((prev) => [...prev, userMsg, loadingMsg]);
-    setIsStreaming(true);
-    setError(null);
-
-    try {
-      const response = await globalThis.fetch(`${API_BASE}/image`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: trimmed }),
-      });
-
-      if (!response.ok) throw new Error(`Erreur serveur ${response.status}`);
-      const data = await response.json() as { url: string; revisedPrompt?: string };
-
-      const imageMsg: Message = {
-        id: loadingId,
-        role: 'assistant',
-        content: data.revisedPrompt || trimmed,
-        timestamp: Date.now(),
-        type: 'image',
-        imageUrl: data.url,
-      };
-
-      setMessages((prev) => {
-        const updated = prev.map((m) => (m.id === loadingId ? imageMsg : m));
-        persistMessages(updated);
-        return updated;
-      });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erreur inconnue';
-      setError(msg);
-      setMessages((prev) => {
-        const filtered = prev.filter((m) => m.id !== loadingId);
-        persistMessages(filtered);
-        return filtered;
-      });
-    } finally {
-      setIsStreaming(false);
-    }
-  }, [isStreaming]);
-
   // ── Web search ───────────────────────────────────────────────────────────────
   const searchWeb = useCallback(async (query: string) => {
     if (!query.trim() || isStreaming) return;
@@ -482,8 +419,7 @@ export function JarvisProvider({ children }: { children: React.ReactNode }) {
     const lines = messages.map((m) => {
       const time = new Date(m.timestamp).toLocaleString();
       const role = m.role === 'user' ? 'Vous' : 'JARVIS';
-      const content = m.type === 'image' ? `[Image générée] ${m.imageUrl}` :
-                      m.type === 'weather' ? `[Météo] ${m.weatherData?.city} — ${m.weatherData?.tempC}°C, ${m.weatherData?.condition}` :
+      const content = m.type === 'weather' ? `[Météo] ${m.weatherData?.city} — ${m.weatherData?.tempC}°C, ${m.weatherData?.condition}` :
                       m.content;
       return `[${time}] ${role}: ${content}`;
     });
@@ -492,6 +428,71 @@ export function JarvisProvider({ children }: { children: React.ReactNode }) {
 
     await Share.share({ message: text, title: 'Conversation JARVIS' });
   }, [messages]);
+
+  // ── Send email via Gmail ─────────────────────────────────────────────────────
+  const sendEmail = useCallback(async ({ to, subject, body }: { to: string; subject: string; body: string }) => {
+    const toTrimmed = to.trim();
+    const bodyTrimmed = body.trim();
+    if (!toTrimmed || !bodyTrimmed || isStreaming) return;
+
+    const userMsg: Message = {
+      id: generateId(),
+      role: 'user',
+      content: `📧 Email à ${toTrimmed}${subject ? ` — ${subject}` : ''}`,
+      timestamp: Date.now(),
+      type: 'text',
+    };
+    const loadingId = generateId();
+    const loadingMsg: Message = {
+      id: loadingId,
+      role: 'assistant',
+      content: '📤 Envoi en cours...',
+      timestamp: Date.now(),
+      type: 'text',
+    };
+
+    setMessages((prev) => [...prev, userMsg, loadingMsg]);
+    setIsStreaming(true);
+    setError(null);
+
+    try {
+      const BACKEND = `https://${_domain || PROD_DOMAIN}`;
+      const response = await globalThis.fetch(`${BACKEND}/api/email/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: toTrimmed, subject: subject.trim() || '(sans objet)', body: bodyTrimmed }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: `Erreur ${response.status}` })) as { error: string };
+        throw new Error(err.error);
+      }
+
+      const resultMsg: Message = {
+        id: loadingId,
+        role: 'assistant',
+        content: `✅ Email envoyé à ${toTrimmed} avec succès, sir.`,
+        timestamp: Date.now(),
+        type: 'text',
+      };
+
+      setMessages((prev) => {
+        const updated = prev.map((m) => (m.id === loadingId ? resultMsg : m));
+        persistMessages(updated);
+        return updated;
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur inconnue';
+      setError(msg);
+      setMessages((prev) => {
+        const filtered = prev.filter((m) => m.id !== loadingId);
+        persistMessages(filtered);
+        return filtered;
+      });
+    } finally {
+      setIsStreaming(false);
+    }
+  }, [isStreaming]);
 
   // ── Provider value ───────────────────────────────────────────────────────────
   return (
@@ -504,7 +505,7 @@ export function JarvisProvider({ children }: { children: React.ReactNode }) {
         isSpeaking,
         systemPrompt,
         sendMessage,
-        generateImage,
+        sendEmail,
         searchWeb,
         fetchWeather,
         exportConversation,

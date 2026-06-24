@@ -81,32 +81,6 @@ router.post("/transcribe", upload.single("file"), async (req, res) => {
   }
 });
 
-// ── POST /api/ai/image — DALL·E 3 image generation ───────────────────────────
-router.post("/image", async (req, res) => {
-  const { prompt } = req.body as { prompt: string };
-  if (!prompt?.trim()) {
-    res.status(400).json({ error: "prompt required" });
-    return;
-  }
-
-  try {
-    const openai = getOpenAI();
-    const result = await openai.images.generate({
-      model: "dall-e-3",
-      prompt: prompt.trim(),
-      n: 1,
-      size: "1024x1024",
-      quality: "standard",
-    });
-
-    const image = result.data?.[0];
-    res.json({ url: image?.url ?? null, revisedPrompt: image?.revised_prompt ?? null });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    res.status(500).json({ error: msg });
-  }
-});
-
 // ── POST /api/ai/search — Web search via GPT-4o mini search preview ───────────
 router.post("/search", async (req, res) => {
   const { query } = req.body as { query: string };

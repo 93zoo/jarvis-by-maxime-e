@@ -3,7 +3,6 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Image } from 'expo-image';
 import { useColors } from '@/hooks/useColors';
 import { Message } from '@/context/JarvisContext';
 
@@ -69,26 +68,6 @@ function WeatherCard({ data }: { data: NonNullable<Message['weatherData']> }) {
   );
 }
 
-// ── Image Message ─────────────────────────────────────────────────────────────
-function ImageMessage({ url, caption }: { url: string; caption: string }) {
-  const colors = useColors();
-  return (
-    <View style={[styles.imageBubble, { borderColor: colors.primary + '40' }]}>
-      <Image
-        source={{ uri: url }}
-        style={styles.generatedImage}
-        contentFit="cover"
-        transition={400}
-      />
-      {caption ? (
-        <Text style={[styles.imageCaption, { color: colors.mutedForeground }]} numberOfLines={2}>
-          {caption}
-        </Text>
-      ) : null}
-    </View>
-  );
-}
-
 // ── Main Bubble ───────────────────────────────────────────────────────────────
 export function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
   const colors = useColors();
@@ -115,9 +94,7 @@ export function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
 
       <View style={[styles.bubbleWrapper, isUser && styles.bubbleWrapperUser]}>
         {/* ── Content by type ── */}
-        {message.type === 'image' && message.imageUrl ? (
-          <ImageMessage url={message.imageUrl} caption={message.content} />
-        ) : message.type === 'weather' && message.weatherData ? (
+        {message.type === 'weather' && message.weatherData ? (
           <WeatherCard data={message.weatherData} />
         ) : isUser ? (
           // User bubble — gradient glass
@@ -285,22 +262,4 @@ const styles = StyleSheet.create({
   weatherStatValue: { fontSize: 14, fontWeight: '600' as const, fontFamily: 'Inter_600SemiBold' },
   weatherDivider: { width: 1 },
 
-  // Image
-  imageBubble: {
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: 'hidden',
-    maxWidth: 280,
-  },
-  generatedImage: {
-    width: 280,
-    height: 280,
-  },
-  imageCaption: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 12,
-    fontFamily: 'Inter_400Regular',
-    lineHeight: 17,
-  },
 });
