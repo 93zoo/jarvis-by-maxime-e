@@ -195,7 +195,7 @@ export default function SettingsScreen() {
         {/* About */}
         <View style={styles.aboutContainer}>
           <Text style={[styles.aboutText, { color: colors.mutedForeground }]}>
-            J.A.R.V.I.S.{'\n'}Just A Rather Very Intelligent System
+            JARVIS BY Maxime-E{'\n'}Just A Rather Very Intelligent System
           </Text>
         </View>
       </ScrollView>

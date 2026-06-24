@@ -69,7 +69,7 @@ export function ChatInput({ onSend, isStreaming, disabled }: ChatInputProps) {
             ]}
             value={text}
             onChangeText={setText}
-            placeholder="Ask JARVIS anything..."
+            placeholder="Ask JARVIS BY Maxime-E anything..."
             placeholderTextColor={colors.mutedForeground}
             multiline
             maxLength={4000}
