@@ -32,8 +32,13 @@ const STORAGE_MESSAGES_KEY = '@jarvis_messages';
 const STORAGE_MODEL_KEY = '@jarvis_model';
 const STORAGE_VOICE_KEY = '@jarvis_voice_enabled';
 
-// Backend base URL — served from same domain as the app
-const API_BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}/api/ai`;
+// Backend base URL — uses env var in dev, falls back to deployed prod server in APK builds
+const PROD_DOMAIN = 'jarvis-ai--maximeetivant.replit.app';
+const _domain = process.env.EXPO_PUBLIC_DOMAIN;
+if (__DEV__ && !_domain) {
+  console.warn('[JARVIS] EXPO_PUBLIC_DOMAIN is not set — falling back to production server.');
+}
+const API_BASE = `https://${_domain || PROD_DOMAIN}/api/ai`;
 
 function generateId(): string {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
