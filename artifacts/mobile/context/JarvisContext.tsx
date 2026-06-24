@@ -33,6 +33,9 @@ interface JarvisContextType {
   voiceEnabled: boolean;
   isSpeaking: boolean;
   systemPrompt: string;
+  gmailAddress: string;
+  gmailAppPassword: string;
+  setGmailCredentials: (email: string, password: string) => Promise<void>;
   sendMessage: (text: string) => Promise<void>;
   sendEmail: (opts: { to: string; subject: string; body: string }) => Promise<void>;
   searchWeb: (query: string) => Promise<void>;
@@ -56,6 +59,8 @@ const STORAGE_MESSAGES_KEY = '@jarvis_messages';
 const STORAGE_MODEL_KEY = '@jarvis_model';
 const STORAGE_VOICE_KEY = '@jarvis_voice_enabled';
 const STORAGE_SYSTEM_PROMPT_KEY = '@jarvis_system_prompt';
+const STORAGE_GMAIL_ADDRESS_KEY = '@jarvis_gmail_address';
+const STORAGE_GMAIL_PASSWORD_KEY = '@jarvis_gmail_password';
 
 const DEFAULT_SYSTEM_PROMPT =
   "You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), an advanced AI assistant created by Maxime-E. You are highly intelligent, precise, and helpful. You speak in a calm, sophisticated manner — like the AI from Iron Man. You are concise but thorough. You refer to the user as \"sir\" or \"ma'am\" occasionally.";
@@ -111,6 +116,8 @@ export function JarvisProvider({ children }: { children: React.ReactNode }) {
   const [voiceEnabled, setVoiceEnabledState] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [systemPrompt, setSystemPromptState] = useState(DEFAULT_SYSTEM_PROMPT);
+  const [gmailAddress, setGmailAddressState] = useState('');
+  const [gmailAppPassword, setGmailAppPasswordState] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -119,16 +126,20 @@ export function JarvisProvider({ children }: { children: React.ReactNode }) {
 
   async function loadPersistedData() {
     try {
-      const [savedMessages, savedModel, savedVoice, savedPrompt] = await Promise.all([
+      const [savedMessages, savedModel, savedVoice, savedPrompt, savedGmailAddr, savedGmailPw] = await Promise.all([
         AsyncStorage.getItem(STORAGE_MESSAGES_KEY),
         AsyncStorage.getItem(STORAGE_MODEL_KEY),
         AsyncStorage.getItem(STORAGE_VOICE_KEY),
         AsyncStorage.getItem(STORAGE_SYSTEM_PROMPT_KEY),
+        AsyncStorage.getItem(STORAGE_GMAIL_ADDRESS_KEY),
+        AsyncStorage.getItem(STORAGE_GMAIL_PASSWORD_KEY),
       ]);
       if (savedMessages) setMessages(JSON.parse(savedMessages));
       if (savedModel) setModelState(savedModel);
       if (savedVoice !== null) setVoiceEnabledState(savedVoice === 'true');
       if (savedPrompt) setSystemPromptState(savedPrompt);
+      if (savedGmailAddr) setGmailAddressState(savedGmailAddr);
+      if (savedGmailPw) setGmailAppPasswordState(savedGmailPw);
     } catch {}
   }
 
@@ -152,6 +163,15 @@ export function JarvisProvider({ children }: { children: React.ReactNode }) {
   const setSystemPrompt = useCallback(async (p: string) => {
     setSystemPromptState(p);
     await AsyncStorage.setItem(STORAGE_SYSTEM_PROMPT_KEY, p);
+  }, []);
+
+  const setGmailCredentials = useCallback(async (email: string, password: string) => {
+    setGmailAddressState(email);
+    setGmailAppPasswordState(password);
+    await Promise.all([
+      AsyncStorage.setItem(STORAGE_GMAIL_ADDRESS_KEY, email),
+      AsyncStorage.setItem(STORAGE_GMAIL_PASSWORD_KEY, password),
+    ]);
   }, []);
 
   const stopSpeaking = useCallback(() => {
@@ -434,6 +454,10 @@ export function JarvisProvider({ children }: { children: React.ReactNode }) {
     const toTrimmed = to.trim();
     const bodyTrimmed = body.trim();
     if (!toTrimmed || !bodyTrimmed || isStreaming) return;
+    if (!gmailAddress || !gmailAppPassword) {
+      setError('Gmail non configuré. Va dans Paramètres > Email pour entrer ton adresse et mot de passe d\'application.');
+      return;
+    }
 
     const userMsg: Message = {
       id: generateId(),
@@ -460,7 +484,7 @@ export function JarvisProvider({ children }: { children: React.ReactNode }) {
       const response = await globalThis.fetch(`${BACKEND}/api/email/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: toTrimmed, subject: subject.trim() || '(sans objet)', body: bodyTrimmed }),
+        body: JSON.stringify({ from: gmailAddress, appPassword: gmailAppPassword, to: toTrimmed, subject: subject.trim() || '(sans objet)', body: bodyTrimmed }),
       });
 
       if (!response.ok) {
@@ -492,7 +516,7 @@ export function JarvisProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsStreaming(false);
     }
-  }, [isStreaming]);
+  }, [isStreaming, gmailAddress, gmailAppPassword]);
 
   // ── Provider value ───────────────────────────────────────────────────────────
   return (
@@ -504,6 +528,9 @@ export function JarvisProvider({ children }: { children: React.ReactNode }) {
         voiceEnabled,
         isSpeaking,
         systemPrompt,
+        gmailAddress,
+        gmailAppPassword,
+        setGmailCredentials,
         sendMessage,
         sendEmail,
         searchWeb,

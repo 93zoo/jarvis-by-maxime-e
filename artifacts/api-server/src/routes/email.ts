@@ -1,28 +1,51 @@
 import { Router } from "express";
+import nodemailer from "nodemailer";
 
 const router = Router();
 
 // ── POST /api/email/send ──────────────────────────────────────────────────────
-// Gmail client will be injected here once the Gmail Replit integration is connected.
-// Until then this route returns a clear error so the mobile app shows feedback.
+// Credentials are provided per-request from the mobile app (stored locally
+// on the user's device, never persisted server-side).
 router.post("/send", async (req, res) => {
-  const { to, subject, body } = req.body as {
+  const { from, appPassword, to, subject, body } = req.body as {
+    from?: string;
+    appPassword?: string;
     to?: string;
     subject?: string;
     body?: string;
   };
 
+  if (!from?.trim() || !appPassword?.trim()) {
+    res.status(400).json({ error: "Compte Gmail non configuré. Rends-toi dans Paramètres > Email pour le configurer." });
+    return;
+  }
   if (!to?.trim() || !body?.trim()) {
-    res.status(400).json({ error: "Les champs 'to' et 'body' sont requis." });
+    res.status(400).json({ error: "Destinataire et corps du message requis." });
     return;
   }
 
-  // TODO: replace this block with the Gmail connector client once connected.
-  // See: artifacts/api-server/src/lib/gmail.ts (will be created after OAuth setup)
-  res.status(503).json({
-    error:
-      "Gmail non encore configuré. Connecte ton compte Google dans les paramètres Replit.",
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: { user: from.trim(), pass: appPassword.trim() },
   });
+
+  try {
+    await transporter.sendMail({
+      from: `"JARVIS" <${from.trim()}>`,
+      to: to.trim(),
+      subject: subject?.trim() || "(sans objet)",
+      text: body.trim(),
+    });
+
+    res.json({ ok: true });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Erreur inconnue";
+    // Give a human-readable hint for the most common error
+    const hint = msg.includes("Invalid login") || msg.includes("Username and Password")
+      ? "Mot de passe d'application invalide. Génère-en un sur myaccount.google.com > Sécurité > Mots de passe des applications."
+      : msg;
+    res.status(500).json({ error: hint });
+  }
 });
 
 export default router;

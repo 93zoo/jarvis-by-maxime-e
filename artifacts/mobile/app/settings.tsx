@@ -9,6 +9,7 @@ import {
   Text,
   TextInput,
   View,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -35,11 +36,17 @@ export default function SettingsScreen() {
     voiceEnabled, setVoiceEnabled,
     isSpeaking, stopSpeaking,
     systemPrompt, setSystemPrompt,
+    gmailAddress, gmailAppPassword, setGmailCredentials,
     messages, exportConversation,
   } = useJarvis();
 
   const [editingPrompt, setEditingPrompt] = useState(false);
   const [draftPrompt, setDraftPrompt] = useState(systemPrompt);
+
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [draftGmailAddress, setDraftGmailAddress] = useState(gmailAddress);
+  const [draftGmailPassword, setDraftGmailPassword] = useState(gmailAppPassword);
+  const [showPassword, setShowPassword] = useState(false);
 
   const topPad = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPad = Platform.OS === 'web' ? 34 : insets.bottom;
@@ -72,6 +79,15 @@ export default function SettingsScreen() {
   async function handleExport() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     await exportConversation();
+  }
+
+  async function handleSaveEmail() {
+    const addr = draftGmailAddress.trim();
+    const pw = draftGmailPassword.trim();
+    if (!addr || !pw) return;
+    await setGmailCredentials(addr, pw);
+    setEditingEmail(false);
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }
 
   return (
@@ -228,6 +244,101 @@ export default function SettingsScreen() {
           </View>
           <Text style={[styles.hint, { color: colors.mutedForeground }]}>
             💡 Définissez la personnalité et le comportement de JARVIS.
+          </Text>
+        </View>
+
+        {/* ── Email Gmail ── */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>EMAIL (GMAIL)</Text>
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            {!editingEmail ? (
+              <>
+                <View style={styles.emailPreviewRow}>
+                  {gmailAddress ? (
+                    <View style={styles.emailConfigured}>
+                      <View style={[styles.emailDot, { backgroundColor: '#22c55e' }]} />
+                      <Text style={[styles.emailAddress, { color: colors.foreground }]} numberOfLines={1}>
+                        {gmailAddress}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={[styles.emailNotSet, { color: colors.mutedForeground }]}>
+                      Non configuré
+                    </Text>
+                  )}
+                </View>
+                <View style={[styles.promptActions, { borderTopColor: colors.border }]}>
+                  <Pressable
+                    onPress={() => { setDraftGmailAddress(gmailAddress); setDraftGmailPassword(gmailAppPassword); setEditingEmail(true); }}
+                    style={({ pressed }) => [styles.promptBtn, { opacity: pressed ? 0.6 : 1 }]}
+                  >
+                    <Feather name="edit-2" size={14} color={colors.primary} />
+                    <Text style={[styles.promptBtnText, { color: colors.primary }]}>
+                      {gmailAddress ? 'Modifier' : 'Configurer'}
+                    </Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : (
+              <View style={styles.promptEditorContainer}>
+                <View style={[styles.inputWrapper, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                  <TextInput
+                    value={draftGmailAddress}
+                    onChangeText={setDraftGmailAddress}
+                    placeholder="Adresse Gmail (ex: moi@gmail.com)"
+                    placeholderTextColor={colors.mutedForeground}
+                    style={[styles.emailInput, { color: colors.foreground }]}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </View>
+                <View style={[styles.inputWrapper, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                  <TextInput
+                    value={draftGmailPassword}
+                    onChangeText={setDraftGmailPassword}
+                    placeholder="Mot de passe d'application Google"
+                    placeholderTextColor={colors.mutedForeground}
+                    style={[styles.emailInput, { color: colors.foreground }]}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  <Pressable onPress={() => setShowPassword((v) => !v)} hitSlop={8} style={styles.eyeBtn}>
+                    <Feather name={showPassword ? 'eye-off' : 'eye'} size={16} color={colors.mutedForeground} />
+                  </Pressable>
+                </View>
+                <View style={styles.promptEditorActions}>
+                  <Pressable
+                    onPress={() => setEditingEmail(false)}
+                    style={({ pressed }) => [styles.cancelBtn, { borderColor: colors.border, opacity: pressed ? 0.6 : 1 }]}
+                  >
+                    <Text style={[styles.cancelBtnText, { color: colors.mutedForeground }]}>Annuler</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={handleSaveEmail}
+                    disabled={!draftGmailAddress.trim() || !draftGmailPassword.trim()}
+                    style={({ pressed }) => {
+                      const ok = draftGmailAddress.trim() && draftGmailPassword.trim();
+                      return [styles.saveBtn, { backgroundColor: ok ? colors.primary : colors.muted, opacity: pressed ? 0.75 : 1 }];
+                    }}
+                  >
+                    <Text style={[styles.saveBtnText, { color: (draftGmailAddress.trim() && draftGmailPassword.trim()) ? colors.primaryForeground : colors.mutedForeground }]}>
+                      Sauvegarder
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
+          </View>
+          <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+            🔐 Mot de passe d'application requis (pas ton vrai mot de passe).{' '}
+            <Text
+              style={{ color: colors.primary, textDecorationLine: 'underline' }}
+              onPress={() => Linking.openURL('https://myaccount.google.com/apppasswords')}
+            >
+              Générer →
+            </Text>
           </Text>
         </View>
 
@@ -412,6 +523,28 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   dangerText: { fontSize: 15, fontFamily: 'Inter_500Medium', fontWeight: '500' as const },
+
+  // Email
+  emailPreviewRow: { padding: 16 },
+  emailConfigured: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  emailDot: { width: 8, height: 8, borderRadius: 4 },
+  emailAddress: { flex: 1, fontSize: 14, fontFamily: 'Inter_400Regular' },
+  emailNotSet: { fontSize: 14, fontFamily: 'Inter_400Regular', fontStyle: 'italic' },
+  inputWrapper: {
+    borderRadius: 10,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    marginBottom: 8,
+  },
+  emailInput: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
+  },
+  eyeBtn: { padding: 4 },
 
   aboutContainer: { alignItems: 'center', paddingTop: 8 },
   aboutText: {
