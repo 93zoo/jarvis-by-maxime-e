@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -109,9 +109,22 @@ export function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
             </Text>
           </LinearGradient>
         ) : (
-          // Assistant bubble — glassmorphism
-          <BlurView intensity={18} tint="dark" style={[styles.assistantBubble, { borderColor: colors.border }]}>
-            <View style={[styles.assistantInner, { backgroundColor: colors.card + 'cc' }]}>
+          // Assistant bubble — glassmorphism (BlurView iOS, fallback Android)
+          Platform.OS === 'ios' ? (
+            <BlurView intensity={18} tint="dark" style={[styles.assistantBubble, { borderColor: colors.border }]}>
+              <View style={[styles.assistantInner, { backgroundColor: colors.card + 'cc' }]}>
+                {message.content ? (
+                  <Text style={[styles.messageText, { color: colors.foreground }]}>
+                    {message.content}
+                    {isStreaming && <Text style={{ color: colors.primary }}>▊</Text>}
+                  </Text>
+                ) : isStreaming ? (
+                  <Text style={[styles.messageText, { color: colors.primary }]}>▊</Text>
+                ) : null}
+              </View>
+            </BlurView>
+          ) : (
+            <View style={[styles.assistantBubble, styles.assistantBubbleAndroid, { borderColor: colors.border, backgroundColor: colors.card + 'ee' }]}>
               {message.content ? (
                 <Text style={[styles.messageText, { color: colors.foreground }]}>
                   {message.content}
@@ -121,7 +134,7 @@ export function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
                 <Text style={[styles.messageText, { color: colors.primary }]}>▊</Text>
               ) : null}
             </View>
-          </BlurView>
+          )
         )}
 
         {/* Timestamp */}
@@ -196,6 +209,10 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 5,
     borderWidth: 1,
     overflow: 'hidden',
+  },
+  assistantBubbleAndroid: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
   assistantInner: {
     paddingHorizontal: 14,
