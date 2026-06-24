@@ -108,7 +108,7 @@ function JarvisIntro({ onDone }: { onDone: () => void }) {
         </Animated.Text>
 
         <Animated.Text style={[styles.introSubtitle, { opacity: subtitleOpacity }]}>
-          JUST A RATHER VERY INTELLIGENT SYSTEM
+          JUSTE UN SYSTÈME VRAIMENT TRÈS INTELLIGENT
         </Animated.Text>
 
         <Animated.Text style={[styles.introTagline, { opacity: subtitleOpacity }]}>
