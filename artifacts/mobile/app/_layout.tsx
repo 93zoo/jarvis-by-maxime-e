@@ -214,7 +214,8 @@ const styles = StyleSheet.create({
   },
   introContent: {
     alignItems: 'center',
-    gap: 14,
+    width: 300,
+    gap: 10,
   },
   introTitle: {
     fontSize: 42,
@@ -222,6 +223,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_700Bold',
     color: CYAN,
     letterSpacing: 8,
+    textAlign: 'center',
     textShadowColor: CYAN,
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 18,
@@ -239,14 +241,13 @@ const styles = StyleSheet.create({
     color: '#ffffff99',
     textAlign: 'center',
     lineHeight: 20,
-    marginTop: 14,
+    marginTop: 6,
     letterSpacing: 0.3,
   },
   bootLog: {
-    marginTop: 22,
-    alignSelf: 'stretch',
-    paddingHorizontal: 24,
-    gap: 5,
+    marginTop: 18,
+    width: 300,
+    gap: 6,
   },
   bootLine: {
     flexDirection: 'row',
@@ -257,7 +258,8 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: 'Inter_400Regular',
     color: CYAN + '66',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
+    flex: 1,
   },
   bootTextActive: {
     color: CYAN + 'cc',
@@ -267,6 +269,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
     fontWeight: '600' as const,
     letterSpacing: 0.5,
+    width: 46,
+    textAlign: 'right',
   },
   bootStatusOk: {
     color: '#22c55e',
