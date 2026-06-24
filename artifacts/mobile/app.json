@@ -14,9 +14,14 @@
       "backgroundColor": "#04080f"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "JARVIS a besoin du microphone pour entendre vos commandes vocales."
+      }
     },
-    "android": {},
+    "android": {
+      "permissions": ["RECORD_AUDIO"]
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },

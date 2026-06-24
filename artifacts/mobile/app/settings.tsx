@@ -4,6 +4,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -24,7 +25,7 @@ const MODELS = [
 export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { apiKey, setApiKey, model, setModel, clearConversation } = useJarvis();
+  const { apiKey, setApiKey, model, setModel, clearConversation, voiceEnabled, setVoiceEnabled, isSpeaking, stopSpeaking } = useJarvis();
 
   const [keyInput, setKeyInput] = useState(apiKey);
   const [showKey, setShowKey] = useState(false);
@@ -172,6 +173,51 @@ export default function SettingsScreen() {
               </Pressable>
             ))}
           </View>
+        </View>
+
+        {/* Voice section */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+            VOIX
+          </Text>
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            {/* TTS toggle */}
+            <View style={styles.toggleRow}>
+              <View style={styles.toggleInfo}>
+                <Text style={[styles.toggleLabel, { color: colors.foreground }]}>
+                  Réponse vocale
+                </Text>
+                <Text style={[styles.toggleDesc, { color: colors.mutedForeground }]}>
+                  JARVIS vous répond à voix haute
+                </Text>
+              </View>
+              <Switch
+                value={voiceEnabled}
+                onValueChange={(v) => setVoiceEnabled(v)}
+                trackColor={{ false: colors.muted, true: colors.primary + '60' }}
+                thumbColor={voiceEnabled ? colors.primary : colors.mutedForeground}
+              />
+            </View>
+
+            {/* Stop speaking button */}
+            {isSpeaking && (
+              <Pressable
+                onPress={stopSpeaking}
+                style={({ pressed }) => [
+                  styles.stopSpeakRow,
+                  { borderTopColor: colors.border, opacity: pressed ? 0.6 : 1 },
+                ]}
+              >
+                <Feather name="volume-x" size={16} color={colors.accent} />
+                <Text style={[styles.stopSpeakText, { color: colors.accent }]}>
+                  Arrêter la lecture
+                </Text>
+              </Pressable>
+            )}
+          </View>
+          <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+            Appuyez sur le micro 🎤 pour parler à JARVIS. La transcription utilise OpenAI Whisper.
+          </Text>
         </View>
 
         {/* Danger zone */}
@@ -322,6 +368,39 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
+  },
+  toggleRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  toggleInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  toggleLabel: {
+    fontSize: 15,
+    fontFamily: 'Inter_500Medium',
+    fontWeight: '500' as const,
+  },
+  toggleDesc: {
+    fontSize: 12,
+    fontFamily: 'Inter_400Regular',
+  },
+  stopSpeakRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+  },
+  stopSpeakText: {
+    fontSize: 14,
+    fontFamily: 'Inter_500Medium',
+    fontWeight: '500' as const,
   },
   dangerRow: {
     flexDirection: 'row',

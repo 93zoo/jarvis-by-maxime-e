@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   Platform,
   Pressable,
   StyleSheet,
@@ -11,6 +13,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { Audio } from 'expo-av';
+import { useJarvis } from '@/context/JarvisContext';
 
 interface ChatInputProps {
   onSend: (text: string) => void;
@@ -20,10 +24,34 @@ interface ChatInputProps {
 
 export function ChatInput({ onSend, isStreaming, disabled }: ChatInputProps) {
   const [text, setText] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { transcribeAudio, isSpeaking, stopSpeaking } = useJarvis();
+
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
 
   const canSend = text.trim().length > 0 && !isStreaming && !disabled;
+  const bottomPad = Platform.OS === 'web' ? 34 : insets.bottom;
+
+  // Pulse animation while recording
+  useEffect(() => {
+    if (isRecording) {
+      pulseLoop.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.4, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        ])
+      );
+      pulseLoop.current.start();
+    } else {
+      pulseLoop.current?.stop();
+      pulseAnim.setValue(1);
+    }
+  }, [isRecording, pulseAnim]);
 
   async function handleSend() {
     if (!canSend) return;
@@ -33,7 +61,66 @@ export function ChatInput({ onSend, isStreaming, disabled }: ChatInputProps) {
     onSend(msg);
   }
 
-  const bottomPad = Platform.OS === 'web' ? 34 : insets.bottom;
+  async function handleMicPress() {
+    if (Platform.OS === 'web') return;
+
+    if (isRecording) {
+      // Stop recording and transcribe
+      await stopRecording();
+    } else {
+      await startRecording();
+    }
+  }
+
+  async function startRecording() {
+    try {
+      const { granted } = await Audio.requestPermissionsAsync();
+      if (!granted) return;
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      recordingRef.current = recording;
+      setIsRecording(true);
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch {}
+  }
+
+  async function stopRecording() {
+    if (!recordingRef.current) return;
+    try {
+      setIsRecording(false);
+      setIsTranscribing(true);
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      await recordingRef.current.stopAndUnloadAsync();
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+
+      const uri = recordingRef.current.getURI();
+      recordingRef.current = null;
+
+      if (!uri) { setIsTranscribing(false); return; }
+
+      const transcription = await transcribeAudio(uri);
+      setIsTranscribing(false);
+
+      if (transcription?.trim()) {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        onSend(transcription.trim());
+      }
+    } catch {
+      setIsTranscribing(false);
+      recordingRef.current = null;
+    }
+  }
+
+  const micBusy = isRecording || isTranscribing;
+  const showMic = Platform.OS !== 'web';
 
   return (
     <View
@@ -50,12 +137,53 @@ export function ChatInput({ onSend, isStreaming, disabled }: ChatInputProps) {
       <View style={[styles.topGlow, { backgroundColor: colors.primary + '30' }]} />
 
       <View style={styles.inputRow}>
+        {/* Mic button */}
+        {showMic && (
+          <Pressable
+            onPress={micBusy ? undefined : handleMicPress}
+            onLongPress={isRecording ? stopRecording : undefined}
+            disabled={isTranscribing || disabled}
+            style={({ pressed }) => [
+              styles.micButton,
+              {
+                backgroundColor: isRecording
+                  ? colors.destructive + '25'
+                  : isSpeaking
+                  ? colors.accent + '20'
+                  : colors.card,
+                borderColor: isRecording
+                  ? colors.destructive
+                  : isSpeaking
+                  ? colors.accent
+                  : colors.border,
+                opacity: pressed ? 0.7 : disabled ? 0.4 : 1,
+              },
+            ]}
+          >
+            {isTranscribing ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : isRecording ? (
+              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+                <Feather name="mic" size={18} color={colors.destructive} />
+              </Animated.View>
+            ) : isSpeaking ? (
+              <Feather name="volume-2" size={18} color={colors.accent} onPress={stopSpeaking} />
+            ) : (
+              <Feather name="mic" size={18} color={colors.mutedForeground} />
+            )}
+          </Pressable>
+        )}
+
         <View
           style={[
             styles.inputWrapper,
             {
               backgroundColor: colors.card,
-              borderColor: text ? colors.primary + '60' : colors.border,
+              borderColor: isRecording
+                ? colors.destructive + '60'
+                : text
+                ? colors.primary + '60'
+                : colors.border,
             },
           ]}
         >
@@ -67,15 +195,15 @@ export function ChatInput({ onSend, isStreaming, disabled }: ChatInputProps) {
                 fontFamily: 'Inter_400Regular',
               },
             ]}
-            value={text}
+            value={isRecording ? '🎙 Enregistrement...' : isTranscribing ? '⏳ Transcription...' : text}
             onChangeText={setText}
-            placeholder="Ask JARVIS BY Maxime-E anything..."
+            placeholder={isRecording ? '' : 'Ask JARVIS BY Maxime-E anything...'}
             placeholderTextColor={colors.mutedForeground}
             multiline
             maxLength={4000}
             returnKeyType="default"
             onSubmitEditing={Platform.OS !== 'web' ? undefined : handleSend}
-            editable={!disabled}
+            editable={!disabled && !isRecording && !isTranscribing}
           />
         </View>
 
@@ -123,6 +251,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 8,
+  },
+  micButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   inputWrapper: {
     flex: 1,
