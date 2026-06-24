@@ -21,38 +21,60 @@ SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
 
 // ── Animated intro overlay ───────────────────────────────────────────────────
+const BOOT_LINES = [
+  { text: '> NOYAU IA CHARGÉ................', status: '[OK]' },
+  { text: '> MODULES VOCAUX ACTIFS..........', status: '[OK]' },
+  { text: '> CONNEXION SÉCURISÉE............', status: '[OK]' },
+  { text: '> MÉMOIRE CONTEXTUELLE...........', status: '[OK]' },
+  { text: '> PROTOCOLES JARVIS V3...........', status: '[OK]' },
+  { text: '> ACCÈS INTERNET.................', status: '[OK]' },
+  { text: '> SYSTÈME OPÉRATIONNEL...........', status: '[PRÊT]' },
+];
+
+// Each line appears every 320ms, starting after 900ms
+const BOOT_START_DELAY = 900;
+const BOOT_INTERVAL = 320;
+// Total duration = start + all lines + small pause before fade
+const TOTAL_DURATION = BOOT_START_DELAY + BOOT_LINES.length * BOOT_INTERVAL + 700;
+
 function JarvisIntro({ onDone }: { onDone: () => void }) {
   const bgOpacity = useRef(new Animated.Value(1)).current;
   const titleOpacity = useRef(new Animated.Value(0)).current;
   const titleScale = useRef(new Animated.Value(0.82)).current;
   const subtitleOpacity = useRef(new Animated.Value(0)).current;
   const scanLine = useRef(new Animated.Value(0)).current;
-  const dotsOpacity = useRef(new Animated.Value(0)).current;
   const scanLoop = useRef<Animated.CompositeAnimation | null>(null);
+  const [bootLines, setBootLines] = React.useState<number>(0);
 
   useEffect(() => {
-    // 1) Title fades in
+    // Title → subtitle → tagline
     Animated.sequence([
       Animated.parallel([
         Animated.timing(titleOpacity, { toValue: 1, duration: 600, easing: Easing.out(Easing.ease), useNativeDriver: true }),
         Animated.timing(titleScale, { toValue: 1, duration: 700, easing: Easing.out(Easing.back(1.2)), useNativeDriver: true }),
       ]),
-      // 2) Subtitle fades in
       Animated.timing(subtitleOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
-      Animated.timing(dotsOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
     ]).start();
 
-    // Scan line loops
+    // Scan line
     scanLoop.current = Animated.loop(
       Animated.sequence([
-        Animated.timing(scanLine, { toValue: 1, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+        Animated.timing(scanLine, { toValue: 1, duration: 1400, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
         Animated.timing(scanLine, { toValue: 0, duration: 0, useNativeDriver: false }),
       ])
     );
     scanLoop.current.start();
 
-    // After 2.4s, fade out and call onDone
-    const timer = setTimeout(() => {
+    // Boot lines — appear one by one
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    BOOT_LINES.forEach((_, i) => {
+      timers.push(setTimeout(() => {
+        setBootLines(i + 1);
+      }, BOOT_START_DELAY + i * BOOT_INTERVAL));
+    });
+
+    // Fade out after all lines shown
+    const exitTimer = setTimeout(() => {
       scanLoop.current?.stop();
       Animated.timing(bgOpacity, {
         toValue: 0,
@@ -60,10 +82,11 @@ function JarvisIntro({ onDone }: { onDone: () => void }) {
         easing: Easing.in(Easing.ease),
         useNativeDriver: true,
       }).start(() => onDone());
-    }, 2400);
+    }, TOTAL_DURATION);
 
     return () => {
-      clearTimeout(timer);
+      timers.forEach(clearTimeout);
+      clearTimeout(exitTimer);
       scanLoop.current?.stop();
     };
   }, []);
@@ -80,12 +103,7 @@ function JarvisIntro({ onDone }: { onDone: () => void }) {
 
       {/* Content */}
       <View style={styles.introContent}>
-        <Animated.Text
-          style={[
-            styles.introTitle,
-            { opacity: titleOpacity, transform: [{ scale: titleScale }] },
-          ]}
-        >
+        <Animated.Text style={[styles.introTitle, { opacity: titleOpacity, transform: [{ scale: titleScale }] }]}>
           J.A.R.V.I.S.
         </Animated.Text>
 
@@ -97,11 +115,22 @@ function JarvisIntro({ onDone }: { onDone: () => void }) {
           Votre agent IA de poche JARVIS{'\n'}codé par Maxime Etivant
         </Animated.Text>
 
-        <Animated.View style={[styles.initRow, { opacity: dotsOpacity }]}>
-          <View style={styles.initDot} />
-          <Text style={styles.initText}>INITIALISATION DU SYSTÈME...</Text>
-          <View style={styles.initDot} />
-        </Animated.View>
+        {/* Boot log */}
+        <View style={styles.bootLog}>
+          {BOOT_LINES.slice(0, bootLines).map((line, i) => (
+            <View key={i} style={styles.bootLine}>
+              <Text style={[styles.bootText, i === bootLines - 1 && styles.bootTextActive]}>
+                {line.text}
+              </Text>
+              <Text style={[
+                styles.bootStatus,
+                line.status === '[PRÊT]' ? styles.bootStatusReady : styles.bootStatusOk,
+              ]}>
+                {line.status}
+              </Text>
+            </View>
+          ))}
+        </View>
       </View>
 
       {/* Bottom brand */}
@@ -213,11 +242,37 @@ const styles = StyleSheet.create({
     marginTop: 14,
     letterSpacing: 0.3,
   },
-  initRow: {
+  bootLog: {
+    marginTop: 22,
+    alignSelf: 'stretch',
+    paddingHorizontal: 24,
+    gap: 5,
+  },
+  bootLine: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 18,
+  },
+  bootText: {
+    fontSize: 10,
+    fontFamily: 'Inter_400Regular',
+    color: CYAN + '66',
+    letterSpacing: 0.5,
+  },
+  bootTextActive: {
+    color: CYAN + 'cc',
+  },
+  bootStatus: {
+    fontSize: 10,
+    fontFamily: 'Inter_600SemiBold',
+    fontWeight: '600' as const,
+    letterSpacing: 0.5,
+  },
+  bootStatusOk: {
+    color: '#22c55e',
+  },
+  bootStatusReady: {
+    color: CYAN,
   },
   initDot: {
     width: 5,
