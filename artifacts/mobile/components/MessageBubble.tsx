@@ -22,17 +22,15 @@ function WeatherCard({ data }: { data: NonNullable<Message['weatherData']> }) {
     <View style={[styles.weatherCard, { backgroundColor: colors.card, borderColor: colors.primary + '40' }]}>
       <View style={styles.weatherTop}>
         <Text style={[styles.weatherCity, { color: colors.foreground }]}>{data.city}</Text>
-        <Text style={styles.weatherEmoji}>{data.emoji}</Text>
+        <Text style={styles.weatherEmoji}>🌡</Text>
       </View>
       <View style={styles.weatherRow}>
-        <Text style={[styles.weatherTemp, { color: colors.primary }]}>{data.temp}</Text>
-        <Text style={[styles.weatherDesc, { color: colors.mutedForeground }]}>{data.description}</Text>
+        <Text style={[styles.weatherTemp, { color: colors.primary }]}>{data.tempC}°C</Text>
+        <Text style={[styles.weatherDesc, { color: colors.mutedForeground }]}>{data.condition}</Text>
       </View>
-      {data.humidity && (
-        <Text style={[styles.weatherDetail, { color: colors.mutedForeground }]}>
-          💧 {data.humidity}  💨 {data.wind ?? '—'}
-        </Text>
-      )}
+      <Text style={[styles.weatherDetail, { color: colors.mutedForeground }]}>
+        💧 {data.humidity}  💨 {data.windKmph}  🤔 {data.feelsLikeC}°C
+      </Text>
     </View>
   );
 }
