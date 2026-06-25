@@ -1,13 +1,8 @@
 /**
- * ContactsPicker — Expo Go compatible version
+ * ContactsPicker — Expo Go compatible (zero native modules)
  *
- * Expo Go does NOT ship expo-contacts@15.x native binaries for SDK 54,
- * so we implement a two-path approach:
- *   • Android: IntentLauncher ACTION_PICK to open the system contacts picker,
- *              then a manual number entry fallback.
- *   • iOS    : Linking to open contacts app, then number entry.
- *
- * Full in-app contact list (expo-contacts) will be available in the APK build.
+ * Uses only React Native's built-in Linking API (always available in Expo Go).
+ * The full in-app contact list will be available in the APK build.
  */
 
 import React, { useState } from 'react';
@@ -22,7 +17,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import * as IntentLauncher from 'expo-intent-launcher';
 import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -37,7 +31,7 @@ export interface PickedContact {
 interface ContactsPickerProps {
   visible: boolean;
   onClose: () => void;
-  /** Called when user taps "JARVIS COMPOSE" → parent sends message to JARVIS */
+  /** Called when user taps "✦ JARVIS" → parent sends message to JARVIS */
   onJarvisCompose: (contact: PickedContact) => void;
 }
 
@@ -52,13 +46,13 @@ function stripNumber(n: string) {
 export function ContactsPicker({ visible, onClose, onJarvisCompose }: ContactsPickerProps) {
   const insets = useSafeAreaInsets();
 
-  const [name, setName]     = useState('');
-  const [number, setNumber] = useState('');
-  const [mode, setMode]     = useState<'idle' | 'sms'>('idle');
+  const [name, setName]       = useState('');
+  const [number, setNumber]   = useState('');
+  const [mode, setMode]       = useState<'idle' | 'sms'>('idle');
   const [smsBody, setSmsBody] = useState('');
 
-  const top    = Platform.OS === 'ios' ? insets.top : 24;
-  const bottom = Platform.OS === 'ios' ? insets.bottom : 20;
+  const paddingTop    = Platform.OS === 'ios' ? insets.top    : 24;
+  const paddingBottom = Platform.OS === 'ios' ? insets.bottom : 20;
 
   function reset() {
     setName('');
@@ -75,22 +69,14 @@ export function ContactsPicker({ visible, onClose, onJarvisCompose }: ContactsPi
   const stripped  = stripNumber(number);
   const canAction = stripped.length >= 4;
 
-  // Open system contacts app so the user can look up a number
-  async function openSystemContacts() {
+  /** Open the OS native contacts app (no native module needed) */
+  function openSystemContacts() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (Platform.OS === 'android') {
-      try {
-        await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
-          data: 'content://contacts/people',
-        });
-      } catch {
-        Linking.openURL('content://contacts').catch(() => {});
-      }
-    } else {
-      Linking.openURL('contacts://').catch(() => {
-        Linking.openSettings();
-      });
-    }
+    const url =
+      Platform.OS === 'android'
+        ? 'content://contacts/people'
+        : 'contacts://';
+    Linking.openURL(url).catch(() => Linking.openSettings());
   }
 
   function handleCall() {
@@ -100,7 +86,9 @@ export function ContactsPicker({ visible, onClose, onJarvisCompose }: ContactsPi
   }
 
   function handleSMS() {
-    const suffix = smsBody.trim() ? `?body=${encodeURIComponent(smsBody.trim())}` : '';
+    const suffix = smsBody.trim()
+      ? `?body=${encodeURIComponent(smsBody.trim())}`
+      : '';
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Linking.openURL(`sms:${stripped}${suffix}`).catch(() => {});
     handleClose();
@@ -113,8 +101,13 @@ export function ContactsPicker({ visible, onClose, onJarvisCompose }: ContactsPi
   }
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={handleClose}>
-      <View style={[styles.root, { paddingTop: top, paddingBottom: bottom }]}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={false}
+      onRequestClose={handleClose}
+    >
+      <View style={[styles.root, { paddingTop, paddingBottom }]}>
 
         {/* ── Header ── */}
         <View style={styles.header}>
@@ -123,19 +116,17 @@ export function ContactsPicker({ visible, onClose, onJarvisCompose }: ContactsPi
           </Pressable>
           <View style={{ alignItems: 'center' }}>
             <Text style={styles.title}>CONTACTS</Text>
-            <Text style={styles.sub}>JARVIS ACCESS · APPEL / SMS</Text>
+            <Text style={styles.sub}>JARVIS · APPEL / SMS</Text>
           </View>
           <View style={{ width: 36 }} />
         </View>
 
         <View style={styles.body}>
 
-          {/* ── Open system contacts ── */}
+          {/* ── Open native contacts ── */}
           <Pressable onPress={openSystemContacts} style={styles.contactsBtn}>
             <Feather name="book-open" size={15} color="#0099FF" style={{ marginRight: 8 }} />
-            <Text style={styles.contactsBtnText}>
-              {Platform.OS === 'android' ? 'OUVRIR CONTACTS ANDROID' : 'OUVRIR CONTACTS iOS'}
-            </Text>
+            <Text style={styles.contactsBtnText}>OUVRIR LES CONTACTS</Text>
           </Pressable>
 
           <View style={styles.dividerRow}>
@@ -144,7 +135,7 @@ export function ContactsPicker({ visible, onClose, onJarvisCompose }: ContactsPi
             <View style={styles.dividerLine} />
           </View>
 
-          {/* ── Name input (optional) ── */}
+          {/* ── Name (optional) ── */}
           <View style={[styles.field, { borderColor: name ? '#0099FF40' : '#0C1C2E' }]}>
             <Text style={styles.fieldTag}>NOM (optionnel)</Text>
             <TextInput
@@ -157,8 +148,8 @@ export function ContactsPicker({ visible, onClose, onJarvisCompose }: ContactsPi
             />
           </View>
 
-          {/* ── Number input ── */}
-          <View style={[styles.field, { borderColor: stripped.length >= 4 ? '#4CAF5060' : '#0C1C2E' }]}>
+          {/* ── Number ── */}
+          <View style={[styles.field, { borderColor: canAction ? '#4CAF5060' : '#0C1C2E' }]}>
             <Text style={styles.fieldTag}>NUMÉRO *</Text>
             <TextInput
               value={number}
@@ -188,7 +179,7 @@ export function ContactsPicker({ visible, onClose, onJarvisCompose }: ContactsPi
             </View>
           )}
 
-          {/* ── Action buttons ── */}
+          {/* ── Actions ── */}
           <View style={styles.actions}>
             <Pressable
               onPress={handleCall}
@@ -198,7 +189,9 @@ export function ContactsPicker({ visible, onClose, onJarvisCompose }: ContactsPi
                 borderColor: canAction ? '#4CAF50' : '#0C1C2E',
               }]}
             >
-              <Text style={[styles.btnText, { color: canAction ? '#4CAF50' : '#2E4E6A' }]}>📞 APPELER</Text>
+              <Text style={[styles.btnText, { color: canAction ? '#4CAF50' : '#2E4E6A' }]}>
+                📞 APPELER
+              </Text>
             </Pressable>
 
             {mode === 'sms' ? (
@@ -210,7 +203,9 @@ export function ContactsPicker({ visible, onClose, onJarvisCompose }: ContactsPi
                   borderColor: canAction ? '#00E0FF' : '#0C1C2E',
                 }]}
               >
-                <Text style={[styles.btnText, { color: canAction ? '#00E0FF' : '#2E4E6A' }]}>ENVOYER ↗</Text>
+                <Text style={[styles.btnText, { color: canAction ? '#00E0FF' : '#2E4E6A' }]}>
+                  ENVOYER ↗
+                </Text>
               </Pressable>
             ) : (
               <Pressable
@@ -221,7 +216,9 @@ export function ContactsPicker({ visible, onClose, onJarvisCompose }: ContactsPi
                   borderColor: canAction ? '#00E0FF' : '#0C1C2E',
                 }]}
               >
-                <Text style={[styles.btnText, { color: canAction ? '#00E0FF' : '#2E4E6A' }]}>💬 SMS</Text>
+                <Text style={[styles.btnText, { color: canAction ? '#00E0FF' : '#2E4E6A' }]}>
+                  💬 SMS
+                </Text>
               </Pressable>
             )}
 
@@ -233,11 +230,13 @@ export function ContactsPicker({ visible, onClose, onJarvisCompose }: ContactsPi
                 borderColor: canAction ? '#C084FC' : '#0C1C2E',
               }]}
             >
-              <Text style={[styles.btnText, { color: canAction ? '#C084FC' : '#2E4E6A' }]}>✦ JARVIS</Text>
+              <Text style={[styles.btnText, { color: canAction ? '#C084FC' : '#2E4E6A' }]}>
+                ✦ JARVIS
+              </Text>
             </Pressable>
           </View>
 
-          {/* ── Hint ── */}
+          {/* ── Info ── */}
           <View style={styles.hint}>
             <Feather name="info" size={11} color="#2E4E6A" style={{ marginRight: 6 }} />
             <Text style={styles.hintText}>
@@ -262,8 +261,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: '#0C1C2E',
   },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 12, fontFamily: 'Inter_700Bold', letterSpacing: 2.5, color: '#0099FF' },
-  sub: { fontSize: 9, fontFamily: 'Inter_400Regular', letterSpacing: 1, color: '#2E4E6A', marginTop: 2 },
+  title: {
+    fontSize: 12, letterSpacing: 2.5, color: '#0099FF',
+    fontFamily: 'Inter_700Bold',
+  },
+  sub: {
+    fontSize: 9, letterSpacing: 1, color: '#2E4E6A', marginTop: 2,
+    fontFamily: 'Inter_400Regular',
+  },
 
   body: { flex: 1, padding: 20, gap: 12 },
 
@@ -272,17 +277,24 @@ const styles = StyleSheet.create({
     paddingVertical: 13, borderRadius: 10,
     borderWidth: 1, borderColor: '#0099FF40', backgroundColor: '#0099FF08',
   },
-  contactsBtnText: { color: '#0099FF', fontSize: 12, fontFamily: 'Inter_700Bold', letterSpacing: 1 },
+  contactsBtnText: {
+    color: '#0099FF', fontSize: 12, letterSpacing: 1,
+    fontFamily: 'Inter_700Bold',
+  },
 
   dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 2 },
   dividerLine: { flex: 1, height: 1, backgroundColor: '#0C1C2E' },
-  dividerLabel: { fontSize: 10, fontFamily: 'Inter_400Regular', color: '#2E4E6A' },
+  dividerLabel: { fontSize: 10, color: '#2E4E6A', fontFamily: 'Inter_400Regular' },
 
   field: {
-    borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10,
+    borderWidth: 1, borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 10,
     backgroundColor: '#080F1A',
   },
-  fieldTag: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1.5, color: '#0099FF80', marginBottom: 4 },
+  fieldTag: {
+    fontSize: 9, letterSpacing: 1.5, color: '#0099FF80', marginBottom: 4,
+    fontFamily: 'Inter_700Bold',
+  },
   fieldInput: { color: '#C0DCF4', fontSize: 14, fontFamily: 'Inter_400Regular' },
 
   actions: { flexDirection: 'row', gap: 8, marginTop: 4 },
@@ -290,12 +302,16 @@ const styles = StyleSheet.create({
     flex: 1, paddingVertical: 12, borderRadius: 10,
     borderWidth: 1, alignItems: 'center',
   },
-  btnText: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: 0.5 },
+  btnText: { fontSize: 10, letterSpacing: 0.5, fontFamily: 'Inter_700Bold' },
 
   hint: {
     flexDirection: 'row', alignItems: 'center',
     marginTop: 'auto', padding: 12,
-    backgroundColor: '#080F1A', borderRadius: 8, borderWidth: 1, borderColor: '#0C1C2E',
+    backgroundColor: '#080F1A', borderRadius: 8,
+    borderWidth: 1, borderColor: '#0C1C2E',
   },
-  hintText: { flex: 1, fontSize: 10, fontFamily: 'Inter_400Regular', color: '#2E4E6A', lineHeight: 15 },
+  hintText: {
+    flex: 1, fontSize: 10, lineHeight: 15, color: '#2E4E6A',
+    fontFamily: 'Inter_400Regular',
+  },
 });
