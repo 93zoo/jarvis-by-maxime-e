@@ -35,6 +35,7 @@ import { JarvisOrb } from '@/components/JarvisOrb';
 import { MessageBubble } from '@/components/MessageBubble';
 import { ChatInput } from '@/components/ChatInput';
 import { ToolsMenu } from '@/components/ToolsMenu';
+import { ContactsPicker, PickedContact } from '@/components/ContactsPicker';
 
 // ── Dimensions ───────────────────────────────────────────────────────────────
 
@@ -79,7 +80,7 @@ const HOME_NODES: HomeNode[] = [
   { key: 'news',      emoji: '📰', label: 'ACTUALITÉS', color: '#A78BFA', noInput: true,  ...op(-108) },
   { key: 'bluetooth', emoji: '🔵', label: 'BLUETOOTH',  color: '#00BCD4', noInput: true,  ...op( -72) },
   { key: 'calculate', emoji: '🧮', label: 'CALCUL',     color: '#818CF8', noInput: false, ...op( -36) },
-  { key: 'call',      emoji: '📞', label: 'APPEL/SMS',  color: '#4CAF50', noInput: false, ...op(   0) },
+  { key: 'call',      emoji: '📞', label: 'CONTACTS',  color: '#4CAF50', noInput: true,  ...op(   0) },
   { key: 'email',     emoji: '📧', label: 'EMAIL',      color: '#F472B6', noInput: false, ...op(  36) },
   { key: 'note',      emoji: '📝', label: 'NOTE',       color: '#00E0FF', noInput: false, ...op(  72) },
   { key: 'summarize', emoji: '📊', label: 'RÉSUMÉ',     color: '#A78BFA', noInput: false, ...op( 108) },
@@ -90,23 +91,26 @@ const HOME_NODES: HomeNode[] = [
 
 // ── App launcher list ─────────────────────────────────────────────────────────
 
-interface AppEntry { name: string; emoji: string; iosUrl: string; androidUrl: string; color: string; }
+interface AppEntry {
+  name: string; emoji: string; color: string;
+  iosUrl: string; androidUrl: string; androidPackage: string;
+}
 
 const APP_LIST: AppEntry[] = [
-  { name: 'WhatsApp',   emoji: '💬', iosUrl: 'whatsapp://',               androidUrl: 'whatsapp://',                       color: '#25D366' },
-  { name: 'Instagram',  emoji: '📸', iosUrl: 'instagram://',              androidUrl: 'instagram://',                      color: '#E4405F' },
-  { name: 'Spotify',    emoji: '🎵', iosUrl: 'spotify://',                androidUrl: 'spotify://',                        color: '#1DB954' },
-  { name: 'YouTube',    emoji: '▶️', iosUrl: 'youtube://',                androidUrl: 'vnd.youtube://',                    color: '#FF0000' },
-  { name: 'Maps',       emoji: '🗺', iosUrl: 'maps://',                   androidUrl: 'geo:0,0',                           color: '#4285F4' },
-  { name: 'Telegram',   emoji: '✈️', iosUrl: 'tg://',                     androidUrl: 'org.telegram.messenger://',         color: '#2CA5E0' },
-  { name: 'Snapchat',   emoji: '👻', iosUrl: 'snapchat://',               androidUrl: 'snapchat://',                       color: '#FFFC00' },
-  { name: 'X / Twitter',emoji: '🐦', iosUrl: 'twitter://',                androidUrl: 'twitter://',                        color: '#1DA1F2' },
-  { name: 'LinkedIn',   emoji: '💼', iosUrl: 'linkedin://',               androidUrl: 'linkedin://',                       color: '#0A66C2' },
-  { name: 'Netflix',    emoji: '🎬', iosUrl: 'nflx://',                   androidUrl: 'netflix://',                        color: '#E50914' },
-  { name: 'TikTok',     emoji: '🎵', iosUrl: 'tiktok://',                 androidUrl: 'tiktok://',                         color: '#010101' },
-  { name: 'FaceTime',   emoji: '📹', iosUrl: 'facetime://',               androidUrl: '',                                  color: '#34C759' },
-  { name: 'Chrome',     emoji: '🌐', iosUrl: 'googlechrome://',           androidUrl: 'googlechrome://',                   color: '#4285F4' },
-  { name: 'Uber',       emoji: '🚗', iosUrl: 'uber://',                   androidUrl: 'uber://',                           color: '#000000' },
+  { name: 'WhatsApp',    emoji: '💬', color: '#25D366', iosUrl: 'whatsapp://',         androidUrl: 'whatsapp://',       androidPackage: 'com.whatsapp' },
+  { name: 'Instagram',   emoji: '📸', color: '#E4405F', iosUrl: 'instagram://',        androidUrl: 'instagram://',      androidPackage: 'com.instagram.android' },
+  { name: 'Spotify',     emoji: '🎵', color: '#1DB954', iosUrl: 'spotify://',          androidUrl: 'spotify://',        androidPackage: 'com.spotify.music' },
+  { name: 'YouTube',     emoji: '▶️', color: '#FF0000', iosUrl: 'youtube://',          androidUrl: 'vnd.youtube://',    androidPackage: 'com.google.android.youtube' },
+  { name: 'Maps',        emoji: '🗺', color: '#4285F4', iosUrl: 'maps://',             androidUrl: 'geo:0,0',           androidPackage: 'com.google.android.apps.maps' },
+  { name: 'Telegram',    emoji: '✈️', color: '#2CA5E0', iosUrl: 'tg://',              androidUrl: 'tg://',             androidPackage: 'org.telegram.messenger' },
+  { name: 'Snapchat',    emoji: '👻', color: '#FFFC00', iosUrl: 'snapchat://',         androidUrl: 'snapchat://',       androidPackage: 'com.snapchat.android' },
+  { name: 'X / Twitter', emoji: '🐦', color: '#1DA1F2', iosUrl: 'twitter://',         androidUrl: 'twitter://',        androidPackage: 'com.twitter.android' },
+  { name: 'LinkedIn',    emoji: '💼', color: '#0A66C2', iosUrl: 'linkedin://',         androidUrl: 'linkedin://',       androidPackage: 'com.linkedin.android' },
+  { name: 'Netflix',     emoji: '🎬', color: '#E50914', iosUrl: 'nflx://',            androidUrl: 'netflix://',        androidPackage: 'com.netflix.mediaclient' },
+  { name: 'TikTok',      emoji: '🎵', color: '#010101', iosUrl: 'tiktok://',           androidUrl: 'tiktok://',         androidPackage: 'com.zhiliaoapp.musically' },
+  { name: 'FaceTime',    emoji: '📹', color: '#34C759', iosUrl: 'facetime://',         androidUrl: '',                  androidPackage: '' },
+  { name: 'Chrome',      emoji: '🌐', color: '#4285F4', iosUrl: 'googlechrome://',     androidUrl: 'googlechrome://',   androidPackage: 'com.android.chrome' },
+  { name: 'Uber',        emoji: '🚗', color: '#000000', iosUrl: 'uber://',             androidUrl: 'uber://',           androidPackage: 'com.ubercab' },
 ];
 
 // Line endpoints: from orb edge to near-node
@@ -489,6 +493,8 @@ export default function ChatScreen() {
 
   // App launcher modal
   const [appsOpen, setAppsOpen]         = useState(false);
+  // Contacts picker
+  const [contactsOpen, setContactsOpen] = useState(false);
 
   const openTool = (key?: MenuToolKey) => {
     setInitialTool(key);
@@ -500,6 +506,7 @@ export default function ChatScreen() {
       switch (node.key) {
         case 'github':    fetchGithubNotifs(); break;
         case 'news':      fetchNews(''); break;
+        case 'call':      setContactsOpen(true); break;
         case 'bluetooth': {
           if (Platform.OS === 'ios') {
             // Works on real iOS device builds (not in Expo Go sandbox)
@@ -638,6 +645,17 @@ export default function ChatScreen() {
         initialTool={initialTool}
       />
 
+      {/* ── Contacts picker ── */}
+      <ContactsPicker
+        visible={contactsOpen}
+        onClose={() => setContactsOpen(false)}
+        onJarvisCompose={(contact: PickedContact) => {
+          sendMessage(
+            `Mon contact **${contact.name}** (${contact.number}). Rédige un SMS de ma part pour lui — demande-moi ce que je souhaite lui dire.`
+          );
+        }}
+      />
+
       {/* ── Apps launcher modal ── */}
       <Modal visible={appsOpen} transparent animationType="slide" onRequestClose={() => setAppsOpen(false)}>
         <Pressable style={styles.appsOverlay} onPress={() => setAppsOpen(false)}>
@@ -669,12 +687,17 @@ export default function ChatScreen() {
                       await Linking.openURL(`https://www.google.com/search?q=${encodeURIComponent(app.name)}`);
                       return;
                     }
-                    // Skip canOpenURL (unreliable on Android 11+ without package queries)
-                    // Directly try the deep link, fallback to web search on error
+                    // Try deep link first; fallback to Play Store (Android) or App Store search (iOS)
                     try {
                       await Linking.openURL(url);
                     } catch {
-                      await Linking.openURL(`https://www.google.com/search?q=${encodeURIComponent(app.name)}`);
+                      if (Platform.OS === 'android' && app.androidPackage) {
+                        await Linking.openURL(`market://details?id=${app.androidPackage}`).catch(() =>
+                          Linking.openURL(`https://play.google.com/store/apps/details?id=${app.androidPackage}`)
+                        );
+                      } else {
+                        await Linking.openURL(`https://apps.apple.com/search?term=${encodeURIComponent(app.name)}`);
+                      }
                     }
                   }}
                 >

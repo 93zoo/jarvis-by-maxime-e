@@ -17,7 +17,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.maximeetivant.jarvisai",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "JARVIS a besoin du microphone pour entendre vos commandes vocales."
+        "NSMicrophoneUsageDescription": "JARVIS a besoin du microphone pour entendre vos commandes vocales.",
+        "NSContactsUsageDescription": "JARVIS accède à vos contacts pour passer des appels et envoyer des SMS."
       }
     },
     "android": {
@@ -32,6 +33,7 @@
         "INTERNET",
         "ACCESS_NETWORK_STATE",
         "VIBRATE",
+        "READ_CONTACTS",
         "RECEIVE_BOOT_COMPLETED",
         "android.permission.SCHEDULE_EXACT_ALARM",
         "android.permission.USE_EXACT_ALARM"
