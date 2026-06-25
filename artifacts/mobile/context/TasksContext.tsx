@@ -1,6 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Notifications from 'expo-notifications';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -37,50 +36,16 @@ interface TasksContextType {
   deleteNote: (id: string) => Promise<void>;
 }
 
-// ── Notifications setup ───────────────────────────────────────────────────────
+// ── Notifications — graceful no-op for Expo Go ────────────────────────────────
+// expo-notifications requires a native build (removed from Expo Go SDK 53+).
+// All notification calls are silent no-ops here; they work in the APK build.
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowList: true,
-  }),
-});
-
-async function requestNotifPermissions() {
-  const result = await Notifications.requestPermissionsAsync();
-  // API shape differs across SDK versions
-  const r = result as unknown as { granted?: boolean; status?: string };
-  return r.granted === true || r.status === 'granted';
+async function scheduleTaskNotif(_task: Task): Promise<string | undefined> {
+  return undefined;
 }
 
-async function scheduleTaskNotif(task: Task): Promise<string | undefined> {
-  if (!task.dueDate) return undefined;
-  const granted = await requestNotifPermissions().catch(() => false);
-  if (!granted) return undefined;
-
-  const triggerDate = new Date(task.dueDate);
-  if (triggerDate <= new Date()) return undefined;
-
-  try {
-    const id = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: `⚡ JARVIS — Rappel`,
-        body: task.title,
-        sound: true,
-      },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: triggerDate },
-    });
-    return id;
-  } catch {
-    return undefined;
-  }
-}
-
-async function cancelTaskNotif(notificationId?: string) {
-  if (!notificationId) return;
-  try { await Notifications.cancelScheduledNotificationAsync(notificationId); } catch {}
+async function cancelTaskNotif(_notificationId?: string): Promise<void> {
+  // no-op
 }
 
 // ── Storage helpers ───────────────────────────────────────────────────────────
@@ -125,16 +90,13 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
       const next = prev.map((t) => {
         if (t.id !== id) return t;
         const updated = { ...t, ...updates };
-        // Reschedule notification if dueDate changed
         if (updates.dueDate !== undefined && updates.dueDate !== t.dueDate) {
           cancelTaskNotif(t.notificationId);
           if (updates.dueDate) {
             scheduleTaskNotif(updated).then((nid) => {
-              // Always update notificationId (null clears stale IDs on failure)
               setTasks((p) => { const n = p.map((x) => x.id === id ? { ...x, notificationId: nid } : x); persistTasks(n); return n; });
             });
           } else {
-            // dueDate removed — clear stale notification ID immediately
             updated.notificationId = undefined;
           }
         }
@@ -162,10 +124,9 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
         const updated = { ...t, done: !t.done };
         if (updated.done) {
           cancelTaskNotif(t.notificationId);
-          updated.notificationId = undefined; // clear stale ID
+          updated.notificationId = undefined;
         } else {
           scheduleTaskNotif(updated).then((nid) => {
-            // Always update to prevent stale IDs
             setTasks((p) => { const n = p.map((x) => x.id === id ? { ...x, notificationId: nid } : x); persistTasks(n); return n; });
           });
         }

@@ -59,7 +59,6 @@
     "@react-native-community/datetimepicker": "^9.1.0",
     "expo-av": "^16.0.8",
     "expo-file-system": "^56.0.8",
-    "expo-notifications": "^56.0.18",
     "expo-speech": "^56.0.3"
   }
 }
