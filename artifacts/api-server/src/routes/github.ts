@@ -1,17 +1,14 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { ReplitConnectors } from "@replit/connectors-sdk";
 
 const router = Router();
+const GH_BASE = "https://api.github.com";
 
 // ── Internal-only guard ────────────────────────────────────────────────────
-// The GitHub connector holds 93zoo's OAuth token. Block non-localhost requests
-// so deployed endpoints can't be hit by arbitrary clients.
 function internalOnly(req: Request, res: Response, next: NextFunction): void {
   const origin = (req.headers.origin ?? "") as string;
   const referer = (req.headers.referer ?? "") as string;
   const forwarded = (req.headers["x-forwarded-for"] ?? "") as string;
 
-  // Allow: no origin (same-server), localhost, or Expo/Replit preview domains
   const allowed =
     !origin ||
     origin.includes("localhost") ||
@@ -19,7 +16,7 @@ function internalOnly(req: Request, res: Response, next: NextFunction): void {
     origin.includes("expo") ||
     referer.includes("replit") ||
     referer.includes("expo") ||
-    !forwarded; // direct call from same container
+    !forwarded;
 
   if (!allowed) {
     res.status(403).json({ error: "Forbidden" });
@@ -30,25 +27,38 @@ function internalOnly(req: Request, res: Response, next: NextFunction): void {
 
 router.use(internalOnly);
 
-function getConnectors() {
-  return new ReplitConnectors();
-}
+// ── GitHub REST helper using PAT ───────────────────────────────────────────
+async function gh(
+  path: string,
+  opts: RequestInit = {}
+): Promise<Response> {
+  const token = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
+  if (!token) throw Object.assign(new Error("GITHUB_PERSONAL_ACCESS_TOKEN not set"), { status: 500 });
 
-async function proxyGithub(path: string, opts: Parameters<ReplitConnectors["proxy"]>[2] = {}) {
-  const c = getConnectors();
-  const r = await c.proxy("github", path, opts);
+  const url = `${GH_BASE}${path}`;
+  const r = await fetch(url, {
+    ...opts,
+    headers: {
+      Authorization: `token ${token}`,
+      Accept: "application/vnd.github.v3+json",
+      "User-Agent": "JARVIS-AI/1.0",
+      "Content-Type": "application/json",
+      ...(opts.headers ?? {}),
+    },
+  });
+
   if (!r.ok) {
     const body = await r.text().catch(() => "");
-    throw Object.assign(new Error(`GitHub API ${r.status}`), { status: r.status, body });
+    throw Object.assign(new Error(`GitHub API ${r.status}: ${body.slice(0, 120)}`), { status: r.status });
   }
-  return r.json();
+  return r;
 }
 
 // ── GET /api/github/user ───────────────────────────────────────────────────
-
 router.get("/user", async (_req, res) => {
   try {
-    const data = await proxyGithub("/user") as { login: string; name: string; avatar_url: string; bio: string; public_repos: number };
+    const r = await gh("/user");
+    const data = await r.json() as { login: string; name: string; avatar_url: string; bio: string; public_repos: number };
     res.json({ login: data.login, name: data.name, avatar: data.avatar_url, bio: data.bio, publicRepos: data.public_repos });
   } catch (err: unknown) {
     const e = err as { status?: number; message?: string };
@@ -56,11 +66,11 @@ router.get("/user", async (_req, res) => {
   }
 });
 
-// ── GET /api/github/notifications ────────────────────────────────────────
-
+// ── GET /api/github/notifications ─────────────────────────────────────────
 router.get("/notifications", async (_req, res) => {
   try {
-    const data = await proxyGithub("/notifications?all=false&per_page=20") as Array<{
+    const r = await gh("/notifications?all=false&per_page=20");
+    const data = await r.json() as Array<{
       id: string; reason: string;
       subject: { title: string; type: string };
       repository: { full_name: string };
@@ -81,18 +91,18 @@ router.get("/notifications", async (_req, res) => {
   }
 });
 
-// ── GET /api/github/repos ────────────────────────────────────────────────
-
+// ── GET /api/github/repos ─────────────────────────────────────────────────
 router.get("/repos", async (_req, res) => {
   try {
-    const data = await proxyGithub("/user/repos?sort=updated&per_page=30") as Array<{
+    const r = await gh("/user/repos?sort=updated&per_page=30");
+    const data = await r.json() as Array<{
       id: number; full_name: string; description: string; private: boolean;
       language: string; stargazers_count: number; pushed_at: string;
     }>;
-    const repos = Array.isArray(data) ? data.map((r) => ({
-      id: r.id, name: r.full_name, description: r.description,
-      private: r.private, language: r.language,
-      stars: r.stargazers_count, pushedAt: r.pushed_at,
+    const repos = Array.isArray(data) ? data.map((repo) => ({
+      id: repo.id, name: repo.full_name, description: repo.description,
+      private: repo.private, language: repo.language,
+      stars: repo.stargazers_count, pushedAt: repo.pushed_at,
     })) : [];
     res.json({ repos });
   } catch (err: unknown) {
@@ -102,7 +112,6 @@ router.get("/repos", async (_req, res) => {
 });
 
 // ── GET /api/github/issues?repo=owner/repo ────────────────────────────────
-
 router.get("/issues", async (req, res) => {
   const repo = String(req.query.repo ?? "").trim();
   if (!repo || !repo.includes("/")) {
@@ -110,7 +119,8 @@ router.get("/issues", async (req, res) => {
     return;
   }
   try {
-    const data = await proxyGithub(`/repos/${repo}/issues?state=open&per_page=20`) as Array<{
+    const r = await gh(`/repos/${repo}/issues?state=open&per_page=20`);
+    const data = await r.json() as Array<{
       number: number; title: string; state: string;
       user: { login: string }; created_at: string; html_url: string;
       labels: Array<{ name: string }>;
@@ -128,7 +138,6 @@ router.get("/issues", async (req, res) => {
 });
 
 // ── POST /api/github/issue ────────────────────────────────────────────────
-
 router.post("/issue", async (req, res) => {
   const { repo, title, body, labels } = req.body as { repo: string; title: string; body?: string; labels?: string[] };
   if (!repo || !title) {
@@ -136,11 +145,11 @@ router.post("/issue", async (req, res) => {
     return;
   }
   try {
-    const data = await proxyGithub(`/repos/${repo}/issues`, {
+    const r = await gh(`/repos/${repo}/issues`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, body: body ?? "", labels: labels ?? [] }),
-    }) as { number: number; html_url: string };
+    });
+    const data = await r.json() as { number: number; html_url: string };
     res.json({ number: data.number, url: data.html_url });
   } catch (err: unknown) {
     const e = err as { status?: number; message?: string };
