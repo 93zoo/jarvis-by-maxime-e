@@ -20,67 +20,101 @@ SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
-// ── Animated intro overlay ───────────────────────────────────────────────────
+// ── Design tokens ────────────────────────────────────────────────────────────
+const BLUE   = '#0099FF';
+const CYAN   = '#00E0FF';
+const SILVER = '#7A99B4';
+const BG     = '#03050A';
+
+// ── Boot sequence ────────────────────────────────────────────────────────────
 const BOOT_LINES = [
-  { text: '> NOYAU IA CHARGÉ................', status: '[OK]' },
-  { text: '> MODULES VOCAUX ACTIFS..........', status: '[OK]' },
-  { text: '> CONNEXION SÉCURISÉE............', status: '[OK]' },
-  { text: '> MÉMOIRE CONTEXTUELLE...........', status: '[OK]' },
-  { text: '> PROTOCOLES JARVIS V3...........', status: '[OK]' },
-  { text: '> ACCÈS INTERNET.................', status: '[OK]' },
-  { text: '> SYSTÈME OPÉRATIONNEL...........', status: '[PRÊT]' },
+  { text: '> NOYAU IA INITIALISÉ...............', status: '[OK]' },
+  { text: '> MODULES NEURONAUX ACTIFS..........', status: '[OK]' },
+  { text: '> CHIFFREMENT QUANTIQUE.............', status: '[OK]' },
+  { text: '> MÉMOIRE CONTEXTUELLE 128GB........', status: '[OK]' },
+  { text: '> PROTOCOLES JARVIS v4.1............', status: '[OK]' },
+  { text: '> LIAISON RÉSEAU SÉCURISÉE..........', status: '[OK]' },
+  { text: '> SYSTÈME OPÉRATIONNEL..............', status: '[PRÊT]' },
 ];
 
-// Each line appears every 320ms, starting after 900ms
-const BOOT_START_DELAY = 900;
-const BOOT_INTERVAL = 320;
-// Total duration = start + all lines + small pause before fade
-const TOTAL_DURATION = BOOT_START_DELAY + BOOT_LINES.length * BOOT_INTERVAL + 700;
+const BOOT_START_DELAY = 800;
+const BOOT_INTERVAL    = 310;
+const TOTAL_DURATION   = BOOT_START_DELAY + BOOT_LINES.length * BOOT_INTERVAL + 800;
 
+// ── Corner bracket component ─────────────────────────────────────────────────
+function Corner({ position }: { position: 'tl' | 'tr' | 'bl' | 'br' }) {
+  const isTop    = position === 'tl' || position === 'tr';
+  const isLeft   = position === 'tl' || position === 'bl';
+  const LEN      = 20;
+  const THICK    = 1.5;
+  const COLOR    = CYAN + 'AA';
+
+  return (
+    <View style={[
+      styles.corner,
+      isTop  ? { top: 40 }    : { bottom: 50 },
+      isLeft ? { left: 24 }   : { right: 24 },
+    ]}>
+      {/* Horizontal arm */}
+      <View style={[styles.cornerH, {
+        backgroundColor: COLOR,
+        alignSelf: isLeft ? 'flex-start' : 'flex-end',
+        width: LEN,
+        height: THICK,
+      }]} />
+      {/* Vertical arm */}
+      <View style={[styles.cornerV, {
+        backgroundColor: COLOR,
+        alignSelf: isLeft ? 'flex-start' : 'flex-end',
+        width: THICK,
+        height: LEN,
+        marginTop: isTop ? 0 : -LEN,
+        alignItems: isLeft ? 'flex-start' : 'flex-end',
+      }]} />
+    </View>
+  );
+}
+
+// ── Intro overlay ─────────────────────────────────────────────────────────────
 function JarvisIntro({ onDone }: { onDone: () => void }) {
-  const bgOpacity = useRef(new Animated.Value(1)).current;
-  const titleOpacity = useRef(new Animated.Value(0)).current;
-  const titleScale = useRef(new Animated.Value(0.82)).current;
-  const subtitleOpacity = useRef(new Animated.Value(0)).current;
-  const scanLine = useRef(new Animated.Value(0)).current;
-  const scanLoop = useRef<Animated.CompositeAnimation | null>(null);
+  const bgOpacity     = useRef(new Animated.Value(1)).current;
+  const titleOpacity  = useRef(new Animated.Value(0)).current;
+  const titleScale    = useRef(new Animated.Value(0.80)).current;
+  const subtitleOp    = useRef(new Animated.Value(0)).current;
+  const scanLine      = useRef(new Animated.Value(0)).current;
+  const scanLoop      = useRef<Animated.CompositeAnimation | null>(null);
   const [bootLines, setBootLines] = React.useState<number>(0);
 
   useEffect(() => {
-    // Title → subtitle → tagline
+    // Title entrance
     Animated.sequence([
       Animated.parallel([
-        Animated.timing(titleOpacity, { toValue: 1, duration: 600, easing: Easing.out(Easing.ease), useNativeDriver: true }),
-        Animated.timing(titleScale, { toValue: 1, duration: 700, easing: Easing.out(Easing.back(1.2)), useNativeDriver: true }),
+        Animated.timing(titleOpacity, { toValue: 1, duration: 650, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+        Animated.timing(titleScale,   { toValue: 1, duration: 750, easing: Easing.out(Easing.back(1.15)), useNativeDriver: true }),
       ]),
-      Animated.timing(subtitleOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.timing(subtitleOp, { toValue: 1, duration: 420, useNativeDriver: true }),
     ]).start();
 
-    // Scan line
+    // Horizontal scan line
     scanLoop.current = Animated.loop(
       Animated.sequence([
-        Animated.timing(scanLine, { toValue: 1, duration: 1400, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+        Animated.timing(scanLine, { toValue: 1, duration: 1600, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
         Animated.timing(scanLine, { toValue: 0, duration: 0, useNativeDriver: false }),
       ])
     );
     scanLoop.current.start();
 
-    // Boot lines — appear one by one
+    // Boot lines
     const timers: ReturnType<typeof setTimeout>[] = [];
     BOOT_LINES.forEach((_, i) => {
-      timers.push(setTimeout(() => {
-        setBootLines(i + 1);
-      }, BOOT_START_DELAY + i * BOOT_INTERVAL));
+      timers.push(setTimeout(() => setBootLines(i + 1), BOOT_START_DELAY + i * BOOT_INTERVAL));
     });
 
-    // Fade out after all lines shown
+    // Fade out
     const exitTimer = setTimeout(() => {
       scanLoop.current?.stop();
       Animated.timing(bgOpacity, {
-        toValue: 0,
-        duration: 500,
-        easing: Easing.in(Easing.ease),
-        useNativeDriver: true,
+        toValue: 0, duration: 550, easing: Easing.in(Easing.ease), useNativeDriver: true,
       }).start(() => onDone());
     }, TOTAL_DURATION);
 
@@ -95,24 +129,41 @@ function JarvisIntro({ onDone }: { onDone: () => void }) {
 
   return (
     <Animated.View style={[StyleSheet.absoluteFillObject, styles.intro, { opacity: bgOpacity }]}>
+
       {/* Scan line */}
       <Animated.View style={[styles.scanLine, { top: scanTop }]} />
 
-      {/* Grid overlay */}
-      <View style={styles.gridOverlay} />
+      {/* Corner brackets */}
+      <Corner position="tl" />
+      <Corner position="tr" />
+      <Corner position="bl" />
+      <Corner position="br" />
+
+      {/* Horizontal dividers */}
+      <View style={styles.dividerTop} />
+      <View style={styles.dividerBottom} />
 
       {/* Content */}
       <View style={styles.introContent}>
+
+        {/* Unit label */}
+        <Animated.Text style={[styles.unitLabel, { opacity: subtitleOp }]}>
+          SYSTÈME IA · UNITÉ 001
+        </Animated.Text>
+
+        {/* Title */}
         <Animated.Text style={[styles.introTitle, { opacity: titleOpacity, transform: [{ scale: titleScale }] }]}>
           J.A.R.V.I.S.
         </Animated.Text>
 
-        <Animated.Text style={[styles.introSubtitle, { opacity: subtitleOpacity }]}>
+        {/* Subtitle */}
+        <Animated.Text style={[styles.introSubtitle, { opacity: subtitleOp }]}>
           JUSTE UN SYSTÈME VRAIMENT TRÈS INTELLIGENT
         </Animated.Text>
 
-        <Animated.Text style={[styles.introTagline, { opacity: subtitleOpacity }]}>
-          Votre agent IA de poche JARVIS{'\n'}codé par Maxime Etivant
+        {/* Tagline */}
+        <Animated.Text style={[styles.introTagline, { opacity: subtitleOp }]}>
+          Votre agent IA de poche{'\n'}codé par Maxime Etivant
         </Animated.Text>
 
         {/* Boot log */}
@@ -134,8 +185,8 @@ function JarvisIntro({ onDone }: { onDone: () => void }) {
       </View>
 
       {/* Bottom brand */}
-      <Animated.Text style={[styles.introBrand, { opacity: subtitleOpacity }]}>
-        BY MAXIME-E
+      <Animated.Text style={[styles.introBrand, { opacity: subtitleOp }]}>
+        BY MAXIME-E · ROBOT EDITION
       </Animated.Text>
     </Animated.View>
   );
@@ -145,11 +196,8 @@ function JarvisIntro({ onDone }: { onDone: () => void }) {
 function RootLayoutNav() {
   return (
     <Stack>
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="settings"
-        options={{ headerShown: false, presentation: 'card' }}
-      />
+      <Stack.Screen name="index"    options={{ headerShown: false }} />
+      <Stack.Screen name="settings" options={{ headerShown: false, presentation: 'card' }} />
     </Stack>
   );
 }
@@ -166,9 +214,7 @@ export default function RootLayout() {
   const appReady = fontsLoaded || !!fontError;
 
   useEffect(() => {
-    if (appReady) {
-      SplashScreen.hideAsync();
-    }
+    if (appReady) SplashScreen.hideAsync();
   }, [appReady]);
 
   if (!appReady) return null;
@@ -191,9 +237,6 @@ export default function RootLayout() {
   );
 }
 
-const CYAN = '#00d4ff';
-const BG = '#020b14';
-
 const styles = StyleSheet.create({
   intro: {
     backgroundColor: BG,
@@ -201,53 +244,89 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 999,
   },
+
+  // Scan line
   scanLine: {
     position: 'absolute',
     left: 0,
     right: 0,
-    height: 2,
-    backgroundColor: CYAN + '40',
+    height: 1.5,
+    backgroundColor: CYAN + '30',
   },
-  gridOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    opacity: 0.04,
+
+  // Corner brackets
+  corner: {
+    position: 'absolute',
   },
+  cornerH: {},
+  cornerV: {},
+
+  // Dividers
+  dividerTop: {
+    position: 'absolute',
+    top: 120,
+    left: 44,
+    right: 44,
+    height: 1,
+    backgroundColor: SILVER + '25',
+  },
+  dividerBottom: {
+    position: 'absolute',
+    bottom: 80,
+    left: 44,
+    right: 44,
+    height: 1,
+    backgroundColor: SILVER + '25',
+  },
+
+  // Content
   introContent: {
     alignItems: 'center',
-    width: 300,
-    gap: 10,
+    width: 310,
+    gap: 8,
+  },
+  unitLabel: {
+    fontSize: 9,
+    fontFamily: 'Inter_400Regular',
+    color: SILVER + 'BB',
+    letterSpacing: 3.5,
+    textAlign: 'center',
+    marginBottom: 4,
   },
   introTitle: {
-    fontSize: 42,
+    fontSize: 46,
     fontWeight: '700' as const,
     fontFamily: 'Inter_700Bold',
-    color: CYAN,
-    letterSpacing: 8,
+    color: BLUE,
+    letterSpacing: 10,
     textAlign: 'center',
     textShadowColor: CYAN,
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 18,
+    textShadowRadius: 22,
   },
   introSubtitle: {
-    fontSize: 10,
+    fontSize: 9,
     fontFamily: 'Inter_400Regular',
-    color: CYAN + 'aa',
-    letterSpacing: 3,
+    color: SILVER + 'BB',
+    letterSpacing: 2.5,
     textAlign: 'center',
+    marginTop: 2,
   },
   introTagline: {
     fontSize: 12,
     fontFamily: 'Inter_400Regular',
-    color: CYAN + 'cc',
+    color: CYAN + 'CC',
     textAlign: 'center',
     lineHeight: 20,
-    marginTop: 6,
+    marginTop: 4,
     letterSpacing: 0.3,
   },
+
+  // Boot log
   bootLog: {
-    marginTop: 18,
-    width: 300,
-    gap: 6,
+    marginTop: 20,
+    width: 310,
+    gap: 5,
   },
   bootLine: {
     flexDirection: 'row',
@@ -257,12 +336,12 @@ const styles = StyleSheet.create({
   bootText: {
     fontSize: 10,
     fontFamily: 'Inter_400Regular',
-    color: CYAN + '66',
-    letterSpacing: 0.4,
+    color: SILVER + '55',
+    letterSpacing: 0.3,
     flex: 1,
   },
   bootTextActive: {
-    color: CYAN + 'cc',
+    color: BLUE + 'DD',
   },
   bootStatus: {
     fontSize: 10,
@@ -273,30 +352,19 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   bootStatusOk: {
-    color: '#22c55e',
+    color: '#22d45a',
   },
   bootStatusReady: {
     color: CYAN,
   },
-  initDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: CYAN,
-    opacity: 0.8,
-  },
-  initText: {
-    fontSize: 10,
-    fontFamily: 'Inter_400Regular',
-    color: CYAN + '99',
-    letterSpacing: 2,
-  },
+
+  // Brand
   introBrand: {
     position: 'absolute',
-    bottom: 48,
-    fontSize: 11,
+    bottom: 44,
+    fontSize: 10,
     fontFamily: 'Inter_400Regular',
-    color: CYAN + '60',
+    color: SILVER + '55',
     letterSpacing: 4,
   },
 });

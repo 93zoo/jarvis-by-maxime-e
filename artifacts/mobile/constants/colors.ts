@@ -1,41 +1,42 @@
 /**
- * JARVIS AI — dark holographic design tokens (v2)
+ * JARVIS AI — Robot premium design tokens
+ * Deep black · Electric blue · Cyan neon · Titanium silver
  */
 
 const colors = {
   light: {
-    text: '#d0eeff',
-    tint: '#00d4ff',
+    text: '#C8E4F8',
+    tint: '#0099FF',
 
-    background: '#020b14',
-    foreground: '#d0eeff',
+    background: '#03050A',        // Deep black mat
+    foreground: '#C0DCF4',        // Cool white-blue
 
-    card: '#060f1c',
-    cardForeground: '#d0eeff',
+    card: '#060B14',              // Dark card
+    cardForeground: '#C0DCF4',
 
-    primary: '#00d4ff',
-    primaryForeground: '#000a14',
+    primary: '#0099FF',           // Electric blue
+    primaryForeground: '#000A18',
 
-    secondary: '#091a2e',
-    secondaryForeground: '#7ec8e3',
+    secondary: '#0A1622',
+    secondaryForeground: '#4A8AAD',
 
-    muted: '#0b1d32',
-    mutedForeground: '#3d7a9a',
+    muted: '#070D18',
+    mutedForeground: '#2E4E6A',
 
-    accent: '#00ff9d',
-    accentForeground: '#000a14',
+    accent: '#00E0FF',            // Cyan neon
+    accentForeground: '#000A18',
 
-    gold: '#ffb700',
-    goldForeground: '#000a14',
+    silver: '#7A99B4',            // Titanium brushed
+    chrome: '#B0C8D8',            // Chrome highlight
 
-    destructive: '#ff4d4d',
+    destructive: '#FF3344',
     destructiveForeground: '#ffffff',
 
-    border: '#0c2840',
-    input: '#0c2840',
+    border: '#0C1C2E',
+    input: '#0C1C2E',
   },
 
-  radius: 12,
+  radius: 8,
 };
 
 export default colors;

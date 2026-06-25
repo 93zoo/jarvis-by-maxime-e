@@ -18,101 +18,68 @@ function formatTime(timestamp: number): string {
 // ── Weather Card ──────────────────────────────────────────────────────────────
 function WeatherCard({ data }: { data: NonNullable<Message['weatherData']> }) {
   const colors = useColors();
-
-  const weatherIcon = () => {
-    const cond = data.condition.toLowerCase();
-    if (cond.includes('sun') || cond.includes('clear')) return '☀️';
-    if (cond.includes('cloud')) return '☁️';
-    if (cond.includes('rain') || cond.includes('drizzle')) return '🌧️';
-    if (cond.includes('snow')) return '❄️';
-    if (cond.includes('thunder') || cond.includes('storm')) return '⛈️';
-    if (cond.includes('fog') || cond.includes('mist')) return '🌫️';
-    if (cond.includes('wind')) return '💨';
-    return '🌤️';
-  };
-
   return (
-    <LinearGradient
-      colors={[colors.card, colors.secondary]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[styles.weatherCard, { borderColor: colors.primary + '40' }]}
-    >
+    <View style={[styles.weatherCard, { backgroundColor: colors.card, borderColor: colors.primary + '40' }]}>
       <View style={styles.weatherTop}>
-        <Text style={styles.weatherIcon}>{weatherIcon()}</Text>
-        <View style={styles.weatherRight}>
-          <Text style={[styles.weatherCity, { color: colors.primary }]}>{data.city}</Text>
-          <Text style={[styles.weatherCondition, { color: colors.mutedForeground }]}>{data.condition}</Text>
-        </View>
+        <Text style={[styles.weatherCity, { color: colors.foreground }]}>{data.city}</Text>
+        <Text style={styles.weatherEmoji}>{data.emoji}</Text>
       </View>
-
-      <Text style={[styles.weatherTemp, { color: colors.foreground }]}>
-        {data.tempC}°C
-        <Text style={[styles.weatherFeels, { color: colors.mutedForeground }]}>
-          {'  '}Ressenti {data.feelsLikeC}°C
+      <View style={styles.weatherRow}>
+        <Text style={[styles.weatherTemp, { color: colors.primary }]}>{data.temp}</Text>
+        <Text style={[styles.weatherDesc, { color: colors.mutedForeground }]}>{data.description}</Text>
+      </View>
+      {data.humidity && (
+        <Text style={[styles.weatherDetail, { color: colors.mutedForeground }]}>
+          💧 {data.humidity}  💨 {data.wind ?? '—'}
         </Text>
-      </Text>
-
-      <View style={[styles.weatherRow, { borderTopColor: colors.border }]}>
-        <View style={styles.weatherStat}>
-          <Text style={[styles.weatherStatLabel, { color: colors.mutedForeground }]}>💧 Humidité</Text>
-          <Text style={[styles.weatherStatValue, { color: colors.foreground }]}>{data.humidity}%</Text>
-        </View>
-        <View style={[styles.weatherDivider, { backgroundColor: colors.border }]} />
-        <View style={styles.weatherStat}>
-          <Text style={[styles.weatherStatLabel, { color: colors.mutedForeground }]}>💨 Vent</Text>
-          <Text style={[styles.weatherStatValue, { color: colors.foreground }]}>{data.windKmph} km/h</Text>
-        </View>
-      </View>
-    </LinearGradient>
+      )}
+    </View>
   );
 }
 
-// ── Main Bubble ───────────────────────────────────────────────────────────────
+// ── Message Bubble ────────────────────────────────────────────────────────────
 export function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
   const colors = useColors();
   const isUser = message.role === 'user';
 
-  const entering = isUser
-    ? FadeInDown.duration(280).springify().damping(18).stiffness(160)
-    : FadeInUp.duration(320).springify().damping(18).stiffness(140);
-
   return (
     <Animated.View
-      entering={entering}
-      style={[styles.row, isUser ? styles.rowRight : styles.rowLeft]}
+      entering={isUser ? FadeInUp.duration(220).springify().damping(18) : FadeInDown.duration(220).springify().damping(18)}
+      style={[styles.row, isUser ? styles.rowUser : styles.rowAssistant]}
     >
-      {/* JARVIS avatar */}
-      {!isUser && (
-        <LinearGradient
-          colors={[colors.primary + '30', colors.secondary]}
-          style={[styles.avatar, { borderColor: colors.primary + '70' }]}
-        >
-          <Text style={[styles.avatarText, { color: colors.primary }]}>J</Text>
-        </LinearGradient>
-      )}
+      {/* Role tag */}
+      <Text style={[styles.roleTag, { color: isUser ? colors.primary + 'AA' : colors.silver + '88' }]}>
+        {isUser ? 'VOUS' : 'JARVIS'}
+      </Text>
 
-      <View style={[styles.bubbleWrapper, isUser && styles.bubbleWrapperUser]}>
-        {/* ── Content by type ── */}
-        {message.type === 'weather' && message.weatherData ? (
-          <WeatherCard data={message.weatherData} />
-        ) : isUser ? (
-          // User bubble — gradient glass
+      {/* Weather card */}
+      {message.weatherData && <WeatherCard data={message.weatherData} />}
+
+      {/* Text bubble */}
+      {(message.content || isStreaming) && (
+        isUser ? (
+          // ── User bubble: electric blue gradient, sharp left corners ──
           <LinearGradient
-            colors={[colors.primary + '28', colors.primary + '14']}
+            colors={[colors.primary + 'CC', colors.primary + '88']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={[styles.userBubble, { borderColor: colors.primary + '50' }]}
+            style={[styles.userBubble, { borderColor: colors.primary + '55' }]}
           >
-            <Text style={[styles.messageText, { color: colors.foreground }]}>
+            <Text style={[styles.messageText, { color: '#E8F6FF' }]}>
               {message.content}
             </Text>
           </LinearGradient>
         ) : (
-          // Assistant bubble — glassmorphism (BlurView iOS, fallback Android)
+          // ── Assistant bubble: dark angular, glassmorphism iOS / solid Android ──
           Platform.OS === 'ios' ? (
-            <BlurView intensity={18} tint="dark" style={[styles.assistantBubble, { borderColor: colors.border }]}>
-              <View style={[styles.assistantInner, { backgroundColor: colors.card + 'cc' }]}>
+            <BlurView
+              intensity={14}
+              tint="dark"
+              style={[styles.assistantBubble, { borderColor: colors.primary + '35' }]}
+            >
+              <View style={[styles.assistantInner, { backgroundColor: colors.card + 'DD' }]}>
+                {/* Top accent line */}
+                <View style={[styles.assistantAccent, { backgroundColor: colors.primary + '60' }]} />
                 {message.content ? (
                   <Text style={[styles.messageText, { color: colors.foreground }]}>
                     {message.content}
@@ -124,7 +91,12 @@ export function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
               </View>
             </BlurView>
           ) : (
-            <View style={[styles.assistantBubble, styles.assistantBubbleAndroid, { borderColor: colors.border, backgroundColor: colors.card + 'ee' }]}>
+            <View style={[styles.assistantBubble, styles.assistantBubbleAndroid, {
+              borderColor: colors.primary + '35',
+              backgroundColor: colors.card + 'F0',
+            }]}>
+              {/* Top accent line */}
+              <View style={[styles.assistantAccent, { backgroundColor: colors.primary + '60' }]} />
               {message.content ? (
                 <Text style={[styles.messageText, { color: colors.foreground }]}>
                   {message.content}
@@ -135,78 +107,57 @@ export function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
               ) : null}
             </View>
           )
-        )}
-
-        {/* Timestamp */}
-        <Text
-          style={[
-            styles.timestamp,
-            { color: colors.mutedForeground },
-            isUser ? styles.timestampRight : styles.timestampLeft,
-          ]}
-        >
-          {formatTime(message.timestamp)}
-        </Text>
-      </View>
-
-      {/* User avatar */}
-      {isUser && (
-        <LinearGradient
-          colors={[colors.accent + '50', colors.accent + '20']}
-          style={[styles.avatar, { borderColor: colors.accent + '60' }]}
-        >
-          <Text style={[styles.avatarText, { color: colors.accent }]}>M</Text>
-        </LinearGradient>
+        )
       )}
+
+      {/* Timestamp */}
+      <Text style={[
+        styles.timestamp,
+        { color: colors.mutedForeground },
+        isUser ? styles.timestampRight : styles.timestampLeft,
+      ]}>
+        {formatTime(message.timestamp)}
+      </Text>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    marginVertical: 5,
-    paddingHorizontal: 12,
-    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    maxWidth: '90%',
   },
-  rowLeft: { justifyContent: 'flex-start' },
-  rowRight: { justifyContent: 'flex-end' },
-
-  avatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    flexShrink: 0,
-  },
-  avatarText: {
-    fontSize: 12,
-    fontWeight: '700' as const,
-    fontFamily: 'Inter_700Bold',
-  },
-
-  bubbleWrapper: {
-    maxWidth: '75%',
-    gap: 3,
-  },
-  bubbleWrapperUser: {
+  rowUser: {
+    alignSelf: 'flex-end',
     alignItems: 'flex-end',
   },
+  rowAssistant: {
+    alignSelf: 'flex-start',
+    alignItems: 'flex-start',
+  },
 
+  // Role tag
+  roleTag: {
+    fontSize: 8,
+    fontFamily: 'Inter_600SemiBold',
+    letterSpacing: 2.5,
+    marginBottom: 4,
+  },
+
+  // User bubble — sharp top-left corner, rounded rest
   userBubble: {
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 18,
-    borderBottomRightRadius: 5,
+    borderRadius: 16,
+    borderTopRightRadius: 4,   // sharp top-right (robot feel)
     borderWidth: 1,
   },
 
+  // Assistant bubble — sharp top-left corner
   assistantBubble: {
-    borderRadius: 18,
-    borderBottomLeftRadius: 5,
+    borderRadius: 16,
+    borderTopLeftRadius: 4,    // sharp top-left (robot feel)
     borderWidth: 1,
     overflow: 'hidden',
   },
@@ -218,65 +169,68 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
+  assistantAccent: {
+    height: 1.5,
+    marginBottom: 8,
+    borderRadius: 1,
+  },
 
+  // Text
   messageText: {
     fontSize: 15,
-    lineHeight: 22,
+    lineHeight: 23,
     fontFamily: 'Inter_400Regular',
   },
 
+  // Timestamp
   timestamp: {
-    fontSize: 10,
+    fontSize: 9,
     fontFamily: 'Inter_400Regular',
-    opacity: 0.7,
+    letterSpacing: 0.5,
+    marginTop: 4,
   },
-  timestampLeft: { textAlign: 'left', paddingLeft: 4 },
-  timestampRight: { textAlign: 'right', paddingRight: 4 },
+  timestampRight: { alignSelf: 'flex-end' },
+  timestampLeft:  { alignSelf: 'flex-start' },
 
-  // Weather
+  // Weather card
   weatherCard: {
-    borderRadius: 16,
+    borderRadius: 10,
     borderWidth: 1,
-    overflow: 'hidden',
     padding: 14,
-    gap: 10,
-    minWidth: 220,
+    marginBottom: 6,
+    minWidth: 180,
   },
   weatherTop: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 12,
+    marginBottom: 6,
   },
-  weatherIcon: { fontSize: 36 },
-  weatherRight: { flex: 1, gap: 2 },
   weatherCity: {
     fontSize: 15,
-    fontWeight: '600' as const,
     fontFamily: 'Inter_600SemiBold',
+    fontWeight: '600' as const,
   },
-  weatherCondition: {
-    fontSize: 12,
-    fontFamily: 'Inter_400Regular',
-  },
-  weatherTemp: {
-    fontSize: 28,
-    fontWeight: '700' as const,
-    fontFamily: 'Inter_700Bold',
-  },
-  weatherFeels: {
-    fontSize: 13,
-    fontWeight: '400' as const,
-    fontFamily: 'Inter_400Regular',
-  },
+  weatherEmoji: { fontSize: 24 },
   weatherRow: {
     flexDirection: 'row',
-    borderTopWidth: 1,
-    paddingTop: 10,
+    alignItems: 'baseline',
     gap: 8,
+    marginBottom: 4,
   },
-  weatherStat: { flex: 1, gap: 3 },
-  weatherStatLabel: { fontSize: 11, fontFamily: 'Inter_400Regular' },
-  weatherStatValue: { fontSize: 14, fontWeight: '600' as const, fontFamily: 'Inter_600SemiBold' },
-  weatherDivider: { width: 1 },
-
+  weatherTemp: {
+    fontSize: 26,
+    fontFamily: 'Inter_700Bold',
+    fontWeight: '700' as const,
+  },
+  weatherDesc: {
+    fontSize: 13,
+    fontFamily: 'Inter_400Regular',
+    textTransform: 'capitalize',
+  },
+  weatherDetail: {
+    fontSize: 12,
+    fontFamily: 'Inter_400Regular',
+    marginTop: 2,
+  },
 });

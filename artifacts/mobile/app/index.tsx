@@ -24,14 +24,11 @@ export default function ChatScreen() {
   const { messages, isStreaming, sendMessage, clearConversation, error, clearError } = useJarvis();
 
   const flatListRef = useRef<FlatList>(null);
-
-  // Inverted FlatList so newest messages appear at bottom
   const reversedMessages = [...messages].reverse();
 
   const renderItem = useCallback(
     ({ item, index }: { item: Message; index: number }) => {
-      const isLastAssistant =
-        item.role === 'assistant' && index === 0 && isStreaming;
+      const isLastAssistant = item.role === 'assistant' && index === 0 && isStreaming;
       return <MessageBubble message={item} isStreaming={isLastAssistant} />;
     },
     [isStreaming]
@@ -48,52 +45,69 @@ export default function ChatScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
+
+      {/* ── Header ── */}
       <View style={[styles.header, { paddingTop: topPad + 8 }]}>
         <View style={styles.headerLeft}>
-          <View style={[styles.statusDot, { backgroundColor: colors.accent }]} />
-          <Text style={[styles.headerTitle, { color: colors.primary }]}>
-            J.A.R.V.I.S.
-          </Text>
+          {/* Robot status indicator — angular diamond */}
+          <View style={styles.statusWrapper}>
+            <View style={[styles.statusDiamond, { backgroundColor: colors.accent, shadowColor: colors.accent }]} />
+          </View>
+          <View>
+            <Text style={[styles.headerTitle, { color: colors.primary }]}>J.A.R.V.I.S.</Text>
+            <Text style={[styles.headerSub, { color: colors.silver }]}>UNITÉ 001 · EN LIGNE</Text>
+          </View>
         </View>
+
         <View style={styles.headerRight}>
           {messages.length > 0 && (
             <Pressable
               onPress={handleClear}
-              style={({ pressed }) => [styles.headerBtn, { opacity: pressed ? 0.5 : 1 }]}
+              style={({ pressed }) => [styles.headerBtn, {
+                borderColor: colors.border,
+                backgroundColor: colors.card,
+                opacity: pressed ? 0.5 : 1,
+              }]}
               hitSlop={8}
             >
-              <Feather name="trash-2" size={18} color={colors.mutedForeground} />
+              <Feather name="trash-2" size={16} color={colors.mutedForeground} />
             </Pressable>
           )}
           <Pressable
             onPress={() => router.push('/settings')}
-            style={({ pressed }) => [styles.headerBtn, { opacity: pressed ? 0.5 : 1 }]}
+            style={({ pressed }) => [styles.headerBtn, {
+              borderColor: colors.border,
+              backgroundColor: colors.card,
+              opacity: pressed ? 0.5 : 1,
+            }]}
             hitSlop={8}
           >
-            <Feather name="settings" size={18} color={colors.mutedForeground} />
+            <Feather name="settings" size={16} color={colors.mutedForeground} />
           </Pressable>
         </View>
       </View>
 
-      {/* Separator glow */}
-      <View style={[styles.headerGlow, { backgroundColor: colors.primary + '20' }]} />
+      {/* ── Header separator with glow ── */}
+      <View style={styles.separatorRow}>
+        <View style={[styles.separatorLeft,  { backgroundColor: colors.border }]} />
+        <View style={[styles.separatorGlow,  { backgroundColor: colors.primary + '90' }]} />
+        <View style={[styles.separatorRight, { backgroundColor: colors.border }]} />
+      </View>
 
-      <KeyboardAvoidingView
-        style={styles.keyboardView}
-        behavior="padding"
-        keyboardVerticalOffset={0}
-      >
-        {/* Chat area */}
+      <KeyboardAvoidingView style={styles.keyboardView} behavior="padding" keyboardVerticalOffset={0}>
+
+        {/* ── Chat area ── */}
         {messages.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <JarvisOrb isActive={isStreaming} size={100} />
-            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-              Online and ready, sir.
-            </Text>
-            <Text style={[styles.emptySubtitle, { color: colors.mutedForeground }]}>
-              Comment puis-je vous aider ?
-            </Text>
+            <JarvisOrb isActive={isStreaming} size={110} />
+            <View style={styles.emptyTextBlock}>
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
+                Online and ready, sir.
+              </Text>
+              <Text style={[styles.emptySubtitle, { color: colors.mutedForeground }]}>
+                Comment puis-je vous aider ?
+              </Text>
+            </View>
           </View>
         ) : (
           <FlatList
@@ -120,132 +134,152 @@ export default function ChatScreen() {
           />
         )}
 
-        {/* Error banner */}
+        {/* ── Error banner ── */}
         {error && (
           <Pressable
             onPress={clearError}
             style={[styles.errorBanner, { backgroundColor: colors.destructive + '20', borderColor: colors.destructive }]}
           >
             <Feather name="alert-circle" size={14} color={colors.destructive} />
-            <Text style={[styles.errorText, { color: colors.destructive }]} numberOfLines={2}>
-              {error}
-            </Text>
+            <Text style={[styles.errorText, { color: colors.destructive }]} numberOfLines={2}>{error}</Text>
             <Feather name="x" size={14} color={colors.destructive} />
           </Pressable>
         )}
 
-        <ChatInput
-          onSend={sendMessage}
-          isStreaming={isStreaming}
-          disabled={false}
-        />
+        <ChatInput onSend={sendMessage} isStreaming={isStreaming} disabled={false} />
       </KeyboardAvoidingView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
+    paddingHorizontal: 18,
+    paddingBottom: 10,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
-  statusDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+  statusWrapper: {
+    width: 10,
+    height: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusDiamond: {
+    width: 8,
+    height: 8,
+    transform: [{ rotate: '45deg' }],
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 6,
+    elevation: 4,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700' as const,
     fontFamily: 'Inter_700Bold',
+    letterSpacing: 2.5,
+  },
+  headerSub: {
+    fontSize: 8,
+    fontFamily: 'Inter_400Regular',
     letterSpacing: 2,
+    marginTop: 1,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 8,
   },
   headerBtn: {
-    padding: 6,
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  headerGlow: {
+
+  // Separator
+  separatorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 1,
+    marginBottom: 0,
+  },
+  separatorLeft: {
+    flex: 1,
     height: 1,
   },
-  keyboardView: {
+  separatorGlow: {
+    width: 60,
+    height: 1,
+  },
+  separatorRight: {
     flex: 1,
+    height: 1,
   },
-  list: {
-    flex: 1,
-  },
-  listContent: {
-    paddingVertical: 12,
-    paddingBottom: 4,
-  },
+
+  // Keyboard view
+  keyboardView: { flex: 1 },
+
+  // List
+  list: { flex: 1 },
+  listContent: { paddingVertical: 12, paddingBottom: 4 },
+
+  // Empty state
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
-    gap: 16,
+    gap: 20,
+  },
+  emptyTextBlock: {
+    alignItems: 'center',
+    gap: 8,
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600' as const,
     fontFamily: 'Inter_600SemiBold',
     letterSpacing: 0.5,
   },
   emptySubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: 'Inter_400Regular',
     textAlign: 'center',
     lineHeight: 20,
   },
-  setupBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 24,
-    borderWidth: 1,
-    marginTop: 8,
-  },
-  setupBtnText: {
-    fontSize: 14,
-    fontFamily: 'Inter_500Medium',
-    fontWeight: '500' as const,
-  },
+
+  // Typing indicator
   typingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     paddingHorizontal: 20,
     paddingTop: 4,
     paddingBottom: 8,
   },
   typingDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    opacity: 0.8,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    opacity: 0.9,
   },
-  typingDot2: {
-    opacity: 0.5,
-  },
-  typingDot3: {
-    opacity: 0.3,
-  },
+  typingDot2: { opacity: 0.55 },
+  typingDot3: { opacity: 0.25 },
+
+  // Error
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -254,7 +288,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 6,
     borderWidth: 1,
   },
   errorText: {
