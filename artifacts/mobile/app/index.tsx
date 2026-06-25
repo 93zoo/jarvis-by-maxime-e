@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Animated as RNAnimated,
   Dimensions,
   FlatList,
   Platform,
@@ -14,131 +15,225 @@ import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, {
+  cancelAnimation,
+  useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withSequence,
   withTiming,
-  useAnimatedStyle,
-  cancelAnimation,
 } from 'react-native-reanimated';
-import Svg, { Circle, Defs, Line, LinearGradient, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, Line, LinearGradient, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useColors } from '@/hooks/useColors';
 import { useJarvis, Message } from '@/context/JarvisContext';
 import { JarvisOrb } from '@/components/JarvisOrb';
 import { MessageBubble } from '@/components/MessageBubble';
 import { ChatInput } from '@/components/ChatInput';
+import { ToolsMenu } from '@/components/ToolsMenu';
 
-// ── Orbital system config ────────────────────────────────────────────────────
+// ── Dimensions ───────────────────────────────────────────────────────────────
 
-const { width: SW } = Dimensions.get('window');
-const SYS_SIZE = Math.min(SW - 16, 380);
-const CX = SYS_SIZE / 2;
-const CY = SYS_SIZE / 2;
-const ORB_SIZE = Math.round(SYS_SIZE * 0.30);   // orb diameter
-const ORB_R = ORB_SIZE / 2;
+const { width: SW, height: SH } = Dimensions.get('window');
+const CX = SW / 2;
+const ORB_SIZE = Math.round(SW * 0.22); // ~88px on 402px
+const ORB_R    = ORB_SIZE / 2;
 
-type JarvisCtx = ReturnType<typeof useJarvis>;
+// ── All 15 tools for home orbital ────────────────────────────────────────────
 
-interface OrbNode {
-  cx: number;
-  cy: number;
+type ToolKey = 'search' | 'translate' | 'calculate' | 'weather' | 'news' | 'currency'
+  | 'navigate' | 'email' | 'github' | 'task' | 'note' | 'password'
+  | 'summarize' | 'timer' | 'quote';
+
+interface HomeNode {
+  key: ToolKey;
   emoji: string;
   label: string;
   color: string;
-  onTap: (j: JarvisCtx) => void;
+  noInput: boolean;  // true = execute immediately, false = open input modal
+  dx: number;        // offset from CX
+  dy: number;        // offset from orbital center CY
 }
 
-function buildNodes(s: number): OrbNode[] {
-  const r = s * 0.44;   // orbital radius
-  const a = (deg: number) => (deg * Math.PI) / 180;
-  const pos = (deg: number, rx = r, ry = r) => ({
-    cx: Math.round(CX + rx * Math.cos(a(deg))),
-    cy: Math.round(CY + ry * Math.sin(a(deg))),
-  });
-  return [
-    { ...pos(-75), emoji: '🌤', label: 'MÉTÉO',       color: '#38BDF8', onTap: j => j.fetchWeather('Paris') },
-    { ...pos(-15), emoji: '📰', label: 'ACTUALITÉS',  color: '#A78BFA', onTap: j => j.fetchNews('') },
-    { ...pos( 40), emoji: '💬', label: 'CITATION',    color: '#34D399', onTap: j => j.sendMessage("Donne-moi une citation inspirante avec son auteur.") },
-    { ...pos(100), emoji: '🐙', label: 'GITHUB',      color: '#C084FC', onTap: j => j.fetchGithubNotifs() },
-    { ...pos(160), emoji: '🌍', label: 'TRADUCTEUR',  color: '#00E0FF', onTap: j => j.sendMessage("Comment dit-on 'intelligence artificielle' en japonais, en arabe et en russe ?") },
-    { ...pos(220), emoji: '🔐', label: 'SÉCURITÉ',    color: '#EF4444', onTap: j => j.sendMessage("Génère un mot de passe ultra-sécurisé de 24 caractères avec symboles.") },
-  ];
-}
+// Compute positions: inner ring r=108, outer ring rx=155 ry=160
+const toRad = (d: number) => (d * Math.PI) / 180;
 
-const NODES = buildNodes(SYS_SIZE);
+const ip = (deg: number, r = 108) => ({ dx: Math.round(r * Math.cos(toRad(deg))), dy: Math.round(r * Math.sin(toRad(deg))) });
+const op = (deg: number, rx = 155, ry = 160) => ({ dx: Math.round(rx * Math.cos(toRad(deg))), dy: Math.round(ry * Math.sin(toRad(deg))) });
 
-// ── Line coords between orb edge and node ─────────────────────────────────
+const HOME_NODES: HomeNode[] = [
+  // Inner ring — 5 nodes, 72° apart, start -90°
+  { key: 'search',   emoji: '🔍', label: 'RECHERCHE',  color: '#0099FF', noInput: false, ...ip(-90) },
+  { key: 'weather',  emoji: '🌤', label: 'MÉTÉO',      color: '#38BDF8', noInput: false, ...ip(-18) },
+  { key: 'navigate', emoji: '🗺', label: 'NAVIGATION', color: '#FB923C', noInput: false, ...ip( 54) },
+  { key: 'task',     emoji: '✅', label: 'TÂCHE',      color: '#00E0FF', noInput: false, ...ip(126) },
+  { key: 'github',   emoji: '🐙', label: 'GITHUB',     color: '#C084FC', noInput: true,  ...ip(198) },
+  // Outer ring — 10 nodes, 36° apart, start -108°
+  { key: 'news',     emoji: '📰', label: 'ACTUALITÉS', color: '#A78BFA', noInput: true,  ...op(-108) },
+  { key: 'quote',    emoji: '💬', label: 'CITATION',   color: '#34D399', noInput: true,  ...op( -72) },
+  { key: 'calculate',emoji: '🧮', label: 'CALCUL',     color: '#818CF8', noInput: false, ...op( -36) },
+  { key: 'currency', emoji: '💱', label: 'DEVISES',    color: '#34D399', noInput: false, ...op(   0) },
+  { key: 'email',    emoji: '📧', label: 'EMAIL',      color: '#F472B6', noInput: false, ...op(  36) },
+  { key: 'note',     emoji: '📝', label: 'NOTE',       color: '#00E0FF', noInput: false, ...op(  72) },
+  { key: 'summarize',emoji: '📊', label: 'RÉSUMÉ',     color: '#A78BFA', noInput: false, ...op( 108) },
+  { key: 'timer',    emoji: '⏱', label: 'MINUTEUR',   color: '#FB923C', noInput: false, ...op( 144) },
+  { key: 'translate',emoji: '🌍', label: 'TRADUCTEUR', color: '#00E0FF', noInput: false, ...op( 180) },
+  { key: 'password', emoji: '🔐', label: 'SÉCURITÉ',   color: '#EF4444', noInput: false, ...op( 216) },
+];
 
-function lineCoords(node: OrbNode) {
-  const dx = node.cx - CX;
-  const dy = node.cy - CY;
+// Line endpoints: from orb edge to near-node
+function lineCoords(dx: number, dy: number) {
   const len = Math.hypot(dx, dy);
-  const nx = dx / len;
-  const ny = dy / len;
+  const nx = dx / len; const ny = dy / len;
   return {
-    x1: CX + nx * (ORB_R + 10),
-    y1: CY + ny * (ORB_R + 10),
-    x2: node.cx - nx * 18,
-    y2: node.cy - ny * 18,
+    x1: Math.round(nx * (ORB_R + 10)),
+    y1: Math.round(ny * (ORB_R + 10)),
+    x2: Math.round(dx - nx * 18),
+    y2: Math.round(dy - ny * 18),
   };
 }
 
-// ── Node dot + label ──────────────────────────────────────────────────────
+// Label direction based on node position
+function labelSide(dx: number, dy: number): 'left' | 'right' | 'top' | 'bottom' {
+  if (Math.abs(dx) > Math.abs(dy) * 1.4) return dx > 0 ? 'left' : 'right';
+  return dy > 0 ? 'top' : 'bottom';
+}
 
-function NodeDot({ node, onPress, disabled }: { node: OrbNode; onPress: () => void; disabled: boolean }) {
-  const pulse = useSharedValue(0.6);
+// ── Nebula clouds ────────────────────────────────────────────────────────────
+
+function NebulaBackground() {
+  const a1 = useRef(new RNAnimated.Value(0.7)).current;
+  const a2 = useRef(new RNAnimated.Value(0.4)).current;
+  const a3 = useRef(new RNAnimated.Value(0.8)).current;
+  const a4 = useRef(new RNAnimated.Value(0.5)).current;
+
+  useEffect(() => {
+    const pulse = (v: RNAnimated.Value, lo: number, hi: number, dur: number) =>
+      RNAnimated.loop(RNAnimated.sequence([
+        RNAnimated.timing(v, { toValue: hi, duration: dur, useNativeDriver: true }),
+        RNAnimated.timing(v, { toValue: lo, duration: dur, useNativeDriver: true }),
+      ])).start();
+
+    pulse(a1, 0.4, 1,   4200);
+    pulse(a2, 0.3, 0.9, 5800);
+    pulse(a3, 0.5, 1,   3600);
+    pulse(a4, 0.3, 0.8, 6500);
+  }, []);
+
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {/* Cloud 1 — blue, top-left */}
+      <RNAnimated.View style={[StyleSheet.absoluteFill, { opacity: a1 }]}>
+        <Svg width={SW} height={SH}>
+          <Defs>
+            <RadialGradient id="nb1" cx="20%" cy="18%" r="55%">
+              <Stop offset="0%"   stopColor="#0099FF" stopOpacity="0.22" />
+              <Stop offset="55%"  stopColor="#0066CC" stopOpacity="0.06" />
+              <Stop offset="100%" stopColor="#0099FF" stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+          <Rect x={0} y={0} width={SW} height={SH} fill="url(#nb1)" />
+        </Svg>
+      </RNAnimated.View>
+
+      {/* Cloud 2 — purple, right */}
+      <RNAnimated.View style={[StyleSheet.absoluteFill, { opacity: a2 }]}>
+        <Svg width={SW} height={SH}>
+          <Defs>
+            <RadialGradient id="nb2" cx="82%" cy="55%" r="50%">
+              <Stop offset="0%"   stopColor="#7C3AED" stopOpacity="0.18" />
+              <Stop offset="60%"  stopColor="#A78BFA" stopOpacity="0.05" />
+              <Stop offset="100%" stopColor="#7C3AED" stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+          <Rect x={0} y={0} width={SW} height={SH} fill="url(#nb2)" />
+        </Svg>
+      </RNAnimated.View>
+
+      {/* Cloud 3 — cyan, bottom-left */}
+      <RNAnimated.View style={[StyleSheet.absoluteFill, { opacity: a3 }]}>
+        <Svg width={SW} height={SH}>
+          <Defs>
+            <RadialGradient id="nb3" cx="15%" cy="78%" r="45%">
+              <Stop offset="0%"   stopColor="#00E0FF" stopOpacity="0.14" />
+              <Stop offset="70%"  stopColor="#00B4D8" stopOpacity="0.04" />
+              <Stop offset="100%" stopColor="#00E0FF" stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+          <Rect x={0} y={0} width={SW} height={SH} fill="url(#nb3)" />
+        </Svg>
+      </RNAnimated.View>
+
+      {/* Cloud 4 — teal, center */}
+      <RNAnimated.View style={[StyleSheet.absoluteFill, { opacity: a4 }]}>
+        <Svg width={SW} height={SH}>
+          <Defs>
+            <RadialGradient id="nb4" cx="55%" cy="45%" r="38%">
+              <Stop offset="0%"   stopColor="#0D9488" stopOpacity="0.10" />
+              <Stop offset="100%" stopColor="#0D9488" stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+          <Rect x={0} y={0} width={SW} height={SH} fill="url(#nb4)" />
+        </Svg>
+      </RNAnimated.View>
+    </View>
+  );
+}
+
+// ── Orbital node dot ─────────────────────────────────────────────────────────
+
+function NodeDot({ node, cx, cy, onPress, disabled }: {
+  node: HomeNode;
+  cx: number; cy: number;
+  onPress: () => void;
+  disabled: boolean;
+}) {
+  const pulse = useSharedValue(0.55);
+  const scale = useSharedValue(1);
 
   useEffect(() => {
     pulse.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 1200 }),
-        withTiming(0.55, { duration: 1200 }),
-      ), -1, false
+      withSequence(withTiming(1, { duration: 1400 }), withTiming(0.5, { duration: 1400 })),
+      -1, false
     );
-    return () => cancelAnimation(pulse);
+    scale.value = withRepeat(
+      withSequence(withTiming(1.06, { duration: 1800 }), withTiming(1, { duration: 1800 })),
+      -1, false
+    );
+    return () => { cancelAnimation(pulse); cancelAnimation(scale); };
   }, []);
 
-  const glowStyle = useAnimatedStyle(() => ({ opacity: pulse.value }));
+  const glowStyle  = useAnimatedStyle(() => ({ opacity: pulse.value }));
+  const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
-  // Label position: push label away from center
-  const dx = node.cx - CX;
-  const dy = node.cy - CY;
-  const labelStyle: Record<string, number | string> = {};
-
-  if (Math.abs(dx) >= Math.abs(dy)) {
-    // Predominantly horizontal node
-    labelStyle[dx > 0 ? 'left' : 'right'] = 26;
-    labelStyle.top = 6;
-  } else {
-    // Predominantly vertical node
-    labelStyle[dy > 0 ? 'top' : 'bottom'] = 26;
-    labelStyle.left = -12;
-  }
+  const side = labelSide(node.dx, node.dy);
+  const labelPos: Record<string, number | string> = {};
+  if (side === 'left')   { labelPos.right = 24; labelPos.top = 8; }
+  if (side === 'right')  { labelPos.left  = 24; labelPos.top = 8; }
+  if (side === 'top')    { labelPos.bottom = 26; labelPos.left = -14; }
+  if (side === 'bottom') { labelPos.top = 26; labelPos.left = -14; }
 
   return (
-    <View style={{ position: 'absolute', left: node.cx - 20, top: node.cy - 20 }}>
+    <View style={{ position: 'absolute', left: cx - 20, top: cy - 20 }}>
       <Pressable
         onPress={onPress}
         disabled={disabled}
         accessibilityRole="button"
-        accessibilityLabel={node.label}
+        accessibilityLabel={`${node.label} — JARVIS module`}
         style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
       >
-        {/* Glow ring */}
+        {/* Ambient glow ring */}
         <Animated.View style={[{
-          position: 'absolute',
-          width: 36, height: 36, borderRadius: 18,
-          backgroundColor: node.color + '20',
-          borderWidth: 1,
-          borderColor: node.color + '70',
+          position: 'absolute', width: 38, height: 38, borderRadius: 19,
+          backgroundColor: node.color + '18', borderWidth: 1, borderColor: node.color + '60',
         }, glowStyle]} />
 
-        {/* Emoji */}
-        <Text style={{ fontSize: 17, lineHeight: 20 }}>{node.emoji}</Text>
+        {/* Node icon */}
+        <Animated.View style={scaleStyle}>
+          <Text style={{ fontSize: 18, lineHeight: 22 }}>{node.emoji}</Text>
+        </Animated.View>
 
         {/* Label */}
-        <View style={[{ position: 'absolute' }, labelStyle]}>
-          <Text style={{ color: node.color + 'CC', fontSize: 8, fontFamily: 'Inter_600SemiBold', letterSpacing: 1 }}>
+        <View style={[{ position: 'absolute' }, labelPos]}>
+          <Text numberOfLines={1} style={{ color: node.color + 'CC', fontSize: 7.5, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.8 }}>
             {node.label}
           </Text>
         </View>
@@ -147,95 +242,79 @@ function NodeDot({ node, onPress, disabled }: { node: OrbNode; onPress: () => vo
   );
 }
 
-// ── Orbital system ─────────────────────────────────────────────────────────
+// ── Orbital hub component ─────────────────────────────────────────────────────
 
-function OrbitalSystem({ jarvis, isActive }: { jarvis: JarvisCtx; isActive: boolean }) {
-  const rotOrbit = useSharedValue(0);
+function OrbitalHub({
+  isActive,
+  onNodeTap,
+  containerH,
+}: {
+  isActive: boolean;
+  onNodeTap: (node: HomeNode) => void;
+  containerH: number;
+}) {
+  const CY = Math.round(containerH * 0.44);
 
+  const ringRot = useSharedValue(0);
   useEffect(() => {
-    rotOrbit.value = withRepeat(
-      withTiming(360, { duration: isActive ? 20000 : 40000 }),
-      -1, false
-    );
-    return () => cancelAnimation(rotOrbit);
+    ringRot.value = withRepeat(withTiming(360, { duration: isActive ? 18000 : 38000 }), -1, false);
+    return () => cancelAnimation(ringRot);
   }, [isActive]);
+  const ringStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${ringRot.value}deg` }] }));
 
-  const orbitRingStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotOrbit.value}deg` }],
-  }));
-
-  const nodeLines = NODES.map(n => lineCoords(n));
-  const orbR = ORB_R;
+  const lineDefs = HOME_NODES.map(n => lineCoords(n.dx, n.dy));
 
   return (
-    <View style={{ width: SYS_SIZE, height: SYS_SIZE, alignSelf: 'center' }}>
+    <View style={{ width: SW, height: containerH }}>
 
-      {/* ── SVG layer: orbital ring + connection lines ── */}
+      {/* ── SVG layer: lines + orbital rings ── */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Svg width={SYS_SIZE} height={SYS_SIZE}>
+        <Svg width={SW} height={containerH}>
           <Defs>
-            {NODES.map((node, i) => (
+            {/* Outer orbital ring gradient — rotating shimmer via separate Animated.View */}
+            {HOME_NODES.map((n, i) => (
               <LinearGradient
                 key={`lg${i}`}
-                id={`line${i}`}
-                x1={nodeLines[i].x1} y1={nodeLines[i].y1}
-                x2={nodeLines[i].x2} y2={nodeLines[i].y2}
+                id={`l${i}`}
+                x1={CX + lineDefs[i].x1} y1={CY + lineDefs[i].y1}
+                x2={CX + lineDefs[i].x2} y2={CY + lineDefs[i].y2}
                 gradientUnits="userSpaceOnUse"
               >
-                <Stop offset="0%"   stopColor={node.color} stopOpacity="0.08" />
-                <Stop offset="50%"  stopColor={node.color} stopOpacity="0.35" />
-                <Stop offset="100%" stopColor={node.color} stopOpacity="0.7"  />
+                <Stop offset="0%"   stopColor={n.color} stopOpacity="0.05" />
+                <Stop offset="40%"  stopColor={n.color} stopOpacity="0.30" />
+                <Stop offset="100%" stopColor={n.color} stopOpacity="0.75" />
               </LinearGradient>
             ))}
           </Defs>
 
-          {/* Orbital guide ring */}
-          <Circle
-            cx={CX} cy={CY}
-            r={orbR + SYS_SIZE * 0.44 - orbR}
-            fill="none"
-            stroke="#0099FF"
-            strokeWidth={0.5}
-            strokeDasharray="4 18"
-            opacity={0.2}
-          />
+          {/* Inner orbital guide */}
+          <Circle cx={CX} cy={CY} r={108} fill="none" stroke="#0099FF" strokeWidth={0.4} strokeDasharray="3 20" opacity={0.18} />
 
-          {/* Connection lines per node */}
-          {NODES.map((_, i) => (
+          {/* Outer orbital guide */}
+          <Circle cx={CX} cy={CY} r={157} fill="none" stroke="#A78BFA" strokeWidth={0.4} strokeDasharray="3 26" opacity={0.14} />
+
+          {/* Connection lines */}
+          {HOME_NODES.map((n, i) => (
             <Line
               key={i}
-              x1={nodeLines[i].x1} y1={nodeLines[i].y1}
-              x2={nodeLines[i].x2} y2={nodeLines[i].y2}
-              stroke={`url(#line${i})`}
-              strokeWidth={1}
+              x1={CX + lineDefs[i].x1} y1={CY + lineDefs[i].y1}
+              x2={CX + lineDefs[i].x2} y2={CY + lineDefs[i].y2}
+              stroke={`url(#l${i})`}
+              strokeWidth={0.9}
             />
           ))}
 
-          {/* Small dot at each line endpoint near orb */}
-          {NODES.map((node, i) => (
-            <Circle
-              key={`d${i}`}
-              cx={nodeLines[i].x1} cy={nodeLines[i].y1}
-              r={2}
-              fill={node.color}
-              opacity={0.6}
-            />
+          {/* Small dot at line start (near orb) */}
+          {HOME_NODES.map((n, i) => (
+            <Circle key={`sd${i}`} cx={CX + lineDefs[i].x1} cy={CY + lineDefs[i].y1} r={1.8} fill={n.color} opacity={0.7} />
           ))}
         </Svg>
       </View>
 
-      {/* ── Slow-rotating orbital ring overlay ── */}
-      <Animated.View style={[StyleSheet.absoluteFill, orbitRingStyle]} pointerEvents="none">
-        <Svg width={SYS_SIZE} height={SYS_SIZE}>
-          <Circle
-            cx={CX} cy={CY}
-            r={SYS_SIZE * 0.44}
-            fill="none"
-            stroke="#00E0FF"
-            strokeWidth={0.8}
-            strokeDasharray="2 50"
-            opacity={0.5}
-          />
+      {/* ── Rotating orbital ring ── */}
+      <Animated.View style={[StyleSheet.absoluteFill, ringStyle]} pointerEvents="none">
+        <Svg width={SW} height={containerH}>
+          <Circle cx={CX} cy={CY} r={157} fill="none" stroke="#00E0FF" strokeWidth={1} strokeDasharray="2 60" opacity={0.45} />
         </Svg>
       </Animated.View>
 
@@ -248,32 +327,66 @@ function OrbitalSystem({ jarvis, isActive }: { jarvis: JarvisCtx; isActive: bool
         <JarvisOrb isActive={isActive} size={ORB_SIZE} />
       </View>
 
-      {/* ── Orbital nodes ── */}
-      {NODES.map((node, i) => (
+      {/* ── 15 orbital nodes ── */}
+      {HOME_NODES.map((node, i) => (
         <NodeDot
-          key={i}
+          key={node.key}
           node={node}
+          cx={CX + node.dx}
+          cy={CY + node.dy}
           disabled={isActive}
           onPress={async () => {
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            node.onTap(jarvis);
+            onNodeTap(node);
           }}
         />
       ))}
+
+      {/* ── Module count label ── */}
+      <View style={{ position: 'absolute', bottom: 10, alignSelf: 'center', left: 0, right: 0, alignItems: 'center' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+          <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#22c55e' }} />
+          <Text style={{ color: '#2E4E6A', fontSize: 8, fontFamily: 'Inter_400Regular', letterSpacing: 1.5 }}>
+            15 MODULES ACTIFS · J.A.R.V.I.S v2.4
+          </Text>
+        </View>
+      </View>
     </View>
   );
 }
 
-// ── Main screen ────────────────────────────────────────────────────────────
+// ── Main screen ────────────────────────────────────────────────────────────────
 
 export default function ChatScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const jarvis = useJarvis();
-  const { messages, isStreaming, sendMessage, clearConversation, error, clearError } = jarvis;
+  const { messages, isStreaming, sendMessage, clearConversation, error, clearError, fetchWeather, fetchNews, fetchGithubNotifs } = jarvis;
 
   const flatListRef = useRef<FlatList>(null);
   const reversedMessages = [...messages].reverse();
+
+  // ToolsMenu state — lifted here so orbital nodes can trigger it
+  const [toolsOpen, setToolsOpen]       = useState(false);
+  const [initialTool, setInitialTool]   = useState<ToolKey | undefined>(undefined);
+
+  const openTool = (key?: ToolKey) => {
+    setInitialTool(key);
+    setToolsOpen(true);
+  };
+
+  const handleNodeTap = (node: HomeNode) => {
+    if (node.noInput) {
+      // Execute immediately
+      switch (node.key) {
+        case 'github': fetchGithubNotifs(); break;
+        case 'news':   fetchNews(''); break;
+        case 'quote':  sendMessage("Donne-moi une citation inspirante ou philosophique avec son auteur."); break;
+      }
+    } else {
+      openTool(node.key);
+    }
+  };
 
   const renderItem = useCallback(
     ({ item, index }: { item: Message; index: number }) => {
@@ -294,6 +407,9 @@ export default function ChatScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
 
+      {/* ── Nebula clouds (full screen, behind everything) ── */}
+      <NebulaBackground />
+
       {/* ── Header ── */}
       <View style={[styles.header, { paddingTop: topPad + 8 }]}>
         <View style={styles.headerLeft}>
@@ -308,32 +424,19 @@ export default function ChatScreen() {
         </View>
 
         <View style={styles.headerRight}>
-          <View style={[styles.statPill, { borderColor: colors.border, backgroundColor: colors.card }]}>
+          <View style={[styles.statPill, { borderColor: colors.border, backgroundColor: colors.card + 'CC' }]}>
             <View style={[styles.statDot, { backgroundColor: '#22c55e' }]} />
             <Text style={[styles.statText, { color: colors.mutedForeground }]}>GPT-4o</Text>
           </View>
-
           {messages.length > 0 && (
-            <Pressable
-              onPress={handleClear}
-              style={({ pressed }) => [styles.headerBtn, { borderColor: colors.border, backgroundColor: colors.card, opacity: pressed ? 0.5 : 1 }]}
-              hitSlop={8}
-            >
+            <Pressable onPress={handleClear} style={({ pressed }) => [styles.headerBtn, { borderColor: colors.border, backgroundColor: colors.card + 'CC', opacity: pressed ? 0.5 : 1 }]} hitSlop={8}>
               <Feather name="trash-2" size={15} color={colors.mutedForeground} />
             </Pressable>
           )}
-          <Pressable
-            onPress={() => router.push('/tasks' as never)}
-            style={({ pressed }) => [styles.headerBtn, { borderColor: colors.border, backgroundColor: colors.card, opacity: pressed ? 0.5 : 1 }]}
-            hitSlop={8}
-          >
+          <Pressable onPress={() => router.push('/tasks' as never)} style={({ pressed }) => [styles.headerBtn, { borderColor: colors.border, backgroundColor: colors.card + 'CC', opacity: pressed ? 0.5 : 1 }]} hitSlop={8}>
             <Feather name="check-square" size={15} color={colors.mutedForeground} />
           </Pressable>
-          <Pressable
-            onPress={() => router.push('/settings')}
-            style={({ pressed }) => [styles.headerBtn, { borderColor: colors.border, backgroundColor: colors.card, opacity: pressed ? 0.5 : 1 }]}
-            hitSlop={8}
-          >
+          <Pressable onPress={() => router.push('/settings')} style={({ pressed }) => [styles.headerBtn, { borderColor: colors.border, backgroundColor: colors.card + 'CC', opacity: pressed ? 0.5 : 1 }]} hitSlop={8}>
             <Feather name="settings" size={15} color={colors.mutedForeground} />
           </Pressable>
         </View>
@@ -349,26 +452,13 @@ export default function ChatScreen() {
       <KeyboardAvoidingView style={styles.keyboardView} behavior="padding" keyboardVerticalOffset={0}>
 
         {messages.length === 0 ? (
-          /* ── Empty state: orbital system ── */
+          /* ── Empty state: orbital hub ── */
           <View style={styles.emptyOuter}>
-            {/* Status row */}
-            <View style={styles.statusRow}>
-              <View style={[styles.statusChip, { borderColor: colors.border, backgroundColor: colors.card }]}>
-                <View style={[styles.statusChipDot, { backgroundColor: '#22c55e' }]} />
-                <Text style={[styles.statusChipText, { color: colors.mutedForeground }]}>6 MODULES ACTIFS</Text>
-              </View>
-            </View>
-
-            {/* Orbital system */}
-            <OrbitalSystem jarvis={jarvis} isActive={isStreaming} />
-
-            {/* Subtitle */}
-            <View style={styles.subtitleBlock}>
-              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Online and ready, sir.</Text>
-              <Text style={[styles.emptySubtitle, { color: colors.mutedForeground }]}>
-                Appuyez sur un module ou parlez-moi
-              </Text>
-            </View>
+            <OrbitalHub
+              isActive={isStreaming}
+              onNodeTap={handleNodeTap}
+              containerH={Math.round(SH * 0.60)}
+            />
           </View>
         ) : (
           <FlatList
@@ -382,7 +472,6 @@ export default function ChatScreen() {
             keyboardDismissMode="interactive"
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
-            scrollEnabled={!!reversedMessages.length}
             ListHeaderComponent={
               isStreaming ? (
                 <View style={styles.typingRow}>
@@ -396,18 +485,22 @@ export default function ChatScreen() {
         )}
 
         {error && (
-          <Pressable
-            onPress={clearError}
-            style={[styles.errorBanner, { backgroundColor: colors.destructive + '20', borderColor: colors.destructive }]}
-          >
+          <Pressable onPress={clearError} style={[styles.errorBanner, { backgroundColor: colors.destructive + '20', borderColor: colors.destructive }]}>
             <Feather name="alert-circle" size={14} color={colors.destructive} />
             <Text style={[styles.errorText, { color: colors.destructive }]} numberOfLines={2}>{error}</Text>
             <Feather name="x" size={14} color={colors.destructive} />
           </Pressable>
         )}
 
-        <ChatInput onSend={sendMessage} isStreaming={isStreaming} disabled={false} />
+        <ChatInput onSend={sendMessage} isStreaming={isStreaming} disabled={false} onOpenTools={() => openTool(undefined)} />
       </KeyboardAvoidingView>
+
+      {/* ToolsMenu — lifted here from ChatInput */}
+      <ToolsMenu
+        visible={toolsOpen}
+        onClose={() => { setToolsOpen(false); setInitialTool(undefined); }}
+        initialTool={initialTool}
+      />
     </View>
   );
 }
@@ -415,7 +508,6 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-  // Header
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingBottom: 10 },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   statusWrapper: { alignItems: 'center', justifyContent: 'center', width: 24, height: 24 },
@@ -429,7 +521,6 @@ const styles = StyleSheet.create({
   statText: { fontSize: 9, fontFamily: 'Inter_400Regular', letterSpacing: 0.5 },
   headerBtn: { width: 32, height: 32, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
 
-  // Separator
   separatorRow: { flexDirection: 'row', alignItems: 'center', height: 1 },
   separatorLeft:  { flex: 2, height: 1 },
   separatorGlow:  { width: 80, height: 1.5 },
@@ -437,25 +528,8 @@ const styles = StyleSheet.create({
 
   keyboardView: { flex: 1 },
 
-  // Empty state — orbital
-  emptyOuter: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingBottom: 8,
-    gap: 0,
-  },
+  emptyOuter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  statusRow: { alignItems: 'center', marginBottom: 10 },
-  statusChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
-  statusChipDot: { width: 5, height: 5, borderRadius: 3 },
-  statusChipText: { fontSize: 9, fontFamily: 'Inter_600SemiBold', letterSpacing: 1.5 },
-
-  subtitleBlock: { alignItems: 'center', gap: 4, marginTop: 12 },
-  emptyTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.3 },
-  emptySubtitle: { fontSize: 12, fontFamily: 'Inter_400Regular', letterSpacing: 0.2 },
-
-  // List
   list: { flex: 1 },
   listContent: { paddingHorizontal: 12, paddingVertical: 12, gap: 6 },
 

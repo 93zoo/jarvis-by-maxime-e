@@ -15,19 +15,17 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
 import { useJarvis } from '@/context/JarvisContext';
-import { ToolsMenu } from '@/components/ToolsMenu';
-
 interface ChatInputProps {
   onSend: (text: string) => void;
   isStreaming: boolean;
   disabled?: boolean;
+  onOpenTools?: () => void;   // called when the user taps +
 }
 
-export function ChatInput({ onSend, isStreaming, disabled }: ChatInputProps) {
+export function ChatInput({ onSend, isStreaming, disabled, onOpenTools }: ChatInputProps) {
   const [text, setText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const [toolsOpen, setToolsOpen] = useState(false);
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { transcribeAudio, isSpeaking, stopSpeaking } = useJarvis();
@@ -65,7 +63,7 @@ export function ChatInput({ onSend, isStreaming, disabled }: ChatInputProps) {
   async function handleToolsPress() {
     if (isStreaming || disabled) return;
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setToolsOpen(true);
+    onOpenTools?.();
   }
 
   async function handleMicPress() {
@@ -114,8 +112,6 @@ export function ChatInput({ onSend, isStreaming, disabled }: ChatInputProps) {
 
   return (
     <>
-      <ToolsMenu visible={toolsOpen} onClose={() => setToolsOpen(false)} />
-
       <View style={[styles.container, {
         backgroundColor: colors.background,
         borderTopColor: colors.border,
@@ -138,13 +134,13 @@ export function ChatInput({ onSend, isStreaming, disabled }: ChatInputProps) {
             style={({ pressed }) => [
               styles.iconButton,
               {
-                backgroundColor: toolsOpen ? colors.primary + '22' : colors.card,
-                borderColor: toolsOpen ? colors.primary + '80' : colors.border,
+                backgroundColor: colors.card,
+                borderColor: colors.border,
                 opacity: pressed ? 0.6 : disabled ? 0.4 : 1,
               },
             ]}
           >
-            <Feather name="plus" size={17} color={toolsOpen ? colors.primary : colors.mutedForeground} />
+            <Feather name="plus" size={17} color={colors.mutedForeground} />
           </Pressable>
 
           {/* Text input */}

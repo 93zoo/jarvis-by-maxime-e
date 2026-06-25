@@ -248,9 +248,10 @@ function ToolTile({
 interface ToolsMenuProps {
   visible: boolean;
   onClose: () => void;
+  initialTool?: ToolKey;  // when set, opens directly to that tool's input panel
 }
 
-export function ToolsMenu({ visible, onClose }: ToolsMenuProps) {
+export function ToolsMenu({ visible, onClose, initialTool }: ToolsMenuProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { searchWeb, fetchWeather, sendEmail, fetchNews, navigateTo, isStreaming, sendMessage, fetchGithubNotifs } = useJarvis();
@@ -264,6 +265,23 @@ export function ToolsMenu({ visible, onClose }: ToolsMenuProps) {
 
   const activeTool = activeKey ? ALL_TOOLS.find(t => t.key === activeKey) : null;
   const totalTools = CATEGORIES.reduce((n, c) => n + c.tools.length, 0);
+
+  // When opened with a specific tool from the orbital hub, jump straight to its input panel
+  useEffect(() => {
+    if (visible && initialTool) {
+      setActiveKey(initialTool);
+      setInputVal('');
+      setEmailTo('');
+      setEmailSubject('');
+      setTimeout(() => inputRef.current?.focus(), 160);
+    }
+    if (!visible) {
+      setActiveKey(null);
+      setInputVal('');
+      setEmailTo('');
+      setEmailSubject('');
+    }
+  }, [visible, initialTool]);
 
   const handleClose = () => {
     Keyboard.dismiss();
