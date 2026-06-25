@@ -1,2 +1,3 @@
 - [JARVIS AI streaming fix](jarvis-streaming.md) — buffered SSE parser required; build apiMessages before state update to avoid duplicate user message
+- [Expo Go native module crashes](expo-go-native-modules.md) — requireNativeModule() at import time crashes Expo Go; use only Linking + RN builtins for Expo Go features
 - [JARVIS session 2 features](jarvis-features-session2.md) — TTS route path pitfall, expo-av cleanup pattern, notifications stale-ID fix, expo-file-system cast
