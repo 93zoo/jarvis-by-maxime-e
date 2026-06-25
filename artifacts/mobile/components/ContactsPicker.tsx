@@ -54,7 +54,8 @@ function initials(name: string) {
 }
 
 function stripNumber(n: string) {
-  return n.replace(/\s|-|\./g, '');
+  // Keep only digits and leading +, e.g. +33612345678
+  return n.replace(/[^\d+]/g, '').replace(/(?!^)\+/g, '');
 }
 
 const COLORS = ['#0099FF', '#00E0FF', '#C084FC', '#F472B6', '#34D399', '#FB923C', '#818CF8', '#4CAF50'];
@@ -93,6 +94,7 @@ export function ContactsPicker({ visible, onClose, onJarvisCompose }: ContactsPi
 
   async function loadContacts() {
     setLoading(true);
+    setPermDenied(false); // reset from any previous denial
     const { status } = await Contacts.requestPermissionsAsync();
     if (status !== 'granted') {
       setPermDenied(true);

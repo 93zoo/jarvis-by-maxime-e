@@ -477,7 +477,9 @@ export function JarvisProvider({ children }: { children: React.ReactNode }) {
     setMessages((prev) => [...prev, userMsg, loadingMsg]);
     setIsStreaming(true); setError(null);
     try {
-      const res = await globalThis.fetch(`${BACKEND_BASE}/api/github/notifications`);
+      const res = await globalThis.fetch(`${BACKEND_BASE}/api/github/notifications`, {
+        headers: { 'x-jarvis-key': process.env.EXPO_PUBLIC_JARVIS_KEY ?? '' },
+      });
       if (!res.ok) throw new Error(`GitHub API ${res.status}`);
       const data = await res.json() as { items?: Array<{ reason: string; title: string; type: string; repo: string; updatedAt: string }> };
       let content: string;

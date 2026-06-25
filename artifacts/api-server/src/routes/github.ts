@@ -1,37 +1,45 @@
-import { Router, Request, Response, NextFunction } from "express";
+import { Router, Request, Response as ExpressRes, NextFunction } from "express";
 
 const router = Router();
 const GH_BASE = "https://api.github.com";
 
-// ── Internal-only guard ────────────────────────────────────────────────────
-function internalOnly(req: Request, res: Response, next: NextFunction): void {
-  const origin = (req.headers.origin ?? "") as string;
+// ── Auth guard ─────────────────────────────────────────────────────────────
+// Priority order:
+//   1. X-Jarvis-Key header matches SESSION_SECRET → allow (future key-based auth)
+//   2. No X-Forwarded-For → same-container direct call → allow
+//   3. SESSION_SECRET not configured → allow (not yet secured)
+//   4. Request host/origin contains "replit" or "expo" → from JARVIS app → allow
+//   5. Else → 403
+function requireApiKey(req: Request, res: ExpressRes, next: NextFunction): void {
+  const secret   = process.env.SESSION_SECRET;
+  const provided = req.headers["x-jarvis-key"] as string | undefined;
+
+  if (secret && provided === secret) { next(); return; }
+
+  const forwarded = req.headers["x-forwarded-for"] as string | undefined;
+  if (!forwarded)  { next(); return; }  // direct container call
+
+  if (!secret) { next(); return; }      // SESSION_SECRET not set → open
+
+  const host    = (req.headers.host    ?? "") as string;
+  const origin  = (req.headers.origin  ?? "") as string;
   const referer = (req.headers.referer ?? "") as string;
-  const forwarded = (req.headers["x-forwarded-for"] ?? "") as string;
+  if (
+    host.includes("replit") || host.includes("expo") ||
+    origin.includes("replit") || referer.includes("replit")
+  ) { next(); return; }
 
-  const allowed =
-    !origin ||
-    origin.includes("localhost") ||
-    origin.includes("replit") ||
-    origin.includes("expo") ||
-    referer.includes("replit") ||
-    referer.includes("expo") ||
-    !forwarded;
-
-  if (!allowed) {
-    res.status(403).json({ error: "Forbidden" });
-    return;
-  }
-  next();
+  res.status(403).json({ error: "Forbidden" });
 }
 
-router.use(internalOnly);
+router.use(requireApiKey);
 
-// ── GitHub REST helper using PAT ───────────────────────────────────────────
+// ── GitHub REST helper (uses GITHUB_PERSONAL_ACCESS_TOKEN) ────────────────
+// Returns the global fetch Response — NOT the Express Response type.
 async function gh(
   path: string,
   opts: RequestInit = {}
-): Promise<Response> {
+): Promise<globalThis.Response> {
   const token = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
   if (!token) throw Object.assign(new Error("GITHUB_PERSONAL_ACCESS_TOKEN not set"), { status: 500 });
 
@@ -55,7 +63,7 @@ async function gh(
 }
 
 // ── GET /api/github/user ───────────────────────────────────────────────────
-router.get("/user", async (_req, res) => {
+router.get("/user", async (_req, res: ExpressRes) => {
   try {
     const r = await gh("/user");
     const data = await r.json() as { login: string; name: string; avatar_url: string; bio: string; public_repos: number };
@@ -67,7 +75,7 @@ router.get("/user", async (_req, res) => {
 });
 
 // ── GET /api/github/notifications ─────────────────────────────────────────
-router.get("/notifications", async (_req, res) => {
+router.get("/notifications", async (_req, res: ExpressRes) => {
   try {
     const r = await gh("/notifications?all=false&per_page=20");
     const data = await r.json() as Array<{
@@ -92,7 +100,7 @@ router.get("/notifications", async (_req, res) => {
 });
 
 // ── GET /api/github/repos ─────────────────────────────────────────────────
-router.get("/repos", async (_req, res) => {
+router.get("/repos", async (_req, res: ExpressRes) => {
   try {
     const r = await gh("/user/repos?sort=updated&per_page=30");
     const data = await r.json() as Array<{
@@ -112,7 +120,7 @@ router.get("/repos", async (_req, res) => {
 });
 
 // ── GET /api/github/issues?repo=owner/repo ────────────────────────────────
-router.get("/issues", async (req, res) => {
+router.get("/issues", async (req, res: ExpressRes) => {
   const repo = String(req.query.repo ?? "").trim();
   if (!repo || !repo.includes("/")) {
     res.status(400).json({ error: "repo param required (owner/repo)" });
@@ -138,7 +146,7 @@ router.get("/issues", async (req, res) => {
 });
 
 // ── POST /api/github/issue ────────────────────────────────────────────────
-router.post("/issue", async (req, res) => {
+router.post("/issue", async (req, res: ExpressRes) => {
   const { repo, title, body, labels } = req.body as { repo: string; title: string; body?: string; labels?: string[] };
   if (!repo || !title) {
     res.status(400).json({ error: "repo and title required" });
