@@ -129,22 +129,18 @@ const PLACEHOLDERS: Record<ToolKey, string> = {
 
 // ── Pulsing glow animation hook ───────────────────────────────────────────────
 
-function usePulse(color: string, active: boolean) {
-  const opacity = useSharedValue(0.35);
+function usePulse() {
+  const opacity = useSharedValue(0.18);
   useEffect(() => {
-    if (active) {
-      opacity.value = withRepeat(
-        withSequence(
-          withTiming(1, { duration: 900 }),
-          withTiming(0.35, { duration: 900 }),
-        ),
-        -1,
-        false,
-      );
-    } else {
-      opacity.value = 0.35;
-    }
-  }, [active, opacity]);
+    opacity.value = withRepeat(
+      withSequence(
+        withTiming(0.45, { duration: 1400 }),
+        withTiming(0.18, { duration: 1400 }),
+      ),
+      -1,
+      false,
+    );
+  }, [opacity]);
   return useAnimatedStyle(() => ({ opacity: opacity.value }));
 }
 
@@ -197,7 +193,7 @@ function ToolTile({
   disabled: boolean;
 }) {
   const [pressed, setPressed] = useState(false);
-  const glowStyle = usePulse(tool.color, false);
+  const glowStyle = usePulse();
 
   return (
     <Animated.View entering={FadeInDown.delay(delay).duration(350).springify().damping(18)}>
@@ -206,6 +202,9 @@ function ToolTile({
         onPressOut={() => setPressed(false)}
         onPress={onPress}
         disabled={disabled}
+        accessibilityRole="button"
+        accessibilityLabel={`${tool.label} — ${tool.desc}`}
+        accessibilityState={{ disabled }}
         style={[
           styles.tile,
           {
@@ -223,8 +222,8 @@ function ToolTile({
       >
         <CornerBrackets color={tool.color + (pressed ? 'CC' : '60')} size={8} />
 
-        {/* Glow pulse overlay */}
-        <Animated.View style={[StyleSheet.absoluteFill, { borderRadius: 10, backgroundColor: tool.color + '08' }, pressed ? undefined : glowStyle]} />
+        {/* Glow pulse overlay — always animating */}
+        <Animated.View style={[StyleSheet.absoluteFill, { borderRadius: 10, backgroundColor: tool.color + '10' }, glowStyle]} />
 
         {/* Symbol + emoji */}
         <View style={styles.tileIconRow}>
