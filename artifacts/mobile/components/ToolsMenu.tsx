@@ -3,6 +3,7 @@ import {
   Dimensions,
   Keyboard,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -24,7 +25,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
@@ -38,10 +38,10 @@ const TILE_W = (SCREEN_W - 32 - 16) / 3;
 
 type ToolKey =
   | 'search' | 'translate' | 'calculate'
-  | 'weather' | 'news' | 'currency'
-  | 'navigate' | 'email' | 'github'
+  | 'weather' | 'news'
+  | 'navigate' | 'email' | 'github' | 'call'
   | 'task' | 'note' | 'password'
-  | 'summarize' | 'timer' | 'quote';
+  | 'summarize';
 
 interface Tool {
   key: ToolKey;
@@ -75,15 +75,15 @@ const CATEGORIES: ToolCategory[] = [
     tools: [
       { key: 'weather',   sym: '◈', emoji: '🌤', label: 'MÉTÉO',        desc: 'Global & précis',  color: '#38BDF8', noInput: false },
       { key: 'news',      sym: '⊡', emoji: '📰', label: 'ACTUALITÉS',   desc: 'Flux en direct',   color: '#A78BFA', noInput: false },
-      { key: 'currency',  sym: '⊛', emoji: '💱', label: 'DEVISES',      desc: 'Conversion live',  color: '#34D399', noInput: false },
     ],
   },
   {
     id: 'action',
-    label: '◈ ACTIONS',
+    label: '◈ COMMUNICATION',
     tools: [
       { key: 'navigate',  sym: '⊕', emoji: '🗺', label: 'NAVIGATION',   desc: 'GPS itinéraire',   color: '#FB923C', noInput: false },
       { key: 'email',     sym: '⊠', emoji: '📧', label: 'EMAIL',        desc: 'Envoi Gmail',      color: '#F472B6', noInput: false },
+      { key: 'call',      sym: '◉', emoji: '📞', label: 'APPEL / SMS',  desc: 'Numéro direct',    color: '#4CAF50', noInput: false },
       { key: 'github',    sym: '⊟', emoji: '🐙', label: 'GITHUB',       desc: 'Notifications',    color: '#C084FC', noInput: true  },
     ],
   },
@@ -101,8 +101,6 @@ const CATEGORIES: ToolCategory[] = [
     label: '◈ SYSTÈME',
     tools: [
       { key: 'summarize', sym: '◫', emoji: '📊', label: 'RÉSUMÉ',       desc: 'Synthèse IA',      color: '#A78BFA', noInput: false },
-      { key: 'timer',     sym: '◎', emoji: '⏱', label: 'MINUTEUR',     desc: 'Alerte chrono',    color: '#FB923C', noInput: false },
-      { key: 'quote',     sym: '◌', emoji: '💬', label: 'CITATION',     desc: 'Inspire-moi',      color: '#34D399', noInput: true  },
     ],
   },
 ];
@@ -115,16 +113,14 @@ const PLACEHOLDERS: Record<ToolKey, string> = {
   calculate: 'Expression (ex: 42 * 3.14 / sin(π))',
   weather:   'Ville (ex: Tokyo, Londres, Dubai)',
   news:      'Sujet (vide = actus générales)',
-  currency:  'Montant + devises (ex: 100 EUR en USD)',
   navigate:  'Destination (ex: Tour Eiffel, Paris)',
   email:     'Corps du message...',
+  call:      'Numéro (ex: +33 6 12 34 56 78)',
   github:    '',
   task:      'Titre de la tâche...',
   note:      'Contenu de la note...',
   password:  'Longueur (ex: 20) ou règles spéciales',
   summarize: 'Collez le texte à résumer...',
-  timer:     'Durée en minutes (ex: 5)',
-  quote:     '',
 };
 
 // ── Pulsing glow animation hook ───────────────────────────────────────────────
@@ -298,13 +294,8 @@ export function ToolsMenu({ visible, onClose, initialTool }: ToolsMenuProps) {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     if (noInput) {
-      // Execute immediately
       handleClose();
-      if (key === 'quote') {
-        sendMessage("Donne-moi une citation inspirante ou motivante — une seule, bien choisie, avec son auteur.");
-      } else if (key === 'github') {
-        fetchGithubNotifs();
-      }
+      if (key === 'github') fetchGithubNotifs();
       return;
     }
 
@@ -331,25 +322,13 @@ export function ToolsMenu({ visible, onClose, initialTool }: ToolsMenuProps) {
       case 'calculate': sendMessage(`Calcule et explique : ${val}`); break;
       case 'weather':   fetchWeather(val); break;
       case 'news':      fetchNews(val); break;
-      case 'currency':  sendMessage(`Convertis : ${val}. Donne le taux actuel approximatif.`); break;
       case 'navigate':  navigateTo(val); break;
       case 'email':     sendEmail({ to: emailTo.trim(), subject: emailSubject.trim(), body: val }); break;
+      case 'call':      Linking.openURL(`tel:${val.replace(/\s/g, '')}`).catch(() => {}); break;
       case 'task':      addTask({ title: val, priority: 'medium' }); break;
       case 'note':      addNote({ title: 'Note', content: val }); break;
       case 'password':  sendMessage(`Génère un mot de passe ultra-sécurisé${val ? ` de ${val} caractères` : ''}. Explique sa robustesse.`); break;
       case 'summarize': sendMessage(`Résume ce texte de façon concise et structurée :\n\n${val}`); break;
-      case 'timer': {
-        const mins = parseInt(val) || 1;
-        try {
-          await Notifications.requestPermissionsAsync();
-          await Notifications.scheduleNotificationAsync({
-            content: { title: '⏱ JARVIS — Minuteur', body: `${mins} minute${mins > 1 ? 's' : ''} écoulée${mins > 1 ? 's' : ''}.`, sound: true },
-            trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: mins * 60 },
-          });
-        } catch {}
-        sendMessage(`Minuteur de ${mins} minute${mins > 1 ? 's' : ''} programmé. Je vous alerterai dans ${mins * 60} secondes.`);
-        break;
-      }
       default: break;
     }
   };
@@ -510,7 +489,7 @@ export function ToolsMenu({ visible, onClose, initialTool }: ToolsMenuProps) {
                         { color: '#C0DCF4', height: activeKey === 'summarize' || activeKey === 'note' || activeKey === 'email' ? 120 : undefined },
                       ]}
                       multiline={activeKey === 'summarize' || activeKey === 'note' || activeKey === 'email'}
-                      keyboardType={activeKey === 'timer' || activeKey === 'password' ? 'number-pad' : 'default'}
+                      keyboardType={activeKey === 'call' || activeKey === 'password' ? 'phone-pad' : 'default'}
                       autoFocus
                       onSubmitEditing={activeKey !== 'summarize' && activeKey !== 'note' && activeKey !== 'email' ? handleSubmit : undefined}
                     />

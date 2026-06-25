@@ -3,10 +3,14 @@ import {
   Animated as RNAnimated,
   Dimensions,
   FlatList,
+  Linking,
+  Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -41,9 +45,12 @@ const ORB_R    = ORB_SIZE / 2;
 
 // ── All 15 tools for home orbital ────────────────────────────────────────────
 
-type ToolKey = 'search' | 'translate' | 'calculate' | 'weather' | 'news' | 'currency'
-  | 'navigate' | 'email' | 'github' | 'task' | 'note' | 'password'
-  | 'summarize' | 'timer' | 'quote';
+// Keys handled exclusively by ToolsMenu (needs text input via the modal)
+type MenuToolKey = 'search' | 'translate' | 'calculate' | 'weather' | 'news'
+  | 'navigate' | 'email' | 'github' | 'call' | 'task' | 'note' | 'password' | 'summarize';
+
+// Full set of home-orbital node keys (includes home-only shortcuts)
+type ToolKey = MenuToolKey | 'bluetooth' | 'apps';
 
 interface HomeNode {
   key: ToolKey;
@@ -63,22 +70,43 @@ const op = (deg: number, rx = 155, ry = 160) => ({ dx: Math.round(rx * Math.cos(
 
 const HOME_NODES: HomeNode[] = [
   // Inner ring — 5 nodes, 72° apart, start -90°
-  { key: 'search',   emoji: '🔍', label: 'RECHERCHE',  color: '#0099FF', noInput: false, ...ip(-90) },
-  { key: 'weather',  emoji: '🌤', label: 'MÉTÉO',      color: '#38BDF8', noInput: false, ...ip(-18) },
-  { key: 'navigate', emoji: '🗺', label: 'NAVIGATION', color: '#FB923C', noInput: false, ...ip( 54) },
-  { key: 'task',     emoji: '✅', label: 'TÂCHE',      color: '#00E0FF', noInput: false, ...ip(126) },
-  { key: 'github',   emoji: '🐙', label: 'GITHUB',     color: '#C084FC', noInput: true,  ...ip(198) },
+  { key: 'search',    emoji: '🔍', label: 'RECHERCHE',  color: '#0099FF', noInput: false, ...ip(-90)  },
+  { key: 'weather',   emoji: '🌤', label: 'MÉTÉO',      color: '#38BDF8', noInput: false, ...ip(-18)  },
+  { key: 'navigate',  emoji: '🗺', label: 'NAVIGATION', color: '#FB923C', noInput: false, ...ip( 54)  },
+  { key: 'task',      emoji: '✅', label: 'TÂCHE',      color: '#00E0FF', noInput: false, ...ip(126)  },
+  { key: 'github',    emoji: '🐙', label: 'GITHUB',     color: '#C084FC', noInput: true,  ...ip(198)  },
   // Outer ring — 10 nodes, 36° apart, start -108°
-  { key: 'news',     emoji: '📰', label: 'ACTUALITÉS', color: '#A78BFA', noInput: true,  ...op(-108) },
-  { key: 'quote',    emoji: '💬', label: 'CITATION',   color: '#34D399', noInput: true,  ...op( -72) },
-  { key: 'calculate',emoji: '🧮', label: 'CALCUL',     color: '#818CF8', noInput: false, ...op( -36) },
-  { key: 'currency', emoji: '💱', label: 'DEVISES',    color: '#34D399', noInput: false, ...op(   0) },
-  { key: 'email',    emoji: '📧', label: 'EMAIL',      color: '#F472B6', noInput: false, ...op(  36) },
-  { key: 'note',     emoji: '📝', label: 'NOTE',       color: '#00E0FF', noInput: false, ...op(  72) },
-  { key: 'summarize',emoji: '📊', label: 'RÉSUMÉ',     color: '#A78BFA', noInput: false, ...op( 108) },
-  { key: 'timer',    emoji: '⏱', label: 'MINUTEUR',   color: '#FB923C', noInput: false, ...op( 144) },
-  { key: 'translate',emoji: '🌍', label: 'TRADUCTEUR', color: '#00E0FF', noInput: false, ...op( 180) },
-  { key: 'password', emoji: '🔐', label: 'SÉCURITÉ',   color: '#EF4444', noInput: false, ...op( 216) },
+  { key: 'news',      emoji: '📰', label: 'ACTUALITÉS', color: '#A78BFA', noInput: true,  ...op(-108) },
+  { key: 'bluetooth', emoji: '🔵', label: 'BLUETOOTH',  color: '#00BCD4', noInput: true,  ...op( -72) },
+  { key: 'calculate', emoji: '🧮', label: 'CALCUL',     color: '#818CF8', noInput: false, ...op( -36) },
+  { key: 'call',      emoji: '📞', label: 'APPEL/SMS',  color: '#4CAF50', noInput: false, ...op(   0) },
+  { key: 'email',     emoji: '📧', label: 'EMAIL',      color: '#F472B6', noInput: false, ...op(  36) },
+  { key: 'note',      emoji: '📝', label: 'NOTE',       color: '#00E0FF', noInput: false, ...op(  72) },
+  { key: 'summarize', emoji: '📊', label: 'RÉSUMÉ',     color: '#A78BFA', noInput: false, ...op( 108) },
+  { key: 'apps',      emoji: '📱', label: 'APPLIS',     color: '#FF9800', noInput: true,  ...op( 144) },
+  { key: 'translate', emoji: '🌍', label: 'TRADUCTEUR', color: '#00E0FF', noInput: false, ...op( 180) },
+  { key: 'password',  emoji: '🔐', label: 'SÉCURITÉ',   color: '#EF4444', noInput: false, ...op( 216) },
+];
+
+// ── App launcher list ─────────────────────────────────────────────────────────
+
+interface AppEntry { name: string; emoji: string; iosUrl: string; androidUrl: string; color: string; }
+
+const APP_LIST: AppEntry[] = [
+  { name: 'WhatsApp',   emoji: '💬', iosUrl: 'whatsapp://',               androidUrl: 'whatsapp://',                       color: '#25D366' },
+  { name: 'Instagram',  emoji: '📸', iosUrl: 'instagram://',              androidUrl: 'instagram://',                      color: '#E4405F' },
+  { name: 'Spotify',    emoji: '🎵', iosUrl: 'spotify://',                androidUrl: 'spotify://',                        color: '#1DB954' },
+  { name: 'YouTube',    emoji: '▶️', iosUrl: 'youtube://',                androidUrl: 'vnd.youtube://',                    color: '#FF0000' },
+  { name: 'Maps',       emoji: '🗺', iosUrl: 'maps://',                   androidUrl: 'geo:0,0',                           color: '#4285F4' },
+  { name: 'Telegram',   emoji: '✈️', iosUrl: 'tg://',                     androidUrl: 'org.telegram.messenger://',         color: '#2CA5E0' },
+  { name: 'Snapchat',   emoji: '👻', iosUrl: 'snapchat://',               androidUrl: 'snapchat://',                       color: '#FFFC00' },
+  { name: 'X / Twitter',emoji: '🐦', iosUrl: 'twitter://',                androidUrl: 'twitter://',                        color: '#1DA1F2' },
+  { name: 'LinkedIn',   emoji: '💼', iosUrl: 'linkedin://',               androidUrl: 'linkedin://',                       color: '#0A66C2' },
+  { name: 'Netflix',    emoji: '🎬', iosUrl: 'nflx://',                   androidUrl: 'netflix://',                        color: '#E50914' },
+  { name: 'TikTok',     emoji: '🎵', iosUrl: 'tiktok://',                 androidUrl: 'tiktok://',                         color: '#010101' },
+  { name: 'FaceTime',   emoji: '📹', iosUrl: 'facetime://',               androidUrl: '',                                  color: '#34C759' },
+  { name: 'Chrome',     emoji: '🌐', iosUrl: 'googlechrome://',           androidUrl: 'googlechrome://',                   color: '#4285F4' },
+  { name: 'Uber',       emoji: '🚗', iosUrl: 'uber://',                   androidUrl: 'uber://',                           color: '#000000' },
 ];
 
 // Line endpoints: from orb edge to near-node
@@ -457,23 +485,34 @@ export default function ChatScreen() {
 
   // ToolsMenu state — lifted here so orbital nodes can trigger it
   const [toolsOpen, setToolsOpen]       = useState(false);
-  const [initialTool, setInitialTool]   = useState<ToolKey | undefined>(undefined);
+  const [initialTool, setInitialTool]   = useState<MenuToolKey | undefined>(undefined);
 
-  const openTool = (key?: ToolKey) => {
+  // App launcher modal
+  const [appsOpen, setAppsOpen]         = useState(false);
+
+  const openTool = (key?: MenuToolKey) => {
     setInitialTool(key);
     setToolsOpen(true);
   };
 
   const handleNodeTap = (node: HomeNode) => {
     if (node.noInput) {
-      // Execute immediately
       switch (node.key) {
-        case 'github': fetchGithubNotifs(); break;
-        case 'news':   fetchNews(''); break;
-        case 'quote':  sendMessage("Donne-moi une citation inspirante ou philosophique avec son auteur."); break;
+        case 'github':    fetchGithubNotifs(); break;
+        case 'news':      fetchNews(''); break;
+        case 'bluetooth': {
+          const url = Platform.OS === 'ios'
+            ? 'App-Prefs:Bluetooth'
+            : 'android.settings.BLUETOOTH_SETTINGS';
+          Linking.openURL(url).catch(() =>
+            Linking.openURL(Platform.OS === 'ios' ? 'App-Prefs:' : 'android.settings.SETTINGS')
+          );
+          break;
+        }
+        case 'apps': setAppsOpen(true); break;
       }
     } else {
-      openTool(node.key);
+      openTool(node.key as MenuToolKey);
     }
   };
 
@@ -590,6 +629,51 @@ export default function ChatScreen() {
         onClose={() => { setToolsOpen(false); setInitialTool(undefined); }}
         initialTool={initialTool}
       />
+
+      {/* ── Apps launcher modal ── */}
+      <Modal visible={appsOpen} transparent animationType="slide" onRequestClose={() => setAppsOpen(false)}>
+        <Pressable style={styles.appsOverlay} onPress={() => setAppsOpen(false)}>
+          <View style={[styles.appsSheet, { backgroundColor: colors.card }]}>
+            {/* Handle bar */}
+            <View style={[styles.appsHandle, { backgroundColor: colors.border }]} />
+
+            {/* Title */}
+            <View style={styles.appsTitleRow}>
+              <Text style={[styles.appsTitleLabel, { color: colors.mutedForeground }]}>📱 APPLICATIONS</Text>
+              <Pressable onPress={() => setAppsOpen(false)}>
+                <Feather name="x" size={18} color={colors.mutedForeground} />
+              </Pressable>
+            </View>
+
+            {/* Grid */}
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.appsGrid}>
+              {APP_LIST.map((app) => (
+                <TouchableOpacity
+                  key={app.name}
+                  style={[styles.appTile, { borderColor: app.color + '40', backgroundColor: app.color + '12' }]}
+                  activeOpacity={0.7}
+                  onPress={async () => {
+                    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    const url = Platform.OS === 'ios' ? app.iosUrl : app.androidUrl;
+                    if (!url) return;
+                    const canOpen = await Linking.canOpenURL(url).catch(() => false);
+                    if (canOpen) {
+                      await Linking.openURL(url);
+                    } else {
+                      // Fallback: open in browser search
+                      await Linking.openURL(`https://www.google.com/search?q=${encodeURIComponent(app.name)}`);
+                    }
+                    setAppsOpen(false);
+                  }}
+                >
+                  <Text style={styles.appEmoji}>{app.emoji}</Text>
+                  <Text style={[styles.appName, { color: app.color }]} numberOfLines={1}>{app.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -629,4 +713,15 @@ const styles = StyleSheet.create({
 
   errorBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, margin: 10, padding: 10, borderRadius: 8, borderWidth: 1 },
   errorText: { flex: 1, fontSize: 12, fontFamily: 'Inter_400Regular' },
+
+  // Apps launcher modal
+  appsOverlay:   { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.65)' },
+  appsSheet:     { borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 34, paddingHorizontal: 16 },
+  appsHandle:    { width: 36, height: 4, borderRadius: 2, alignSelf: 'center', marginTop: 10, marginBottom: 6 },
+  appsTitleRow:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
+  appsTitleLabel:{ fontSize: 11, fontFamily: 'Inter_600SemiBold', letterSpacing: 1.5 },
+  appsGrid:      { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingBottom: 10 },
+  appTile:       { width: '22%', aspectRatio: 1, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  appEmoji:      { fontSize: 22 },
+  appName:       { fontSize: 7.5, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.5, textAlign: 'center' },
 });
