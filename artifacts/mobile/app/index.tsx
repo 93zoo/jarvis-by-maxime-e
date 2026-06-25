@@ -501,12 +501,20 @@ export default function ChatScreen() {
         case 'github':    fetchGithubNotifs(); break;
         case 'news':      fetchNews(''); break;
         case 'bluetooth': {
-          const url = Platform.OS === 'ios'
-            ? 'App-Prefs:Bluetooth'
-            : 'android.settings.BLUETOOTH_SETTINGS';
-          Linking.openURL(url).catch(() =>
-            Linking.openURL(Platform.OS === 'ios' ? 'App-Prefs:' : 'android.settings.SETTINGS')
-          );
+          if (Platform.OS === 'ios') {
+            // Works on real iOS device builds (not in Expo Go sandbox)
+            Linking.openURL('App-Prefs:Bluetooth').catch(() =>
+              Linking.openURL('App-Prefs:')
+            );
+          } else {
+            // Android: intent:// scheme opens system Bluetooth settings
+            Linking.openURL(
+              'intent:#Intent;action=android.settings.BLUETOOTH_SETTINGS;end'
+            ).catch(() =>
+              // Fallback: open general system settings
+              Linking.openSettings()
+            );
+          }
           break;
         }
         case 'apps': setAppsOpen(true); break;
@@ -655,15 +663,19 @@ export default function ChatScreen() {
                   onPress={async () => {
                     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     const url = Platform.OS === 'ios' ? app.iosUrl : app.androidUrl;
-                    if (!url) return;
-                    const canOpen = await Linking.canOpenURL(url).catch(() => false);
-                    if (canOpen) {
+                    setAppsOpen(false);
+                    if (!url) {
+                      // App not available on this platform → web search
+                      await Linking.openURL(`https://www.google.com/search?q=${encodeURIComponent(app.name)}`);
+                      return;
+                    }
+                    // Skip canOpenURL (unreliable on Android 11+ without package queries)
+                    // Directly try the deep link, fallback to web search on error
+                    try {
                       await Linking.openURL(url);
-                    } else {
-                      // Fallback: open in browser search
+                    } catch {
                       await Linking.openURL(`https://www.google.com/search?q=${encodeURIComponent(app.name)}`);
                     }
-                    setAppsOpen(false);
                   }}
                 >
                   <Text style={styles.appEmoji}>{app.emoji}</Text>

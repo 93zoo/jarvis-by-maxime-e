@@ -506,19 +506,64 @@ export function ToolsMenu({ visible, onClose, initialTool }: ToolsMenuProps) {
                 >
                   <Text style={[styles.cancelText, { color: '#2E4E6A' }]}>ANNULER</Text>
                 </Pressable>
-                <Pressable
-                  onPress={handleSubmit}
-                  disabled={!canSubmit()}
-                  style={[styles.submitBtn, {
-                    backgroundColor: canSubmit() ? (activeTool?.color ?? '#0099FF') + '20' : '#070D18',
-                    borderColor: canSubmit() ? (activeTool?.color ?? '#0099FF') : '#0C1C2E',
-                    shadowColor: canSubmit() ? (activeTool?.color ?? '#0099FF') : 'transparent',
-                  }]}
-                >
-                  <Text style={[styles.submitText, { color: canSubmit() ? (activeTool?.color ?? '#0099FF') : '#2E4E6A' }]}>
-                    LANCER ▶
-                  </Text>
-                </Pressable>
+
+                {/* Call tool: two buttons — APPELER and SMS */}
+                {activeKey === 'call' ? (
+                  <>
+                    <Pressable
+                      onPress={async () => {
+                        if (!canSubmit()) return;
+                        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                        const num = inputVal.trim().replace(/\s/g, '');
+                        handleClose();
+                        Linking.openURL(`sms:${num}`).catch(() => {});
+                      }}
+                      disabled={!canSubmit()}
+                      style={[styles.submitBtn, {
+                        backgroundColor: canSubmit() ? '#00E0FF20' : '#070D18',
+                        borderColor: canSubmit() ? '#00E0FF' : '#0C1C2E',
+                        shadowColor: canSubmit() ? '#00E0FF' : 'transparent',
+                      }]}
+                    >
+                      <Text style={[styles.submitText, { color: canSubmit() ? '#00E0FF' : '#2E4E6A' }]}>
+                        💬 SMS
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={async () => {
+                        if (!canSubmit()) return;
+                        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                        const num = inputVal.trim().replace(/\s/g, '');
+                        handleClose();
+                        Linking.openURL(`tel:${num}`).catch(() => {});
+                      }}
+                      disabled={!canSubmit()}
+                      style={[styles.submitBtn, {
+                        backgroundColor: canSubmit() ? '#4CAF5020' : '#070D18',
+                        borderColor: canSubmit() ? '#4CAF50' : '#0C1C2E',
+                        shadowColor: canSubmit() ? '#4CAF50' : 'transparent',
+                      }]}
+                    >
+                      <Text style={[styles.submitText, { color: canSubmit() ? '#4CAF50' : '#2E4E6A' }]}>
+                        📞 APPELER
+                      </Text>
+                    </Pressable>
+                  </>
+                ) : (
+                  <Pressable
+                    onPress={handleSubmit}
+                    disabled={!canSubmit()}
+                    style={[styles.submitBtn, {
+                      backgroundColor: canSubmit() ? (activeTool?.color ?? '#0099FF') + '20' : '#070D18',
+                      borderColor: canSubmit() ? (activeTool?.color ?? '#0099FF') : '#0C1C2E',
+                      shadowColor: canSubmit() ? (activeTool?.color ?? '#0099FF') : 'transparent',
+                    }]}
+                  >
+                    <Text style={[styles.submitText, { color: canSubmit() ? (activeTool?.color ?? '#0099FF') : '#2E4E6A' }]}>
+                      LANCER ▶
+                    </Text>
+                  </Pressable>
+                )}
               </View>
             </Animated.View>
           )}
