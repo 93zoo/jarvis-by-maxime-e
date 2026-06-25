@@ -16,7 +16,7 @@ import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
-import { useJarvis } from '@/context/JarvisContext';
+import { useJarvis, TTS_VOICES } from '@/context/JarvisContext';
 
 const MODELS = [
   { id: 'gpt-4o-mini', label: 'GPT-4o Mini', desc: 'Rapide et économique' },
@@ -35,6 +35,8 @@ export default function SettingsScreen() {
     clearConversation,
     voiceEnabled, setVoiceEnabled,
     isSpeaking, stopSpeaking,
+    ttsVoice, setTtsVoice,
+    userName, setUserName,
     systemPrompt, setSystemPrompt,
     gmailAddress, gmailAppPassword, setGmailCredentials,
     messages, exportConversation,
@@ -47,6 +49,9 @@ export default function SettingsScreen() {
   const [draftGmailAddress, setDraftGmailAddress] = useState(gmailAddress);
   const [draftGmailPassword, setDraftGmailPassword] = useState(gmailAppPassword);
   const [showPassword, setShowPassword] = useState(false);
+
+  const [draftUserName, setDraftUserName] = useState(userName);
+  const [editingUserName, setEditingUserName] = useState(false);
 
   const topPad = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPad = Platform.OS === 'web' ? 34 : insets.bottom;
@@ -112,6 +117,47 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        {/* ── Profil ── */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>PROFIL</Text>
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            {!editingUserName ? (
+              <Pressable
+                onPress={() => { setDraftUserName(userName); setEditingUserName(true); }}
+                style={({ pressed }) => [styles.toggleRow, { opacity: pressed ? 0.7 : 1 }]}
+              >
+                <View style={styles.toggleInfo}>
+                  <Text style={[styles.toggleLabel, { color: colors.foreground }]}>Votre prénom</Text>
+                  <Text style={[styles.toggleDesc, { color: colors.mutedForeground }]}>
+                    {userName ? userName : 'Non défini — JARVIS vous appellera "sir"'}
+                  </Text>
+                </View>
+                <Feather name="edit-2" size={16} color={colors.primary} />
+              </Pressable>
+            ) : (
+              <View style={{ padding: 12, gap: 10 }}>
+                <TextInput
+                  value={draftUserName} onChangeText={setDraftUserName}
+                  placeholder="Votre prénom..." placeholderTextColor={colors.mutedForeground}
+                  style={[styles.promptEditor, { backgroundColor: colors.background, borderColor: colors.primary + '60', color: colors.foreground, minHeight: 44, height: 44 }]}
+                  autoFocus
+                />
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <Pressable onPress={() => setEditingUserName(false)} style={[styles.promptBtn, { borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 }]}>
+                    <Text style={{ color: colors.mutedForeground, fontFamily: 'Inter_500Medium', fontSize: 13 }}>Annuler</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={async () => { await setUserName(draftUserName.trim()); setEditingUserName(false); await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); }}
+                    style={[styles.promptBtn, { backgroundColor: colors.primary, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 }]}
+                  >
+                    <Text style={{ color: colors.primaryForeground, fontFamily: 'Inter_600SemiBold', fontSize: 13 }}>Sauvegarder</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+
         {/* ── Voice ── */}
         <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>VOIX</Text>
@@ -147,6 +193,39 @@ export default function SettingsScreen() {
             🎤 Appuie sur le micro pour parler à JARVIS — pas besoin de clé API.
           </Text>
         </View>
+
+        {/* ── TTS Voice ── */}
+        {voiceEnabled && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>VOIX JARVIS — OpenAI TTS</Text>
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              {TTS_VOICES.map((v, i) => (
+                <Pressable
+                  key={v.id}
+                  onPress={async () => { await setTtsVoice(v.id); await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                  style={({ pressed }) => [
+                    styles.modelRow,
+                    i < TTS_VOICES.length - 1 && [styles.modelDivider, { borderBottomColor: colors.border }],
+                    { opacity: pressed ? 0.7 : 1 },
+                  ]}
+                >
+                  <View style={styles.modelInfo}>
+                    <Text style={[styles.modelName, { color: colors.foreground }]}>{v.label}</Text>
+                    <Text style={[styles.modelDesc, { color: colors.mutedForeground }]}>{v.desc}</Text>
+                  </View>
+                  {ttsVoice === v.id && (
+                    <View style={[styles.selectedDot, { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}>
+                      <View style={[styles.selectedDotInner, { backgroundColor: colors.primary }]} />
+                    </View>
+                  )}
+                </Pressable>
+              ))}
+            </View>
+            <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+              🔊 Onyx est recommandé pour la voix JARVIS. Si hors ligne, bascule sur expo-speech.
+            </Text>
+          </View>
+        )}
 
         {/* ── AI Model ── */}
         <View style={styles.section}>

@@ -74,6 +74,17 @@ export default function ChatScreen() {
             </Pressable>
           )}
           <Pressable
+            onPress={() => router.push('/tasks' as never)}
+            style={({ pressed }) => [styles.headerBtn, {
+              borderColor: colors.border,
+              backgroundColor: colors.card,
+              opacity: pressed ? 0.5 : 1,
+            }]}
+            hitSlop={8}
+          >
+            <Feather name="check-square" size={16} color={colors.mutedForeground} />
+          </Pressable>
+          <Pressable
             onPress={() => router.push('/settings')}
             style={({ pressed }) => [styles.headerBtn, {
               borderColor: colors.border,

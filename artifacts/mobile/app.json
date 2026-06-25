@@ -33,7 +33,23 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#0099FF",
+          "androidMode": "default",
+          "androidCollapsedTitle": "JARVIS"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "JARVIS a besoin de votre position pour la navigation GPS.",
+          "locationAlwaysAndWhenInUsePermission": "JARVIS a besoin de votre position pour la navigation GPS."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

@@ -15,6 +15,7 @@ import {
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { JarvisProvider } from '@/context/JarvisContext';
+import { TasksProvider } from '@/context/TasksContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -198,6 +199,7 @@ function RootLayoutNav() {
     <Stack>
       <Stack.Screen name="index"    options={{ headerShown: false }} />
       <Stack.Screen name="settings" options={{ headerShown: false, presentation: 'card' }} />
+      <Stack.Screen name="tasks"    options={{ headerShown: false, presentation: 'card' }} />
     </Stack>
   );
 }
@@ -226,8 +228,10 @@ export default function RootLayout() {
           <GestureHandlerRootView style={{ flex: 1 }}>
             <KeyboardProvider>
               <JarvisProvider>
-                <RootLayoutNav />
-                {showIntro && <JarvisIntro onDone={() => setShowIntro(false)} />}
+                <TasksProvider>
+                  <RootLayoutNav />
+                  {showIntro && <JarvisIntro onDone={() => setShowIntro(false)} />}
+                </TasksProvider>
               </JarvisProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>
