@@ -16,8 +16,10 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, {
   cancelAnimation,
+  interpolate,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withRepeat,
   withSequence,
   withTiming,
@@ -182,31 +184,92 @@ function NebulaBackground() {
   );
 }
 
+// ── Energy particle travelling along a connection line ───────────────────────
+
+function LineParticle({ x1, y1, x2, y2, color, delay, duration }: {
+  x1: number; y1: number; x2: number; y2: number;
+  color: string; delay: number; duration: number;
+}) {
+  const progress = useSharedValue(0);
+  useEffect(() => {
+    progress.value = withDelay(delay, withRepeat(withTiming(1, { duration }), -1, false));
+    return () => cancelAnimation(progress);
+  }, []);
+
+  const style = useAnimatedStyle(() => {
+    const t = progress.value;
+    return {
+      transform: [
+        { translateX: x1 + (x2 - x1) * t - 3 },
+        { translateY: y1 + (y2 - y1) * t - 3 },
+      ],
+      opacity: interpolate(t, [0, 0.12, 0.82, 1], [0, 1, 0.85, 0]),
+    };
+  });
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[{
+        position: 'absolute', left: 0, top: 0,
+        width: 6, height: 6, borderRadius: 3,
+        backgroundColor: color,
+        shadowColor: color,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 1,
+        shadowRadius: 5,
+      }, style]}
+    />
+  );
+}
+
 // ── Orbital node dot ─────────────────────────────────────────────────────────
 
-function NodeDot({ node, cx, cy, onPress, disabled }: {
+function NodeDot({ node, cx, cy, onPress, disabled, staggerMs }: {
   node: HomeNode;
   cx: number; cy: number;
   onPress: () => void;
   disabled: boolean;
+  staggerMs: number;
 }) {
-  const pulse = useSharedValue(0.55);
-  const scale = useSharedValue(1);
+  const pulse  = useSharedValue(0.55);
+  const scale  = useSharedValue(1);
+  const floatY = useSharedValue(0);
+  const ping   = useSharedValue(0);
 
   useEffect(() => {
-    pulse.value = withRepeat(
+    pulse.value = withDelay(staggerMs, withRepeat(
       withSequence(withTiming(1, { duration: 1400 }), withTiming(0.5, { duration: 1400 })),
       -1, false
-    );
-    scale.value = withRepeat(
-      withSequence(withTiming(1.06, { duration: 1800 }), withTiming(1, { duration: 1800 })),
+    ));
+    scale.value = withDelay(staggerMs, withRepeat(
+      withSequence(withTiming(1.10, { duration: 1900 }), withTiming(1, { duration: 1900 })),
       -1, false
-    );
-    return () => { cancelAnimation(pulse); cancelAnimation(scale); };
+    ));
+    floatY.value = withDelay(staggerMs, withRepeat(
+      withSequence(withTiming(-5, { duration: 1700 }), withTiming(5, { duration: 1700 })),
+      -1, true
+    ));
+    ping.value = withDelay(staggerMs % 900, withRepeat(
+      withTiming(1, { duration: 2600 }),
+      -1, false
+    ));
+    return () => {
+      cancelAnimation(pulse);
+      cancelAnimation(scale);
+      cancelAnimation(floatY);
+      cancelAnimation(ping);
+    };
   }, []);
 
-  const glowStyle  = useAnimatedStyle(() => ({ opacity: pulse.value }));
-  const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const glowStyle = useAnimatedStyle(() => ({ opacity: pulse.value }));
+  const nodeStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }, { translateY: floatY.value }],
+  }));
+  const pingStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: interpolate(ping.value, [0, 1], [0.7, 2.4]) }],
+    opacity: interpolate(ping.value, [0, 0.25, 1], [0.75, 0.4, 0]),
+  }));
 
   const side = labelSide(node.dx, node.dy);
   const labelPos: Record<string, number | string> = {};
@@ -224,14 +287,20 @@ function NodeDot({ node, cx, cy, onPress, disabled }: {
         accessibilityLabel={`${node.label} — JARVIS module`}
         style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
       >
+        {/* Ping ring — expands & fades */}
+        <Animated.View style={[{
+          position: 'absolute', width: 38, height: 38, borderRadius: 19,
+          borderWidth: 1.5, borderColor: node.color,
+        }, pingStyle]} />
+
         {/* Ambient glow ring */}
         <Animated.View style={[{
           position: 'absolute', width: 38, height: 38, borderRadius: 19,
           backgroundColor: node.color + '18', borderWidth: 1, borderColor: node.color + '60',
         }, glowStyle]} />
 
-        {/* Node icon */}
-        <Animated.View style={scaleStyle}>
+        {/* Node icon — floats + scales */}
+        <Animated.View style={nodeStyle}>
           <Text style={{ fontSize: 18, lineHeight: 22 }}>{node.emoji}</Text>
         </Animated.View>
 
@@ -331,6 +400,21 @@ function OrbitalHub({
         <JarvisOrb isActive={isActive} size={ORB_SIZE} />
       </View>
 
+      {/* ── Energy particles (one per line) ── */}
+      {HOME_NODES.map((n, i) => {
+        const lc = lineDefs[i];
+        return (
+          <LineParticle
+            key={`p${i}`}
+            x1={CX + lc.x1} y1={CY + lc.y1}
+            x2={CX + lc.x2} y2={CY + lc.y2}
+            color={n.color}
+            delay={(i * 190) % 1600}
+            duration={1500 + (i % 5) * 180}
+          />
+        );
+      })}
+
       {/* ── 15 orbital nodes ── */}
       {HOME_NODES.map((node, i) => (
         <NodeDot
@@ -338,6 +422,7 @@ function OrbitalHub({
           node={node}
           cx={CX + node.dx}
           cy={CY + node.dy}
+          staggerMs={i * 130}
           disabled={isActive}
           onPress={async () => {
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
