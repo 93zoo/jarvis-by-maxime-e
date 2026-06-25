@@ -351,7 +351,7 @@ function OrbitalHub({
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
           <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#22c55e' }} />
           <Text style={{ color: '#2E4E6A', fontSize: 8, fontFamily: 'Inter_400Regular', letterSpacing: 1.5 }}>
-            15 MODULES ACTIFS · J.A.R.V.I.S v2.4
+SYSTÈME OPÉRATIONNEL · PRÊT À INTERAGIR
           </Text>
         </View>
       </View>
