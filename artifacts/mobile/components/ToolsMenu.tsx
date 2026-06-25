@@ -273,7 +273,8 @@ export function ToolsMenu({ visible, onClose, initialTool }: ToolsMenuProps) {
       setInputVal('');
       setEmailTo('');
       setEmailSubject('');
-      setTimeout(() => inputRef.current?.focus(), 160);
+      const t = setTimeout(() => inputRef.current?.focus(), 160);
+      return () => clearTimeout(t);
     }
     if (!visible) {
       setActiveKey(null);
@@ -281,6 +282,7 @@ export function ToolsMenu({ visible, onClose, initialTool }: ToolsMenuProps) {
       setEmailTo('');
       setEmailSubject('');
     }
+    return undefined;
   }, [visible, initialTool]);
 
   const handleClose = () => {

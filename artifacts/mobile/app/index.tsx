@@ -106,16 +106,20 @@ function NebulaBackground() {
   const a4 = useRef(new RNAnimated.Value(0.5)).current;
 
   useEffect(() => {
-    const pulse = (v: RNAnimated.Value, lo: number, hi: number, dur: number) =>
+    const mkLoop = (v: RNAnimated.Value, lo: number, hi: number, dur: number) =>
       RNAnimated.loop(RNAnimated.sequence([
         RNAnimated.timing(v, { toValue: hi, duration: dur, useNativeDriver: true }),
         RNAnimated.timing(v, { toValue: lo, duration: dur, useNativeDriver: true }),
-      ])).start();
+      ]));
 
-    pulse(a1, 0.4, 1,   4200);
-    pulse(a2, 0.3, 0.9, 5800);
-    pulse(a3, 0.5, 1,   3600);
-    pulse(a4, 0.3, 0.8, 6500);
+    const l1 = mkLoop(a1, 0.4, 1,   4200);
+    const l2 = mkLoop(a2, 0.3, 0.9, 5800);
+    const l3 = mkLoop(a3, 0.5, 1,   3600);
+    const l4 = mkLoop(a4, 0.3, 0.8, 6500);
+
+    l1.start(); l2.start(); l3.start(); l4.start();
+
+    return () => { l1.stop(); l2.stop(); l3.stop(); l4.stop(); };
   }, []);
 
   return (
@@ -231,8 +235,8 @@ function NodeDot({ node, cx, cy, onPress, disabled }: {
           <Text style={{ fontSize: 18, lineHeight: 22 }}>{node.emoji}</Text>
         </Animated.View>
 
-        {/* Label */}
-        <View style={[{ position: 'absolute' }, labelPos]}>
+        {/* Label — maxWidth prevents edge overflow on narrow screens */}
+        <View style={[{ position: 'absolute', maxWidth: 62 }, labelPos]}>
           <Text numberOfLines={1} style={{ color: node.color + 'CC', fontSize: 7.5, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.8 }}>
             {node.label}
           </Text>
