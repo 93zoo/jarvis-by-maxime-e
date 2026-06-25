@@ -15,12 +15,27 @@
     },
     "ios": {
       "supportsTablet": false,
+      "bundleIdentifier": "com.maximeetivant.jarvisai",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "JARVIS a besoin du microphone pour entendre vos commandes vocales."
       }
     },
     "android": {
-      "permissions": ["RECORD_AUDIO"]
+      "package": "com.maximeetivant.jarvisai",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#04080f"
+      },
+      "permissions": [
+        "RECORD_AUDIO",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.USE_EXACT_ALARM"
+      ]
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -49,11 +64,22 @@
           "locationWhenInUsePermission": "JARVIS a besoin de votre position pour la navigation GPS.",
           "locationAlwaysAndWhenInUsePermission": "JARVIS a besoin de votre position pour la navigation GPS."
         }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "JARVIS a besoin du microphone pour les commandes vocales."
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
     }
   }
 }
