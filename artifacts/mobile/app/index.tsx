@@ -47,11 +47,11 @@ const ORB_R    = ORB_SIZE / 2;
 // ── All 15 tools for home orbital ────────────────────────────────────────────
 
 // Keys handled exclusively by ToolsMenu (needs text input via the modal)
-type MenuToolKey = 'search' | 'translate' | 'calculate' | 'weather' | 'news'
-  | 'navigate' | 'email' | 'github' | 'call' | 'task' | 'note' | 'password' | 'summarize';
+type MenuToolKey = 'search' | 'translate' | 'weather' | 'news'
+  | 'navigate' | 'email' | 'call' | 'task' | 'note' | 'summarize';
 
 // Full set of home-orbital node keys (includes home-only shortcuts)
-type ToolKey = MenuToolKey | 'bluetooth' | 'apps';
+type ToolKey = MenuToolKey | 'apps';
 
 interface HomeNode {
   key: ToolKey;
@@ -75,18 +75,14 @@ const HOME_NODES: HomeNode[] = [
   { key: 'weather',   emoji: '🌤', label: 'MÉTÉO',      color: '#38BDF8', noInput: false, ...ip(-18)  },
   { key: 'navigate',  emoji: '🗺', label: 'NAVIGATION', color: '#FB923C', noInput: false, ...ip( 54)  },
   { key: 'task',      emoji: '✅', label: 'TÂCHE',      color: '#00E0FF', noInput: false, ...ip(126)  },
-  { key: 'github',    emoji: '🐙', label: 'GITHUB',     color: '#C084FC', noInput: true,  ...ip(198)  },
-  // Outer ring — 10 nodes, 36° apart, start -108°
+  // Outer ring — 6 nodes
   { key: 'news',      emoji: '📰', label: 'ACTUALITÉS', color: '#A78BFA', noInput: true,  ...op(-108) },
-  { key: 'bluetooth', emoji: '🔵', label: 'BLUETOOTH',  color: '#00BCD4', noInput: true,  ...op( -72) },
-  { key: 'calculate', emoji: '🧮', label: 'CALCUL',     color: '#818CF8', noInput: false, ...op( -36) },
-  { key: 'call',      emoji: '📞', label: 'CONTACTS',  color: '#4CAF50', noInput: true,  ...op(   0) },
-  { key: 'email',     emoji: '📧', label: 'EMAIL',      color: '#F472B6', noInput: false, ...op(  36) },
-  { key: 'note',      emoji: '📝', label: 'NOTE',       color: '#00E0FF', noInput: false, ...op(  72) },
-  { key: 'summarize', emoji: '📊', label: 'RÉSUMÉ',     color: '#A78BFA', noInput: false, ...op( 108) },
-  { key: 'apps',      emoji: '📱', label: 'APPLIS',     color: '#FF9800', noInput: true,  ...op( 144) },
-  { key: 'translate', emoji: '🌍', label: 'TRADUCTEUR', color: '#00E0FF', noInput: false, ...op( 180) },
-  { key: 'password',  emoji: '🔐', label: 'SÉCURITÉ',   color: '#EF4444', noInput: false, ...op( 216) },
+  { key: 'call',      emoji: '📞', label: 'CONTACTS',   color: '#4CAF50', noInput: true,  ...op( -54) },
+  { key: 'email',     emoji: '📧', label: 'EMAIL',       color: '#F472B6', noInput: false, ...op(   0) },
+  { key: 'note',      emoji: '📝', label: 'NOTE',        color: '#00E0FF', noInput: false, ...op(  54) },
+  { key: 'summarize', emoji: '📊', label: 'RÉSUMÉ',      color: '#A78BFA', noInput: false, ...op( 108) },
+  { key: 'apps',      emoji: '📱', label: 'APPLIS',      color: '#FF9800', noInput: true,  ...op( 162) },
+  { key: 'translate', emoji: '🌍', label: 'TRADUCTEUR',  color: '#00E0FF', noInput: false, ...op( 216) },
 ];
 
 // ── App launcher list ─────────────────────────────────────────────────────────
@@ -482,7 +478,7 @@ export default function ChatScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const jarvis = useJarvis();
-  const { messages, isStreaming, sendMessage, clearConversation, error, clearError, fetchWeather, fetchNews, fetchGithubNotifs } = jarvis;
+  const { messages, isStreaming, sendMessage, clearConversation, error, clearError, fetchWeather, fetchNews } = jarvis;
 
   const flatListRef = useRef<FlatList>(null);
   const reversedMessages = [...messages].reverse();
@@ -504,26 +500,8 @@ export default function ChatScreen() {
   const handleNodeTap = (node: HomeNode) => {
     if (node.noInput) {
       switch (node.key) {
-        case 'github':    fetchGithubNotifs(); break;
-        case 'news':      fetchNews(''); break;
-        case 'call':      setContactsOpen(true); break;
-        case 'bluetooth': {
-          if (Platform.OS === 'ios') {
-            // Works on real iOS device builds (not in Expo Go sandbox)
-            Linking.openURL('App-Prefs:Bluetooth').catch(() =>
-              Linking.openURL('App-Prefs:')
-            );
-          } else {
-            // Android: intent:// scheme opens system Bluetooth settings
-            Linking.openURL(
-              'intent:#Intent;action=android.settings.BLUETOOTH_SETTINGS;end'
-            ).catch(() =>
-              // Fallback: open general system settings
-              Linking.openSettings()
-            );
-          }
-          break;
-        }
+        case 'news': fetchNews(''); break;
+        case 'call': setContactsOpen(true); break;
         case 'apps': setAppsOpen(true); break;
       }
     } else {

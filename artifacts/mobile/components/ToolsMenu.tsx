@@ -37,10 +37,10 @@ const TILE_W = (SCREEN_W - 32 - 16) / 3;
 // ── Tool definitions ──────────────────────────────────────────────────────────
 
 type ToolKey =
-  | 'search' | 'translate' | 'calculate'
+  | 'search' | 'translate'
   | 'weather' | 'news'
-  | 'navigate' | 'email' | 'github' | 'call'
-  | 'task' | 'note' | 'password'
+  | 'navigate' | 'email' | 'call'
+  | 'task' | 'note'
   | 'summarize';
 
 interface Tool {
@@ -66,7 +66,6 @@ const CATEGORIES: ToolCategory[] = [
     tools: [
       { key: 'search',    sym: '⌖', emoji: '🔍', label: 'RECHERCHE',    desc: 'Web temps réel',   color: '#0099FF', noInput: false },
       { key: 'translate', sym: '⊞', emoji: '🌍', label: 'TRADUCTEUR',   desc: 'Toutes langues',   color: '#00E0FF', noInput: false },
-      { key: 'calculate', sym: '∑', emoji: '🧮', label: 'CALCUL',       desc: 'Maths & IA',       color: '#818CF8', noInput: false },
     ],
   },
   {
@@ -84,7 +83,6 @@ const CATEGORIES: ToolCategory[] = [
       { key: 'navigate',  sym: '⊕', emoji: '🗺', label: 'NAVIGATION',   desc: 'GPS itinéraire',   color: '#FB923C', noInput: false },
       { key: 'email',     sym: '⊠', emoji: '📧', label: 'EMAIL',        desc: 'Envoi Gmail',      color: '#F472B6', noInput: false },
       { key: 'call',      sym: '◉', emoji: '📞', label: 'APPEL / SMS',  desc: 'Numéro direct',    color: '#4CAF50', noInput: false },
-      { key: 'github',    sym: '⊟', emoji: '🐙', label: 'GITHUB',       desc: 'Notifications',    color: '#C084FC', noInput: true  },
     ],
   },
   {
@@ -93,7 +91,6 @@ const CATEGORIES: ToolCategory[] = [
     tools: [
       { key: 'task',      sym: '⊗', emoji: '✅', label: 'TÂCHE',        desc: 'Agenda JARVIS',    color: '#0099FF', noInput: false },
       { key: 'note',      sym: '⊙', emoji: '📝', label: 'NOTE',         desc: 'Mémo rapide',      color: '#00E0FF', noInput: false },
-      { key: 'password',  sym: '◉', emoji: '🔐', label: 'SÉCURITÉ',     desc: 'Mot de passe',     color: '#EF4444', noInput: false },
     ],
   },
   {
@@ -110,16 +107,13 @@ const ALL_TOOLS: Tool[] = CATEGORIES.flatMap(c => c.tools);
 const PLACEHOLDERS: Record<ToolKey, string> = {
   search:    'Que cherchez-vous ?',
   translate: 'Texte à traduire (ex: Bonjour → English)',
-  calculate: 'Expression (ex: 42 * 3.14 / sin(π))',
   weather:   'Ville (ex: Tokyo, Londres, Dubai)',
   news:      'Sujet (vide = actus générales)',
   navigate:  'Destination (ex: Tour Eiffel, Paris)',
   email:     'Corps du message...',
   call:      'Numéro (ex: +33 6 12 34 56 78)',
-  github:    '',
   task:      'Titre de la tâche...',
   note:      'Contenu de la note...',
-  password:  'Longueur (ex: 20) ou règles spéciales',
   summarize: 'Collez le texte à résumer...',
 };
 
@@ -250,7 +244,7 @@ interface ToolsMenuProps {
 export function ToolsMenu({ visible, onClose, initialTool }: ToolsMenuProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { searchWeb, fetchWeather, sendEmail, fetchNews, navigateTo, isStreaming, sendMessage, fetchGithubNotifs } = useJarvis();
+  const { searchWeb, fetchWeather, sendEmail, fetchNews, navigateTo, isStreaming, sendMessage } = useJarvis();
   const { addTask, addNote } = useTasks();
 
   const [activeKey, setActiveKey] = useState<ToolKey | null>(null);
@@ -295,7 +289,6 @@ export function ToolsMenu({ visible, onClose, initialTool }: ToolsMenuProps) {
 
     if (noInput) {
       handleClose();
-      if (key === 'github') fetchGithubNotifs();
       return;
     }
 
@@ -319,7 +312,6 @@ export function ToolsMenu({ visible, onClose, initialTool }: ToolsMenuProps) {
     switch (activeKey) {
       case 'search':    searchWeb(val); break;
       case 'translate': sendMessage(`Traduis ce texte : "${val}"`); break;
-      case 'calculate': sendMessage(`Calcule et explique : ${val}`); break;
       case 'weather':   fetchWeather(val); break;
       case 'news':      fetchNews(val); break;
       case 'navigate':  navigateTo(val); break;
@@ -327,7 +319,6 @@ export function ToolsMenu({ visible, onClose, initialTool }: ToolsMenuProps) {
       case 'call':      Linking.openURL(`tel:${val.replace(/\s/g, '')}`).catch(() => {}); break;
       case 'task':      addTask({ title: val, priority: 'medium' }); break;
       case 'note':      addNote({ title: 'Note', content: val }); break;
-      case 'password':  sendMessage(`Génère un mot de passe ultra-sécurisé${val ? ` de ${val} caractères` : ''}. Explique sa robustesse.`); break;
       case 'summarize': sendMessage(`Résume ce texte de façon concise et structurée :\n\n${val}`); break;
       default: break;
     }
@@ -489,7 +480,7 @@ export function ToolsMenu({ visible, onClose, initialTool }: ToolsMenuProps) {
                         { color: '#C0DCF4', height: activeKey === 'summarize' || activeKey === 'note' || activeKey === 'email' ? 120 : undefined },
                       ]}
                       multiline={activeKey === 'summarize' || activeKey === 'note' || activeKey === 'email'}
-                      keyboardType={activeKey === 'call' || activeKey === 'password' ? 'phone-pad' : 'default'}
+                      keyboardType={activeKey === 'call' ? 'phone-pad' : 'default'}
                       autoFocus
                       onSubmitEditing={activeKey !== 'summarize' && activeKey !== 'note' && activeKey !== 'email' ? handleSubmit : undefined}
                     />

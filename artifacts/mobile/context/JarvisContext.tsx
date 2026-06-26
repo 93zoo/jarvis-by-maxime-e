@@ -56,7 +56,6 @@ interface JarvisContextType {
   fetchWeather: (city: string) => Promise<void>;
   fetchNews: (topic: string) => Promise<void>;
   navigateTo: (destination: string) => Promise<void>;
-  fetchGithubNotifs: () => Promise<void>;
   exportConversation: () => Promise<void>;
   clearConversation: () => void;
   setModel: (model: string) => Promise<void>;
@@ -467,37 +466,6 @@ export function JarvisProvider({ children }: { children: React.ReactNode }) {
     } finally { setIsStreaming(false); }
   }, [isStreaming]);
 
-  // ── GitHub Notifications ──────────────────────────────────────────────────
-
-  const fetchGithubNotifs = useCallback(async () => {
-    if (isStreaming) return;
-    const userMsg: Message = { id: generateId(), role: 'user', content: '🐙 Notifications GitHub', timestamp: Date.now(), type: 'text' };
-    const loadingId = generateId();
-    const loadingMsg: Message = { id: loadingId, role: 'assistant', content: '🔄 Connexion GitHub...', timestamp: Date.now(), type: 'text' };
-    setMessages((prev) => [...prev, userMsg, loadingMsg]);
-    setIsStreaming(true); setError(null);
-    try {
-      const res = await globalThis.fetch(`${BACKEND_BASE}/api/github/notifications`, {
-        headers: { 'x-jarvis-key': process.env.EXPO_PUBLIC_JARVIS_KEY ?? '' },
-      });
-      if (!res.ok) throw new Error(`GitHub API ${res.status}`);
-      const data = await res.json() as { items?: Array<{ reason: string; title: string; type: string; repo: string; updatedAt: string }> };
-      let content: string;
-      if (!data.items?.length) {
-        content = '✅ Aucune notification GitHub en attente, sir.';
-      } else {
-        const lines = data.items.slice(0, 10).map((n) => `• **${n.title}** — \`${n.repo}\` _(${n.reason})_`);
-        content = `🐙 **${data.items.length} notification${data.items.length > 1 ? 's' : ''} GitHub :**\n\n${lines.join('\n')}`;
-      }
-      const resultMsg: Message = { id: loadingId, role: 'assistant', content, timestamp: Date.now(), type: 'text' };
-      setMessages((prev) => { const u = prev.map((m) => m.id === loadingId ? resultMsg : m); persistMessages(u); return u; });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erreur GitHub';
-      setError(msg);
-      setMessages((prev) => { const f = prev.filter((m) => m.id !== loadingId); persistMessages(f); return f; });
-    } finally { setIsStreaming(false); }
-  }, [isStreaming]);
-
   // ── Export ────────────────────────────────────────────────────────────────
 
   const exportConversation = useCallback(async () => {
@@ -550,7 +518,7 @@ export function JarvisProvider({ children }: { children: React.ReactNode }) {
       messages, isStreaming, model, voiceEnabled, isSpeaking, ttsVoice, userName,
       systemPrompt, gmailAddress, gmailAppPassword,
       setGmailCredentials, sendMessage, sendEmail, searchWeb, fetchWeather, fetchNews,
-      navigateTo, fetchGithubNotifs, exportConversation, clearConversation,
+      navigateTo, exportConversation, clearConversation,
       setModel, setVoiceEnabled, setTtsVoice, setUserName, setSystemPrompt,
       stopSpeaking, transcribeAudio, error, clearError,
     }}>
