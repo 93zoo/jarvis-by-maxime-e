@@ -153,7 +153,7 @@ function JarvisIntro({ onDone }: { onDone: () => void }) {
         </Animated.Text>
 
         {/* Title */}
-        <Animated.Text style={[styles.introTitle, { opacity: titleOpacity, transform: [{ scale: titleScale }] }]}>
+        <Animated.Text numberOfLines={1} adjustsFontSizeToFit style={[styles.introTitle, { opacity: titleOpacity, transform: [{ scale: titleScale }] }]}>
           J.A.R.V.I.S.
         </Animated.Text>
 
@@ -286,7 +286,8 @@ const styles = StyleSheet.create({
   // Content
   introContent: {
     alignItems: 'center',
-    width: 310,
+    alignSelf: 'stretch',
+    paddingHorizontal: 20,
     gap: 8,
   },
   unitLabel: {
