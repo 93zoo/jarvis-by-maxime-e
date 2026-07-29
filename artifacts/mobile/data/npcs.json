@@ -1,0 +1,282 @@
+[
+  {
+    "id": "npc_merchant_1", "name": "Bernard le Marchand", "type": "merchant",
+    "emoji": "🧑‍💼", "personality": "casual",
+    "budgetMin": 80, "budgetMax": 220,
+    "preferredCategories": ["tool", "ring", "amulet"],
+    "minQuality": "normal",
+    "dialogues": {
+      "greeting": "Bonjour forgeron ! J'ai besoin d'outils solides pour mon commerce.",
+      "satisfied": "Parfait, ce sera utile. Voici votre paiement !",
+      "excellent": "Magnifique travail ! Je reviendrai vous voir souvent.",
+      "disappointed": "Hmm... ce n'est pas exactement ce que j'espérais.",
+      "angry": "Quelle déception ! Ne comptez pas sur ma clientèle !"
+    }
+  },
+  {
+    "id": "npc_merchant_2", "name": "Sofia la Marchande", "type": "merchant",
+    "emoji": "👩‍💼", "personality": "generous",
+    "budgetMin": 100, "budgetMax": 280,
+    "preferredCategories": ["amulet", "ring", "decoration"],
+    "minQuality": "good",
+    "dialogues": {
+      "greeting": "Bonjour ! Je cherche des bijoux de qualité pour ma boutique.",
+      "satisfied": "C'est très beau ! Mes clientes vont adorer.",
+      "excellent": "Splendide ! Je double la récompense tellement c'est beau !",
+      "disappointed": "Pas vraiment mon style... mais j'en prendrai quand même.",
+      "angry": "C'est du travail de débutant ! Je vais ailleurs."
+    }
+  },
+  {
+    "id": "npc_merchant_3", "name": "Dmitri le Négociant", "type": "merchant",
+    "emoji": "🧔", "personality": "impatient",
+    "budgetMin": 120, "budgetMax": 350,
+    "preferredCategories": ["tool", "sword", "axe"],
+    "minQuality": "normal",
+    "dialogues": {
+      "greeting": "Vite ! J'ai besoin de marchandises pour ma prochaine caravane.",
+      "satisfied": "Bon travail, livré dans les temps !",
+      "excellent": "Excellent ! Vous êtes rapide ET talentueux !",
+      "disappointed": "C'est passable. Je m'attendais à mieux pour ce prix.",
+      "angry": "Trop tard, je suis parti ! Non, je plaisante. Mais grouillez-vous !"
+    }
+  },
+  {
+    "id": "npc_knight_1", "name": "Sir Roland", "type": "knight",
+    "emoji": "⚔️", "personality": "demanding",
+    "budgetMin": 200, "budgetMax": 500,
+    "preferredCategories": ["sword", "shield", "armor"],
+    "minQuality": "good",
+    "dialogues": {
+      "greeting": "Forgeron ! Je cherche une lame digne de mon rang.",
+      "satisfied": "Honorable. Cela servira bien à la bataille.",
+      "excellent": "Par les dieux, quelle lame ! Vous honorez votre métier.",
+      "disappointed": "Je m'attendais à plus de raffinement pour un chevalier.",
+      "angry": "Cela n'est pas digne d'un chevalier ! Reforgez-le !"
+    }
+  },
+  {
+    "id": "npc_knight_2", "name": "Dame Elena", "type": "knight",
+    "emoji": "🛡️", "personality": "generous",
+    "budgetMin": 250, "budgetMax": 600,
+    "preferredCategories": ["sword", "shield", "helmet"],
+    "minQuality": "good",
+    "dialogues": {
+      "greeting": "Forgeron, je prépare une expédition et j'ai besoin d'armement.",
+      "satisfied": "Cet équipement me sera précieux. Merci !",
+      "excellent": "Une maîtrise rare ! Les bardes chanteront votre art.",
+      "disappointed": "Je l'accepte, mais j'en attendais davantage.",
+      "angry": "Inacceptable ! Un forgeron de votre réputation peut faire mieux !"
+    }
+  },
+  {
+    "id": "npc_knight_3", "name": "Sir Gareth", "type": "knight",
+    "emoji": "🗡️", "personality": "casual",
+    "budgetMin": 180, "budgetMax": 420,
+    "preferredCategories": ["axe", "hammer", "lance"],
+    "minQuality": "normal",
+    "dialogues": {
+      "greeting": "Salut l'artisan ! J'ai besoin d'une bonne arme pour mon tournoi.",
+      "satisfied": "Pas mal du tout. Ça fera l'affaire !",
+      "excellent": "Formidable ! Je vais gagner le tournoi avec ça !",
+      "disappointed": "Bof... J'ai vu mieux. Mais c'est bon pour s'entraîner.",
+      "angry": "C'est une honte pour un forgeron de te montrer ça !"
+    }
+  },
+  {
+    "id": "npc_adventurer_1", "name": "Lyra l'Aventurière", "type": "adventurer",
+    "emoji": "🧝", "personality": "casual",
+    "budgetMin": 100, "budgetMax": 300,
+    "preferredCategories": ["sword", "ring", "amulet"],
+    "minQuality": "normal",
+    "dialogues": {
+      "greeting": "Hey ! J'ai besoin d'équipement pour ma prochaine aventure.",
+      "satisfied": "Super ! Ça devrait m'aider dans les donjons.",
+      "excellent": "Wow, c'est exactement ce qu'il me faut ! Tu es génial.",
+      "disappointed": "C'est un peu décevant... mais ça ira pour l'instant.",
+      "angry": "Avec ça je vais mourir au premier gobelin ! Refais-le !"
+    }
+  },
+  {
+    "id": "npc_adventurer_2", "name": "Ragnar l'Explorateur", "type": "adventurer",
+    "emoji": "🧙", "personality": "impatient",
+    "budgetMin": 150, "budgetMax": 380,
+    "preferredCategories": ["axe", "hammer", "tool"],
+    "minQuality": "normal",
+    "dialogues": {
+      "greeting": "Vite forgeron, j'ai une expédition demain !",
+      "satisfied": "Parfait, ça va tenir dans les ruines !",
+      "excellent": "Incroyable ! Tu es le meilleur forgeron du royaume !",
+      "disappointed": "Je suppose que ça ira... pour cette fois.",
+      "angry": "C'est fragile comme du verre ! Recommence !"
+    }
+  },
+  {
+    "id": "npc_adventurer_3", "name": "Fayla la Chasseuse", "type": "adventurer",
+    "emoji": "🏹", "personality": "generous",
+    "budgetMin": 120, "budgetMax": 320,
+    "preferredCategories": ["lance", "tool", "ring"],
+    "minQuality": "normal",
+    "dialogues": {
+      "greeting": "Bonjour ! Je cherche des outils pour ma prochaine chasse.",
+      "satisfied": "Merci beaucoup ! La forêt n'a qu'à bien se tenir.",
+      "excellent": "Parfait à tous points ! Tu as un vrai talent.",
+      "disappointed": "Pas exactement ce que j'imaginais, mais ça ira.",
+      "angry": "Jamais je ne chasserai avec ça ! Refais-le !"
+    }
+  },
+  {
+    "id": "npc_soldier_1", "name": "Sergent Marcus", "type": "soldier",
+    "emoji": "💂", "personality": "demanding",
+    "budgetMin": 150, "budgetMax": 400,
+    "preferredCategories": ["sword", "shield", "armor", "helmet"],
+    "minQuality": "good",
+    "dialogues": {
+      "greeting": "Forgeron ! L'armée a besoin d'équipement de qualité militaire.",
+      "satisfied": "Bon travail soldat... euh, forgeron. Ça passe l'inspection.",
+      "excellent": "Impeccable ! Digne de la garde royale !",
+      "disappointed": "Insuffisant pour nos standards militaires.",
+      "angry": "L'armée ne peut pas utiliser ça ! Honte !"
+    }
+  },
+  {
+    "id": "npc_soldier_2", "name": "Caporal Yves", "type": "soldier",
+    "emoji": "🪖", "personality": "casual",
+    "budgetMin": 100, "budgetMax": 280,
+    "preferredCategories": ["sword", "lance", "shield"],
+    "minQuality": "normal",
+    "dialogues": {
+      "greeting": "Salut ! On a besoin d'armes pour patrouiller les routes.",
+      "satisfied": "C'est bon, ça tiendra une saison.",
+      "excellent": "Parfait ! Avec ça on va tenir les bandits à distance.",
+      "disappointed": "Mouais... on fait avec ce qu'on a.",
+      "angry": "C'est une blague ? Rendez-moi mon argent !"
+    }
+  },
+  {
+    "id": "npc_soldier_3", "name": "Caporal Ana", "type": "soldier",
+    "emoji": "⚔️", "personality": "generous",
+    "budgetMin": 120, "budgetMax": 320,
+    "preferredCategories": ["armor", "helmet", "shield"],
+    "minQuality": "normal",
+    "dialogues": {
+      "greeting": "Forgeron, nous devons renforcer notre équipement défensif.",
+      "satisfied": "Très bien ! Cela protégera mes soldates.",
+      "excellent": "Magnifique ! Mes soldats seront bien protégés.",
+      "disappointed": "Correct mais perfectible pour une protection militaire.",
+      "angry": "Avec ça mes soldats sont vulnérables ! Refaites-le !"
+    }
+  },
+  {
+    "id": "npc_noble_1", "name": "Lord Arthon", "type": "noble",
+    "emoji": "👑", "personality": "demanding",
+    "budgetMin": 400, "budgetMax": 900,
+    "preferredCategories": ["sword", "amulet", "decoration"],
+    "minQuality": "excellent",
+    "dialogues": {
+      "greeting": "Forgeron, je commande une pièce d'art pour ma collection.",
+      "satisfied": "Acceptable. Je suppose que votre art a des limites.",
+      "excellent": "Voilà enfin quelque chose digne de ma demeure !",
+      "disappointed": "Médiocre. Un noble de mon rang mérite mieux.",
+      "angry": "Ceci est une insulte à mon rang ! Je vous poursuis en justice !"
+    }
+  },
+  {
+    "id": "npc_noble_2", "name": "Lady Margot", "type": "noble",
+    "emoji": "👸", "personality": "generous",
+    "budgetMin": 350, "budgetMax": 800,
+    "preferredCategories": ["ring", "amulet", "decoration"],
+    "minQuality": "good",
+    "dialogues": {
+      "greeting": "Cher forgeron, j'aimerais un bijou pour le prochain bal.",
+      "satisfied": "Très joli ! Ce sera parfait pour la cour.",
+      "excellent": "Oh, c'est absolument divin ! Je vous recommande à toute la noblesse !",
+      "disappointed": "C'est... original. Pas vraiment mon goût, mais correct.",
+      "angry": "Mon joaillier habituel ne produirait jamais quelque chose d'aussi commun !"
+    }
+  },
+  {
+    "id": "npc_noble_3", "name": "Lord Cedric", "type": "noble",
+    "emoji": "🎩", "personality": "casual",
+    "budgetMin": 300, "budgetMax": 700,
+    "preferredCategories": ["sword", "hammer", "shield"],
+    "minQuality": "good",
+    "dialogues": {
+      "greeting": "Bon jour, forgeron. J'ai besoin d'armes pour la chasse.",
+      "satisfied": "Très bien fait. Je suis satisfait.",
+      "excellent": "Splendide artisanat ! Je vous préfère à n'importe quel autre forgeron.",
+      "disappointed": "Je m'attendais à un niveau supérieur pour le prix demandé.",
+      "angry": "C'est lamentable ! Qu'avez-vous fait de mon or ?!"
+    }
+  },
+  {
+    "id": "npc_merchant_4", "name": "Chen l'Importateur", "type": "merchant",
+    "emoji": "🧑‍🍳", "personality": "generous",
+    "budgetMin": 200, "budgetMax": 450,
+    "preferredCategories": ["tool", "decoration", "amulet"],
+    "minQuality": "good",
+    "dialogues": {
+      "greeting": "Bonjour ! Je cherche des objets exotiques pour l'export.",
+      "satisfied": "Parfait pour mon marché. Vous avez du talent.",
+      "excellent": "Extraordinaire ! Je commande en grande quantité !",
+      "disappointed": "Pas exceptionnel, mais je peux l'exporter.",
+      "angry": "Aucun client ne voudra de ça !"
+    }
+  },
+  {
+    "id": "npc_merchant_5", "name": "Amara la Commerçante", "type": "merchant",
+    "emoji": "👩‍🏫", "personality": "impatient",
+    "budgetMin": 90, "budgetMax": 260,
+    "preferredCategories": ["ring", "tool", "amulet"],
+    "minQuality": "normal",
+    "dialogues": {
+      "greeting": "Vite, j'ai besoin de marchandises avant la fermeture du marché !",
+      "satisfied": "Bien, livré à temps. Bonne affaire.",
+      "excellent": "C'est magnifique ET dans les délais. Parfait !",
+      "disappointed": "Je m'attendais à mieux mais c'est acceptable.",
+      "angry": "En retard ET mauvaise qualité ?! C'est inadmissible !"
+    }
+  },
+  {
+    "id": "npc_adventurer_4", "name": "Zara la Vagabonde", "type": "adventurer",
+    "emoji": "🧟", "personality": "casual",
+    "budgetMin": 80, "budgetMax": 250,
+    "preferredCategories": ["axe", "lance", "ring"],
+    "minQuality": "normal",
+    "dialogues": {
+      "greeting": "Hey forgeron, t'as quelque chose de costaud pour moi ?",
+      "satisfied": "C'est solide, j'aime ça !",
+      "excellent": "Wow c'est de la pure qualité ! Respect.",
+      "disappointed": "Bof, ça fera l'affaire je suppose.",
+      "angry": "Avec ça je suis morte avant le premier monstre !"
+    }
+  },
+  {
+    "id": "npc_king", "name": "Sa Majesté le Roi", "type": "king",
+    "emoji": "👑", "personality": "demanding",
+    "budgetMin": 1500, "budgetMax": 5000,
+    "preferredCategories": ["sword", "armor", "amulet", "decoration"],
+    "minQuality": "excellent",
+    "dialogues": {
+      "greeting": "Forgeron, le Roi requiert votre service. Une commande royale vous attend.",
+      "satisfied": "C'est conforme à nos attentes. Vous serez rémunéré.",
+      "excellent": "Extraordinaire ! Vous êtes promu Forgeron Royal !",
+      "disappointed": "Nous attendions davantage d'un artisan de votre réputation.",
+      "angry": "Inacceptable ! Les cachots vous attendent si vous recommencez !"
+    }
+  },
+  {
+    "id": "npc_knight_4", "name": "Sir Tancred", "type": "knight",
+    "emoji": "🐴", "personality": "impatient",
+    "budgetMin": 300, "budgetMax": 650,
+    "preferredCategories": ["sword", "lance", "armor"],
+    "minQuality": "good",
+    "dialogues": {
+      "greeting": "Forgeron ! La campagne militaire commence dans peu de temps !",
+      "satisfied": "Assez bien ! Ça fera le travail sur le champ de bataille.",
+      "excellent": "Parfait ! Avec ça j'emporterai la victoire !",
+      "disappointed": "Ce n'est pas l'arme d'un conquérant.",
+      "angry": "Avec ça je perdrais contre des paysans ! Recommencez !"
+    }
+  }
+]

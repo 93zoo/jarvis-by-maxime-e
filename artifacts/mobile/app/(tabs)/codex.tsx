@@ -11,13 +11,14 @@ import {
   View,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGame } from '@/context/GameContext';
 import { useColors } from '@/hooks/useColors';
-import type { RegionData, ResourceData } from '@/types/game';
+import type { Quest, RegionData, ResourceData } from '@/types/game';
 
-type CodexTab = 'resources' | 'recipes' | 'regions' | 'skills';
+type CodexTab = 'resources' | 'recipes' | 'regions' | 'skills' | 'quests';
 
 const RARITY_COLORS: Record<string, string> = {
   common: '#8A7A6A',
@@ -56,7 +57,88 @@ export default function CodexScreen() {
     { key: 'recipes', label: 'Recettes', icon: 'book-open' },
     { key: 'regions', label: 'Régions', icon: 'map' },
     { key: 'skills', label: 'Compétences', icon: 'star' },
+    { key: 'quests', label: 'Quêtes', icon: 'flag' },
   ];
+
+  const activeQuests = game.getActiveQuests();
+  const completedCount = game.completedQuestIds.length;
+
+  const renderQuestEntry = (quest: Quest & { progress?: Record<string, number>; isActive?: boolean }) => {
+    const isActive = game.activeQuestIds.includes(quest.id);
+    const isCompleted = game.completedQuestIds.includes(quest.id);
+    const progress = quest.progress ?? game.questProgress[quest.id] ?? {};
+    const allDone = quest.objectives.every((obj) => (progress[obj.id] ?? 0) >= obj.required);
+    const region = game.allRegions.find((r) => r.id === quest.regionId);
+    return (
+      <View
+        key={quest.id}
+        style={[
+          styles.questCard,
+          {
+            backgroundColor: colors.card,
+            borderColor: isCompleted ? '#4CAF50' : isActive ? colors.primary : colors.border,
+            opacity: isCompleted ? 0.6 : 1,
+          },
+        ]}
+      >
+        <View style={styles.questCardHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.questTitle, { color: colors.foreground }]}>{quest.title}</Text>
+            <Text style={[styles.questRegion, { color: colors.mutedForeground }]}>
+              {region?.name ?? quest.regionId}
+            </Text>
+          </View>
+          {isCompleted && <Feather name="check-circle" size={18} color="#4CAF50" />}
+          {!isCompleted && !isActive && (
+            <TouchableOpacity
+              style={[styles.acceptBtn, { backgroundColor: colors.primary }]}
+              onPress={() => { game.acceptQuest(quest.id); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.acceptBtnText, { color: colors.primaryForeground }]}>Accepter</Text>
+            </TouchableOpacity>
+          )}
+          {isActive && !allDone && (
+            <View style={[styles.activeBadge, { backgroundColor: colors.primary + '28' }]}>
+              <Text style={[styles.activeBadgeText, { color: colors.primary }]}>EN COURS</Text>
+            </View>
+          )}
+        </View>
+        <Text style={[styles.questDesc, { color: colors.mutedForeground }]}>{quest.description}</Text>
+        {/* Objectives */}
+        {(isActive || isCompleted) && quest.objectives.map((obj) => {
+          const cur = isCompleted ? obj.required : (progress[obj.id] ?? 0);
+          const pct = Math.min(100, Math.floor((cur / obj.required) * 100));
+          return (
+            <View key={obj.id} style={styles.objRow}>
+              <Feather
+                name={cur >= obj.required ? 'check-circle' : 'circle'}
+                size={13}
+                color={cur >= obj.required ? '#4CAF50' : colors.mutedForeground}
+              />
+              <View style={{ flex: 1, marginLeft: 8 }}>
+                <View style={styles.objProgressRow}>
+                  <Text style={[styles.objText, { color: colors.foreground }]}>{obj.description}</Text>
+                  <Text style={[styles.objCount, { color: colors.accent }]}>{cur}/{obj.required}</Text>
+                </View>
+                <View style={[styles.objTrack, { backgroundColor: colors.muted }]}>
+                  <View style={[styles.objFill, { width: `${pct}%` as `${number}%`, backgroundColor: cur >= obj.required ? '#4CAF50' : colors.primary }]} />
+                </View>
+              </View>
+            </View>
+          );
+        })}
+        {/* Rewards */}
+        <View style={styles.questRewards}>
+          <Text style={[styles.questRewardItem, { color: colors.accent }]}>🪙 {quest.rewards.gold}g</Text>
+          <Text style={[styles.questRewardItem, { color: colors.primary }]}>⭐ {quest.rewards.xp} XP</Text>
+          {quest.rewards.unlockRegion && (
+            <Text style={[styles.questRewardItem, { color: '#9C27B0' }]}>🗺 Débloque région</Text>
+          )}
+        </View>
+      </View>
+    );
+  };
 
   const renderResourceEntry = ({ item: res }: { item: ResourceData }) => {
     const discovered = discoveredResourceIds.has(res.id);
@@ -283,6 +365,60 @@ export default function CodexScreen() {
         />
       )}
 
+      {activeTab === 'quests' && (
+        <ScrollView
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingBottom: insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 100 },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Summary row */}
+          <View style={[styles.questSummary, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.questSummaryItem}>
+              <Text style={[styles.questSummaryValue, { color: colors.accent }]}>{activeQuests.length}</Text>
+              <Text style={[styles.questSummaryLabel, { color: colors.mutedForeground }]}>En cours</Text>
+            </View>
+            <View style={[styles.questSummarySep, { backgroundColor: colors.border }]} />
+            <View style={styles.questSummaryItem}>
+              <Text style={[styles.questSummaryValue, { color: '#4CAF50' }]}>{completedCount}</Text>
+              <Text style={[styles.questSummaryLabel, { color: colors.mutedForeground }]}>Complétées</Text>
+            </View>
+            <View style={[styles.questSummarySep, { backgroundColor: colors.border }]} />
+            <View style={styles.questSummaryItem}>
+              <Text style={[styles.questSummaryValue, { color: colors.foreground }]}>{game.allQuests.length}</Text>
+              <Text style={[styles.questSummaryLabel, { color: colors.mutedForeground }]}>Total</Text>
+            </View>
+          </View>
+          {/* Active quests first */}
+          {activeQuests.length > 0 && (
+            <Text style={[styles.questGroupLabel, { color: colors.primary }]}>EN COURS</Text>
+          )}
+          {activeQuests.map((q) => renderQuestEntry(q))}
+          {/* Available quests */}
+          {(() => {
+            const available = game.allQuests.filter(
+              (q) => !game.activeQuestIds.includes(q.id) && !game.completedQuestIds.includes(q.id),
+            );
+            return available.length > 0 ? (
+              <>
+                <Text style={[styles.questGroupLabel, { color: colors.mutedForeground }]}>DISPONIBLES</Text>
+                {available.map((q) => renderQuestEntry({ ...q, progress: {} }))}
+              </>
+            ) : null;
+          })()}
+          {/* Completed quests */}
+          {completedCount > 0 && (
+            <>
+              <Text style={[styles.questGroupLabel, { color: '#4CAF50' }]}>COMPLÉTÉES ({completedCount})</Text>
+              {game.allQuests
+                .filter((q) => game.completedQuestIds.includes(q.id))
+                .map((q) => renderQuestEntry({ ...q, progress: {} }))}
+            </>
+          )}
+        </ScrollView>
+      )}
+
       {activeTab === 'skills' && (
         <ScrollView
           contentContainerStyle={[
@@ -441,6 +577,30 @@ const styles = StyleSheet.create({
   levelTagText: { fontSize: 11, fontWeight: '700' },
   skillEntryDesc: { fontSize: 12, lineHeight: 18, marginBottom: 6 },
   nextUnlock: { fontSize: 11, lineHeight: 16 },
+  // Quest styles
+  questSummary: { flexDirection: 'row', borderRadius: 12, padding: 16, borderWidth: 1, marginBottom: 12, alignItems: 'center' },
+  questSummaryItem: { flex: 1, alignItems: 'center', gap: 3 },
+  questSummaryValue: { fontSize: 22, fontWeight: '800' },
+  questSummaryLabel: { fontSize: 10, fontWeight: '600', letterSpacing: 1 },
+  questSummarySep: { width: 1, height: 30 },
+  questGroupLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 2, marginBottom: 8, marginTop: 4 },
+  questCard: { borderRadius: 14, padding: 14, borderWidth: 1, marginBottom: 10 },
+  questCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
+  questTitle: { fontSize: 14, fontWeight: '700' },
+  questRegion: { fontSize: 11, marginTop: 2 },
+  questDesc: { fontSize: 12, lineHeight: 17, marginBottom: 10 },
+  acceptBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
+  acceptBtnText: { fontSize: 11, fontWeight: '700' },
+  activeBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  activeBadgeText: { fontSize: 10, fontWeight: '700' },
+  objRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 7 },
+  objProgressRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  objText: { fontSize: 12, flex: 1 },
+  objCount: { fontSize: 11, fontWeight: '700', marginLeft: 8 },
+  objTrack: { height: 3, borderRadius: 2, overflow: 'hidden' },
+  objFill: { height: '100%', borderRadius: 2 },
+  questRewards: { flexDirection: 'row', gap: 12, marginTop: 6 },
+  questRewardItem: { fontSize: 12, fontWeight: '600' },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', padding: 24 },
   resourceModal: { borderRadius: 20, padding: 24, borderWidth: 1, overflow: 'hidden' },
   resourceModalColor: { height: 4, borderRadius: 2, marginBottom: 16 },

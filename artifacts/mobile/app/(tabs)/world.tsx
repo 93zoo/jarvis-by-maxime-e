@@ -28,7 +28,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useGame } from '@/context/GameContext';
 import { useColors } from '@/hooks/useColors';
-import type { RegionData, RegionResourceNode } from '@/types/game';
+import type { CraftOrder, RegionData, RegionResourceNode } from '@/types/game';
 
 // ─── Region metadata ──────────────────────────────────────────────────────────
 const REGION_COLORS: Record<string, string> = {
@@ -537,6 +537,153 @@ function WorldMapCanvas({
   );
 }
 
+// ─── Market Section ───────────────────────────────────────────────────────────
+const mStyles = StyleSheet.create({
+  section: {},
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 10 },
+  sectionTitle: { fontSize: 10, fontWeight: '800', letterSpacing: 2, flex: 1 },
+  sellMsg: { fontSize: 14, fontWeight: '700' },
+  toggleText: { fontSize: 12, fontWeight: '600' },
+  marketHint: { fontSize: 11, marginBottom: 10, lineHeight: 16 },
+  emptyRow: { borderRadius: 10, borderWidth: 1, padding: 14 },
+  emptyText: { fontSize: 12, textAlign: 'center' },
+  marketRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1, padding: 10, marginBottom: 8, gap: 10 },
+  resDot: { width: 12, height: 12, borderRadius: 6 },
+  resInfo: { flex: 1 },
+  resName: { fontSize: 13, fontWeight: '600' },
+  resStock: { fontSize: 11, marginTop: 1 },
+  sellControls: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  qtyBtn: { width: 24, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  qtyText: { fontSize: 13, fontWeight: '700', minWidth: 20, textAlign: 'center' },
+  sellBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+  sellBtnText: { fontSize: 11, fontWeight: '700' },
+});
+
+function MarketSection({ game, colors }: { game: ReturnType<typeof useGame>; colors: ReturnType<typeof useColors> }) {
+  const [sellQtys, setSellQtys] = useState<Record<string, number>>({});
+  const [lastSellMsg, setLastSellMsg] = useState<string | null>(null);
+  const [showItems, setShowItems] = useState(false);
+
+  const inventoryResources = game.inventory.filter((i) => i.quantity > 0);
+  const sellableItems = game.craftedItems.slice(0, 10);
+
+  const getQty = (id: string) => sellQtys[id] ?? 1;
+  const setQty = (id: string, qty: number) => setSellQtys((prev) => ({ ...prev, [id]: qty }));
+
+  const handleSellResource = (resourceId: string, qty: number) => {
+    const earned = game.sellResource(resourceId, qty);
+    if (earned > 0) {
+      setLastSellMsg(`+${earned} 🪙`);
+      setTimeout(() => setLastSellMsg(null), 1800);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  };
+
+  const handleSellItem = (instanceId: string) => {
+    const earned = game.sellItem(instanceId);
+    if (earned > 0) {
+      setLastSellMsg(`+${earned} 🪙`);
+      setTimeout(() => setLastSellMsg(null), 1800);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  };
+
+  return (
+    <View style={[mStyles.section, { paddingHorizontal: 16, marginTop: 16 }]}>
+      <View style={mStyles.sectionHeader}>
+        <Text style={[mStyles.sectionTitle, { color: colors.accent }]}>MARCHÉ</Text>
+        {lastSellMsg && <Text style={[mStyles.sellMsg, { color: '#4CAF50' }]}>{lastSellMsg}</Text>}
+        <TouchableOpacity onPress={() => setShowItems(!showItems)}>
+          <Text style={[mStyles.toggleText, { color: colors.primary }]}>
+            {showItems ? 'Ressources' : 'Objets forgés'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {!showItems && (
+        <>
+          <Text style={[mStyles.marketHint, { color: colors.mutedForeground }]}>
+            Ventes à 80% de la valeur marchande. Les prix fluctuent selon l'offre.
+          </Text>
+          {inventoryResources.length === 0 ? (
+            <View style={[mStyles.emptyRow, { borderColor: colors.border }]}>
+              <Text style={[mStyles.emptyText, { color: colors.mutedForeground }]}>
+                Votre inventaire est vide. Collectez des ressources pour vendre.
+              </Text>
+            </View>
+          ) : (
+            inventoryResources.map((inv) => {
+              const res = game.getResourceById(inv.resourceId);
+              if (!res) return null;
+              const marketMult = game.marketPrices[inv.resourceId] ?? 1.0;
+              const sellPrice = Math.round(res.baseValue * marketMult * 0.8);
+              const trend = marketMult > 1.05 ? '↑' : marketMult < 0.95 ? '↓' : '→';
+              const trendColor = marketMult > 1.05 ? '#4CAF50' : marketMult < 0.95 ? '#F44336' : colors.mutedForeground;
+              const qty = getQty(inv.resourceId);
+              return (
+                <View key={inv.resourceId} style={[mStyles.marketRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <View style={[mStyles.resDot, { backgroundColor: res.color }]} />
+                  <View style={mStyles.resInfo}>
+                    <Text style={[mStyles.resName, { color: colors.foreground }]}>{res.name}</Text>
+                    <Text style={[mStyles.resStock, { color: colors.mutedForeground }]}>
+                      Stock: {inv.quantity} · {sellPrice}g/u <Text style={{ color: trendColor }}>{trend}</Text>
+                    </Text>
+                  </View>
+                  <View style={mStyles.sellControls}>
+                    <TouchableOpacity style={[mStyles.qtyBtn, { backgroundColor: colors.secondary }]} onPress={() => setQty(inv.resourceId, Math.max(1, qty - 1))}>
+                      <Feather name="minus" size={11} color={colors.foreground} />
+                    </TouchableOpacity>
+                    <Text style={[mStyles.qtyText, { color: colors.foreground }]}>{qty}</Text>
+                    <TouchableOpacity style={[mStyles.qtyBtn, { backgroundColor: colors.secondary }]} onPress={() => setQty(inv.resourceId, Math.min(inv.quantity, qty + 1))}>
+                      <Feather name="plus" size={11} color={colors.foreground} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[mStyles.sellBtn, { backgroundColor: colors.primary }]} onPress={() => handleSellResource(inv.resourceId, qty)}>
+                      <Text style={[mStyles.sellBtnText, { color: colors.primaryForeground }]}>
+                        Vendre · {sellPrice * qty}g
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })
+          )}
+        </>
+      )}
+
+      {showItems && (
+        <>
+          <Text style={[mStyles.marketHint, { color: colors.mutedForeground }]}>
+            Ventes à 85% de la valeur d'estimation.
+          </Text>
+          {sellableItems.length === 0 ? (
+            <View style={[mStyles.emptyRow, { borderColor: colors.border }]}>
+              <Text style={[mStyles.emptyText, { color: colors.mutedForeground }]}>
+                Aucun objet forgé. Forgez d'abord des objets.
+              </Text>
+            </View>
+          ) : (
+            sellableItems.map((item) => {
+              const sellPrice = Math.round(item.value * 0.85);
+              return (
+                <View key={item.instanceId} style={[mStyles.marketRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <Text style={{ fontSize: 20 }}>⚒️</Text>
+                  <View style={mStyles.resInfo}>
+                    <Text style={[mStyles.resName, { color: colors.foreground }]}>{item.name}</Text>
+                    <Text style={[mStyles.resStock, { color: colors.mutedForeground }]}>{item.category} · {item.quality} · {item.value}g</Text>
+                  </View>
+                  <TouchableOpacity style={[mStyles.sellBtn, { backgroundColor: colors.primary }]} onPress={() => handleSellItem(item.instanceId)}>
+                    <Text style={[mStyles.sellBtnText, { color: colors.primaryForeground }]}>{sellPrice}g</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })
+          )}
+        </>
+      )}
+    </View>
+  );
+}
+
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function WorldScreen() {
   const colors = useColors();
@@ -728,6 +875,9 @@ export default function WorldScreen() {
             );
           })}
         </View>
+
+        {/* ── Market section ── */}
+        <MarketSection game={game} colors={colors} />
       </ScrollView>
 
       {/* ── Region detail sheet ── */}

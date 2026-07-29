@@ -4,6 +4,7 @@ import {
   FlatList,
   Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -55,6 +56,219 @@ interface CraftSession {
 
 const EMPTY_SESSION: CraftSession = { recipeId: '', strikesCompleted: 0, strikeScores: [] };
 
+// ─── Orders Modal ─────────────────────────────────────────────────────────────
+const QUALITY_ORDER_UI: Record<string, number> = { poor: 0, normal: 1, good: 2, excellent: 3, legendary: 4 };
+
+const oStyles = StyleSheet.create({
+  overlay: { flex: 1, justifyContent: 'flex-end' },
+  sheet: { maxHeight: '85%', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, borderWidth: 1, borderBottomWidth: 0 },
+  handle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
+  title: { flex: 1, fontSize: 18, fontWeight: '700' },
+  msgBanner: { borderRadius: 8, padding: 10, marginBottom: 10 },
+  msgText: { fontSize: 13, fontWeight: '600', textAlign: 'center' },
+  backRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
+  backText: { fontSize: 13 },
+  deliverTitle: { fontSize: 15, fontWeight: '700', marginBottom: 4 },
+  deliverSubtitle: { fontSize: 12, marginBottom: 12 },
+  emptyBox: { borderRadius: 12, padding: 20, alignItems: 'center', gap: 10 },
+  emptyText: { fontSize: 13, textAlign: 'center', lineHeight: 18 },
+  itemRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, borderWidth: 1, marginBottom: 8, gap: 10 },
+  itemName: { fontSize: 14, fontWeight: '600' },
+  itemMeta: { fontSize: 11, marginTop: 2 },
+  deliverBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
+  deliverBtnText: { fontSize: 13, fontWeight: '700' },
+  orderCard: { borderRadius: 14, padding: 14, borderWidth: 1, marginBottom: 10 },
+  orderCardTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+  orderNPC: { fontSize: 14, fontWeight: '700' },
+  orderType: { fontSize: 11, marginTop: 1 },
+  rewardBadge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
+  rewardText: { fontSize: 14, fontWeight: '700' },
+  orderRequest: { fontSize: 13, fontWeight: '600', marginBottom: 3 },
+  orderMeta: { fontSize: 11, marginBottom: 10 },
+  orderBtns: { flexDirection: 'row', gap: 10 },
+  btnAccept: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 },
+  btnRefuse: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center', borderWidth: 1 },
+  btnText: { fontSize: 14, fontWeight: '700' },
+});
+
+function OrdersModal({
+  visible, onClose, game, colors, bottomPad, deliverOrderId, setDeliverOrderId,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  game: ReturnType<typeof useGame>;
+  colors: ReturnType<typeof useColors>;
+  bottomPad: number;
+  deliverOrderId: string | null;
+  setDeliverOrderId: (id: string | null) => void;
+}) {
+  const [deliverMsg, setDeliverMsg] = useState<string | null>(null);
+  const pendingOrders = game.activeOrders.filter((o) => !o.completed);
+  const selectedOrder = deliverOrderId ? pendingOrders.find((o) => o.id === deliverOrderId) : null;
+
+  const handleDeliver = (itemInstanceId: string) => {
+    if (!deliverOrderId) return;
+    const result = game.deliverOrder(deliverOrderId, itemInstanceId);
+    setDeliverMsg(result.message);
+    if (result.success) {
+      setDeliverOrderId(null);
+      setTimeout(() => setDeliverMsg(null), 2000);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      setTimeout(() => setDeliverMsg(null), 2500);
+    }
+  };
+
+  const eligibleItems = selectedOrder
+    ? game.craftedItems.filter((i) => {
+        if (i.category !== selectedOrder.requestedCategory) return false;
+        return QUALITY_ORDER_UI[i.quality] >= QUALITY_ORDER_UI[selectedOrder.minQuality];
+      })
+    : [];
+
+  const deadlineLabel = (deadline: number) => {
+    const diff = deadline - Date.now();
+    if (diff <= 0) return 'Expiré';
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    return h > 0 ? `${h}h${m}m` : `${m}m`;
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+      <View style={[oStyles.overlay, { backgroundColor: 'rgba(0,0,0,0.88)' }]}>
+        <View style={[oStyles.sheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={[oStyles.handle, { backgroundColor: colors.muted }]} />
+          <View style={oStyles.headerRow}>
+            <Feather name="inbox" size={18} color={colors.accent} />
+            <Text style={[oStyles.title, { color: colors.foreground }]}>COMMANDES CLIENTS</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Feather name="x" size={22} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          </View>
+
+          {deliverMsg && (
+            <View style={[oStyles.msgBanner, { backgroundColor: deliverMsg.includes('succès') ? '#1B5E20' : '#B71C1C' }]}>
+              <Text style={[oStyles.msgText, { color: '#fff' }]}>{deliverMsg}</Text>
+            </View>
+          )}
+
+          {deliverOrderId && selectedOrder ? (
+            <View style={{ flex: 1 }}>
+              <TouchableOpacity style={oStyles.backRow} onPress={() => setDeliverOrderId(null)}>
+                <Feather name="arrow-left" size={14} color={colors.mutedForeground} />
+                <Text style={[oStyles.backText, { color: colors.mutedForeground }]}>Retour aux commandes</Text>
+              </TouchableOpacity>
+              <Text style={[oStyles.deliverTitle, { color: colors.foreground }]}>
+                {selectedOrder.npcEmoji} Choisir l'objet pour {selectedOrder.npcName}
+              </Text>
+              <Text style={[oStyles.deliverSubtitle, { color: colors.mutedForeground }]}>
+                Catégorie: {selectedOrder.requestedCategory} · Min. qualité: {selectedOrder.minQuality}
+              </Text>
+              {eligibleItems.length === 0 ? (
+                <View style={[oStyles.emptyBox, { backgroundColor: colors.secondary }]}>
+                  <Feather name="tool" size={24} color={colors.mutedForeground} />
+                  <Text style={[oStyles.emptyText, { color: colors.mutedForeground }]}>
+                    Aucun objet éligible. Forgez un(e) {selectedOrder.requestedCategory} de qualité ≥ {selectedOrder.minQuality}.
+                  </Text>
+                </View>
+              ) : (
+                <FlatList
+                  data={eligibleItems}
+                  keyExtractor={(i) => i.instanceId}
+                  contentContainerStyle={{ paddingBottom: bottomPad }}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={[oStyles.itemRow, { backgroundColor: colors.secondary, borderColor: colors.primary }]}
+                      onPress={() => handleDeliver(item.instanceId)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={[oStyles.itemName, { color: colors.foreground }]}>{item.name}</Text>
+                        <Text style={[oStyles.itemMeta, { color: colors.mutedForeground }]}>{item.category} · {item.quality} · {item.value}g</Text>
+                      </View>
+                      <View style={[oStyles.deliverBtn, { backgroundColor: colors.primary }]}>
+                        <Text style={[oStyles.deliverBtnText, { color: colors.primaryForeground }]}>Livrer</Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                />
+              )}
+            </View>
+          ) : (
+            <FlatList
+              data={pendingOrders}
+              keyExtractor={(o) => o.id}
+              contentContainerStyle={{ paddingBottom: bottomPad }}
+              ListEmptyComponent={
+                <View style={[oStyles.emptyBox, { backgroundColor: colors.secondary }]}>
+                  <Feather name="clock" size={24} color={colors.mutedForeground} />
+                  <Text style={[oStyles.emptyText, { color: colors.mutedForeground }]}>
+                    Aucune commande en attente. De nouvelles commandes arrivent toutes les 3 minutes !
+                  </Text>
+                </View>
+              }
+              renderItem={({ item: order }) => {
+                const expired = order.deadline < Date.now();
+                return (
+                  <View style={[oStyles.orderCard, { backgroundColor: colors.secondary, borderColor: order.accepted ? colors.primary : colors.border }]}>
+                    <View style={oStyles.orderCardTop}>
+                      <Text style={{ fontSize: 24 }}>{order.npcEmoji}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[oStyles.orderNPC, { color: colors.foreground }]}>{order.npcName}</Text>
+                        <Text style={[oStyles.orderType, { color: colors.mutedForeground }]}>
+                          {order.npcType} · {deadlineLabel(order.deadline)}
+                          {expired && <Text style={{ color: '#F44336' }}> EXPIRÉ</Text>}
+                        </Text>
+                      </View>
+                      <View style={[oStyles.rewardBadge, { backgroundColor: colors.card }]}>
+                        <Text style={[oStyles.rewardText, { color: colors.accent }]}>{order.goldReward}g</Text>
+                      </View>
+                    </View>
+                    <Text style={[oStyles.orderRequest, { color: colors.foreground }]}>Commande : {order.requestedName}</Text>
+                    <Text style={[oStyles.orderMeta, { color: colors.mutedForeground }]}>
+                      Catégorie : {order.requestedCategory} · Qualité min. : {order.minQuality} · +{order.xpReward} XP
+                    </Text>
+                    {!expired && (
+                      <View style={oStyles.orderBtns}>
+                        {!order.accepted ? (
+                          <>
+                            <TouchableOpacity
+                              style={[oStyles.btnAccept, { backgroundColor: colors.primary }]}
+                              onPress={() => { game.acceptOrder(order.id); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); }}
+                            >
+                              <Text style={[oStyles.btnText, { color: colors.primaryForeground }]}>Accepter</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[oStyles.btnRefuse, { backgroundColor: colors.secondary, borderColor: colors.border }]}
+                              onPress={() => { game.refuseOrder(order.id); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                            >
+                              <Text style={[oStyles.btnText, { color: colors.mutedForeground }]}>Refuser</Text>
+                            </TouchableOpacity>
+                          </>
+                        ) : (
+                          <TouchableOpacity
+                            style={[oStyles.btnAccept, { backgroundColor: colors.accent }]}
+                            onPress={() => setDeliverOrderId(order.id)}
+                          >
+                            <Feather name="package" size={13} color="#000" />
+                            <Text style={[oStyles.btnText, { color: '#000' }]}>Livrer</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                );
+              }}
+            />
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function ForgeScreen() {
   const colors = useColors();
@@ -67,6 +281,8 @@ export default function ForgeScreen() {
   const [craftedItem, setCraftedItem] = useState<Item | null>(null);
   const [showRecipeSheet, setShowRecipeSheet] = useState(false);
   const [lastHitLabel, setLastHitLabel] = useState<HitLabel | null>(null);
+  const [showOrdersModal, setShowOrdersModal] = useState(false);
+  const [deliverOrderId, setDeliverOrderId] = useState<string | null>(null);
 
   const sceneRef = useRef<ForgeScene3DRef>(null);
   const hitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -168,6 +384,8 @@ export default function ForgeScreen() {
   const xpPct = Math.min(100, Math.floor((player.xp / player.xpToNextLevel) * 100));
   const availableRecipes = game.getAvailableRecipes();
   const selectedRecipe = session.recipeId ? game.getRecipeById(session.recipeId) : null;
+  const pendingOrders = game.activeOrders.filter((o) => !o.completed);
+  const pendingCount = pendingOrders.length;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -187,6 +405,16 @@ export default function ForgeScreen() {
               {player.gold.toLocaleString()}
             </Text>
           </View>
+          {pendingCount > 0 && (
+            <TouchableOpacity
+              style={[styles.pill, { backgroundColor: '#C0392B' }]}
+              onPress={() => setShowOrdersModal(true)}
+              activeOpacity={0.8}
+            >
+              <Feather name="inbox" size={12} color="#fff" />
+              <Text style={[styles.pillText, { color: '#fff' }]}>{pendingCount}</Text>
+            </TouchableOpacity>
+          )}
           <View style={[styles.pill, { backgroundColor: colors.primary }]}>
             <Text style={[styles.pillText, { color: colors.primaryForeground }]}>
               Niv.{player.level}
@@ -403,6 +631,17 @@ export default function ForgeScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* ── Orders Modal ── */}
+      <OrdersModal
+        visible={showOrdersModal}
+        onClose={() => setShowOrdersModal(false)}
+        game={game}
+        colors={colors}
+        bottomPad={bottomPad}
+        deliverOrderId={deliverOrderId}
+        setDeliverOrderId={setDeliverOrderId}
+      />
 
       {/* ── Craft Result Modal ── */}
       <Modal visible={craftPhase === 'RESULT' && !!craftedItem} transparent animationType="fade" statusBarTranslucent>

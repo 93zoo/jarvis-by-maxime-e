@@ -211,16 +211,38 @@ export interface Quest {
   completed: boolean;
 }
 
+export interface NPCData {
+  id: string;
+  name: string;
+  type: 'merchant' | 'knight' | 'adventurer' | 'soldier' | 'noble' | 'king';
+  emoji: string;
+  personality: 'demanding' | 'generous' | 'casual' | 'impatient';
+  budgetMin: number;
+  budgetMax: number;
+  preferredCategories: ItemCategory[];
+  minQuality: Quality;
+  dialogues: {
+    greeting: string;
+    satisfied: string;
+    excellent: string;
+    disappointed: string;
+    angry: string;
+  };
+}
+
 export interface CraftOrder {
   id: string;
+  npcId: string;
   npcName: string;
   npcType: string;
+  npcEmoji: string;
   requestedCategory: ItemCategory;
   requestedName: string;
   minQuality: Quality;
   deadline: number;
   goldReward: number;
   xpReward: number;
+  reputationReward: number;
   accepted: boolean;
   completed: boolean;
 }
@@ -235,7 +257,12 @@ export interface SaveData {
   craftedItems: Item[];
   activeOrders: CraftOrder[];
   completedQuestIds: string[];
+  activeQuestIds: string[];
+  questProgress: Record<string, Record<string, number>>;
   unlockedRegions: string[];
   regionExploration: Record<string, number>;
+  npcReputation: Record<string, number>;
+  marketPrices: Record<string, number>;
+  lastOrderGeneratedAt: number;
   lastSaved: number;
 }

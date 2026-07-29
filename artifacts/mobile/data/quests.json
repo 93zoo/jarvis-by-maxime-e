@@ -1,0 +1,283 @@
+[
+  {
+    "id": "quest_village_1",
+    "regionId": "village",
+    "title": "Premier travail",
+    "description": "Le vieux forgeron du village a besoin d'aide. Forgez votre premier outil pour prouver votre valeur.",
+    "objectives": [
+      { "id": "obj_v1_craft", "description": "Forger 1 outil", "type": "craft", "targetId": "tool", "required": 1, "current": 0 }
+    ],
+    "rewards": { "gold": 100, "xp": 50 },
+    "completed": false
+  },
+  {
+    "id": "quest_village_2",
+    "regionId": "village",
+    "title": "Approvisionnement",
+    "description": "Le village manque de fer pour ses outils quotidiens. Collectez des ressources dans les environs.",
+    "objectives": [
+      { "id": "obj_v2_iron", "description": "Collecter 5 fer", "type": "collect", "targetId": "iron", "required": 5, "current": 0 },
+      { "id": "obj_v2_wood", "description": "Collecter 3 bois", "type": "collect", "targetId": "wood", "required": 3, "current": 0 }
+    ],
+    "rewards": { "gold": 80, "xp": 40 },
+    "completed": false
+  },
+  {
+    "id": "quest_village_3",
+    "regionId": "village",
+    "title": "La Commande du Garde",
+    "description": "Le garde du village a besoin d'une arme décente pour protéger les habitants.",
+    "objectives": [
+      { "id": "obj_v3_deliver", "description": "Honorer 1 commande NPC", "type": "deliver", "targetId": "any", "required": 1, "current": 0 }
+    ],
+    "rewards": { "gold": 150, "xp": 75 },
+    "completed": false
+  },
+  {
+    "id": "quest_forest_1",
+    "regionId": "forest",
+    "title": "Bûcheron du Roi",
+    "description": "La forêt regorge de bois précieux. Récoltez-en suffisamment pour l'atelier royal.",
+    "objectives": [
+      { "id": "obj_f1_wood", "description": "Collecter 10 bois", "type": "collect", "targetId": "wood", "required": 10, "current": 0 }
+    ],
+    "rewards": { "gold": 120, "xp": 60 },
+    "completed": false
+  },
+  {
+    "id": "quest_forest_2",
+    "regionId": "forest",
+    "title": "Protection de la Forêt",
+    "description": "Les gardes forestiers ont besoin d'armes pour protéger les arbres anciens des braconniers.",
+    "objectives": [
+      { "id": "obj_f2_craft", "description": "Forger 2 armes (épée/hache/lance)", "type": "craft", "targetId": "sword", "required": 2, "current": 0 }
+    ],
+    "rewards": { "gold": 200, "xp": 100 },
+    "completed": false
+  },
+  {
+    "id": "quest_mountains_1",
+    "regionId": "mountains",
+    "title": "Forteresse de Pierre",
+    "description": "Les mineurs des montagnes ont besoin de boucliers pour se protéger des éboulements.",
+    "objectives": [
+      { "id": "obj_m1_shield", "description": "Forger 1 bouclier", "type": "craft", "targetId": "shield", "required": 1, "current": 0 }
+    ],
+    "rewards": { "gold": 200, "xp": 100 },
+    "completed": false
+  },
+  {
+    "id": "quest_mountains_2",
+    "regionId": "mountains",
+    "title": "Veines de Métal",
+    "description": "Les montagnes cachent d'immenses réserves de minerais. Récoltez fer et cuivre pour le forgeron du roi.",
+    "objectives": [
+      { "id": "obj_m2_iron", "description": "Collecter 8 fer", "type": "collect", "targetId": "iron", "required": 8, "current": 0 },
+      { "id": "obj_m2_copper", "description": "Collecter 5 cuivre", "type": "collect", "targetId": "copper", "required": 5, "current": 0 }
+    ],
+    "rewards": { "gold": 180, "xp": 90 },
+    "completed": false
+  },
+  {
+    "id": "quest_mines_1",
+    "regionId": "mines",
+    "title": "Les Mines des Nains",
+    "description": "Les nains exigent des outils de haute qualité pour creuser plus profond dans la roche.",
+    "objectives": [
+      { "id": "obj_mn1_tool", "description": "Forger 2 outils", "type": "craft", "targetId": "tool", "required": 2, "current": 0 },
+      { "id": "obj_mn1_iron", "description": "Collecter 10 fer", "type": "collect", "targetId": "iron", "required": 10, "current": 0 }
+    ],
+    "rewards": { "gold": 250, "xp": 120 },
+    "completed": false
+  },
+  {
+    "id": "quest_mines_2",
+    "regionId": "mines",
+    "title": "Le Filon d'Argent",
+    "description": "Une rumeur court : de l'argent pur a été découvert dans les profondeurs. Récoltez-en.",
+    "objectives": [
+      { "id": "obj_mn2_silver", "description": "Collecter 2 argent", "type": "collect", "targetId": "silver", "required": 2, "current": 0 }
+    ],
+    "rewards": { "gold": 300, "xp": 140 },
+    "completed": false
+  },
+  {
+    "id": "quest_swamp_1",
+    "regionId": "swamp",
+    "title": "L'Anneau du Marais",
+    "description": "Un mage des marais vous demande de forger un anneau enchanté pour ses rituels.",
+    "objectives": [
+      { "id": "obj_sw1_ring", "description": "Forger 1 anneau", "type": "craft", "targetId": "ring", "required": 1, "current": 0 }
+    ],
+    "rewards": { "gold": 280, "xp": 130 },
+    "completed": false
+  },
+  {
+    "id": "quest_swamp_2",
+    "regionId": "swamp",
+    "title": "Herbes Rares",
+    "description": "La guérisseuse du marais cherche des matériaux organiques pour ses préparations.",
+    "objectives": [
+      { "id": "obj_sw2_clay", "description": "Collecter 12 argile", "type": "collect", "targetId": "clay", "required": 12, "current": 0 }
+    ],
+    "rewards": { "gold": 160, "xp": 80 },
+    "completed": false
+  },
+  {
+    "id": "quest_desert_1",
+    "regionId": "desert",
+    "title": "Le Trésor Enfoui",
+    "description": "Des explorateurs ont repéré des veines d'or sous les dunes. Récoltez de l'or pour financer l'expédition.",
+    "objectives": [
+      { "id": "obj_d1_gold", "description": "Collecter 2 minerai d'or", "type": "collect", "targetId": "gold_ore", "required": 2, "current": 0 }
+    ],
+    "rewards": { "gold": 400, "xp": 180 },
+    "completed": false
+  },
+  {
+    "id": "quest_desert_2",
+    "regionId": "desert",
+    "title": "L'Épée du Désert",
+    "description": "Les guerriers du désert ont besoin d'armes résistantes à la chaleur et au sable.",
+    "objectives": [
+      { "id": "obj_d2_sword", "description": "Forger 1 épée", "type": "craft", "targetId": "sword", "required": 1, "current": 0 },
+      { "id": "obj_d2_sell", "description": "Vendre 2 objets forgés", "type": "sell", "targetId": "any", "required": 2, "current": 0 }
+    ],
+    "rewards": { "gold": 350, "xp": 160 },
+    "completed": false
+  },
+  {
+    "id": "quest_ruins_1",
+    "regionId": "ruins",
+    "title": "Armes des Anciens",
+    "description": "Des archéologues fouillent les ruines et ont besoin d'armes pour se défendre contre les non-morts.",
+    "objectives": [
+      { "id": "obj_r1_sword1", "description": "Forger 2 épées ou haches", "type": "craft", "targetId": "axe", "required": 2, "current": 0 }
+    ],
+    "rewards": { "gold": 500, "xp": 220 },
+    "completed": false
+  },
+  {
+    "id": "quest_ruins_2",
+    "regionId": "ruins",
+    "title": "Cristaux Magiques",
+    "description": "Le magicien en chef a besoin de cristaux pour ses recherches sur la magie ancienne.",
+    "objectives": [
+      { "id": "obj_r2_crystal", "description": "Collecter 3 cristaux", "type": "collect", "targetId": "crystal", "required": 3, "current": 0 }
+    ],
+    "rewards": { "gold": 420, "xp": 190 },
+    "completed": false
+  },
+  {
+    "id": "quest_port_1",
+    "regionId": "port",
+    "title": "Armement des Marins",
+    "description": "Les marins du port ont besoin d'armement avant leur prochaine traversée.",
+    "objectives": [
+      { "id": "obj_p1_sell", "description": "Vendre 3 objets au marché", "type": "sell", "targetId": "any", "required": 3, "current": 0 }
+    ],
+    "rewards": { "gold": 350, "xp": 160 },
+    "completed": false
+  },
+  {
+    "id": "quest_port_2",
+    "regionId": "port",
+    "title": "Le Commerce Florissant",
+    "description": "Les marchands du port cherchent des articles de luxe à exporter.",
+    "objectives": [
+      { "id": "obj_p2_amulet", "description": "Forger 2 amulettes ou anneaux", "type": "craft", "targetId": "amulet", "required": 2, "current": 0 },
+      { "id": "obj_p2_deliver", "description": "Honorer 2 commandes NPC", "type": "deliver", "targetId": "any", "required": 2, "current": 0 }
+    ],
+    "rewards": { "gold": 450, "xp": 200 },
+    "completed": false
+  },
+  {
+    "id": "quest_volcano_1",
+    "regionId": "volcano",
+    "title": "Armure de Lave",
+    "description": "Un guerrier légendaire commande une armure forgée dans le métal du volcan.",
+    "objectives": [
+      { "id": "obj_vol1_armor", "description": "Forger 1 armure ou casque", "type": "craft", "targetId": "armor", "required": 1, "current": 0 }
+    ],
+    "rewards": { "gold": 800, "xp": 350 },
+    "completed": false
+  },
+  {
+    "id": "quest_volcano_2",
+    "regionId": "volcano",
+    "title": "Obsidienne Sacrée",
+    "description": "Les prêtres du feu cherchent de l'obsidienne pour leur rituel annuel.",
+    "objectives": [
+      { "id": "obj_vol2_obsidian", "description": "Collecter 5 obsidienne", "type": "collect", "targetId": "obsidian", "required": 5, "current": 0 }
+    ],
+    "rewards": { "gold": 600, "xp": 280 },
+    "completed": false
+  },
+  {
+    "id": "quest_volcano_3",
+    "regionId": "volcano",
+    "title": "Le Forgeron de Feu",
+    "description": "Prouvez votre maîtrise en réalisant des commandes pour les forgerons légendaires.",
+    "objectives": [
+      { "id": "obj_vol3_deliver", "description": "Honorer 3 commandes NPC", "type": "deliver", "targetId": "any", "required": 3, "current": 0 }
+    ],
+    "rewards": { "gold": 1000, "xp": 450 },
+    "completed": false
+  },
+  {
+    "id": "quest_castle_1",
+    "regionId": "castle",
+    "title": "Forgeron Royal",
+    "description": "Sa Majesté demande les services du meilleur forgeron du royaume. Prouvez votre valeur.",
+    "objectives": [
+      { "id": "obj_c1_deliver", "description": "Honorer 5 commandes NPC", "type": "deliver", "targetId": "any", "required": 5, "current": 0 },
+      { "id": "obj_c1_sell", "description": "Vendre 10 objets au marché", "type": "sell", "targetId": "any", "required": 10, "current": 0 }
+    ],
+    "rewards": { "gold": 2000, "xp": 1000 },
+    "completed": false
+  },
+  {
+    "id": "quest_castle_2",
+    "regionId": "castle",
+    "title": "L'Épée du Roi",
+    "description": "Le Roi commande une épée légendaire, digne de son rang et de son règne.",
+    "objectives": [
+      { "id": "obj_c2_sword", "description": "Forger 1 épée de qualité excellente", "type": "craft", "targetId": "sword", "required": 1, "current": 0 }
+    ],
+    "rewards": { "gold": 3000, "xp": 1500 },
+    "completed": false
+  },
+  {
+    "id": "quest_extra_craft_1",
+    "regionId": "village",
+    "title": "L'Art du Forgeron",
+    "description": "Démontrez votre art en créant une variété d'objets pour les habitants du village.",
+    "objectives": [
+      { "id": "obj_ec1_craft", "description": "Forger 5 objets au total", "type": "craft", "targetId": "any", "required": 5, "current": 0 }
+    ],
+    "rewards": { "gold": 200, "xp": 100 },
+    "completed": false
+  },
+  {
+    "id": "quest_extra_sell_1",
+    "regionId": "port",
+    "title": "Commerce Actif",
+    "description": "Participez activement au marché du port en vendant vos créations.",
+    "objectives": [
+      { "id": "obj_es1_sell", "description": "Vendre 5 objets au marché", "type": "sell", "targetId": "any", "required": 5, "current": 0 }
+    ],
+    "rewards": { "gold": 500, "xp": 200 },
+    "completed": false
+  },
+  {
+    "id": "quest_extra_deliver_1",
+    "regionId": "village",
+    "title": "Réputation du Forgeron",
+    "description": "Construisez votre réputation en honorant les commandes des clients NPC.",
+    "objectives": [
+      { "id": "obj_ed1_deliver", "description": "Honorer 3 commandes NPC", "type": "deliver", "targetId": "any", "required": 3, "current": 0 }
+    ],
+    "rewards": { "gold": 300, "xp": 150 },
+    "completed": false
+  }
+]
