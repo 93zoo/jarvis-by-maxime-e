@@ -1,0 +1,155 @@
+[
+  {
+    "id": "village",
+    "name": "Village",
+    "description": "Le village natal du forgeron. Des habitants paisibles y vivent, et quelques ressources basiques sont disponibles aux alentours.",
+    "levelRequired": 0,
+    "biome": "plaine",
+    "icon": "home",
+    "resourceNodes": [
+      { "resourceId": "wood", "dropRate": 0.9, "minQty": 2, "maxQty": 5 },
+      { "resourceId": "stone", "dropRate": 0.8, "minQty": 1, "maxQty": 4 },
+      { "resourceId": "clay", "dropRate": 0.7, "minQty": 1, "maxQty": 3 },
+      { "resourceId": "iron", "dropRate": 0.4, "minQty": 1, "maxQty": 2 }
+    ],
+    "boss": { "name": "Bandit des Routes", "level": 3, "description": "Un voleur opportuniste qui rôde près du village." },
+    "questIds": ["quest_village_1", "quest_village_2"]
+  },
+  {
+    "id": "forest",
+    "name": "Forêt",
+    "description": "Une forêt dense et mystérieuse peuplée d'arbres anciens. De nombreuses ressources naturelles y abondent.",
+    "levelRequired": 3,
+    "biome": "forêt",
+    "icon": "tree",
+    "resourceNodes": [
+      { "resourceId": "wood", "dropRate": 0.95, "minQty": 3, "maxQty": 8 },
+      { "resourceId": "coal", "dropRate": 0.5, "minQty": 2, "maxQty": 5 },
+      { "resourceId": "crystal", "dropRate": 0.05, "minQty": 1, "maxQty": 1 }
+    ],
+    "boss": { "name": "Loup Alpha", "level": 8, "description": "Un loup géant qui règne sur la forêt." },
+    "questIds": ["quest_forest_1"]
+  },
+  {
+    "id": "mountains",
+    "name": "Montagnes",
+    "description": "De hauts sommets escarpés où le vent souffle fort. Les veines de minerai y sont nombreuses.",
+    "levelRequired": 5,
+    "biome": "montagne",
+    "icon": "mountain",
+    "resourceNodes": [
+      { "resourceId": "stone", "dropRate": 0.9, "minQty": 3, "maxQty": 7 },
+      { "resourceId": "iron", "dropRate": 0.7, "minQty": 2, "maxQty": 6 },
+      { "resourceId": "copper", "dropRate": 0.6, "minQty": 2, "maxQty": 5 },
+      { "resourceId": "coal", "dropRate": 0.6, "minQty": 2, "maxQty": 6 }
+    ],
+    "boss": { "name": "Géant de Pierre", "level": 12, "description": "Un colosse de roc défendant les sommets." },
+    "questIds": ["quest_mountains_1"]
+  },
+  {
+    "id": "mines",
+    "name": "Mines",
+    "description": "D'anciennes mines creusées par les nains, riches en métaux précieux et minerais rares.",
+    "levelRequired": 5,
+    "biome": "souterrain",
+    "icon": "pickaxe",
+    "resourceNodes": [
+      { "resourceId": "iron", "dropRate": 0.85, "minQty": 3, "maxQty": 8 },
+      { "resourceId": "copper", "dropRate": 0.75, "minQty": 2, "maxQty": 6 },
+      { "resourceId": "bronze", "dropRate": 0.3, "minQty": 1, "maxQty": 3 },
+      { "resourceId": "silver", "dropRate": 0.1, "minQty": 1, "maxQty": 2 }
+    ],
+    "boss": { "name": "Roi des Gobelins", "level": 15, "description": "Un gobelin vieux et puissant gardant les trésors des mines." },
+    "questIds": ["quest_mines_1"]
+  },
+  {
+    "id": "swamp",
+    "name": "Marais",
+    "description": "Un marécage sombre et pestilentiel où pousse une végétation étrange. Ressources organiques rares.",
+    "levelRequired": 8,
+    "biome": "marais",
+    "icon": "water",
+    "resourceNodes": [
+      { "resourceId": "clay", "dropRate": 0.9, "minQty": 3, "maxQty": 8 },
+      { "resourceId": "crystal", "dropRate": 0.15, "minQty": 1, "maxQty": 2 },
+      { "resourceId": "emerald", "dropRate": 0.05, "minQty": 1, "maxQty": 1 }
+    ],
+    "boss": { "name": "Hydre des Marais", "level": 18, "description": "Une créature serpentine à sept têtes qui empoisonne tout." },
+    "questIds": ["quest_swamp_1"]
+  },
+  {
+    "id": "desert",
+    "name": "Désert",
+    "description": "Des dunes à perte de vue sous un soleil de plomb. Des ruines antiques dissimulent des trésors enfouis.",
+    "levelRequired": 10,
+    "biome": "désert",
+    "icon": "sun",
+    "resourceNodes": [
+      { "resourceId": "stone", "dropRate": 0.8, "minQty": 2, "maxQty": 6 },
+      { "resourceId": "gold_ore", "dropRate": 0.2, "minQty": 1, "maxQty": 2 },
+      { "resourceId": "ruby", "dropRate": 0.08, "minQty": 1, "maxQty": 1 }
+    ],
+    "boss": { "name": "Serpent de Sable", "level": 22, "description": "Un serpent colossal enfoui sous les dunes." },
+    "questIds": ["quest_desert_1"]
+  },
+  {
+    "id": "ruins",
+    "name": "Ruines",
+    "description": "Les ruines d'une ancienne civilisation. Magie corrompue et trésors perdus y attendent les aventuriers courageux.",
+    "levelRequired": 12,
+    "biome": "ruines",
+    "icon": "castle",
+    "resourceNodes": [
+      { "resourceId": "obsidian", "dropRate": 0.3, "minQty": 1, "maxQty": 3 },
+      { "resourceId": "crystal", "dropRate": 0.2, "minQty": 1, "maxQty": 2 },
+      { "resourceId": "sapphire", "dropRate": 0.1, "minQty": 1, "maxQty": 1 }
+    ],
+    "boss": { "name": "Liche Ancienne", "level": 28, "description": "Un sorcier non-mort d'une puissance terrifiante." },
+    "questIds": ["quest_ruins_1"]
+  },
+  {
+    "id": "port",
+    "name": "Port",
+    "description": "Un port animé où convergent marchands et pirates. Commerce florissant et ressources rares importées.",
+    "levelRequired": 7,
+    "biome": "côte",
+    "icon": "anchor",
+    "resourceNodes": [
+      { "resourceId": "wood", "dropRate": 0.7, "minQty": 2, "maxQty": 6 },
+      { "resourceId": "silver", "dropRate": 0.15, "minQty": 1, "maxQty": 2 },
+      { "resourceId": "sapphire", "dropRate": 0.07, "minQty": 1, "maxQty": 1 }
+    ],
+    "boss": { "name": "Capitaine Pirate", "level": 20, "description": "Un pirate légendaire qui terrorise les côtes." },
+    "questIds": ["quest_port_1"]
+  },
+  {
+    "id": "volcano",
+    "name": "Volcan",
+    "description": "L'intérieur d'un volcan actif. Chaleur extrême, minerais ignés introuvables ailleurs.",
+    "levelRequired": 15,
+    "biome": "volcanique",
+    "icon": "flame",
+    "resourceNodes": [
+      { "resourceId": "obsidian", "dropRate": 0.5, "minQty": 2, "maxQty": 5 },
+      { "resourceId": "mithril", "dropRate": 0.15, "minQty": 1, "maxQty": 2 },
+      { "resourceId": "diamond", "dropRate": 0.03, "minQty": 1, "maxQty": 1 }
+    ],
+    "boss": { "name": "Drake de Lave", "level": 35, "description": "Un dragon mineur né des flammes du volcan." },
+    "questIds": ["quest_volcano_1"]
+  },
+  {
+    "id": "castle",
+    "name": "Château Royal",
+    "description": "Le château du Roi. Seul le plus grand forgeron du royaume peut y accéder et forger pour la royauté.",
+    "levelRequired": 20,
+    "biome": "royal",
+    "icon": "crown",
+    "resourceNodes": [
+      { "resourceId": "platinum", "dropRate": 0.3, "minQty": 1, "maxQty": 3 },
+      { "resourceId": "adamantium", "dropRate": 0.1, "minQty": 1, "maxQty": 2 },
+      { "resourceId": "dragon_scale", "dropRate": 0.05, "minQty": 1, "maxQty": 1 }
+    ],
+    "boss": { "name": "Dragon du Roi", "level": 50, "description": "Le protecteur du château, une créature mythique d'une puissance absolue." },
+    "questIds": ["quest_castle_1"]
+  }
+]

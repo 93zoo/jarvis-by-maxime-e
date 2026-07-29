@@ -1,0 +1,72 @@
+[
+  {
+    "id": "ruby_1",
+    "name": "Rubis",
+    "type": "ruby",
+    "level": 1,
+    "rarity": "uncommon",
+    "color": "#E0115F",
+    "effects": ["+5 Attaque", "+3 Feu"],
+    "bonusValue": 50
+  },
+  {
+    "id": "sapphire_1",
+    "name": "Saphir",
+    "type": "sapphire",
+    "level": 1,
+    "rarity": "uncommon",
+    "color": "#0F52BA",
+    "effects": ["+5 Magie", "+3 Glace"],
+    "bonusValue": 50
+  },
+  {
+    "id": "diamond_1",
+    "name": "Diamant",
+    "type": "diamond",
+    "level": 1,
+    "rarity": "rare",
+    "color": "#B9F2FF",
+    "effects": ["+8 Tous les stats", "+5 Durabilité"],
+    "bonusValue": 200
+  },
+  {
+    "id": "emerald_1",
+    "name": "Émeraude",
+    "type": "emerald",
+    "level": 1,
+    "rarity": "uncommon",
+    "color": "#50C878",
+    "effects": ["+5 Défense", "+3 Régénération"],
+    "bonusValue": 60
+  },
+  {
+    "id": "topaz_1",
+    "name": "Topaze",
+    "type": "topaz",
+    "level": 1,
+    "rarity": "common",
+    "color": "#FFC87C",
+    "effects": ["+5 Vitesse", "+3 Réflexes"],
+    "bonusValue": 35
+  },
+  {
+    "id": "amethyst_1",
+    "name": "Améthyste",
+    "type": "amethyst",
+    "level": 1,
+    "rarity": "common",
+    "color": "#9966CC",
+    "effects": ["+5 Chance", "+3 Expérience"],
+    "bonusValue": 30
+  },
+  {
+    "id": "onyx_1",
+    "name": "Onyx",
+    "type": "onyx",
+    "level": 1,
+    "rarity": "uncommon",
+    "color": "#2A2A2A",
+    "effects": ["+8 Durabilité", "+5 Poids max"],
+    "bonusValue": 45
+  }
+]

@@ -1,0 +1,138 @@
+[
+  {
+    "id": "forge",
+    "name": "Forge",
+    "description": "Maîtrise de la forge, de l'enclume et du feu.",
+    "icon": "hammer",
+    "color": "#D4851A",
+    "unlocks": [
+      { "level": 5, "reward": "Nouvelles recettes : armes en acier" },
+      { "level": 10, "reward": "Four amélioré débloqué" },
+      { "level": 15, "reward": "Recettes légendaires accessibles" },
+      { "level": 20, "reward": "Enclume runique débloquée" },
+      { "level": 30, "reward": "Maîtrise : qualité +15%" },
+      { "level": 50, "reward": "Forge mythique débloquée" },
+      { "level": 75, "reward": "Grand Maître : objets légendaires garantis" },
+      { "level": 100, "reward": "Titre : Maître Forgeron du Royaume" }
+    ]
+  },
+  {
+    "id": "extraction",
+    "name": "Extraction",
+    "description": "Art de récolter les minerais et ressources naturelles.",
+    "icon": "pickaxe",
+    "color": "#7A7A8C",
+    "unlocks": [
+      { "level": 5, "reward": "Accès aux mines profondes" },
+      { "level": 10, "reward": "Pioche améliorée débloquée" },
+      { "level": 15, "reward": "Ressources rares accessibles" },
+      { "level": 20, "reward": "Extraction de gemmes débloquée" },
+      { "level": 30, "reward": "Rendement +20%" },
+      { "level": 50, "reward": "Accès à la mine de mithril" },
+      { "level": 75, "reward": "Ressources épiques x2" },
+      { "level": 100, "reward": "Titre : Maître Mineur" }
+    ]
+  },
+  {
+    "id": "commerce",
+    "name": "Commerce",
+    "description": "Négociation, vente et gestion économique.",
+    "icon": "scale",
+    "color": "#D4AF37",
+    "unlocks": [
+      { "level": 5, "reward": "Prix de vente +5%" },
+      { "level": 10, "reward": "Accès au marché régional" },
+      { "level": 15, "reward": "Commandes spéciales débloquées" },
+      { "level": 20, "reward": "Prix de vente +15%" },
+      { "level": 30, "reward": "Contrats royaux accessibles" },
+      { "level": 50, "reward": "Salle des enchères débloquée" },
+      { "level": 75, "reward": "Prix de vente +40%" },
+      { "level": 100, "reward": "Titre : Marchand du Royaume" }
+    ]
+  },
+  {
+    "id": "construction",
+    "name": "Construction",
+    "description": "Amélioration et expansion de la forge.",
+    "icon": "build",
+    "color": "#8B6B3D",
+    "unlocks": [
+      { "level": 5, "reward": "Nouvel établi débloqué" },
+      { "level": 10, "reward": "Extension de la forge" },
+      { "level": 15, "reward": "Salle de stockage agrandie" },
+      { "level": 20, "reward": "Deuxième four débloqué" },
+      { "level": 30, "reward": "Forge d'entraînement" },
+      { "level": 50, "reward": "Grande forge royale" },
+      { "level": 75, "reward": "Forge fortifiée" },
+      { "level": 100, "reward": "Titre : Maître Bâtisseur" }
+    ]
+  },
+  {
+    "id": "enchantment",
+    "name": "Enchantement",
+    "description": "Infuser les objets de magie et de runes.",
+    "icon": "star",
+    "color": "#9966CC",
+    "unlocks": [
+      { "level": 5, "reward": "Enchantements basiques débloqués" },
+      { "level": 10, "reward": "Table d'enchantement améliorée" },
+      { "level": 15, "reward": "Runes magiques accessibles" },
+      { "level": 20, "reward": "Double enchantement" },
+      { "level": 30, "reward": "Enchantements rares" },
+      { "level": 50, "reward": "Forge runique débloquée" },
+      { "level": 75, "reward": "Enchantements légendaires" },
+      { "level": 100, "reward": "Titre : Archimage Forgeron" }
+    ]
+  },
+  {
+    "id": "cooking",
+    "name": "Cuisine",
+    "description": "Préparer des potions et repas pour renforcer les capacités.",
+    "icon": "restaurant",
+    "color": "#E86A2A",
+    "unlocks": [
+      { "level": 5, "reward": "Potions de force basiques" },
+      { "level": 10, "reward": "Fourneaux améliorés" },
+      { "level": 15, "reward": "Elixirs de forge débloqués" },
+      { "level": 20, "reward": "Repas de buff puissants" },
+      { "level": 30, "reward": "Potions épiques" },
+      { "level": 50, "reward": "Laboratoire d'alchimie" },
+      { "level": 75, "reward": "Elixirs légendaires" },
+      { "level": 100, "reward": "Titre : Grand Alchimiste" }
+    ]
+  },
+  {
+    "id": "harvest",
+    "name": "Récolte",
+    "description": "Collecter herbes, plantes et ressources naturelles.",
+    "icon": "grass",
+    "color": "#50C878",
+    "unlocks": [
+      { "level": 5, "reward": "Accès à la forêt profonde" },
+      { "level": 10, "reward": "Herbes rares accessibles" },
+      { "level": 15, "reward": "Rendement +15%" },
+      { "level": 20, "reward": "Récolte nocturne débloquée" },
+      { "level": 30, "reward": "Plantes légendaires" },
+      { "level": 50, "reward": "Jardin de la forge" },
+      { "level": 75, "reward": "Récolte quantique" },
+      { "level": 100, "reward": "Titre : Maître Cueilleur" }
+    ]
+  },
+  {
+    "id": "combat",
+    "name": "Combat",
+    "description": "Maîtrise des armes pour défendre le royaume.",
+    "icon": "shield",
+    "color": "#C0392B",
+    "unlocks": [
+      { "level": 5, "reward": "Techniques de combat basiques" },
+      { "level": 10, "reward": "Accès aux donjons" },
+      { "level": 15, "reward": "Combos d'attaque" },
+      { "level": 20, "reward": "Boss régionaux accessibles" },
+      { "level": 30, "reward": "Armure spéciale" },
+      { "level": 50, "reward": "Arène débloquée" },
+      { "level": 75, "reward": "Techniques légendaires" },
+      { "level": 100, "reward": "Titre : Chevalier de la Forge" }
+    ]
+  }
+]
