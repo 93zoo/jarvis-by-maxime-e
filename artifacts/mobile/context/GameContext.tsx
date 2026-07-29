@@ -33,6 +33,11 @@ const ALL_RESOURCES: ResourceData[] = require('@/data/resources.json');
 const ALL_RECIPES: RecipeData[] = require('@/data/recipes.json');
 const ALL_REGIONS: RegionData[] = require('@/data/regions.json');
 const ALL_SKILLS: SkillData[] = require('@/data/skills.json');
+const ALL_GEMS: GemData[] = require('@/data/gems.json');
+
+/** Maximum inventory weight (kg) based on player level */
+const MAX_WEIGHT_BASE = 100;
+const MAX_WEIGHT_PER_LEVEL = 5;
 
 const SAVE_KEY = '@fk_save_v1';
 const SAVE_VERSION = 1;
@@ -100,7 +105,9 @@ type GameAction =
   | { type: 'ADD_PLAYER_XP'; amount: number }
   | { type: 'ADD_SKILL_XP'; skill: SkillType; amount: number }
   | { type: 'UNLOCK_REGION'; regionId: string }
-  | { type: 'SET_EXPLORATION'; regionId: string; percent: number };
+  | { type: 'SET_EXPLORATION'; regionId: string; percent: number }
+  | { type: 'SOCKET_GEM'; itemInstanceId: string; slotIndex: number; gem: GemData }
+  | { type: 'REMOVE_GEM'; itemInstanceId: string; slotIndex: number };
 
 function buildInitialPlayer(): Player {
   const skills = SKILL_TYPES.reduce(
@@ -135,6 +142,9 @@ const INITIAL_INVENTORY: InventoryItem[] = [
   { resourceId: 'stone', quantity: 3 },
   { resourceId: 'copper', quantity: 2 },
   { resourceId: 'coal', quantity: 5 },
+  // Starter gem set — found in the old forge workshop
+  { resourceId: 'ruby', quantity: 2 },
+  { resourceId: 'amethyst', quantity: 1 },
 ];
 
 function buildInitialState(): GameState {
@@ -265,6 +275,40 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         },
       };
     }
+    case 'SOCKET_GEM': {
+      const items = state.craftedItems.map((item) => {
+        if (item.instanceId !== action.itemInstanceId) return item;
+        const gems = [...item.gems];
+        gems[action.slotIndex] = action.gem;
+        return { ...item, gems };
+      });
+      const inv = state.inventory
+        .map((i) =>
+          i.resourceId === action.gem.type ? { ...i, quantity: i.quantity - 1 } : i,
+        )
+        .filter((i) => i.quantity > 0);
+      return { ...state, craftedItems: items, inventory: inv };
+    }
+    case 'REMOVE_GEM': {
+      let removedGem: GemData | null = null;
+      const items = state.craftedItems.map((item) => {
+        if (item.instanceId !== action.itemInstanceId) return item;
+        const gems = [...item.gems];
+        removedGem = gems[action.slotIndex] as GemData;
+        gems[action.slotIndex] = null;
+        return { ...item, gems };
+      });
+      if (!removedGem) return state;
+      const gemType = (removedGem as GemData).type;
+      const inv = [...state.inventory];
+      const idx = inv.findIndex((i) => i.resourceId === gemType);
+      if (idx >= 0) {
+        inv[idx] = { ...inv[idx], quantity: inv[idx].quantity + 1 };
+      } else {
+        inv.push({ resourceId: gemType, quantity: 1 });
+      }
+      return { ...state, craftedItems: items, inventory: inv };
+    }
     default:
       return state;
   }
@@ -287,18 +331,25 @@ interface GameContextType {
   allRecipes: RecipeData[];
   allRegions: RegionData[];
   allSkills: SkillData[];
+  allGems: GemData[];
+  maxWeight: number;
   // Helpers
   getResourceById: (id: string) => ResourceData | undefined;
   getRecipeById: (id: string) => RecipeData | undefined;
   getInventoryQty: (resourceId: string) => number;
   canCraftRecipe: (recipeId: string) => boolean;
   getAvailableRecipes: () => RecipeData[];
+  getSocketableGems: () => GemData[];
   // Actions
   addResource: (resourceId: string, qty: number) => void;
   removeResource: (resourceId: string, qty: number) => void;
   craftItem: (recipeId: string) => Item | null;
   /** Craft an item using an externally-calculated quality score (from mini-game). */
   craftItemWithScore: (recipeId: string, qualityScore: number) => Item | null;
+  /** Socket a gem into an item slot; returns false if not possible. */
+  socketGem: (itemInstanceId: string, slotIndex: number, gem: GemData) => boolean;
+  /** Remove gem from slot and return it to inventory. */
+  removeGem: (itemInstanceId: string, slotIndex: number) => void;
   addGold: (amount: number) => void;
   spendGold: (amount: number) => boolean;
   addPlayerXP: (amount: number) => void;
@@ -593,6 +644,55 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'UNLOCK_REGION', regionId });
   }, []);
 
+  // -------------------------------------------------------------------------
+  // Gem socket actions
+  // -------------------------------------------------------------------------
+  const getSocketableGems = useCallback((): GemData[] => {
+    return ALL_GEMS.filter(
+      (gem) => (state.inventory.find((i) => i.resourceId === gem.type)?.quantity ?? 0) > 0,
+    );
+  }, [state.inventory]);
+
+  const socketGem = useCallback(
+    (itemInstanceId: string, slotIndex: number, gem: GemData): boolean => {
+      const item = state.craftedItems.find((i) => i.instanceId === itemInstanceId);
+      if (!item) return false;
+      if (slotIndex < 0 || slotIndex >= item.gemSlots) return false;
+      if (item.gems[slotIndex] !== null) return false;
+      const qty = state.inventory.find((i) => i.resourceId === gem.type)?.quantity ?? 0;
+      if (qty <= 0) return false;
+      dispatch({ type: 'SOCKET_GEM', itemInstanceId, slotIndex, gem });
+      return true;
+    },
+    [state.craftedItems, state.inventory],
+  );
+
+  const removeGem = useCallback(
+    (itemInstanceId: string, slotIndex: number): void => {
+      const item = state.craftedItems.find((i) => i.instanceId === itemInstanceId);
+      if (!item) return;
+      if (slotIndex < 0 || slotIndex >= item.gemSlots) return;
+      if (!item.gems[slotIndex]) return;
+      dispatch({ type: 'REMOVE_GEM', itemInstanceId, slotIndex });
+    },
+    [state.craftedItems],
+  );
+
+  /** Current total inventory weight (resources + crafted items). */
+  const currentWeight = useMemo(() => {
+    const rw = state.inventory.reduce((acc, inv) => {
+      const res = ALL_RESOURCES.find((r) => r.id === inv.resourceId);
+      return acc + (res?.weight ?? 0) * inv.quantity;
+    }, 0);
+    const iw = state.craftedItems.reduce((acc, item) => acc + item.weight, 0);
+    return rw + iw;
+  }, [state.inventory, state.craftedItems]);
+
+  const maxWeight = useMemo(
+    () => MAX_WEIGHT_BASE + state.player.level * MAX_WEIGHT_PER_LEVEL,
+    [state.player.level],
+  );
+
   const saveGame = useCallback(async () => {
     const save: SaveData = {
       version: SAVE_VERSION,
@@ -629,15 +729,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       allRecipes: ALL_RECIPES,
       allRegions: ALL_REGIONS,
       allSkills: ALL_SKILLS,
+      allGems: ALL_GEMS,
+      maxWeight,
       getResourceById,
       getRecipeById,
       getInventoryQty,
       canCraftRecipe,
       getAvailableRecipes,
+      getSocketableGems,
       addResource,
       removeResource,
       craftItem,
       craftItemWithScore,
+      socketGem,
+      removeGem,
       addGold,
       spendGold,
       addPlayerXP,

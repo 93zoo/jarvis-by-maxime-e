@@ -1,11 +1,17 @@
-import React, { useState } from 'react';
+/**
+ * Inventory screen — Resources tab + Crafted Items tab.
+ * Features: search, category/quality filters, sort, weight capacity bar,
+ * and ItemDetailSheet with 3D viewer + gem socketing.
+ */
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -14,10 +20,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGame } from '@/context/GameContext';
 import { useColors } from '@/hooks/useColors';
-import type { Item, Quality } from '@/types/game';
+import type { Item, ItemCategory, Quality, ResourceData } from '@/types/game';
+import ItemDetailSheet from '@/components/ItemDetailSheet';
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 type TabType = 'resources' | 'items';
+type SortOption = 'newest' | 'quality' | 'value' | 'name';
+type CategoryFilter = 'all' | ItemCategory;
+type QualityFilter = 'all' | Quality;
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 function qualityColor(q: Quality, colors: ReturnType<typeof useColors>): string {
   switch (q) {
     case 'legendary': return '#9966CC';
@@ -38,13 +50,224 @@ function qualityLabel(q: Quality): string {
   }
 }
 
+function rarityColor(r: string, colors: ReturnType<typeof useColors>): string {
+  switch (r) {
+    case 'legendary': return '#9966CC';
+    case 'epic': return '#7B42CC';
+    case 'rare': return colors.accent;
+    case 'uncommon': return colors.primary;
+    default: return colors.mutedForeground;
+  }
+}
+
+function resourceTypeIcon(type: string): string {
+  switch (type) {
+    case 'metal': return '⚙';
+    case 'wood': return '🪵';
+    case 'stone': return '🪨';
+    case 'gem': return '💎';
+    case 'organic': return '🌿';
+    case 'clay': return '🏺';
+    default: return '◆';
+  }
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  all: 'Tout', sword: 'Épées', axe: 'Haches', hammer: 'Marteaux',
+  lance: 'Lances', shield: 'Boucliers', armor: 'Armures', helmet: 'Casques',
+  ring: 'Anneaux', amulet: 'Amulettes', tool: 'Outils', decoration: 'Déco',
+};
+const QUALITY_FILTER_LABELS: Record<string, string> = {
+  all: 'Toutes', poor: 'Médiocre', normal: 'Normal',
+  good: 'Bon', excellent: 'Excellent', legendary: 'Légendaire',
+};
+const SORT_LABELS: Record<SortOption, string> = {
+  newest: 'Récent', quality: 'Qualité', value: 'Valeur', name: 'Nom',
+};
+const QUALITY_ORDER: Record<Quality, number> = {
+  legendary: 5, excellent: 4, good: 3, normal: 2, poor: 1,
+};
+const ALL_CATEGORIES: CategoryFilter[] = [
+  'all', 'sword', 'axe', 'hammer', 'lance', 'shield', 'armor',
+  'helmet', 'ring', 'amulet', 'tool', 'decoration',
+];
+
+// ─── Weight bar ───────────────────────────────────────────────────────────────
+function WeightBar({
+  current,
+  max,
+  colors,
+}: { current: number; max: number; colors: ReturnType<typeof useColors> }) {
+  const pct = Math.min(1, current / max);
+  const barColor = pct > 0.9 ? colors.destructive : pct > 0.7 ? colors.primary : colors.accent;
+  return (
+    <View style={weightStyles.container}>
+      <View style={[weightStyles.track, { backgroundColor: colors.muted }]}>
+        <View style={[weightStyles.fill, { width: `${Math.round(pct * 100)}%` as `${number}%`, backgroundColor: barColor }]} />
+      </View>
+      <Text style={[weightStyles.label, { color: pct > 0.7 ? barColor : colors.mutedForeground }]}>
+        {current.toFixed(1)}/{max}kg
+      </Text>
+    </View>
+  );
+}
+const weightStyles = StyleSheet.create({
+  container: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  track: { flex: 1, height: 5, borderRadius: 3, overflow: 'hidden' },
+  fill: { height: '100%', borderRadius: 3, minWidth: 3 },
+  label: { fontSize: 11, fontWeight: '700', minWidth: 80, textAlign: 'right' },
+});
+
+// ─── Resource card ────────────────────────────────────────────────────────────
+function ResourceCard({
+  res,
+  qty,
+  colors,
+}: { res: ResourceData; qty: number; colors: ReturnType<typeof useColors> }) {
+  const isGem = res.type === 'gem';
+  return (
+    <View
+      style={[
+        styles.resourceCard,
+        {
+          backgroundColor: colors.card,
+          borderColor: isGem ? res.color + '80' : colors.border,
+          borderWidth: isGem ? 1.5 : 1,
+        },
+      ]}
+    >
+      {/* Color strip */}
+      <View style={[styles.resourceStrip, { backgroundColor: res.color }]} />
+      <View style={styles.resourceBody}>
+        <View style={styles.resourceTop}>
+          <Text style={[styles.resourceIcon]}>{resourceTypeIcon(res.type)}</Text>
+          <View style={styles.resourceNameRow}>
+            <Text style={[styles.resourceName, { color: colors.foreground }]}>{res.name}</Text>
+            {isGem && (
+              <Text style={[styles.gemBadge, { color: res.color }]}>GEM</Text>
+            )}
+          </View>
+          <View style={[styles.qtyBadge, { backgroundColor: isGem ? res.color + '28' : colors.secondary }]}>
+            <Text style={[styles.qtyText, { color: isGem ? res.color : colors.accent }]}>×{qty}</Text>
+          </View>
+        </View>
+        <View style={styles.resourceMeta}>
+          <Text style={[styles.resourceMetaText, { color: rarityColor(res.rarity, colors) }]}>
+            {res.rarity}
+          </Text>
+          <Text style={[styles.resourceMetaText, { color: colors.mutedForeground }]}>
+            · Niv.{res.level}
+          </Text>
+          <Text style={[styles.resourceMetaText, { color: colors.mutedForeground }]}>
+            · {res.weight}kg
+          </Text>
+          <Text style={[styles.resourceMetaText, { color: colors.mutedForeground }]}>
+            · pureté {res.purity}%
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// ─── Crafted item card ────────────────────────────────────────────────────────
+function CraftedItemCard({
+  item,
+  onPress,
+  colors,
+}: { item: Item; onPress: () => void; colors: ReturnType<typeof useColors> }) {
+  const qc = qualityColor(item.quality, colors);
+  const gemsSlotted = item.gems.filter(Boolean).length;
+  return (
+    <TouchableOpacity
+      style={[styles.itemCard, { backgroundColor: colors.card, borderColor: qc }]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <View style={[styles.itemQualityStrip, { backgroundColor: qc }]} />
+      <View style={styles.itemBody}>
+        <View style={styles.itemTop}>
+          <View style={styles.itemInfo}>
+            <Text style={[styles.itemCategory, { color: qc }]}>
+              {qualityLabel(item.quality)}
+            </Text>
+            <Text style={[styles.itemName, { color: colors.foreground }]}>{item.name}</Text>
+            <Text style={[styles.itemMeta, { color: colors.mutedForeground }]}>
+              {item.category} · Niv.{item.level}
+            </Text>
+          </View>
+          <View style={styles.itemRight}>
+            <Text style={[styles.itemValue, { color: colors.accent }]}>{item.value}g</Text>
+            {item.gemSlots > 0 && (
+              <View style={styles.gemRow}>
+                {Array.from({ length: item.gemSlots }).map((_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.miniGem,
+                      {
+                        backgroundColor: item.gems[i]
+                          ? (item.gems[i] as NonNullable<typeof item.gems[0]>).color
+                          : colors.muted,
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+            )}
+            <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+          </View>
+        </View>
+        {/* Stat row */}
+        <View style={styles.statPills}>
+          {item.stats.attack !== undefined && (
+            <View style={[styles.statPill, { backgroundColor: colors.secondary }]}>
+              <Text style={[styles.statPillText, { color: colors.accent }]}>⚔ {item.stats.attack}</Text>
+            </View>
+          )}
+          {item.stats.defense !== undefined && (
+            <View style={[styles.statPill, { backgroundColor: colors.secondary }]}>
+              <Text style={[styles.statPillText, { color: colors.accent }]}>🛡 {item.stats.defense}</Text>
+            </View>
+          )}
+          {item.stats.magic !== undefined && (
+            <View style={[styles.statPill, { backgroundColor: colors.secondary }]}>
+              <Text style={[styles.statPillText, { color: colors.accent }]}>✨ {item.stats.magic}</Text>
+            </View>
+          )}
+          {item.stats.speed !== undefined && (
+            <View style={[styles.statPill, { backgroundColor: colors.secondary }]}>
+              <Text style={[styles.statPillText, { color: colors.accent }]}>⚡ {item.stats.speed}</Text>
+            </View>
+          )}
+          {gemsSlotted > 0 && (
+            <View style={[styles.statPill, { backgroundColor: colors.secondary }]}>
+              <Text style={[styles.statPillText, { color: '#9966CC' }]}>💎 ×{gemsSlotted}</Text>
+            </View>
+          )}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
 export default function InventoryScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const game = useGame();
+
   const [activeTab, setActiveTab] = useState<TabType>('resources');
-  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
+  const [qualityFilter, setQualityFilter] = useState<QualityFilter>('all');
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
+  // Store instanceId, not a snapshot — ItemDetailSheet derives live item from context
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+
   const headerTopPad = Platform.OS === 'web' ? 67 : insets.top;
+  const bottomPad = insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 96;
 
   if (!game.isLoaded) {
     return (
@@ -54,113 +277,99 @@ export default function InventoryScreen() {
     );
   }
 
-  const totalWeight = game.inventory.reduce((acc, invItem) => {
-    const res = game.getResourceById(invItem.resourceId);
-    return acc + (res?.weight ?? 0) * invItem.quantity;
-  }, 0);
+  // ── Compute total weight (resources + items) ──
+  const currentWeight = useMemo(() => {
+    const rw = game.inventory.reduce((acc, inv) => {
+      const res = game.getResourceById(inv.resourceId);
+      return acc + (res?.weight ?? 0) * inv.quantity;
+    }, 0);
+    const iw = game.craftedItems.reduce((a, b) => a + b.weight, 0);
+    return Math.round((rw + iw) * 10) / 10;
+  }, [game.inventory, game.craftedItems, game.getResourceById]);
 
-  const renderResourceItem = ({ item: invItem }: { item: typeof game.inventory[0] }) => {
-    const res = game.getResourceById(invItem.resourceId);
-    if (!res) return null;
-    return (
-      <View style={[styles.resourceRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <View style={[styles.resourceColorBar, { backgroundColor: res.color }]} />
-        <View style={styles.resourceInfo}>
-          <Text style={[styles.resourceName, { color: colors.foreground }]}>{res.name}</Text>
-          <Text style={[styles.resourceType, { color: colors.mutedForeground }]}>
-            {res.rarity} · {res.type}
-          </Text>
-        </View>
-        <View style={[styles.qtyBadge, { backgroundColor: colors.secondary }]}>
-          <Text style={[styles.qtyText, { color: colors.accent }]}>x{invItem.quantity}</Text>
-        </View>
-      </View>
-    );
-  };
+  // ── Filtered/sorted resources ──
+  const filteredResources = useMemo(() => {
+    let list = game.inventory
+      .map((inv) => ({ inv, res: game.getResourceById(inv.resourceId) }))
+      .filter((x) => !!x.res);
 
-  const renderCraftedItem = ({ item }: { item: Item }) => (
-    <TouchableOpacity
-      style={[
-        styles.craftedRow,
-        { backgroundColor: colors.card, borderColor: qualityColor(item.quality, colors) },
-      ]}
-      onPress={() => setSelectedItem(item)}
-      activeOpacity={0.8}
-    >
-      <View style={styles.craftedLeft}>
-        <View style={[styles.qualityIndicator, { backgroundColor: qualityColor(item.quality, colors) }]} />
-        <View>
-          <Text style={[styles.craftedName, { color: colors.foreground }]}>{item.name}</Text>
-          <Text style={[styles.craftedQuality, { color: qualityColor(item.quality, colors) }]}>
-            {qualityLabel(item.quality)}
-          </Text>
-          <Text style={[styles.craftedCategory, { color: colors.mutedForeground }]}>
-            {item.category}
-          </Text>
-        </View>
-      </View>
-      <View style={styles.craftedRight}>
-        <Text style={[styles.craftedValue, { color: colors.accent }]}>{item.value}g</Text>
-        <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
-      </View>
-    </TouchableOpacity>
-  );
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((x) => x.res!.name.toLowerCase().includes(q));
+    }
+    // Sort gems first, then by name
+    list.sort((a, b) => {
+      if (a.res!.type === 'gem' && b.res!.type !== 'gem') return -1;
+      if (b.res!.type === 'gem' && a.res!.type !== 'gem') return 1;
+      return a.res!.name.localeCompare(b.res!.name);
+    });
+    return list;
+  }, [game.inventory, search, game.getResourceById]);
+
+  // ── Filtered/sorted crafted items ──
+  const filteredItems = useMemo(() => {
+    let list = [...game.craftedItems];
+
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((i) => i.name.toLowerCase().includes(q) || i.category.toLowerCase().includes(q));
+    }
+    if (categoryFilter !== 'all') {
+      list = list.filter((i) => i.category === categoryFilter);
+    }
+    if (qualityFilter !== 'all') {
+      list = list.filter((i) => i.quality === qualityFilter);
+    }
+    switch (sortBy) {
+      case 'newest': list.sort((a, b) => b.craftedAt - a.craftedAt); break;
+      case 'quality': list.sort((a, b) => QUALITY_ORDER[b.quality] - QUALITY_ORDER[a.quality]); break;
+      case 'value': list.sort((a, b) => b.value - a.value); break;
+      case 'name': list.sort((a, b) => a.name.localeCompare(b.name)); break;
+    }
+    return list;
+  }, [game.craftedItems, search, categoryFilter, qualityFilter, sortBy]);
+
+  const weightPct = game.maxWeight > 0 ? currentWeight / game.maxWeight : 0;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
+      {/* ── Header ── */}
       <LinearGradient
-        colors={[colors.card as string, colors.background as string]}
-        style={[styles.header, { paddingTop: headerTopPad + 12 }]}
+        colors={[colors.card as string, 'transparent']}
+        style={[styles.header, { paddingTop: headerTopPad + 10 }]}
       >
-        <View style={styles.headerLeft}>
-          <Feather name="archive" size={22} color={colors.primary} />
-          <Text style={[styles.headerTitle, { color: colors.foreground }]}>INVENTAIRE</Text>
+        <View style={styles.headerRow}>
+          <View style={styles.headerLeft}>
+            <Feather name="archive" size={20} color={colors.primary} />
+            <Text style={[styles.headerTitle, { color: colors.foreground }]}>INVENTAIRE</Text>
+          </View>
+          <WeightBar current={currentWeight} max={game.maxWeight} colors={colors} />
         </View>
-        <View style={[styles.weightBadge, { backgroundColor: colors.secondary }]}>
-          <Feather name="package" size={13} color={colors.mutedForeground} />
-          <Text style={[styles.weightText, { color: colors.mutedForeground }]}>
-            {totalWeight.toFixed(1)} kg
+        {weightPct > 0.8 && (
+          <Text style={[styles.weightWarning, { color: colors.destructive }]}>
+            ⚠ Inventaire presque plein !
           </Text>
-        </View>
+        )}
       </LinearGradient>
 
-      {/* Tab Bar */}
+      {/* ── Tab bar ── */}
       <View style={[styles.tabBar, { borderBottomColor: colors.border }]}>
         {(['resources', 'items'] as TabType[]).map((tab) => (
           <TouchableOpacity
             key={tab}
-            style={[
-              styles.tab,
-              activeTab === tab && { borderBottomColor: colors.primary, borderBottomWidth: 2 },
-            ]}
+            style={[styles.tab, activeTab === tab && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
             onPress={() => setActiveTab(tab)}
           >
             <Feather
               name={tab === 'resources' ? 'grid' : 'package'}
-              size={16}
+              size={15}
               color={activeTab === tab ? colors.primary : colors.mutedForeground}
             />
-            <Text
-              style={[
-                styles.tabText,
-                { color: activeTab === tab ? colors.primary : colors.mutedForeground },
-              ]}
-            >
+            <Text style={[styles.tabText, { color: activeTab === tab ? colors.primary : colors.mutedForeground }]}>
               {tab === 'resources' ? 'Ressources' : 'Objets forgés'}
             </Text>
-            <View
-              style={[
-                styles.tabBadge,
-                { backgroundColor: activeTab === tab ? colors.primary : colors.muted },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.tabBadgeText,
-                  { color: activeTab === tab ? colors.primaryForeground : colors.mutedForeground },
-                ]}
-              >
+            <View style={[styles.tabBadge, { backgroundColor: activeTab === tab ? colors.primary : colors.muted }]}>
+              <Text style={[styles.tabBadgeText, { color: activeTab === tab ? colors.primaryForeground : colors.mutedForeground }]}>
                 {tab === 'resources' ? game.inventory.length : game.craftedItems.length}
               </Text>
             </View>
@@ -168,234 +377,229 @@ export default function InventoryScreen() {
         ))}
       </View>
 
+      {/* ── Search + filter row ── */}
+      <View style={[styles.toolbarRow, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <View style={[styles.searchBox, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+          <Feather name="search" size={14} color={colors.mutedForeground} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.foreground }]}
+            placeholder="Rechercher…"
+            placeholderTextColor={colors.mutedForeground}
+            value={search}
+            onChangeText={setSearch}
+            returnKeyType="search"
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch('')}>
+              <Feather name="x" size={14} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          )}
+        </View>
+        {activeTab === 'items' && (
+          <TouchableOpacity
+            style={[styles.filterToggle, { backgroundColor: showFilters ? colors.primary : colors.secondary }]}
+            onPress={() => setShowFilters((v) => !v)}
+          >
+            <Feather name="sliders" size={15} color={showFilters ? colors.primaryForeground : colors.mutedForeground} />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* ── Filter panel (items only) ── */}
+      {activeTab === 'items' && showFilters && (
+        <View style={[styles.filterPanel, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          {/* Category */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={{ gap: 6 }}>
+            {ALL_CATEGORIES.map((cat) => (
+              <TouchableOpacity
+                key={cat}
+                style={[
+                  styles.filterChip,
+                  {
+                    backgroundColor: categoryFilter === cat ? colors.primary : colors.secondary,
+                    borderColor: categoryFilter === cat ? colors.primary : colors.border,
+                  },
+                ]}
+                onPress={() => setCategoryFilter(cat)}
+              >
+                <Text style={[styles.filterChipText, { color: categoryFilter === cat ? colors.primaryForeground : colors.mutedForeground }]}>
+                  {CATEGORY_LABELS[cat]}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          {/* Quality + Sort row */}
+          <View style={styles.filterSecondRow}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, flex: 1 }}>
+              {(Object.keys(QUALITY_FILTER_LABELS) as QualityFilter[]).map((qf) => (
+                <TouchableOpacity
+                  key={qf}
+                  style={[
+                    styles.filterChip,
+                    { backgroundColor: qualityFilter === qf ? colors.accent : colors.secondary, borderColor: qualityFilter === qf ? colors.accent : colors.border },
+                  ]}
+                  onPress={() => setQualityFilter(qf)}
+                >
+                  <Text style={[styles.filterChipText, { color: qualityFilter === qf ? colors.card : colors.mutedForeground }]}>
+                    {QUALITY_FILTER_LABELS[qf]}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            {/* Sort */}
+            <View style={[styles.sortRow]}>
+              {(Object.keys(SORT_LABELS) as SortOption[]).map((s) => (
+                <TouchableOpacity
+                  key={s}
+                  style={[
+                    styles.sortChip,
+                    { backgroundColor: sortBy === s ? colors.secondary : 'transparent', borderColor: sortBy === s ? colors.border : 'transparent' },
+                  ]}
+                  onPress={() => setSortBy(s)}
+                >
+                  <Text style={[styles.sortChipText, { color: sortBy === s ? colors.foreground : colors.mutedForeground }]}>
+                    {SORT_LABELS[s]}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* ── Content ── */}
       {activeTab === 'resources' ? (
-        game.inventory.length === 0 ? (
+        filteredResources.length === 0 ? (
           <View style={styles.emptyCenter}>
             <Feather name="package" size={40} color={colors.mutedForeground} />
             <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-              Inventaire vide
+              {search ? 'Aucun résultat' : 'Inventaire vide'}
             </Text>
             <Text style={[styles.emptyDesc, { color: colors.mutedForeground }]}>
-              Explorez le monde pour collecter des ressources
+              {search ? `Aucune ressource pour « ${search} »` : 'Explorez le monde pour collecter des ressources'}
             </Text>
           </View>
         ) : (
           <FlatList
-            data={game.inventory}
-            renderItem={renderResourceItem}
-            keyExtractor={(i) => i.resourceId}
-            contentContainerStyle={[
-              styles.listContent,
-              { paddingBottom: insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 100 },
-            ]}
+            data={filteredResources}
+            keyExtractor={(x) => x.inv.resourceId}
+            renderItem={({ item: { inv, res } }) => (
+              <ResourceCard res={res!} qty={inv.quantity} colors={colors} />
+            )}
+            contentContainerStyle={[styles.listContent, { paddingBottom: bottomPad }]}
             showsVerticalScrollIndicator={false}
           />
         )
-      ) : game.craftedItems.length === 0 ? (
+      ) : filteredItems.length === 0 ? (
         <View style={styles.emptyCenter}>
           <Feather name="tool" size={40} color={colors.mutedForeground} />
           <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-            Aucun objet forgé
+            {search || categoryFilter !== 'all' || qualityFilter !== 'all' ? 'Aucun résultat' : 'Aucun objet forgé'}
           </Text>
           <Text style={[styles.emptyDesc, { color: colors.mutedForeground }]}>
-            Rendez-vous à la Forge pour créer votre premier objet
+            {search || categoryFilter !== 'all' || qualityFilter !== 'all'
+              ? 'Modifiez les filtres pour voir plus d\'objets'
+              : 'Rendez-vous à la Forge pour créer votre premier objet'}
           </Text>
         </View>
       ) : (
         <FlatList
-          data={game.craftedItems}
-          renderItem={renderCraftedItem}
+          data={filteredItems}
           keyExtractor={(i) => i.instanceId}
-          contentContainerStyle={[
-            styles.listContent,
-            { paddingBottom: insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 100 },
-          ]}
+          renderItem={({ item }) => (
+            <CraftedItemCard item={item} onPress={() => setSelectedItemId(item.instanceId)} colors={colors} />
+          )}
+          contentContainerStyle={[styles.listContent, { paddingBottom: bottomPad }]}
           showsVerticalScrollIndicator={false}
         />
       )}
 
-      {/* Item Detail Modal */}
-      <Modal visible={!!selectedItem} transparent animationType="slide" statusBarTranslucent>
-        {selectedItem && (
-          <View style={styles.overlay}>
-            <View style={[styles.sheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <View style={[styles.handle, { backgroundColor: colors.muted }]} />
-
-              <View
-                style={[
-                  styles.itemQualityBar,
-                  { backgroundColor: qualityColor(selectedItem.quality, colors) },
-                ]}
-              />
-              <Text
-                style={[
-                  styles.itemQualityLabel,
-                  { color: qualityColor(selectedItem.quality, colors) },
-                ]}
-              >
-                {qualityLabel(selectedItem.quality)}
-              </Text>
-              <Text style={[styles.itemName, { color: colors.foreground }]}>
-                {selectedItem.name}
-              </Text>
-              <Text style={[styles.itemDesc, { color: colors.mutedForeground }]}>
-                {selectedItem.description}
-              </Text>
-              <Text style={[styles.itemLore, { color: colors.mutedForeground }]}>
-                "{selectedItem.lore}"
-              </Text>
-
-              <Text style={[styles.sectionLabel, { color: colors.primary }]}>STATISTIQUES</Text>
-              <View style={styles.statsGrid}>
-                {selectedItem.stats.attack !== undefined && (
-                  <View style={[styles.statChip, { backgroundColor: colors.secondary }]}>
-                    <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>ATQ</Text>
-                    <Text style={[styles.statValue, { color: colors.accent }]}>
-                      +{selectedItem.stats.attack}
-                    </Text>
-                  </View>
-                )}
-                {selectedItem.stats.defense !== undefined && (
-                  <View style={[styles.statChip, { backgroundColor: colors.secondary }]}>
-                    <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>DEF</Text>
-                    <Text style={[styles.statValue, { color: colors.accent }]}>
-                      +{selectedItem.stats.defense}
-                    </Text>
-                  </View>
-                )}
-                {selectedItem.stats.magic !== undefined && (
-                  <View style={[styles.statChip, { backgroundColor: colors.secondary }]}>
-                    <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>MAG</Text>
-                    <Text style={[styles.statValue, { color: colors.accent }]}>
-                      +{selectedItem.stats.magic}
-                    </Text>
-                  </View>
-                )}
-                {selectedItem.stats.speed !== undefined && (
-                  <View style={[styles.statChip, { backgroundColor: colors.secondary }]}>
-                    <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>VIT</Text>
-                    <Text style={[styles.statValue, { color: colors.accent }]}>
-                      +{selectedItem.stats.speed}
-                    </Text>
-                  </View>
-                )}
-                {selectedItem.stats.luck !== undefined && (
-                  <View style={[styles.statChip, { backgroundColor: colors.secondary }]}>
-                    <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>CHANCE</Text>
-                    <Text style={[styles.statValue, { color: colors.accent }]}>
-                      +{selectedItem.stats.luck}
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              <View style={styles.metaRow}>
-                <Text style={[styles.metaItem, { color: colors.mutedForeground }]}>
-                  Durabilité: {selectedItem.durability}/{selectedItem.maxDurability}
-                </Text>
-                <Text style={[styles.metaItem, { color: colors.mutedForeground }]}>
-                  Poids: {selectedItem.weight}kg
-                </Text>
-                <Text style={[styles.metaItem, { color: colors.accent }]}>
-                  Valeur: {selectedItem.value}g
-                </Text>
-              </View>
-
-              <Text style={[styles.craftInfo, { color: colors.mutedForeground }]}>
-                Forgé par {selectedItem.craftedBy} ·{' '}
-                {new Date(selectedItem.craftedAt).toLocaleDateString('fr-FR')}
-              </Text>
-
-              <TouchableOpacity
-                style={[styles.closeBtn, { backgroundColor: colors.secondary, borderColor: colors.border }]}
-                onPress={() => setSelectedItem(null)}
-              >
-                <Text style={[styles.closeBtnText, { color: colors.foreground }]}>Fermer</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-      </Modal>
+      {/* ── Item detail sheet ── */}
+      <ItemDetailSheet
+        itemInstanceId={selectedItemId}
+        onClose={() => setSelectedItemId(null)}
+      />
     </View>
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1 },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-  },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  headerTitle: { fontSize: 18, fontWeight: '800', letterSpacing: 3 },
-  weightBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, gap: 5 },
-  weightText: { fontSize: 12, fontWeight: '600' },
+
+  header: { paddingHorizontal: 18, paddingBottom: 12 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerTitle: { fontSize: 16, fontWeight: '800', letterSpacing: 3 },
+  weightWarning: { fontSize: 11, fontWeight: '700', textAlign: 'right', marginTop: 3 },
+
   tabBar: { flexDirection: 'row', borderBottomWidth: 1 },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    gap: 6,
-  },
+  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 11, gap: 6 },
   tabText: { fontSize: 13, fontWeight: '600' },
   tabBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10 },
   tabBadgeText: { fontSize: 10, fontWeight: '700' },
-  listContent: { paddingHorizontal: 16, paddingTop: 12 },
-  resourceRow: {
+
+  toolbarRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, gap: 8, borderBottomWidth: 1 },
+  searchBox: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, height: 38, borderRadius: 10, borderWidth: 1 },
+  searchInput: { flex: 1, fontSize: 14, padding: 0 },
+  filterToggle: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+
+  filterPanel: { borderBottomWidth: 1, paddingVertical: 10, gap: 8 },
+  filterRow: { paddingHorizontal: 12 },
+  filterSecondRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: 8 },
+  filterChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
+  filterChipText: { fontSize: 12, fontWeight: '600' },
+  sortRow: { flexDirection: 'row', gap: 4 },
+  sortChip: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 8, borderWidth: 1 },
+  sortChipText: { fontSize: 11, fontWeight: '600' },
+
+  listContent: { paddingHorizontal: 14, paddingTop: 10 },
+
+  // Resource card
+  resourceCard: {
     flexDirection: 'row',
-    alignItems: 'center',
     borderRadius: 12,
     borderWidth: 1,
+    marginBottom: 7,
+    overflow: 'hidden',
+  },
+  resourceStrip: { width: 4 },
+  resourceBody: { flex: 1, paddingHorizontal: 12, paddingVertical: 10 },
+  resourceTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  resourceIcon: { fontSize: 18, width: 24 },
+  resourceNameRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  resourceName: { fontSize: 14, fontWeight: '600' },
+  gemBadge: { fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+  qtyBadge: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 14 },
+  qtyText: { fontSize: 13, fontWeight: '700' },
+  resourceMeta: { flexDirection: 'row', gap: 4, marginTop: 4, flexWrap: 'wrap' },
+  resourceMetaText: { fontSize: 11 },
+
+  // Item card
+  itemCard: {
+    flexDirection: 'row',
+    borderRadius: 12,
+    borderWidth: 1.5,
     marginBottom: 8,
     overflow: 'hidden',
   },
-  resourceColorBar: { width: 4, alignSelf: 'stretch' },
-  resourceInfo: { flex: 1, padding: 12 },
-  resourceName: { fontSize: 14, fontWeight: '600' },
-  resourceType: { fontSize: 11, marginTop: 2 },
-  qtyBadge: { paddingHorizontal: 14, paddingVertical: 6, marginRight: 12, borderRadius: 20 },
-  qtyText: { fontSize: 14, fontWeight: '700' },
-  craftedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 14,
-    marginBottom: 8,
-  },
-  craftedLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  qualityIndicator: { width: 4, height: 40, borderRadius: 2 },
-  craftedName: { fontSize: 14, fontWeight: '600' },
-  craftedQuality: { fontSize: 10, fontWeight: '700', letterSpacing: 1, marginTop: 2 },
-  craftedCategory: { fontSize: 11, marginTop: 2 },
-  craftedRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  craftedValue: { fontSize: 14, fontWeight: '600' },
+  itemQualityStrip: { width: 4 },
+  itemBody: { flex: 1, paddingHorizontal: 13, paddingVertical: 11 },
+  itemTop: { flexDirection: 'row', alignItems: 'flex-start' },
+  itemInfo: { flex: 1 },
+  itemCategory: { fontSize: 9, fontWeight: '800', letterSpacing: 1.5, marginBottom: 3 },
+  itemName: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
+  itemMeta: { fontSize: 11 },
+  itemRight: { alignItems: 'flex-end', gap: 5, paddingLeft: 10 },
+  itemValue: { fontSize: 14, fontWeight: '700' },
+  gemRow: { flexDirection: 'row', gap: 3 },
+  miniGem: { width: 8, height: 8, borderRadius: 4 },
+  statPills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  statPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  statPillText: { fontSize: 11, fontWeight: '600' },
+
   emptyCenter: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, gap: 12 },
   emptyTitle: { fontSize: 20, fontWeight: '700', textAlign: 'center' },
   emptyDesc: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
-  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, borderWidth: 1, borderBottomWidth: 0 },
-  handle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
-  itemQualityBar: { height: 3, borderRadius: 2, marginBottom: 12 },
-  itemQualityLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 2, marginBottom: 6 },
-  itemName: { fontSize: 24, fontWeight: '800', marginBottom: 6 },
-  itemDesc: { fontSize: 13, lineHeight: 18, marginBottom: 8 },
-  itemLore: { fontSize: 12, lineHeight: 18, fontStyle: 'italic', marginBottom: 20 },
-  sectionLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 2, marginBottom: 10 },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
-  statChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, alignItems: 'center', minWidth: 60 },
-  statLabel: { fontSize: 10, fontWeight: '600', letterSpacing: 1 },
-  statValue: { fontSize: 16, fontWeight: '700' },
-  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 10 },
-  metaItem: { fontSize: 12 },
-  craftInfo: { fontSize: 11, marginBottom: 20 },
-  closeBtn: { paddingVertical: 14, borderRadius: 12, alignItems: 'center', borderWidth: 1 },
-  closeBtnText: { fontSize: 15, fontWeight: '600' },
 });
