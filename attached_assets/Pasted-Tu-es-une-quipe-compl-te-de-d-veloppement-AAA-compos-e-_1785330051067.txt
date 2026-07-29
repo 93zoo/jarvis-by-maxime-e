@@ -1,0 +1,680 @@
+Tu es une équipe complète de développement AAA composée de Game Designers, Développeurs Unity/C#, Développeurs Gameplay, Développeurs Backend, UI/UX Designers, Animateurs, Artistes 3D, Sound Designers, QA Engineers et spécialistes de l'optimisation mobile.
+
+Ta mission est de développer un véritable jeu mobile 3D premium, entièrement jouable, évolutif et optimisé pour Android et iOS.
+
+Le projet ne doit pas être un prototype mais un jeu commercial complet, développé progressivement par modules. Chaque système doit être indépendant, documenté, optimisé et facilement extensible. Utilise une architecture propre (SOLID), des ScriptableObjects ou fichiers JSON pour les données du jeu et ne code jamais les données en dur.
+
+==========================================================
+CONCEPT
+==========================================================
+
+Le joueur incarne un jeune forgeron héritant d'une vieille forge abandonnée après la disparition de son père, autrefois considéré comme le plus grand maître forgeron du royaume.
+
+Son objectif est de reconstruire entièrement sa forge, explorer le monde, récolter des ressources, fabriquer des centaines d'objets, améliorer ses compétences et devenir le Maître Forgeron du royaume.
+
+Le gameplay repose sur quatre piliers :
+
+• Explorer
+• Récolter
+• Fabriquer
+• Faire prospérer sa forge
+
+Le jeu doit être addictif, gratifiant et offrir une forte rejouabilité.
+
+Inspirations :
+
+- RuneScape
+- Fantasy Life
+- Monster Hunter
+- Blacksmith Master
+- Stardew Valley
+- Albion Online
+- Skyrim (uniquement pour l'immersion et l'exploration)
+
+==========================================================
+INTRODUCTION CINEMATIQUE
+==========================================================
+
+Le jeu commence par une cinématique.
+
+Une pluie tombe sur un ancien village.
+
+La caméra survole lentement les bâtiments jusqu'à une vieille forge complètement abandonnée.
+
+Le feu est éteint.
+
+Les outils sont rouillés.
+
+Un vieil homme arrive.
+
+Il remet un ancien marteau au héros.
+
+Dialogue :
+
+"Ton père était le plus grand forgeron du royaume."
+
+"Cette forge est désormais la tienne."
+
+"Le royaume aura bientôt besoin de toi."
+
+Le vieil homme repart.
+
+Le logo apparaît.
+
+La caméra entre dans la forge.
+
+Le joueur prend le contrôle.
+
+==========================================================
+GRAPHISMES
+==========================================================
+
+Graphismes 3D réalistes.
+
+Textures PBR.
+
+HDR.
+
+Ombres dynamiques.
+
+Cycle Jour/Nuit.
+
+Pluie.
+
+Neige.
+
+Vent.
+
+Orages.
+
+Brouillard.
+
+Particules.
+
+Effets de lumière.
+
+Optimisation mobile.
+
+60 FPS.
+
+LOD.
+
+Occlusion Culling.
+
+==========================================================
+MONDE
+==========================================================
+
+Créer une immense carte composée de plusieurs régions.
+
+Village
+
+Forêt
+
+Montagnes
+
+Mines
+
+Marais
+
+Désert
+
+Volcan
+
+Ruines
+
+Port
+
+Château
+
+Chaque région possède :
+
+PNJ
+
+Boss
+
+Donjons
+
+Secrets
+
+Musiques
+
+Ressources
+
+Quêtes
+
+Evènements
+
+==========================================================
+WORLD MAP
+==========================================================
+
+Créer un onglet WORLD.
+
+Carte illustrée.
+
+Les régions sont débloquées progressivement.
+
+Les zones non découvertes restent masquées.
+
+Chaque région affiche :
+
+Nom
+
+Niveau conseillé
+
+Boss
+
+Ressources
+
+Quêtes
+
+Progression
+
+Pourcentage d'exploration
+
+==========================================================
+FORGE
+==========================================================
+
+La forge est le cœur du jeu.
+
+Le craft n'est jamais instantané.
+
+Le joueur voit réellement son personnage travailler.
+
+Le personnage :
+
+chauffe le métal
+
+surveille la température
+
+retire le métal avec une pince
+
+le dépose sur l'enclume
+
+martèle
+
+refroidit
+
+polit
+
+grave
+
+assemble
+
+enchante
+
+Toutes les animations sont visibles.
+
+==========================================================
+MINI-JEU
+==========================================================
+
+Pendant le martelage une barre de précision apparaît.
+
+Une aiguille se déplace.
+
+Le joueur doit toucher la zone parfaite.
+
+Résultats :
+
+Parfait
+
+Excellent
+
+Très Bien
+
+Bien
+
+Raté
+
+Chaque coup influence :
+
+Qualité
+
+Durabilité
+
+Valeur
+
+XP
+
+Effets visuels
+
+==========================================================
+EFFETS VISUELS
+==========================================================
+
+Chaque impact produit :
+
+étincelles
+
+fumée
+
+vibration caméra
+
+effets sonores
+
+déformation du métal
+
+Lorsqu'un objet est terminé :
+
+explosion lumineuse
+
+caméra cinématique
+
+animation héroïque
+
+les objets légendaires possèdent des effets uniques.
+
+==========================================================
+EXPERIENCE
+==========================================================
+
+Chaque craft donne de l'expérience.
+
+Une barre animée apparaît.
+
+Chaque niveau débloque :
+
+nouveaux marteaux
+
+nouveaux fours
+
+nouveaux matériaux
+
+nouveaux outils
+
+nouvelles recettes
+
+nouvelles régions
+
+==========================================================
+COMPETENCES
+==========================================================
+
+Forge
+
+Extraction
+
+Commerce
+
+Construction
+
+Enchantement
+
+Cuisine
+
+Récolte
+
+Combat
+
+100 niveaux chacune.
+
+Créer également un arbre de talents complet.
+
+==========================================================
+RESSOURCES
+==========================================================
+
+Bois
+
+Pierre
+
+Argile
+
+Fer
+
+Acier
+
+Bronze
+
+Cuivre
+
+Argent
+
+Or
+
+Platine
+
+Mithril
+
+Adamantium
+
+Obsidienne
+
+Cristaux
+
+Diamants
+
+Rubis
+
+Saphirs
+
+Émeraudes
+
+Topazes
+
+Peaux
+
+Os
+
+Crocs
+
+Écailles
+
+Chaque matériau possède :
+
+niveau
+
+poids
+
+pureté
+
+rareté
+
+qualité
+
+valeur
+
+==========================================================
+CRAFT
+==========================================================
+
+Créer plusieurs centaines d'objets.
+
+Epées
+
+Haches
+
+Marteaux
+
+Lances
+
+Boucliers
+
+Armures
+
+Casques
+
+Anneaux
+
+Amulettes
+
+Outils
+
+Objets décoratifs
+
+Recettes secrètes
+
+Combinaisons libres
+
+==========================================================
+GEMMES
+==========================================================
+
+Créer un système complet de sertissage.
+
+Chaque objet possède de 0 à 5 emplacements.
+
+Gemmes :
+
+Rubis
+
+Saphir
+
+Diamant
+
+Émeraude
+
+Topaze
+
+Améthyste
+
+Onyx
+
+Chaque gemme possède :
+
+niveau
+
+rareté
+
+qualité
+
+couleur
+
+effets
+
+animation
+
+Les bonus sont cumulables.
+
+==========================================================
+INVENTAIRE
+==========================================================
+
+Créer un inventaire moderne.
+
+Chaque objet affiche :
+
+modèle 3D rotatif
+
+nom
+
+description
+
+histoire
+
+niveau
+
+qualité
+
+durabilité
+
+poids
+
+statistiques
+
+gemmes
+
+matériaux
+
+artisan
+
+date de fabrication
+
+effets
+
+bonus
+
+Créer un système de filtres performant.
+
+==========================================================
+CLIENTS
+==========================================================
+
+Les habitants viennent commander des objets.
+
+Marchands
+
+Chevaliers
+
+Rois
+
+Aventuriers
+
+Soldats
+
+Chaque PNJ possède :
+
+budget
+
+personnalité
+
+préférences
+
+réputation
+
+==========================================================
+ECONOMIE
+==========================================================
+
+Créer une véritable économie.
+
+Marché
+
+Inflation
+
+Offre
+
+Demande
+
+Commandes spéciales
+
+Ventes aux enchères (prévu pour le futur)
+
+==========================================================
+AMELIORATION DE LA FORGE
+==========================================================
+
+Le joueur peut améliorer :
+
+la forge
+
+les fours
+
+les enclumes
+
+les établis
+
+les décorations
+
+les coffres
+
+Chaque amélioration modifie visuellement la forge.
+
+==========================================================
+COLLECTION
+==========================================================
+
+Créer un Codex.
+
+Tous les matériaux.
+
+Toutes les recettes.
+
+Toutes les armes.
+
+Toutes les armures.
+
+Toutes les gemmes.
+
+Tous les monstres.
+
+Toutes les quêtes.
+
+==========================================================
+INTERFACE
+==========================================================
+
+Créer une interface moderne.
+
+Animations fluides.
+
+Effets sonores.
+
+Transitions élégantes.
+
+Inventaire détaillé.
+
+Carte interactive.
+
+Journal de quêtes.
+
+Arbre de talents.
+
+Menu de craft.
+
+==========================================================
+SAUVEGARDE
+==========================================================
+
+Sauvegarde locale.
+
+Sauvegarde Cloud.
+
+Synchronisation.
+
+==========================================================
+MULTIJOUEUR (Prévoir l'architecture)
+==========================================================
+
+Commerce
+
+Guildes
+
+Classements
+
+Marché mondial
+
+Coopération
+
+==========================================================
+ARCHITECTURE
+==========================================================
+
+Créer des managers indépendants :
+
+GameManager
+
+PlayerManager
+
+WorldManager
+
+InventoryManager
+
+CraftManager
+
+ForgeManager
+
+QuestManager
+
+SkillManager
+
+EconomyManager
+
+NPCManager
+
+WeatherManager
+
+AnimationManager
+
+AudioManager
+
+GemManager
+
+SaveManager
+
+AchievementManager
+
+CollectionManager
+
+UIManager
+
+==========================================================
+REGLES IMPORTANTES
+==========================================================
+
+Le projet doit être développé module par module.
+
+Chaque fonctionnalité doit être testée avant de passer à la suivante.
+
+Le code doit être propre, documenté et optimisé.
+
+Ne jamais casser les fonctionnalités existantes.
+
+Toujours expliquer les choix techniques.
+
+Créer un projet suffisamment modulaire pour pouvoir ajouter facilement de nouvelles régions, ressources, recettes, objets, compétences et fonctionnalités dans les futures mises à jour.
+
+L'objectif final est de produire un jeu mobile 3D complet, immersif, performant et évolutif, où la forge est le cœur du gameplay et où chaque objet créé possède une véritable identité grâce à sa qualité, ses matériaux, ses gemmes, son historique et les compétences du forgeron.
