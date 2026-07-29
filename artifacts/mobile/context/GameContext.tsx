@@ -106,6 +106,7 @@ type GameAction =
   | { type: 'ADD_SKILL_XP'; skill: SkillType; amount: number }
   | { type: 'UNLOCK_REGION'; regionId: string }
   | { type: 'SET_EXPLORATION'; regionId: string; percent: number }
+  | { type: 'ADD_EXPLORATION'; regionId: string; gain: number }
   | { type: 'SOCKET_GEM'; itemInstanceId: string; slotIndex: number; gem: GemData }
   | { type: 'REMOVE_GEM'; itemInstanceId: string; slotIndex: number };
 
@@ -275,6 +276,16 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         },
       };
     }
+    case 'ADD_EXPLORATION': {
+      const cur = state.regionExploration[action.regionId] ?? 0;
+      return {
+        ...state,
+        regionExploration: {
+          ...state.regionExploration,
+          [action.regionId]: Math.min(100, cur + action.gain),
+        },
+      };
+    }
     case 'SOCKET_GEM': {
       const items = state.craftedItems.map((item) => {
         if (item.instanceId !== action.itemInstanceId) return item;
@@ -356,6 +367,8 @@ interface GameContextType {
   addSkillXP: (skill: SkillType, amount: number) => void;
   collectFromRegion: (regionId: string) => { resourceId: string; quantity: number }[];
   unlockRegion: (regionId: string) => void;
+  /** Increment exploration % for a region (capped at 100). */
+  addExploration: (regionId: string, gain: number) => void;
   saveGame: () => Promise<void>;
   resetGame: () => void;
 }
@@ -644,6 +657,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'UNLOCK_REGION', regionId });
   }, []);
 
+  const addExploration = useCallback((regionId: string, gain: number) => {
+    dispatch({ type: 'ADD_EXPLORATION', regionId, gain });
+  }, []);
+
   // -------------------------------------------------------------------------
   // Gem socket actions
   // -------------------------------------------------------------------------
@@ -749,6 +766,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       addSkillXP,
       collectFromRegion,
       unlockRegion,
+      addExploration,
       saveGame,
       resetGame,
     }),
