@@ -54,5 +54,10 @@
     "typescript": "~5.9.2",
     "zod": "catalog:",
     "zod-validation-error": "^3.4.0"
+  },
+  "dependencies": {
+    "@types/three": "^0.168.0",
+    "expo-gl": "~15.0.5",
+    "three": "^0.168.0"
   }
 }

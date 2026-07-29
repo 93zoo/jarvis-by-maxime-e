@@ -297,6 +297,8 @@ interface GameContextType {
   addResource: (resourceId: string, qty: number) => void;
   removeResource: (resourceId: string, qty: number) => void;
   craftItem: (recipeId: string) => Item | null;
+  /** Craft an item using an externally-calculated quality score (from mini-game). */
+  craftItemWithScore: (recipeId: string, qualityScore: number) => Item | null;
   addGold: (amount: number) => void;
   spendGold: (amount: number) => boolean;
   addPlayerXP: (amount: number) => void;
@@ -474,6 +476,61 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [canCraftRecipe, state.player],
   );
 
+  const craftItemWithScore = useCallback(
+    (recipeId: string, qualityScore: number): Item | null => {
+      const recipe = ALL_RECIPES.find((r) => r.id === recipeId);
+      if (!recipe) return null;
+      if (!canCraftRecipe(recipeId)) return null;
+
+      // Deduct materials
+      for (const req of recipe.requirements) {
+        dispatch({ type: 'REMOVE_RESOURCE', resourceId: req.resourceId, qty: req.quantity });
+      }
+
+      const clampedScore = Math.max(0, Math.min(100, Math.round(qualityScore)));
+      const { quality, rarity } = qualityFromScore(clampedScore);
+      const base = recipe.outputItemBase;
+
+      const statMultiplier = valueMultFromQuality(quality);
+      const scaledStats: ItemStats = {};
+      if (base.baseStats.attack) scaledStats.attack = Math.round(base.baseStats.attack * statMultiplier);
+      if (base.baseStats.defense) scaledStats.defense = Math.round(base.baseStats.defense * statMultiplier);
+      if (base.baseStats.speed) scaledStats.speed = Math.round(base.baseStats.speed * statMultiplier);
+      if (base.baseStats.luck) scaledStats.luck = Math.round(base.baseStats.luck * statMultiplier);
+      if (base.baseStats.magic) scaledStats.magic = Math.round(base.baseStats.magic * statMultiplier);
+
+      const item: Item = {
+        instanceId: makeId(),
+        recipeId,
+        name: base.name,
+        description: base.description,
+        lore: base.lore,
+        category: base.category,
+        level: recipe.levelRequired,
+        quality,
+        rarity,
+        durability: Math.round(base.durabilityBase * statMultiplier),
+        maxDurability: Math.round(base.durabilityBase * statMultiplier),
+        weight: base.weight,
+        value: Math.round(10 * base.valueMultiplier * statMultiplier * recipe.levelRequired),
+        stats: scaledStats,
+        gemSlots: base.gemSlots,
+        gems: Array(base.gemSlots).fill(null) as (GemData | null)[],
+        materials: recipe.requirements.map((r) => r.resourceId),
+        craftedBy: state.player.name,
+        craftedAt: Date.now(),
+        qualityScore: clampedScore,
+      };
+
+      dispatch({ type: 'ADD_CRAFTED_ITEM', item });
+      dispatch({ type: 'ADD_PLAYER_XP', amount: recipe.xpReward });
+      dispatch({ type: 'ADD_SKILL_XP', skill: recipe.skillRequired, amount: recipe.xpReward });
+
+      return item;
+    },
+    [canCraftRecipe, state.player],
+  );
+
   const addGold = useCallback((amount: number) => {
     dispatch({ type: 'ADD_GOLD', amount });
   }, []);
@@ -580,6 +637,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       addResource,
       removeResource,
       craftItem,
+      craftItemWithScore,
       addGold,
       spendGold,
       addPlayerXP,
