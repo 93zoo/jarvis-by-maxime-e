@@ -58,7 +58,12 @@ export interface Player {
   totalQuestsAccepted: number;
   craftedLegendaryCount: number;
   craftedExcellentCount: number;
+  craftedGoodCount: number;
   createdAt: number;
+  streak: number;
+  lastPlayedDate: number;
+  bestSalePrice: number;
+  bestQualityScore: number;
 }
 
 // ── Achievement system ────────────────────────────────────────────────────────
@@ -326,6 +331,19 @@ export interface ForgeUpgradeData {
 }
 
 // ---------------------------------------------------------------------------
+// Forge history (persistent — never removed when items are sold)
+// ---------------------------------------------------------------------------
+export interface ForgeHistoryEntry {
+  instanceId: string;
+  name: string;
+  category: ItemCategory;
+  quality: Quality;
+  qualityScore: number;
+  value: number;
+  craftedAt: number;
+}
+
+// ---------------------------------------------------------------------------
 // Save file
 // ---------------------------------------------------------------------------
 export interface SaveData {
@@ -343,5 +361,6 @@ export interface SaveData {
   marketPrices: Record<string, number>;
   lastOrderGeneratedAt: number;
   forgeUpgrades: Record<string, number>;
+  forgeHistory: ForgeHistoryEntry[];
   lastSaved: number;
 }

@@ -17,7 +17,7 @@ import * as Haptics from 'expo-haptics';
 import { useGame } from '@/context/GameContext';
 import { useAchievements } from '@/context/AchievementContext';
 import { useColors } from '@/hooks/useColors';
-import type { Achievement, SkillData, SkillType, TalentData } from '@/types/game';
+import type { Achievement, ForgeHistoryEntry, SkillData, SkillType, TalentData } from '@/types/game';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const SKILL_ICONS: Record<SkillType, string> = {
@@ -371,6 +371,290 @@ const sdStyles = StyleSheet.create({
   closeBtnText: { fontSize: 15, fontWeight: '700' },
 });
 
+// ─── Stats tab content ────────────────────────────────────────────────────────
+const SKILL_COLORS: Record<SkillType, string> = {
+  forge: '#D4851A', extraction: '#7A7A8C', commerce: '#D4AF37',
+  construction: '#8B6B3D', enchantment: '#9966CC', cooking: '#E67E22',
+  harvest: '#4CAF50', combat: '#EF5350',
+};
+
+const SKILL_LABELS: Record<SkillType, string> = {
+  forge: 'Forge', extraction: 'Extraction', commerce: 'Commerce',
+  construction: 'Construction', enchantment: 'Enchantement', cooking: 'Cuisine',
+  harvest: 'Récolte', combat: 'Combat',
+};
+
+const QUALITY_CHART_DATA: { key: string; label: string; color: string }[] = [
+  { key: 'poor_normal', label: 'Ordinaire', color: '#7A7A8C' },
+  { key: 'good',        label: 'Bon',       color: '#4CAF50' },
+  { key: 'excellent',   label: 'Excellent',  color: '#42A5F5' },
+  { key: 'legendary',   label: 'Légendaire', color: '#D4AF37' },
+];
+
+const QUALITY_COLOR: Record<string, string> = {
+  poor: '#555568', normal: '#7A7A8C', good: '#4CAF50', excellent: '#42A5F5', legendary: '#D4AF37',
+};
+
+const QUALITY_LABEL_FR: Record<string, string> = {
+  poor: 'Médiocre', normal: 'Ordinaire', good: 'Bon', excellent: 'Excellent', legendary: 'Légendaire',
+};
+
+const HISTORY_LIMIT = 20;
+
+function StatsTabContent({ colors, game }: { colors: ReturnType<typeof useColors>; game: ReturnType<typeof useGame> }) {
+  const { player } = game;
+
+  // Account age
+  const createdAt = player.createdAt ?? Date.now();
+  const accountAgeDays = Math.max(0, Math.floor((Date.now() - createdAt) / 86400000));
+  const createdDate = new Date(createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  // Estimated play time in hours/minutes
+  const playTimeMs = player.totalPlayTime ?? 0;
+  const playHours = Math.floor(playTimeMs / 3600000);
+  const playMins = Math.floor((playTimeMs % 3600000) / 60000);
+  const playTimeLabel = playHours > 0 ? `${playHours}h ${playMins}m` : `${playMins}m`;
+
+  // Skill bars
+  const maxSkillLevel = Math.max(...Object.values(player.skills));
+  const skillBarMax = Math.max(maxSkillLevel, 10);
+  const skillTypes: SkillType[] = ['forge', 'extraction', 'commerce', 'construction', 'enchantment', 'cooking', 'harvest', 'combat'];
+
+  // Quality distribution
+  const legendary = player.craftedLegendaryCount ?? 0;
+  const excellent = player.craftedExcellentCount ?? 0;
+  const good = player.craftedGoodCount ?? 0;
+  const poorNormal = Math.max(0, (player.totalItemsCrafted ?? 0) - legendary - excellent - good);
+  const qualityMax = Math.max(poorNormal, good, excellent, legendary, 1);
+  const qualityCounts: Record<string, number> = { poor_normal: poorNormal, good, excellent, legendary };
+
+  // Forge history — already newest-first from the reducer, just cap display
+  const recentItems = useMemo(() =>
+    game.forgeHistory.slice(0, HISTORY_LIMIT),
+    [game.forgeHistory],
+  );
+
+  // Streak
+  const streak = player.streak ?? 1;
+
+  return (
+    <>
+      {/* ── Account info ── */}
+      <Text style={[stStyles.sectionHeader, { color: colors.foreground }]}>COMPTE</Text>
+      <View style={[stStyles.infoCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={stStyles.infoRow}>
+          <Feather name="calendar" size={14} color={colors.primary} />
+          <Text style={[stStyles.infoLabel, { color: colors.mutedForeground }]}>Compte créé le</Text>
+          <Text style={[stStyles.infoValue, { color: colors.foreground }]}>{createdDate}</Text>
+        </View>
+        <View style={[stStyles.infoSep, { backgroundColor: colors.border }]} />
+        <View style={stStyles.infoRow}>
+          <Feather name="clock" size={14} color={colors.primary} />
+          <Text style={[stStyles.infoLabel, { color: colors.mutedForeground }]}>Temps de jeu estimé</Text>
+          <Text style={[stStyles.infoValue, { color: colors.foreground }]}>{playTimeLabel || '< 1m'}</Text>
+        </View>
+        <View style={[stStyles.infoSep, { backgroundColor: colors.border }]} />
+        <View style={stStyles.infoRow}>
+          <Feather name="sun" size={14} color="#D4AF37" />
+          <Text style={[stStyles.infoLabel, { color: colors.mutedForeground }]}>Jours consécutifs</Text>
+          <View style={stStyles.streakWrap}>
+            <Text style={[stStyles.infoValue, { color: '#D4AF37' }]}>{streak}</Text>
+            <Text style={[stStyles.streakFlame, { color: '#D4AF37' }]}> 🔥</Text>
+          </View>
+        </View>
+        <View style={[stStyles.infoSep, { backgroundColor: colors.border }]} />
+        <View style={stStyles.infoRow}>
+          <Feather name="hash" size={14} color={colors.primary} />
+          <Text style={[stStyles.infoLabel, { color: colors.mutedForeground }]}>Âge du compte</Text>
+          <Text style={[stStyles.infoValue, { color: colors.foreground }]}>{accountAgeDays} jour{accountAgeDays !== 1 ? 's' : ''}</Text>
+        </View>
+      </View>
+
+      {/* ── Key records ── */}
+      <Text style={[stStyles.sectionHeader, { color: colors.foreground }]}>RECORDS PERSONNELS</Text>
+      <View style={stStyles.recordsRow}>
+        <View style={[stStyles.recordCard, { backgroundColor: colors.card, borderColor: '#D4851A44' }]}>
+          <Feather name="award" size={20} color="#D4851A" />
+          <Text style={[stStyles.recordValue, { color: '#D4851A' }]}>{Math.round(player.bestQualityScore ?? 0)}</Text>
+          <Text style={[stStyles.recordLabel, { color: colors.mutedForeground }]}>Score forge max</Text>
+        </View>
+        <View style={[stStyles.recordCard, { backgroundColor: colors.card, borderColor: '#D4AF3744' }]}>
+          <Feather name="trending-up" size={20} color="#D4AF37" />
+          <Text style={[stStyles.recordValue, { color: '#D4AF37' }]}>{(player.bestSalePrice ?? 0).toLocaleString()}g</Text>
+          <Text style={[stStyles.recordLabel, { color: colors.mutedForeground }]}>Meilleure vente</Text>
+        </View>
+        <View style={[stStyles.recordCard, { backgroundColor: colors.card, borderColor: '#42A5F544' }]}>
+          <Feather name="package" size={20} color="#42A5F5" />
+          <Text style={[stStyles.recordValue, { color: '#42A5F5' }]}>{player.totalItemsCrafted ?? 0}</Text>
+          <Text style={[stStyles.recordLabel, { color: colors.mutedForeground }]}>Objets forgés</Text>
+        </View>
+        <View style={[stStyles.recordCard, { backgroundColor: colors.card, borderColor: '#4CAF5044' }]}>
+          <Feather name="check-circle" size={20} color="#4CAF50" />
+          <Text style={[stStyles.recordValue, { color: '#4CAF50' }]}>{player.totalOrdersDelivered ?? 0}</Text>
+          <Text style={[stStyles.recordLabel, { color: colors.mutedForeground }]}>Commandes livrées</Text>
+        </View>
+      </View>
+
+      {/* ── Skill comparison bars ── */}
+      <Text style={[stStyles.sectionHeader, { color: colors.foreground }]}>NIVEAUX DE COMPÉTENCE</Text>
+      <View style={[stStyles.skillChart, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        {skillTypes.map((sk) => {
+          const level = player.skills[sk] ?? 1;
+          const pct = (level / skillBarMax) * 100;
+          const color = SKILL_COLORS[sk];
+          return (
+            <View key={sk} style={stStyles.skillBarRow}>
+              <Text style={[stStyles.skillBarLabel, { color: colors.mutedForeground }]}>{SKILL_LABELS[sk]}</Text>
+              <View style={stStyles.skillBarTrackWrap}>
+                <View style={[stStyles.skillBarTrack, { backgroundColor: colors.muted }]}>
+                  <View style={[stStyles.skillBarFill, { width: `${pct}%` as `${number}%`, backgroundColor: color }]} />
+                </View>
+              </View>
+              <Text style={[stStyles.skillBarLevel, { color }]}>Niv.{level}</Text>
+            </View>
+          );
+        })}
+      </View>
+
+      {/* ── Quality distribution chart ── */}
+      <Text style={[stStyles.sectionHeader, { color: colors.foreground }]}>RÉPARTITION PAR QUALITÉ</Text>
+      <View style={[stStyles.qualityChart, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        {player.totalItemsCrafted === 0 ? (
+          <Text style={[stStyles.emptyChart, { color: colors.mutedForeground }]}>Aucun objet forgé pour l'instant</Text>
+        ) : (
+          <>
+            <View style={stStyles.qualityBarsWrap}>
+              {QUALITY_CHART_DATA.map((q) => {
+                const count = qualityCounts[q.key] ?? 0;
+                const barPct = Math.max(0, (count / qualityMax) * 100);
+                return (
+                  <View key={q.key} style={stStyles.qualityBarCol}>
+                    <Text style={[stStyles.qualityBarCount, { color: q.color }]}>{count}</Text>
+                    <View style={stStyles.qualityBarTrack}>
+                      <View style={[stStyles.qualityBarFill, { height: `${barPct}%` as `${number}%`, backgroundColor: q.color }]} />
+                    </View>
+                    <Text style={[stStyles.qualityBarLabel, { color: colors.mutedForeground }]}>{q.label}</Text>
+                  </View>
+                );
+              })}
+            </View>
+            <Text style={[stStyles.qualityTotal, { color: colors.mutedForeground }]}>
+              {legendary} légendaire{legendary !== 1 ? 's' : ''} · {excellent} excellent{excellent !== 1 ? 's' : ''} · {good} bon{good !== 1 ? 's' : ''}
+            </Text>
+          </>
+        )}
+      </View>
+
+      {/* ── Forge history ── */}
+      <Text style={[stStyles.sectionHeader, { color: colors.foreground }]}>HISTORIQUE DE FORGE</Text>
+      {recentItems.length === 0 ? (
+        <View style={[stStyles.historyEmpty, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Feather name="inbox" size={24} color={colors.mutedForeground} />
+          <Text style={[stStyles.historyEmptyText, { color: colors.mutedForeground }]}>
+            Forgez votre premier objet pour commencer l'historique
+          </Text>
+        </View>
+      ) : (
+        <View style={[stStyles.historyList, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          {recentItems.map((entry: ForgeHistoryEntry, idx: number) => {
+            const qColor = QUALITY_COLOR[entry.quality] ?? '#888';
+            const dateStr = new Date(entry.craftedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+            const timeStr = new Date(entry.craftedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            return (
+              <View key={entry.instanceId}>
+                {idx > 0 && <View style={[stStyles.historySep, { backgroundColor: colors.border }]} />}
+                <View style={stStyles.historyRow}>
+                  <View style={[stStyles.historyQualityDot, { backgroundColor: qColor }]} />
+                  <View style={stStyles.historyInfo}>
+                    <Text style={[stStyles.historyItemName, { color: colors.foreground }]} numberOfLines={1}>{entry.name}</Text>
+                    <Text style={[stStyles.historyMeta, { color: colors.mutedForeground }]}>
+                      {QUALITY_LABEL_FR[entry.quality]} · {entry.category} · {dateStr} {timeStr}
+                    </Text>
+                  </View>
+                  <Text style={[stStyles.historyValue, { color: '#D4AF37' }]}>{entry.value.toLocaleString()}g</Text>
+                </View>
+              </View>
+            );
+          })}
+          {game.forgeHistory.length > HISTORY_LIMIT && (
+            <View style={[stStyles.historySep, { backgroundColor: colors.border }]} />
+          )}
+          {game.forgeHistory.length > HISTORY_LIMIT && (
+            <Text style={[stStyles.historyMore, { color: colors.mutedForeground }]}>
+              +{game.forgeHistory.length - HISTORY_LIMIT} entrée{game.forgeHistory.length - HISTORY_LIMIT > 1 ? 's' : ''} plus ancienne{game.forgeHistory.length - HISTORY_LIMIT > 1 ? 's' : ''}
+            </Text>
+          )}
+        </View>
+      )}
+
+      {/* ── Summary grid ── */}
+      <Text style={[stStyles.sectionHeader, { color: colors.foreground }]}>RÉSUMÉ</Text>
+      <View style={stStyles.summaryGrid}>
+        {[
+          { label: 'Or total gagné', value: (player.totalGoldEarned ?? 0).toLocaleString() + 'g', icon: 'dollar-sign', color: '#D4AF37' },
+          { label: 'Or en poche', value: player.gold.toLocaleString() + 'g', icon: 'credit-card', color: '#4CAF50' },
+          { label: 'Niveaux cumulés', value: String(Object.values(player.skills).reduce((a, b) => a + b, 0)), icon: 'star', color: '#9966CC' },
+          { label: 'Talents débloqués', value: `${player.talentsUnlocked.length}/${game.allTalents.length}`, icon: 'award', color: '#42A5F5' },
+          { label: 'Niveau forgeron', value: String(player.forgeLevel), icon: 'tool', color: '#D4851A' },
+          { label: 'Quêtes acceptées', value: String(player.totalQuestsAccepted ?? 0), icon: 'map', color: '#EF5350' },
+        ].map((s) => (
+          <View key={s.label} style={[stStyles.summaryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Feather name={s.icon as 'tool'} size={18} color={s.color} />
+            <Text style={[stStyles.summaryValue, { color: colors.foreground }]}>{s.value}</Text>
+            <Text style={[stStyles.summaryLabel, { color: colors.mutedForeground }]}>{s.label}</Text>
+          </View>
+        ))}
+      </View>
+    </>
+  );
+}
+
+const stStyles = StyleSheet.create({
+  sectionHeader: { fontSize: 11, fontWeight: '800', letterSpacing: 2, marginBottom: 10, marginTop: 4 },
+  infoCard: { borderRadius: 14, borderWidth: 1, marginBottom: 16, overflow: 'hidden' },
+  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 12 },
+  infoSep: { height: 1, marginHorizontal: 14 },
+  infoLabel: { flex: 1, fontSize: 13 },
+  infoValue: { fontSize: 13, fontWeight: '700' },
+  streakWrap: { flexDirection: 'row', alignItems: 'center' },
+  streakFlame: { fontSize: 13 },
+  recordsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  recordCard: { width: '47%', borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 1, gap: 4 },
+  recordValue: { fontSize: 20, fontWeight: '800' },
+  recordLabel: { fontSize: 10, letterSpacing: 0.5, textAlign: 'center' },
+  skillChart: { borderRadius: 14, padding: 14, borderWidth: 1, marginBottom: 16, gap: 10 },
+  skillBarRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  skillBarLabel: { width: 90, fontSize: 11, fontWeight: '600' },
+  skillBarTrackWrap: { flex: 1 },
+  skillBarTrack: { height: 8, borderRadius: 4, overflow: 'hidden' },
+  skillBarFill: { height: '100%', borderRadius: 4, minWidth: 4 },
+  skillBarLevel: { width: 44, fontSize: 11, fontWeight: '700', textAlign: 'right' },
+  qualityChart: { borderRadius: 14, padding: 14, borderWidth: 1, marginBottom: 16 },
+  qualityBarsWrap: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', height: 120, marginBottom: 8 },
+  qualityBarCol: { alignItems: 'center', flex: 1, height: '100%', gap: 4 },
+  qualityBarTrack: { flex: 1, width: 28, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.07)', overflow: 'hidden', justifyContent: 'flex-end' },
+  qualityBarFill: { width: '100%', borderRadius: 4, minHeight: 4 },
+  qualityBarCount: { fontSize: 13, fontWeight: '800' },
+  qualityBarLabel: { fontSize: 10, fontWeight: '600', textAlign: 'center' },
+  qualityTotal: { fontSize: 10, textAlign: 'center', marginTop: 4 },
+  emptyChart: { fontSize: 12, textAlign: 'center', paddingVertical: 20 },
+  historyEmpty: { borderRadius: 14, borderWidth: 1, padding: 24, alignItems: 'center', gap: 10, marginBottom: 16 },
+  historyEmptyText: { fontSize: 12, textAlign: 'center', lineHeight: 18 },
+  historyList: { borderRadius: 14, borderWidth: 1, marginBottom: 16, overflow: 'hidden' },
+  historyRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 11 },
+  historySep: { height: 1, marginHorizontal: 14 },
+  historyQualityDot: { width: 10, height: 10, borderRadius: 5 },
+  historyInfo: { flex: 1 },
+  historyItemName: { fontSize: 13, fontWeight: '600', marginBottom: 2 },
+  historyMeta: { fontSize: 10, lineHeight: 14 },
+  historyValue: { fontSize: 13, fontWeight: '700' },
+  historyMore: { fontSize: 11, textAlign: 'center', paddingVertical: 10 },
+  summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
+  summaryCard: { width: '47%', borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 1, gap: 5 },
+  summaryValue: { fontSize: 17, fontWeight: '700' },
+  summaryLabel: { fontSize: 10, letterSpacing: 0.5, textAlign: 'center' },
+});
+
 // ─── Achievements tab content ─────────────────────────────────────────────────
 const ACH_CATEGORY_INFO: Record<string, { label: string; color: string; icon: string }> = {
   craft:       { label: 'Forge',       color: '#D4851A', icon: 'tool' },
@@ -471,7 +755,6 @@ export default function ProfileScreen() {
 
   const { player } = game;
   const initials = player.name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
-  const totalSkillLevels = Object.values(player.skills).reduce((a, b) => a + b, 0);
   const selectedSkill = selectedSkillId ? game.allSkills.find((s) => s.id === selectedSkillId) ?? null : null;
 
   const handleSave = async () => {
@@ -667,23 +950,7 @@ export default function ProfileScreen() {
         {/* ── Stats tab ── */}
         {activeTab === 'stats' && (
           <>
-            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>STATISTIQUES</Text>
-            <View style={styles.statsGrid}>
-              {[
-                { label: 'Objets forgés', value: String(player.totalItemsCrafted), icon: 'package' },
-                { label: 'Or total gagné', value: player.totalGoldEarned.toLocaleString() + 'g', icon: 'dollar-sign' },
-                { label: 'Niveaux cumulés', value: String(totalSkillLevels), icon: 'star' },
-                { label: 'Or actuel', value: player.gold.toLocaleString() + 'g', icon: 'credit-card' },
-                { label: 'Talents débloqués', value: `${player.talentsUnlocked.length} / ${game.allTalents.length}`, icon: 'award' },
-                { label: 'Niveau forgeron', value: String(player.forgeLevel), icon: 'tool' },
-              ].map((s) => (
-                <View key={s.label} style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                  <Feather name={s.icon as 'tool'} size={18} color={colors.primary} />
-                  <Text style={[styles.statValue, { color: colors.foreground }]}>{s.value}</Text>
-                  <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>{s.label}</Text>
-                </View>
-              ))}
-            </View>
+            <StatsTabContent colors={colors} game={game} />
             <TouchableOpacity style={[styles.resetBtn, { borderColor: '#C0392B' }]} onPress={handleReset}>
               <Feather name="refresh-cw" size={15} color="#C0392B" />
               <Text style={[styles.resetBtnText, { color: '#C0392B' }]}>Réinitialiser la partie</Text>

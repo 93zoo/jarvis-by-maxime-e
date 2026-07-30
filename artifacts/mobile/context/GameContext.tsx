@@ -12,6 +12,7 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {
   CraftOrder,
+  ForgeHistoryEntry,
   ForgeUpgradeData,
   GemData,
   InventoryItem,
@@ -124,6 +125,8 @@ function valueMultFromQuality(quality: Quality): number {
 // ---------------------------------------------------------------------------
 // State shape
 // ---------------------------------------------------------------------------
+const FORGE_HISTORY_MAX = 100;
+
 interface GameState {
   isLoaded: boolean;
   player: Player;
@@ -139,6 +142,7 @@ interface GameState {
   marketPrices: Record<string, number>;  // resourceId → multiplier (1.0 = base)
   lastOrderGeneratedAt: number;
   forgeUpgrades: Record<string, number>; // element → level (0-5)
+  forgeHistory: ForgeHistoryEntry[]; // persistent craft history, never deleted on sell
 }
 
 type GameAction =
@@ -204,7 +208,12 @@ function buildInitialPlayer(): Player {
     totalQuestsAccepted: 0,
     craftedLegendaryCount: 0,
     craftedExcellentCount: 0,
+    craftedGoodCount: 0,
     createdAt: Date.now(),
+    streak: 1,
+    lastPlayedDate: Date.now(),
+    bestSalePrice: 0,
+    bestQualityScore: 0,
   };
 }
 
@@ -235,6 +244,7 @@ function buildInitialState(): GameState {
     marketPrices: {},
     lastOrderGeneratedAt: 0,
     forgeUpgrades: {},
+    forgeHistory: [],
   };
 }
 
@@ -317,7 +327,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const s = action.payload;
       // Normalize player for backward-compat: any field added after initial release
       // must be defaulted here so legacy saves don't produce undefined/NaN.
-      const player: Player = {
+      let player: Player = {
         ...s.player,
         talentPoints: s.player.talentPoints ?? 0,
         talentsUnlocked: s.player.talentsUnlocked ?? [],
@@ -327,6 +337,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         totalQuestsAccepted: s.player.totalQuestsAccepted ?? 0,
         craftedLegendaryCount: s.player.craftedLegendaryCount ?? 0,
         craftedExcellentCount: s.player.craftedExcellentCount ?? 0,
+        craftedGoodCount: s.player.craftedGoodCount ?? 0,
+        bestSalePrice: s.player.bestSalePrice ?? 0,
+        bestQualityScore: s.player.bestQualityScore ?? 0,
+        lastPlayedDate: s.player.lastPlayedDate ?? 0,
+        streak: s.player.streak ?? 1,
       };
       return {
         isLoaded: true,
@@ -343,6 +358,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         marketPrices: s.marketPrices ?? {},
         lastOrderGeneratedAt: s.lastOrderGeneratedAt ?? 0,
         forgeUpgrades: s.forgeUpgrades ?? {},
+        forgeHistory: s.forgeHistory ?? [],
       };
     }
     case 'RESET': {
@@ -380,8 +396,23 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           action.item.quality === 'excellent'
             ? (state.player.craftedExcellentCount ?? 0) + 1
             : (state.player.craftedExcellentCount ?? 0),
+        craftedGoodCount:
+          action.item.quality === 'good'
+            ? (state.player.craftedGoodCount ?? 0) + 1
+            : (state.player.craftedGoodCount ?? 0),
+        bestQualityScore: Math.max(state.player.bestQualityScore ?? 0, action.item.qualityScore ?? 0),
       };
-      return { ...state, craftedItems: [...state.craftedItems, action.item], player };
+      const historyEntry: ForgeHistoryEntry = {
+        instanceId: action.item.instanceId,
+        name: action.item.name,
+        category: action.item.category,
+        quality: action.item.quality,
+        qualityScore: action.item.qualityScore,
+        value: action.item.value,
+        craftedAt: action.item.craftedAt,
+      };
+      const forgeHistory = [historyEntry, ...state.forgeHistory].slice(0, FORGE_HISTORY_MAX);
+      return { ...state, craftedItems: [...state.craftedItems, action.item], player, forgeHistory };
     }
     case 'ADD_GOLD': {
       const player = {
@@ -628,6 +659,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ...state.player,
         gold: state.player.gold + action.goldAmount,
         totalGoldEarned: state.player.totalGoldEarned + action.goldAmount,
+        bestSalePrice: Math.max(state.player.bestSalePrice ?? 0, action.goldAmount),
       };
       return {
         ...state,
@@ -768,6 +800,8 @@ interface GameContextType {
   upgradeForgeElement: (element: string) => { success: boolean; message: string };
   unlockTalent: (talentId: string) => boolean;
   getTalentBonus: (bonusType: string) => number;
+  // Forge history
+  forgeHistory: ForgeHistoryEntry[];
   // Cloud sync
   cloudSyncStatus: CloudSyncStatus;
   lastCloudSync: number | null;
@@ -809,7 +843,30 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         if (raw) {
           const data: SaveData = JSON.parse(raw);
           if (data.version === SAVE_VERSION) {
+            // Compute streak update here (before dispatch) so it's saved atomically
+            const todayMidnight = new Date();
+            todayMidnight.setHours(0, 0, 0, 0);
+            const todayMs = todayMidnight.getTime();
+            const yesterdayMs = todayMs - 86400000;
+            const lastPlayed = data.player.lastPlayedDate ?? 0;
+            let streakChanged = false;
+            if (lastPlayed < todayMs) {
+              if (lastPlayed >= yesterdayMs) {
+                // Played yesterday — continue streak
+                data.player = { ...data.player, streak: (data.player.streak ?? 1) + 1, lastPlayedDate: todayMs };
+              } else {
+                // Missed a day or first session — reset streak
+                data.player = { ...data.player, streak: 1, lastPlayedDate: todayMs };
+              }
+              streakChanged = true;
+            }
             dispatch({ type: 'LOAD', payload: data });
+            // Save immediately so streak persists even if user quits before autosave
+            if (streakChanged) {
+              try {
+                await AsyncStorage.setItem(SAVE_KEY, JSON.stringify({ ...data, lastSaved: Date.now() }));
+              } catch { /* ignore */ }
+            }
             return;
           }
         }
@@ -870,6 +927,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           marketPrices: state.marketPrices,
           lastOrderGeneratedAt: state.lastOrderGeneratedAt,
           forgeUpgrades: state.forgeUpgrades,
+          forgeHistory: state.forgeHistory,
           lastSaved: Date.now(),
         };
         await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
@@ -1282,6 +1340,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       marketPrices: state.marketPrices,
       lastOrderGeneratedAt: state.lastOrderGeneratedAt,
       forgeUpgrades: state.forgeUpgrades,
+      forgeHistory: state.forgeHistory,
       lastSaved: Date.now(),
     };
     await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
@@ -1307,6 +1366,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         marketPrices: state.marketPrices,
         lastOrderGeneratedAt: state.lastOrderGeneratedAt,
         forgeUpgrades: state.forgeUpgrades,
+        forgeHistory: state.forgeHistory,
         lastSaved: Date.now(),
       };
       const res = await fetch(`${base}/save`, {
@@ -1456,6 +1516,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       upgradeForgeElement,
       unlockTalent,
       getTalentBonus,
+      // Forge history
+      forgeHistory: state.forgeHistory,
       // Cloud sync
       cloudSyncStatus,
       lastCloudSync,
