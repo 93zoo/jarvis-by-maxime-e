@@ -21,6 +21,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
+import AudioManager from '@/utils/AudioManager';
 
 export type HitLabel = 'PARFAIT!' | 'EXCELLENT!' | 'TRÈS BIEN' | 'BIEN' | 'RATÉ';
 
@@ -119,6 +120,13 @@ export default function HammeringMiniGame({
         ? Haptics.ImpactFeedbackStyle.Medium
         : Haptics.ImpactFeedbackStyle.Light,
     );
+
+    // Audio feedback
+    if (score >= 20) {
+      AudioManager.playPerfectStrike();
+    } else {
+      AudioManager.playHammerStrike();
+    }
 
     setLastHit(label);
     flashHit(label);

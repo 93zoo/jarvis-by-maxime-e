@@ -1,0 +1,308 @@
+[
+  {
+    "id": "first_craft",
+    "title": "Premier Forgeron",
+    "description": "Forgez votre premier objet",
+    "icon": "award",
+    "category": "craft",
+    "condition": { "type": "totalItemsCrafted", "value": 1 },
+    "reward": { "xp": 50 }
+  },
+  {
+    "id": "craft_10",
+    "title": "L'Apprenti",
+    "description": "Forgez 10 objets",
+    "icon": "tool",
+    "category": "craft",
+    "condition": { "type": "totalItemsCrafted", "value": 10 },
+    "reward": { "xp": 100 }
+  },
+  {
+    "id": "craft_50",
+    "title": "Le Maître Forgeron",
+    "description": "Forgez 50 objets",
+    "icon": "zap",
+    "category": "craft",
+    "condition": { "type": "totalItemsCrafted", "value": 50 },
+    "reward": { "xp": 500, "gold": 200 }
+  },
+  {
+    "id": "craft_100",
+    "title": "Forgeron Légendaire",
+    "description": "Forgez 100 objets",
+    "icon": "star",
+    "category": "craft",
+    "condition": { "type": "totalItemsCrafted", "value": 100 },
+    "reward": { "xp": 1000, "gold": 500 }
+  },
+  {
+    "id": "craft_legendary",
+    "title": "Chef-d'Œuvre",
+    "description": "Forgez un objet de qualité Légendaire",
+    "icon": "star",
+    "category": "craft",
+    "condition": { "type": "craftQuality", "value": 1, "quality": "legendary" },
+    "reward": { "xp": 300, "gold": 100 }
+  },
+  {
+    "id": "craft_excellent_5",
+    "title": "Précision Absolue",
+    "description": "Forgez 5 objets de qualité Excellente",
+    "icon": "target",
+    "category": "craft",
+    "condition": { "type": "craftQuality", "value": 5, "quality": "excellent" },
+    "reward": { "xp": 200 }
+  },
+  {
+    "id": "earn_100g",
+    "title": "Premières Pièces",
+    "description": "Gagnez 100 pièces d'or au total",
+    "icon": "dollar-sign",
+    "category": "economy",
+    "condition": { "type": "totalGoldEarned", "value": 100 },
+    "reward": { "xp": 50 }
+  },
+  {
+    "id": "earn_1000g",
+    "title": "Marchand Prospère",
+    "description": "Gagnez 1 000 pièces d'or au total",
+    "icon": "trending-up",
+    "category": "economy",
+    "condition": { "type": "totalGoldEarned", "value": 1000 },
+    "reward": { "xp": 200, "gold": 50 }
+  },
+  {
+    "id": "earn_10000g",
+    "title": "Magnat du Commerce",
+    "description": "Gagnez 10 000 pièces d'or au total",
+    "icon": "briefcase",
+    "category": "economy",
+    "condition": { "type": "totalGoldEarned", "value": 10000 },
+    "reward": { "xp": 1000, "gold": 200 }
+  },
+  {
+    "id": "wealthy",
+    "title": "Le Trésor du Roi",
+    "description": "Possédez 5 000 pièces d'or en même temps",
+    "icon": "package",
+    "category": "economy",
+    "condition": { "type": "goldCurrent", "value": 5000 },
+    "reward": { "xp": 300 }
+  },
+  {
+    "id": "deliver_first",
+    "title": "Première Commande",
+    "description": "Livrez votre première commande NPC",
+    "icon": "check-circle",
+    "category": "economy",
+    "condition": { "type": "ordersDelivered", "value": 1 },
+    "reward": { "xp": 75 }
+  },
+  {
+    "id": "deliver_10",
+    "title": "Fournisseur Fiable",
+    "description": "Livrez 10 commandes NPC",
+    "icon": "truck",
+    "category": "economy",
+    "condition": { "type": "ordersDelivered", "value": 10 },
+    "reward": { "xp": 300, "gold": 100 }
+  },
+  {
+    "id": "deliver_50",
+    "title": "Partenaire des Héros",
+    "description": "Livrez 50 commandes NPC",
+    "icon": "users",
+    "category": "economy",
+    "condition": { "type": "ordersDelivered", "value": 50 },
+    "reward": { "xp": 1000, "gold": 500 }
+  },
+  {
+    "id": "first_region",
+    "title": "L'Aventurier",
+    "description": "Explorez votre première région",
+    "icon": "map",
+    "category": "exploration",
+    "condition": { "type": "regionsUnlocked", "value": 2 },
+    "reward": { "xp": 100 }
+  },
+  {
+    "id": "regions_3",
+    "title": "Explorateur Courageux",
+    "description": "Débloquez 3 régions",
+    "icon": "compass",
+    "category": "exploration",
+    "condition": { "type": "regionsUnlocked", "value": 3 },
+    "reward": { "xp": 250 }
+  },
+  {
+    "id": "regions_5",
+    "title": "Cartographe",
+    "description": "Débloquez 5 régions",
+    "icon": "map-pin",
+    "category": "exploration",
+    "condition": { "type": "regionsUnlocked", "value": 5 },
+    "reward": { "xp": 500, "gold": 150 }
+  },
+  {
+    "id": "regions_all",
+    "title": "Maître des Terres",
+    "description": "Débloquez toutes les régions",
+    "icon": "globe",
+    "category": "exploration",
+    "condition": { "type": "regionsUnlocked", "value": 10 },
+    "reward": { "xp": 1500, "gold": 500 }
+  },
+  {
+    "id": "level_5",
+    "title": "Promesse Tenue",
+    "description": "Atteignez le niveau 5",
+    "icon": "chevrons-up",
+    "category": "progression",
+    "condition": { "type": "playerLevel", "value": 5 },
+    "reward": { "xp": 100 }
+  },
+  {
+    "id": "level_10",
+    "title": "Forgeron Confirmé",
+    "description": "Atteignez le niveau 10",
+    "icon": "shield",
+    "category": "progression",
+    "condition": { "type": "playerLevel", "value": 10 },
+    "reward": { "xp": 300, "gold": 100 }
+  },
+  {
+    "id": "level_20",
+    "title": "Vétéran de la Forge",
+    "description": "Atteignez le niveau 20",
+    "icon": "shield",
+    "category": "progression",
+    "condition": { "type": "playerLevel", "value": 20 },
+    "reward": { "xp": 500, "gold": 200 }
+  },
+  {
+    "id": "forge_skill_10",
+    "title": "Fer Chaud",
+    "description": "Atteignez le niveau 10 en compétence Forge",
+    "icon": "cpu",
+    "category": "progression",
+    "condition": { "type": "skillLevel", "value": 10, "skill": "forge" },
+    "reward": { "xp": 200 }
+  },
+  {
+    "id": "forge_skill_25",
+    "title": "L'Acier Dans L'Âme",
+    "description": "Atteignez le niveau 25 en compétence Forge",
+    "icon": "cpu",
+    "category": "progression",
+    "condition": { "type": "skillLevel", "value": 25, "skill": "forge" },
+    "reward": { "xp": 500, "gold": 150 }
+  },
+  {
+    "id": "first_talent",
+    "title": "Premier Don",
+    "description": "Débloquez votre premier talent",
+    "icon": "git-merge",
+    "category": "progression",
+    "condition": { "type": "talentsUnlocked", "value": 1 },
+    "reward": { "xp": 150 }
+  },
+  {
+    "id": "talents_5",
+    "title": "Spécialiste",
+    "description": "Débloquez 5 talents",
+    "icon": "git-branch",
+    "category": "progression",
+    "condition": { "type": "talentsUnlocked", "value": 5 },
+    "reward": { "xp": 400, "gold": 100 }
+  },
+  {
+    "id": "talents_10",
+    "title": "Maître des Disciplines",
+    "description": "Débloquez 10 talents",
+    "icon": "git-pull-request",
+    "category": "progression",
+    "condition": { "type": "talentsUnlocked", "value": 10 },
+    "reward": { "xp": 800, "gold": 200 }
+  },
+  {
+    "id": "first_upgrade",
+    "title": "Forge Améliorée",
+    "description": "Effectuez votre première amélioration de forge",
+    "icon": "settings",
+    "category": "progression",
+    "condition": { "type": "forgeUpgradeLevels", "value": 1 },
+    "reward": { "xp": 100 }
+  },
+  {
+    "id": "upgrades_5",
+    "title": "Artisan Ambitieux",
+    "description": "Atteignez 5 niveaux d'amélioration de forge au total",
+    "icon": "sliders",
+    "category": "progression",
+    "condition": { "type": "forgeUpgradeLevels", "value": 5 },
+    "reward": { "xp": 300, "gold": 100 }
+  },
+  {
+    "id": "first_quest",
+    "title": "La Quête Commence",
+    "description": "Acceptez votre première quête",
+    "icon": "book-open",
+    "category": "exploration",
+    "condition": { "type": "questsAccepted", "value": 1 },
+    "reward": { "xp": 50 }
+  },
+  {
+    "id": "complete_quest",
+    "title": "Promesse Accomplie",
+    "description": "Terminez votre première quête",
+    "icon": "check-square",
+    "category": "exploration",
+    "condition": { "type": "questsCompleted", "value": 1 },
+    "reward": { "xp": 200 }
+  },
+  {
+    "id": "quests_5",
+    "title": "Homme de Parole",
+    "description": "Terminez 5 quêtes",
+    "icon": "clipboard",
+    "category": "exploration",
+    "condition": { "type": "questsCompleted", "value": 5 },
+    "reward": { "xp": 500, "gold": 100 }
+  },
+  {
+    "id": "hoarder",
+    "title": "L'Accumulateur",
+    "description": "Possédez 200 ressources dans votre inventaire",
+    "icon": "archive",
+    "category": "special",
+    "condition": { "type": "inventoryItems", "value": 200 },
+    "reward": { "xp": 150 }
+  },
+  {
+    "id": "harvest_skill_10",
+    "title": "Cueilleur Expert",
+    "description": "Atteignez le niveau 10 en compétence Récolte",
+    "icon": "scissors",
+    "category": "progression",
+    "condition": { "type": "skillLevel", "value": 10, "skill": "harvest" },
+    "reward": { "xp": 200 }
+  },
+  {
+    "id": "commerce_skill_10",
+    "title": "Négociant Habile",
+    "description": "Atteignez le niveau 10 en compétence Commerce",
+    "icon": "shopping-bag",
+    "category": "economy",
+    "condition": { "type": "skillLevel", "value": 10, "skill": "commerce" },
+    "reward": { "xp": 200 }
+  },
+  {
+    "id": "completionist",
+    "title": "Le Collectionneur",
+    "description": "Débloquez 15 succès",
+    "icon": "grid",
+    "category": "special",
+    "condition": { "type": "achievementsUnlocked", "value": 15 },
+    "reward": { "xp": 1000, "gold": 300 }
+  }
+]

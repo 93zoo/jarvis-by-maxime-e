@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -13,18 +13,56 @@ import {
 } from '@expo-google-fonts/inter';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GameProvider } from '@/context/GameContext';
+import { AchievementProvider } from '@/context/AchievementContext';
+import IntroCinematic from '@/components/IntroCinematic';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
+const INTRO_SEEN_KEY = '@fk_intro_seen_v1';
+
 function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerBackTitle: 'Back' }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
     </Stack>
+  );
+}
+
+function AppWithCinematic() {
+  const [introChecked, setIntroChecked] = useState(false);
+  const [showIntro, setShowIntro] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const seen = await AsyncStorage.getItem(INTRO_SEEN_KEY);
+        setShowIntro(!seen);
+      } catch {
+        setShowIntro(false);
+      }
+      setIntroChecked(true);
+    })();
+  }, []);
+
+  const handleIntroFinish = async () => {
+    try {
+      await AsyncStorage.setItem(INTRO_SEEN_KEY, '1');
+    } catch {}
+    setShowIntro(false);
+  };
+
+  if (!introChecked) return null;
+
+  return (
+    <>
+      <RootLayoutNav />
+      {showIntro && <IntroCinematic onFinish={handleIntroFinish} />}
+    </>
   );
 }
 
@@ -51,7 +89,9 @@ export default function RootLayout() {
           <GestureHandlerRootView style={{ flex: 1 }}>
             <KeyboardProvider>
               <GameProvider>
-                <RootLayoutNav />
+                <AchievementProvider>
+                  <AppWithCinematic />
+                </AchievementProvider>
               </GameProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>

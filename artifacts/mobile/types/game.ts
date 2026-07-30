@@ -54,7 +54,48 @@ export interface Player {
   totalItemsCrafted: number;
   totalGoldEarned: number;
   totalPlayTime: number;
+  totalOrdersDelivered: number;
+  totalQuestsAccepted: number;
+  craftedLegendaryCount: number;
+  craftedExcellentCount: number;
   createdAt: number;
+}
+
+// ── Achievement system ────────────────────────────────────────────────────────
+export type AchievementCategory = 'craft' | 'economy' | 'exploration' | 'progression' | 'special';
+
+export type AchievementConditionType =
+  | 'totalItemsCrafted'
+  | 'totalGoldEarned'
+  | 'goldCurrent'
+  | 'questsCompleted'
+  | 'questsAccepted'
+  | 'regionsUnlocked'
+  | 'talentsUnlocked'
+  | 'ordersDelivered'
+  | 'craftQuality'
+  | 'forgeUpgradeLevels'
+  | 'talentPoints'
+  | 'playerLevel'
+  | 'skillLevel'
+  | 'inventoryItems'
+  | 'achievementsUnlocked';
+
+export interface AchievementCondition {
+  type: AchievementConditionType;
+  value: number;
+  skill?: SkillType;
+  quality?: Quality;
+}
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  category: AchievementCategory;
+  condition: AchievementCondition;
+  reward?: { xp?: number; gold?: number };
 }
 
 // ---------------------------------------------------------------------------

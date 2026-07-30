@@ -15,8 +15,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useGame } from '@/context/GameContext';
+import { useAchievements } from '@/context/AchievementContext';
 import { useColors } from '@/hooks/useColors';
-import type { SkillData, SkillType, TalentData } from '@/types/game';
+import type { Achievement, SkillData, SkillType, TalentData } from '@/types/game';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const SKILL_ICONS: Record<SkillType, string> = {
@@ -370,13 +371,93 @@ const sdStyles = StyleSheet.create({
   closeBtnText: { fontSize: 15, fontWeight: '700' },
 });
 
+// ─── Achievements tab content ─────────────────────────────────────────────────
+const ACH_CATEGORY_INFO: Record<string, { label: string; color: string; icon: string }> = {
+  craft:       { label: 'Forge',       color: '#D4851A', icon: 'tool' },
+  economy:     { label: 'Économie',    color: '#4CAF50', icon: 'dollar-sign' },
+  exploration: { label: 'Exploration', color: '#42A5F5', icon: 'compass' },
+  progression: { label: 'Progression', color: '#AB47BC', icon: 'trending-up' },
+  special:     { label: 'Spécial',     color: '#EF5350', icon: 'star' },
+};
+
+function AchievementsTabContent({ colors }: { colors: ReturnType<typeof useColors> }) {
+  const { unlockedIds, allAchievements, totalUnlocked } = useAchievements();
+
+  return (
+    <>
+      {/* Progress banner */}
+      <View style={[styles.achieveHeader, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={[styles.achieveHeaderNum, { color: colors.primary }]}>{totalUnlocked}</Text>
+        <Text style={[styles.achieveHeaderSep, { color: colors.mutedForeground }]}> / {allAchievements.length}</Text>
+        <Text style={[styles.achieveHeaderLabel, { color: colors.mutedForeground }]}> succès débloqués</Text>
+        {/* Progress bar */}
+        <View style={{ flex: 1 }} />
+        <View style={[styles.achieveProgress, { backgroundColor: colors.muted }]}>
+          <View
+            style={[
+              styles.achieveProgressFill,
+              {
+                width: `${Math.round((totalUnlocked / allAchievements.length) * 100)}%` as `${number}%`,
+                backgroundColor: colors.primary,
+              },
+            ]}
+          />
+        </View>
+      </View>
+
+      {/* Achievement rows */}
+      {allAchievements.map((ach: Achievement) => {
+        const unlocked = unlockedIds.has(ach.id);
+        const info = ACH_CATEGORY_INFO[ach.category] ?? { label: ach.category, color: '#888', icon: 'star' };
+        return (
+          <View
+            key={ach.id}
+            style={[
+              styles.achieveRow,
+              {
+                backgroundColor: unlocked ? colors.card : colors.background,
+                borderColor: unlocked ? info.color + '44' : colors.border,
+                opacity: unlocked ? 1 : 0.5,
+              },
+            ]}
+          >
+            {/* Icon */}
+            <View style={[styles.achieveIconWrap, { backgroundColor: unlocked ? info.color + '22' : colors.muted }]}>
+              <Feather
+                name={(unlocked ? ach.icon : 'lock') as 'award'}
+                size={18}
+                color={unlocked ? info.color : colors.mutedForeground}
+              />
+            </View>
+            {/* Text */}
+            <View style={styles.achieveTextWrap}>
+              <Text style={[styles.achieveTitle, { color: unlocked ? colors.foreground : colors.mutedForeground }]}>
+                {unlocked ? ach.title : '???'}
+              </Text>
+              <Text style={[styles.achieveDesc, { color: colors.mutedForeground }]} numberOfLines={2}>
+                {unlocked ? ach.description : 'Succès encore verrouillé'}
+              </Text>
+            </View>
+            {/* Category badge */}
+            {unlocked && (
+              <View style={[styles.achieveCategoryBadge, { backgroundColor: info.color + '22' }]}>
+                <Text style={[styles.achieveCategoryText, { color: info.color }]}>{info.label}</Text>
+              </View>
+            )}
+          </View>
+        );
+      })}
+    </>
+  );
+}
+
 // ─── Main Profile Screen ──────────────────────────────────────────────────────
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const game = useGame();
   const headerTopPad = Platform.OS === 'web' ? 67 : insets.top;
-  const [activeTab, setActiveTab] = useState<'skills' | 'talents' | 'stats'>('skills');
+  const [activeTab, setActiveTab] = useState<'skills' | 'talents' | 'stats' | 'achievements'>('skills');
   const [selectedSkillId, setSelectedSkillId] = useState<SkillType | null>(null);
   const [selectedTree, setSelectedTree] = useState<TreeKey>('forge');
 
@@ -420,10 +501,23 @@ export default function ProfileScreen() {
             </View>
           )}
         </View>
-        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: colors.secondary }]} onPress={handleSave}>
-          <Feather name="save" size={14} color={colors.accent} />
-          <Text style={[styles.saveBtnText, { color: colors.accent }]}>Sauvegarder</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity
+            style={[styles.saveBtn, { backgroundColor: colors.secondary }]}
+            onPress={async () => { await game.syncToCloud(); }}
+          >
+            <Feather
+              name={game.cloudSyncStatus === 'syncing' ? 'loader' : game.cloudSyncStatus === 'success' ? 'cloud' : game.cloudSyncStatus === 'error' ? 'cloud-off' : 'cloud'}
+              size={14}
+              color={game.cloudSyncStatus === 'success' ? '#4CAF50' : game.cloudSyncStatus === 'error' ? '#EF5350' : colors.accent}
+            />
+            <Text style={[styles.saveBtnText, { color: colors.accent }]}>Cloud</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.saveBtn, { backgroundColor: colors.secondary }]} onPress={handleSave}>
+            <Feather name="save" size={14} color={colors.accent} />
+            <Text style={[styles.saveBtnText, { color: colors.accent }]}>Sauvegarder</Text>
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
 
       {/* Player card */}
@@ -461,8 +555,8 @@ export default function ProfileScreen() {
 
       {/* Tab bar */}
       <View style={[styles.tabBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        {(['skills', 'talents', 'stats'] as const).map((tab) => {
-          const labels = { skills: 'Compétences', talents: 'Talents', stats: 'Statistiques' };
+        {(['skills', 'talents', 'achievements', 'stats'] as const).map((tab) => {
+          const labels = { skills: 'Compétences', talents: 'Talents', achievements: 'Succès', stats: 'Stats' };
           return (
             <TouchableOpacity
               key={tab}
@@ -567,6 +661,9 @@ export default function ProfileScreen() {
           </>
         )}
 
+        {/* ── Achievements tab ── */}
+        {activeTab === 'achievements' && <AchievementsTabContent colors={colors} />}
+
         {/* ── Stats tab ── */}
         {activeTab === 'stats' && (
           <>
@@ -662,4 +759,18 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 10, letterSpacing: 0.5, textAlign: 'center' },
   resetBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 12, borderWidth: 1, gap: 8 },
   resetBtnText: { fontSize: 14, fontWeight: '600' },
+  // Achievements
+  achieveHeader: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 14, borderWidth: 1, marginBottom: 12 },
+  achieveHeaderNum: { fontSize: 22, fontWeight: '800' },
+  achieveHeaderSep: { fontSize: 16, fontWeight: '600' },
+  achieveHeaderLabel: { fontSize: 12 },
+  achieveProgress: { width: 60, height: 6, borderRadius: 3, overflow: 'hidden' },
+  achieveProgressFill: { height: '100%', borderRadius: 3 },
+  achieveRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1, padding: 12, marginBottom: 8, gap: 10 },
+  achieveIconWrap: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  achieveTextWrap: { flex: 1, gap: 2 },
+  achieveTitle: { fontSize: 13, fontWeight: '700' },
+  achieveDesc: { fontSize: 10, lineHeight: 14 },
+  achieveCategoryBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  achieveCategoryText: { fontSize: 9, fontWeight: '700', letterSpacing: 0.5 },
 });

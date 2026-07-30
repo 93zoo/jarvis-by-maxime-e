@@ -6,7 +6,9 @@ import React, {
   useMemo,
   useReducer,
   useRef,
+  useState,
 } from 'react';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {
   CraftOrder,
@@ -57,6 +59,17 @@ const MAX_WEIGHT_PER_LEVEL = 5;
 
 const SAVE_KEY = '@fk_save_v1';
 const SAVE_VERSION = 1;
+const PLAYER_ID_KEY = '@fk_player_id';
+const CLOUD_SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+function getCloudApiBase(): string {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin}/api-server/api`;
+  }
+  return '';
+}
+
+export type CloudSyncStatus = 'idle' | 'syncing' | 'success' | 'error';
 
 const SKILL_TYPES: SkillType[] = [
   'forge', 'extraction', 'commerce', 'construction',
@@ -187,6 +200,10 @@ function buildInitialPlayer(): Player {
     totalItemsCrafted: 0,
     totalGoldEarned: 150,
     totalPlayTime: 0,
+    totalOrdersDelivered: 0,
+    totalQuestsAccepted: 0,
+    craftedLegendaryCount: 0,
+    craftedExcellentCount: 0,
     createdAt: Date.now(),
   };
 }
@@ -306,6 +323,10 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         talentsUnlocked: s.player.talentsUnlocked ?? [],
         totalGoldEarned: s.player.totalGoldEarned ?? 0,
         totalItemsCrafted: s.player.totalItemsCrafted ?? 0,
+        totalOrdersDelivered: s.player.totalOrdersDelivered ?? 0,
+        totalQuestsAccepted: s.player.totalQuestsAccepted ?? 0,
+        craftedLegendaryCount: s.player.craftedLegendaryCount ?? 0,
+        craftedExcellentCount: s.player.craftedExcellentCount ?? 0,
       };
       return {
         isLoaded: true,
@@ -351,6 +372,14 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const player = {
         ...state.player,
         totalItemsCrafted: state.player.totalItemsCrafted + 1,
+        craftedLegendaryCount:
+          action.item.quality === 'legendary'
+            ? (state.player.craftedLegendaryCount ?? 0) + 1
+            : (state.player.craftedLegendaryCount ?? 0),
+        craftedExcellentCount:
+          action.item.quality === 'excellent'
+            ? (state.player.craftedExcellentCount ?? 0) + 1
+            : (state.player.craftedExcellentCount ?? 0),
       };
       return { ...state, craftedItems: [...state.craftedItems, action.item], player };
     }
@@ -474,6 +503,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ...state.player,
         gold,
         totalGoldEarned: state.player.totalGoldEarned + order.goldReward,
+        totalOrdersDelivered: (state.player.totalOrdersDelivered ?? 0) + 1,
       };
       const items = state.craftedItems.filter((i) => i.instanceId !== action.itemInstanceId);
       const orders = state.activeOrders.map((o) =>
@@ -499,7 +529,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'ACCEPT_QUEST': {
       if (state.activeQuestIds.includes(action.questId)) return state;
       if (state.completedQuestIds.includes(action.questId)) return state;
-      return { ...state, activeQuestIds: [...state.activeQuestIds, action.questId] };
+      const player = {
+        ...state.player,
+        totalQuestsAccepted: (state.player.totalQuestsAccepted ?? 0) + 1,
+      };
+      return { ...state, activeQuestIds: [...state.activeQuestIds, action.questId], player };
     }
     case 'COMPLETE_QUEST': {
       const quest = ALL_QUESTS.find((q) => q.id === action.questId);
@@ -734,6 +768,10 @@ interface GameContextType {
   upgradeForgeElement: (element: string) => { success: boolean; message: string };
   unlockTalent: (talentId: string) => boolean;
   getTalentBonus: (bonusType: string) => number;
+  // Cloud sync
+  cloudSyncStatus: CloudSyncStatus;
+  lastCloudSync: number | null;
+  syncToCloud: () => Promise<void>;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -744,10 +782,28 @@ const GameContext = createContext<GameContextType | null>(null);
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(gameReducer, buildInitialState());
   const saveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const cloudTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const playerIdRef = useRef<string>('');
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<CloudSyncStatus>('idle');
+  const [lastCloudSync, setLastCloudSync] = useState<number | null>(null);
+  // Ref always pointing to latest syncToCloud to avoid stale closure in the interval
+  const syncToCloudRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
-  // Load saved game on mount
+  // Load saved game + player-id on mount
   useEffect(() => {
     (async () => {
+      try {
+        // Ensure persistent player ID exists
+        let pid = await AsyncStorage.getItem(PLAYER_ID_KEY);
+        if (!pid) {
+          pid = makeId();
+          await AsyncStorage.setItem(PLAYER_ID_KEY, pid);
+        }
+        playerIdRef.current = pid;
+      } catch {
+        playerIdRef.current = makeId();
+      }
+
       try {
         const raw = await AsyncStorage.getItem(SAVE_KEY);
         if (raw) {
@@ -782,6 +838,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.isLoaded, state.player.level]);
+
+  // Cloud auto-sync every 5 minutes — calls through ref so always uses current state
+  useEffect(() => {
+    if (!state.isLoaded) return;
+    cloudTimerRef.current = setInterval(() => {
+      syncToCloudRef.current();
+    }, CLOUD_SYNC_INTERVAL_MS);
+    return () => {
+      if (cloudTimerRef.current) clearInterval(cloudTimerRef.current);
+    };
+  }, [state.isLoaded]);
 
   // Auto-save every 30 seconds
   useEffect(() => {
@@ -1220,6 +1287,53 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
   }, [state]);
 
+  const syncToCloud = useCallback(async () => {
+    const base = getCloudApiBase();
+    if (!base || !playerIdRef.current || !state.isLoaded) return;
+    setCloudSyncStatus('syncing');
+    try {
+      const save: SaveData = {
+        version: SAVE_VERSION,
+        player: state.player,
+        inventory: state.inventory,
+        craftedItems: state.craftedItems,
+        activeOrders: state.activeOrders,
+        completedQuestIds: state.completedQuestIds,
+        activeQuestIds: state.activeQuestIds,
+        questProgress: state.questProgress,
+        unlockedRegions: state.unlockedRegions,
+        regionExploration: state.regionExploration,
+        npcReputation: state.npcReputation,
+        marketPrices: state.marketPrices,
+        lastOrderGeneratedAt: state.lastOrderGeneratedAt,
+        forgeUpgrades: state.forgeUpgrades,
+        lastSaved: Date.now(),
+      };
+      const res = await fetch(`${base}/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerId: playerIdRef.current, saveData: save, clientVersion: SAVE_VERSION }),
+      });
+      if (res.ok) {
+        setCloudSyncStatus('success');
+        setLastCloudSync(Date.now());
+        // Reset to idle after 3 seconds
+        setTimeout(() => setCloudSyncStatus('idle'), 3000);
+      } else {
+        setCloudSyncStatus('error');
+        setTimeout(() => setCloudSyncStatus('idle'), 5000);
+      }
+    } catch {
+      setCloudSyncStatus('error');
+      setTimeout(() => setCloudSyncStatus('idle'), 5000);
+    }
+  }, [state]);
+
+  // Keep ref pointing to latest syncToCloud so the auto-sync interval never captures a stale closure
+  useEffect(() => {
+    syncToCloudRef.current = syncToCloud;
+  }, [syncToCloud]);
+
   const resetGame = useCallback(() => {
     dispatch({ type: 'RESET' });
     AsyncStorage.removeItem(SAVE_KEY).catch(() => {});
@@ -1342,9 +1456,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       upgradeForgeElement,
       unlockTalent,
       getTalentBonus,
+      // Cloud sync
+      cloudSyncStatus,
+      lastCloudSync,
+      syncToCloud,
     }),
+    // Include cloud sync reactive state so status transitions propagate to consumers
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state],
+    [state, cloudSyncStatus, lastCloudSync],
   );
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

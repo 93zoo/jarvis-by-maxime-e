@@ -25,6 +25,8 @@ import { useColors } from '@/hooks/useColors';
 import type { Item, Quality, RecipeData } from '@/types/game';
 import ForgeScene3D, { CraftPhase, ForgeScene3DRef } from '@/components/ForgeScene3D';
 import HammeringMiniGame, { HitLabel } from '@/components/HammeringMiniGame';
+import WeatherEffect, { WeatherType } from '@/components/WeatherEffect';
+import AudioManager from '@/utils/AudioManager';
 
 // ─── Quality helpers ─────────────────────────────────────────────────────────
 function qualityColor(q: Quality, colors: ReturnType<typeof useColors>): string {
@@ -428,12 +430,25 @@ export default function ForgeScreen() {
   const [showOrdersModal, setShowOrdersModal] = useState(false);
   const [deliverOrderId, setDeliverOrderId] = useState<string | null>(null);
   const [showUpgradesModal, setShowUpgradesModal] = useState(false);
+  const [weather, setWeather] = useState<WeatherType>('none');
 
   const sceneRef = useRef<ForgeScene3DRef>(null);
   const hitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const headerTopPad = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPad = insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 80;
+
+  // Init audio on mount + weather cycle
+  useEffect(() => {
+    AudioManager.init();
+
+    // Randomly assign atmospheric weather — changes every 5–10 minutes
+    const WEATHER_TYPES: WeatherType[] = ['none', 'none', 'none', 'rain', 'fog', 'rain', 'snow'];
+    const pick = () => WEATHER_TYPES[Math.floor(Math.random() * WEATHER_TYPES.length)];
+    setWeather(pick());
+    const t = setInterval(() => setWeather(pick()), 7 * 60 * 1000); // 7 min
+    return () => clearInterval(t);
+  }, []);
 
   // ─── Phase machine ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -582,6 +597,7 @@ export default function ForgeScreen() {
       {/* ── 3D Scene ── */}
       <View style={styles.sceneContainer}>
         <ForgeScene3D ref={sceneRef} craftPhase={craftPhase} upgradeLevel={upgradeLevel} />
+        <WeatherEffect type={weather} />
 
         {/* Heating overlay */}
         {craftPhase === 'HEATING' && (

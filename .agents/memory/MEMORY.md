@@ -1,0 +1,4 @@
+- [Cloud save URL pattern](cloud-save-url.md) — API is at `window.location.origin + '/api-server/api'` on web; native falls back to disabled.
+- [Achievement context placement](achievement-context.md) — AchievementProvider must be inside GameProvider (uses useGame); defined in `context/AchievementContext.tsx`.
+- [Hermes hoisting rule](hermes-hoisting.md) — sub-components with hooks must be defined BEFORE the screen component that uses them.
+- [Player new fields normalization](player-fields.md) — new Player fields (totalOrdersDelivered, craftedLegendaryCount, etc.) need `?? 0` defaults in the LOAD reducer for save backward compat.
