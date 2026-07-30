@@ -50,6 +50,7 @@ export interface Player {
   skills: Record<SkillType, number>;
   skillXP: Record<SkillType, number>;
   talentsUnlocked: string[];
+  talentPoints: number;
   totalItemsCrafted: number;
   totalGoldEarned: number;
   totalPlayTime: number;
@@ -248,6 +249,42 @@ export interface CraftOrder {
 }
 
 // ---------------------------------------------------------------------------
+// Talents & forge upgrades
+// ---------------------------------------------------------------------------
+export interface TalentData {
+  id: string;
+  name: string;
+  description: string;
+  effect: string;
+  tree: 'forge' | 'extraction' | 'commerce' | 'construction' | 'universal';
+  tier: number;
+  col: number;
+  requiredSkill: SkillType | null;
+  requiredSkillLevel: number;
+  prerequisiteIds: string[];
+  icon: string;
+  cost: number;
+}
+
+export type ForgeUpgradeElement = 'forge' | 'furnace' | 'anvil' | 'workbench' | 'decoration' | 'storage';
+
+export interface ForgeUpgradeTier {
+  level: number;
+  goldCost: number;
+  resourceCosts: { resourceId: string; qty: number }[];
+  bonus: string;
+}
+
+export interface ForgeUpgradeData {
+  id: ForgeUpgradeElement;
+  name: string;
+  description: string;
+  emoji: string;
+  color: string;
+  tiers: ForgeUpgradeTier[];
+}
+
+// ---------------------------------------------------------------------------
 // Save file
 // ---------------------------------------------------------------------------
 export interface SaveData {
@@ -264,5 +301,6 @@ export interface SaveData {
   npcReputation: Record<string, number>;
   marketPrices: Record<string, number>;
   lastOrderGeneratedAt: number;
+  forgeUpgrades: Record<string, number>;
   lastSaved: number;
 }

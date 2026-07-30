@@ -72,17 +72,23 @@ export interface ForgeScene3DRef {
 
 interface Props {
   craftPhase: CraftPhase;
+  upgradeLevel?: number;
 }
 
-const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(({ craftPhase }, ref) => {
+const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(({ craftPhase, upgradeLevel = 0 }, ref) => {
   const [webglOk] = useState(() => checkWebGL());
   const craftPhaseRef = useRef<CraftPhase>(craftPhase);
+  const upgradeLevelRef = useRef(upgradeLevel);
   const cleanupRef = useRef<(() => void) | null>(null);
   const triggerStrikeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     craftPhaseRef.current = craftPhase;
   }, [craftPhase]);
+
+  useEffect(() => {
+    upgradeLevelRef.current = upgradeLevel;
+  }, [upgradeLevel]);
 
   useEffect(() => {
     return () => {
@@ -329,8 +335,9 @@ const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(({ craftPhase }, ref) =>
       t += 0.016;
       const phase = craftPhaseRef.current;
 
-      // Fire flicker
-      fireLight.intensity = 2.5 + Math.sin(t * 7.1) * 0.5 + Math.sin(t * 13.3) * 0.28;
+      // Fire flicker — scales with forge upgrade level
+      const upgradeBoost = upgradeLevelRef.current * 0.12;
+      fireLight.intensity = (2.5 + upgradeBoost) + Math.sin(t * 7.1) * 0.5 + Math.sin(t * 13.3) * 0.28;
 
       // Camera breathing
       camera.position.y = 3.8 + Math.sin(t * 0.38) * 0.07;

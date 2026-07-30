@@ -293,38 +293,38 @@ export default function CodexScreen() {
         </View>
       </LinearGradient>
 
-      {/* Horizontal Tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={[styles.tabScroll, { borderBottomColor: colors.border }]}
-        contentContainerStyle={styles.tabScrollContent}
-      >
-        {TABS.map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[
-              styles.tab,
-              activeTab === tab.key && { borderBottomColor: colors.primary, borderBottomWidth: 2 },
-            ]}
-            onPress={() => setActiveTab(tab.key)}
-          >
-            <Feather
-              name={tab.icon as 'grid'}
-              size={15}
-              color={activeTab === tab.key ? colors.primary : colors.mutedForeground}
-            />
-            <Text
+      {/* Tab bar — all 5 tabs always visible, no horizontal scroll needed */}
+      <View style={[styles.tabRow, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
               style={[
-                styles.tabText,
-                { color: activeTab === tab.key ? colors.primary : colors.mutedForeground },
+                styles.tab,
+                isActive && { borderBottomColor: colors.primary, borderBottomWidth: 2 },
               ]}
+              onPress={() => setActiveTab(tab.key)}
+              activeOpacity={0.7}
             >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              <Feather
+                name={tab.icon as 'grid'}
+                size={16}
+                color={isActive ? colors.primary : colors.mutedForeground}
+              />
+              <Text
+                style={[
+                  styles.tabText,
+                  { color: isActive ? colors.primary : colors.mutedForeground },
+                ]}
+                numberOfLines={1}
+              >
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
       {activeTab === 'resources' && (
         <FlatList
@@ -527,17 +527,21 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: '800', letterSpacing: 3 },
   progressBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
   progressText: { fontSize: 12, fontWeight: '600' },
-  tabScroll: { borderBottomWidth: 1 },
-  tabScrollContent: { paddingHorizontal: 16 },
-  tab: {
+  tabRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    gap: 6,
-    marginRight: 4,
+    borderBottomWidth: 1,
   },
-  tabText: { fontSize: 13, fontWeight: '600' },
+  tab: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 9,
+    gap: 3,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.2 },
   listContent: { paddingHorizontal: 16, paddingTop: 12 },
   entryCard: {
     flexDirection: 'row',

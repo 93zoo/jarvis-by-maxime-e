@@ -269,6 +269,150 @@ function OrdersModal({
   );
 }
 
+// ─── Forge Upgrades Modal ─────────────────────────────────────────────────────
+const ELEMENT_EMOJI: Record<string, string> = {
+  forge_main: '🔥', furnace: '🏭', anvil: '⚒️', workbench: '🪵', decoration: '🎨', storage: '📦',
+};
+
+const fuStyles = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', justifyContent: 'flex-end' },
+  sheet: { maxHeight: '87%', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, borderWidth: 1, borderBottomWidth: 0 },
+  handle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  fuTitle: { flex: 1, fontSize: 17, fontWeight: '700' },
+  msgBanner: { borderRadius: 8, padding: 10, marginBottom: 10 },
+  msgText: { fontSize: 13, fontWeight: '600', textAlign: 'center' },
+  elementCard: { borderRadius: 14, padding: 14, borderWidth: 1, marginBottom: 10 },
+  elementTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+  elementEmoji: { fontSize: 22, width: 36, textAlign: 'center' },
+  elementInfo: { flex: 1 },
+  elementName: { fontSize: 14, fontWeight: '700' },
+  elementBonus: { fontSize: 11, marginTop: 2, lineHeight: 16 },
+  levelStars: { flexDirection: 'row', gap: 3 },
+  costRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 6 },
+  costChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  costText: { fontSize: 11, fontWeight: '600' },
+  upgradeBtn: { paddingVertical: 11, borderRadius: 10, alignItems: 'center', marginTop: 4 },
+  upgradeBtnText: { fontSize: 13, fontWeight: '700' },
+});
+
+function ForgeUpgradesModal({
+  visible, onClose, game, colors, bottomPad,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  game: ReturnType<typeof useGame>;
+  colors: ReturnType<typeof useColors>;
+  bottomPad: number;
+}) {
+  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
+
+  const handleUpgrade = (elementId: string) => {
+    const result = game.upgradeForgeElement(elementId);
+    setMsg({ text: result.message, ok: result.success });
+    if (result.success) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+    setTimeout(() => setMsg(null), 2500);
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+      <View style={fuStyles.overlay}>
+        <View style={[fuStyles.sheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={[fuStyles.handle, { backgroundColor: colors.muted }]} />
+          <View style={fuStyles.headerRow}>
+            <Feather name="settings" size={18} color={colors.accent} />
+            <Text style={[fuStyles.fuTitle, { color: colors.foreground }]}>AMÉLIORATIONS</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Feather name="x" size={22} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          </View>
+          {msg && (
+            <View style={[fuStyles.msgBanner, { backgroundColor: msg.ok ? '#1B5E20' : '#B71C1C' }]}>
+              <Text style={[fuStyles.msgText, { color: '#fff' }]}>{msg.text}</Text>
+            </View>
+          )}
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomPad + 20 }}>
+            {game.allForgeUpgrades.map((upgradeData) => {
+              const currentLevel = game.forgeUpgrades[upgradeData.id] ?? 0;
+              const isMaxed = currentLevel >= 5;
+              const nextTier = isMaxed ? null : upgradeData.tiers[currentLevel];
+              const currentBonus = currentLevel > 0
+                ? upgradeData.tiers[currentLevel - 1]?.bonus
+                : upgradeData.description;
+              const costReduction = Math.min(0.5, game.getTalentBonus('upgradeCostReduction'));
+              const goldCost = nextTier ? Math.round(nextTier.goldCost * (1 - costReduction)) : 0;
+              const canAfford = !isMaxed && !!nextTier &&
+                game.player.gold >= goldCost &&
+                nextTier.resourceCosts.every((rc) => game.getInventoryQty(rc.resourceId) >= rc.qty);
+              return (
+                <View
+                  key={upgradeData.id}
+                  style={[fuStyles.elementCard, { backgroundColor: colors.secondary, borderColor: canAfford ? colors.primary : colors.border }]}
+                >
+                  <View style={fuStyles.elementTop}>
+                    <Text style={fuStyles.elementEmoji}>{ELEMENT_EMOJI[upgradeData.id] ?? '🔧'}</Text>
+                    <View style={fuStyles.elementInfo}>
+                      <Text style={[fuStyles.elementName, { color: colors.foreground }]}>{upgradeData.name}</Text>
+                      <Text style={[fuStyles.elementBonus, { color: colors.mutedForeground }]}>
+                        {isMaxed ? '✦ MAX — ' : ''}{currentBonus}
+                      </Text>
+                    </View>
+                    <View style={fuStyles.levelStars}>
+                      {[0, 1, 2, 3, 4].map((i) => (
+                        <Feather key={i} name="star" size={11} color={i < currentLevel ? colors.accent : colors.muted} />
+                      ))}
+                    </View>
+                  </View>
+                  {!isMaxed && nextTier && (
+                    <>
+                      <Text style={[fuStyles.elementBonus, { color: colors.mutedForeground, marginBottom: 6 }]}>
+                        Prochain bonus: {nextTier.bonus}
+                      </Text>
+                      <View style={fuStyles.costRow}>
+                        <View style={[fuStyles.costChip, { backgroundColor: `${colors.accent}22` }]}>
+                          <Text style={[fuStyles.costText, { color: colors.accent }]}>💰 {goldCost.toLocaleString()}g</Text>
+                        </View>
+                        {nextTier.resourceCosts.map((rc) => {
+                          const res = game.allResources.find((r) => r.id === rc.resourceId);
+                          const have = game.getInventoryQty(rc.resourceId);
+                          const ok = have >= rc.qty;
+                          return (
+                            <View
+                              key={rc.resourceId}
+                              style={[fuStyles.costChip, { backgroundColor: ok ? `${colors.primary}22` : `${colors.destructive}22` }]}
+                            >
+                              <Text style={[fuStyles.costText, { color: ok ? colors.primary : colors.destructive }]}>
+                                {have}/{rc.qty} {res?.name ?? rc.resourceId}
+                              </Text>
+                            </View>
+                          );
+                        })}
+                      </View>
+                      <TouchableOpacity
+                        style={[fuStyles.upgradeBtn, { backgroundColor: canAfford ? colors.primary : colors.muted, opacity: canAfford ? 1 : 0.5 }]}
+                        onPress={() => handleUpgrade(upgradeData.id)}
+                        disabled={!canAfford}
+                      >
+                        <Text style={[fuStyles.upgradeBtnText, { color: canAfford ? colors.primaryForeground : colors.mutedForeground }]}>
+                          Améliorer → Niveau {currentLevel + 1}
+                        </Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </View>
+              );
+            })}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function ForgeScreen() {
   const colors = useColors();
@@ -283,6 +427,7 @@ export default function ForgeScreen() {
   const [lastHitLabel, setLastHitLabel] = useState<HitLabel | null>(null);
   const [showOrdersModal, setShowOrdersModal] = useState(false);
   const [deliverOrderId, setDeliverOrderId] = useState<string | null>(null);
+  const [showUpgradesModal, setShowUpgradesModal] = useState(false);
 
   const sceneRef = useRef<ForgeScene3DRef>(null);
   const hitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -386,6 +531,7 @@ export default function ForgeScreen() {
   const selectedRecipe = session.recipeId ? game.getRecipeById(session.recipeId) : null;
   const pendingOrders = game.activeOrders.filter((o) => !o.completed);
   const pendingCount = pendingOrders.length;
+  const upgradeLevel = Object.values(game.forgeUpgrades).reduce((a, b) => a + b, 0);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -415,6 +561,16 @@ export default function ForgeScreen() {
               <Text style={[styles.pillText, { color: '#fff' }]}>{pendingCount}</Text>
             </TouchableOpacity>
           )}
+          <TouchableOpacity
+            style={[styles.pill, { backgroundColor: colors.secondary }]}
+            onPress={() => setShowUpgradesModal(true)}
+            activeOpacity={0.8}
+          >
+            <Feather name="settings" size={12} color={upgradeLevel > 0 ? colors.accent : colors.mutedForeground} />
+            {upgradeLevel > 0 && (
+              <Text style={[styles.pillText, { color: colors.accent }]}>+{upgradeLevel}</Text>
+            )}
+          </TouchableOpacity>
           <View style={[styles.pill, { backgroundColor: colors.primary }]}>
             <Text style={[styles.pillText, { color: colors.primaryForeground }]}>
               Niv.{player.level}
@@ -425,7 +581,7 @@ export default function ForgeScreen() {
 
       {/* ── 3D Scene ── */}
       <View style={styles.sceneContainer}>
-        <ForgeScene3D ref={sceneRef} craftPhase={craftPhase} />
+        <ForgeScene3D ref={sceneRef} craftPhase={craftPhase} upgradeLevel={upgradeLevel} />
 
         {/* Heating overlay */}
         {craftPhase === 'HEATING' && (
@@ -512,16 +668,18 @@ export default function ForgeScreen() {
         )}
 
         {craftPhase === 'HAMMERING' && (
-          <HammeringMiniGame
-            strikesCompleted={session.strikesCompleted}
-            strikeScores={session.strikeScores}
-            onStrike={handleStrike}
-            forgeSkillLevel={forgeSkillLevel}
-          />
+          <View style={{ paddingBottom: bottomPad }}>
+            <HammeringMiniGame
+              strikesCompleted={session.strikesCompleted}
+              strikeScores={session.strikeScores}
+              onStrike={handleStrike}
+              forgeSkillLevel={forgeSkillLevel}
+            />
+          </View>
         )}
 
         {(craftPhase === 'HEATING' || craftPhase === 'COOLING') && (
-          <View style={[styles.inProgressPanel, { paddingBottom: bottomPad }]}>
+          <View style={[styles.inProgressPanel, { paddingBottom: bottomPad + 16 }]}>
             <Feather
               name={craftPhase === 'HEATING' ? 'thermometer' : 'droplet'}
               size={22}
@@ -641,6 +799,15 @@ export default function ForgeScreen() {
         bottomPad={bottomPad}
         deliverOrderId={deliverOrderId}
         setDeliverOrderId={setDeliverOrderId}
+      />
+
+      {/* ── Forge Upgrades Modal ── */}
+      <ForgeUpgradesModal
+        visible={showUpgradesModal}
+        onClose={() => setShowUpgradesModal(false)}
+        game={game}
+        colors={colors}
+        bottomPad={bottomPad}
       />
 
       {/* ── Craft Result Modal ── */}

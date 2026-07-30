@@ -10,6 +10,7 @@ import React, {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {
   CraftOrder,
+  ForgeUpgradeData,
   GemData,
   InventoryItem,
   Item,
@@ -26,6 +27,7 @@ import type {
   SaveData,
   SkillData,
   SkillType,
+  TalentData,
 } from '@/types/game';
 
 // ---------------------------------------------------------------------------
@@ -38,6 +40,8 @@ const ALL_SKILLS: SkillData[] = require('@/data/skills.json');
 const ALL_GEMS: GemData[] = require('@/data/gems.json');
 const ALL_NPCS: NPCData[] = require('@/data/npcs.json');
 const ALL_QUESTS: Quest[] = require('@/data/quests.json');
+const ALL_TALENTS: TalentData[] = require('@/data/talents.json');
+const ALL_FORGE_UPGRADES: ForgeUpgradeData[] = require('@/data/forgeUpgrades.json');
 
 /** Generate a random order from the NPC roster */
 const QUALITY_ORDER: Record<Quality, number> = { poor: 0, normal: 1, good: 2, excellent: 3, legendary: 4 };
@@ -64,6 +68,18 @@ const SKILL_TYPES: SkillType[] = [
 // ---------------------------------------------------------------------------
 function makeId(): string {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
+}
+
+/** Pure helper: sum talent bonus values for a given effect type */
+function computeTalentBonus(unlocked: string[], bonusType: string): number {
+  let total = 0;
+  for (const id of unlocked) {
+    const t = ALL_TALENTS.find((x) => x.id === id);
+    if (!t) continue;
+    const [type, value] = t.effect.split(':');
+    if (type === bonusType) total += parseFloat(value);
+  }
+  return total;
 }
 
 function xpForLevel(level: number): number {
@@ -109,6 +125,7 @@ interface GameState {
   npcReputation: Record<string, number>; // npcId → 0-100
   marketPrices: Record<string, number>;  // resourceId → multiplier (1.0 = base)
   lastOrderGeneratedAt: number;
+  forgeUpgrades: Record<string, number>; // element → level (0-5)
 }
 
 type GameAction =
@@ -140,7 +157,11 @@ type GameAction =
   | { type: 'SELL_RESOURCE'; resourceId: string; qty: number; goldAmount: number }
   | { type: 'ADJUST_MARKET'; resourceId: string; delta: number }
   // Reputation
-  | { type: 'SET_REPUTATION'; npcId: string; delta: number };
+  | { type: 'SET_REPUTATION'; npcId: string; delta: number }
+  // Forge upgrades
+  | { type: 'UPGRADE_FORGE_ELEMENT'; element: string; goldCost: number; resourceCosts: { resourceId: string; qty: number }[] }
+  // Talents
+  | { type: 'UNLOCK_TALENT'; talentId: string; cost: number };
 
 function buildInitialPlayer(): Player {
   const skills = SKILL_TYPES.reduce(
@@ -162,6 +183,7 @@ function buildInitialPlayer(): Player {
     skills,
     skillXP,
     talentsUnlocked: [],
+    talentPoints: 0,
     totalItemsCrafted: 0,
     totalGoldEarned: 150,
     totalPlayTime: 0,
@@ -195,6 +217,7 @@ function buildInitialState(): GameState {
     npcReputation: {},
     marketPrices: {},
     lastOrderGeneratedAt: 0,
+    forgeUpgrades: {},
   };
 }
 
@@ -254,25 +277,39 @@ function levelUpSkill(player: Player, skill: SkillType, xpGain: number): Player 
   const skills = { ...player.skills };
   skillXP[skill] = (skillXP[skill] ?? 0) + xpGain;
   const threshold = skillXpForLevel(skills[skill] ?? 1);
+  let result = { ...player, skillXP, skills };
   if (skillXP[skill] >= threshold && skills[skill] < 100) {
     skillXP[skill] -= threshold;
-    skills[skill] = (skills[skill] ?? 1) + 1;
+    const newLevel = (skills[skill] ?? 1) + 1;
+    skills[skill] = newLevel;
+    // Award talent point every 5 skill levels
+    const talentPoints = result.talentPoints + (newLevel % 5 === 0 ? 1 : 0);
+    result = { ...result, skillXP, skills, talentPoints };
     // Forge skill drives forge level
     if (skill === 'forge') {
-      const newForgeLevel = Math.min(10, Math.floor(skills['forge'] / 10) + 1);
-      return { ...player, skillXP, skills, forgeLevel: newForgeLevel };
+      const newForgeLevel = Math.min(10, Math.floor(newLevel / 10) + 1);
+      return { ...result, forgeLevel: newForgeLevel };
     }
   }
-  return { ...player, skillXP, skills };
+  return { ...result, skillXP, skills };
 }
 
 function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case 'LOAD': {
       const s = action.payload;
+      // Normalize player for backward-compat: any field added after initial release
+      // must be defaulted here so legacy saves don't produce undefined/NaN.
+      const player: Player = {
+        ...s.player,
+        talentPoints: s.player.talentPoints ?? 0,
+        talentsUnlocked: s.player.talentsUnlocked ?? [],
+        totalGoldEarned: s.player.totalGoldEarned ?? 0,
+        totalItemsCrafted: s.player.totalItemsCrafted ?? 0,
+      };
       return {
         isLoaded: true,
-        player: s.player,
+        player,
         inventory: s.inventory,
         craftedItems: s.craftedItems,
         activeOrders: s.activeOrders ?? [],
@@ -284,6 +321,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         npcReputation: s.npcReputation ?? {},
         marketPrices: s.marketPrices ?? {},
         lastOrderGeneratedAt: s.lastOrderGeneratedAt ?? 0,
+        forgeUpgrades: s.forgeUpgrades ?? {},
       };
     }
     case 'RESET': {
@@ -594,6 +632,38 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    case 'UPGRADE_FORGE_ELEMENT': {
+      // Deduct gold
+      const player = {
+        ...state.player,
+        gold: Math.max(0, state.player.gold - action.goldCost),
+      };
+      // Deduct resources
+      let inventory = state.inventory;
+      for (const rc of action.resourceCosts) {
+        inventory = inventory
+          .map((i) => i.resourceId === rc.resourceId ? { ...i, quantity: i.quantity - rc.qty } : i)
+          .filter((i) => i.quantity > 0);
+      }
+      const currentLevel = state.forgeUpgrades[action.element] ?? 0;
+      const forgeUpgrades = { ...state.forgeUpgrades, [action.element]: currentLevel + 1 };
+      // Add skill XP to construction skill
+      const updatedPlayer = levelUpSkill(player, 'construction', 20);
+      return { ...state, player: updatedPlayer, inventory, forgeUpgrades };
+    }
+
+    case 'UNLOCK_TALENT': {
+      const talent = ALL_TALENTS.find((t) => t.id === action.talentId);
+      const [effectType, effectValue] = (talent?.effect ?? ':0').split(':');
+      const bonusPoints = effectType === 'bonusTalentPoint' ? parseInt(effectValue, 10) : 0;
+      const player = {
+        ...state.player,
+        talentPoints: Math.max(0, state.player.talentPoints - action.cost) + bonusPoints,
+        talentsUnlocked: [...state.player.talentsUnlocked, action.talentId],
+      };
+      return { ...state, player };
+    }
+
     default:
       return state;
   }
@@ -657,6 +727,13 @@ interface GameContextType {
   addExploration: (regionId: string, gain: number) => void;
   saveGame: () => Promise<void>;
   resetGame: () => void;
+  // Progression
+  allTalents: TalentData[];
+  allForgeUpgrades: ForgeUpgradeData[];
+  forgeUpgrades: Record<string, number>;
+  upgradeForgeElement: (element: string) => { success: boolean; message: string };
+  unlockTalent: (talentId: string) => boolean;
+  getTalentBonus: (bonusType: string) => number;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -718,8 +795,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           craftedItems: state.craftedItems,
           activeOrders: state.activeOrders,
           completedQuestIds: state.completedQuestIds,
+          activeQuestIds: state.activeQuestIds,
+          questProgress: state.questProgress,
           unlockedRegions: state.unlockedRegions,
           regionExploration: state.regionExploration,
+          npcReputation: state.npcReputation,
+          marketPrices: state.marketPrices,
+          lastOrderGeneratedAt: state.lastOrderGeneratedAt,
+          forgeUpgrades: state.forgeUpgrades,
           lastSaved: Date.now(),
         };
         await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
@@ -1109,8 +1192,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [state.inventory, state.craftedItems]);
 
   const maxWeight = useMemo(
-    () => MAX_WEIGHT_BASE + state.player.level * MAX_WEIGHT_PER_LEVEL,
-    [state.player.level],
+    () =>
+      MAX_WEIGHT_BASE +
+      state.player.level * MAX_WEIGHT_PER_LEVEL +
+      computeTalentBonus(state.player.talentsUnlocked, 'weightBonus'),
+    [state.player.level, state.player.talentsUnlocked],
   );
 
   const saveGame = useCallback(async () => {
@@ -1128,6 +1214,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       npcReputation: state.npcReputation,
       marketPrices: state.marketPrices,
       lastOrderGeneratedAt: state.lastOrderGeneratedAt,
+      forgeUpgrades: state.forgeUpgrades,
       lastSaved: Date.now(),
     };
     await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
@@ -1137,6 +1224,62 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'RESET' });
     AsyncStorage.removeItem(SAVE_KEY).catch(() => {});
   }, []);
+
+  // -------------------------------------------------------------------------
+  // Progression helpers
+  // -------------------------------------------------------------------------
+  const getTalentBonus = useCallback(
+    (bonusType: string): number =>
+      computeTalentBonus(state.player.talentsUnlocked, bonusType),
+    [state.player.talentsUnlocked],
+  );
+
+  const upgradeForgeElement = useCallback(
+    (element: string): { success: boolean; message: string } => {
+      const upgradeData = ALL_FORGE_UPGRADES.find((u) => u.id === element);
+      if (!upgradeData) return { success: false, message: 'Élément introuvable.' };
+      const currentLevel = state.forgeUpgrades[element] ?? 0;
+      if (currentLevel >= 5) return { success: false, message: 'Déjà au niveau maximum.' };
+      const tier = upgradeData.tiers[currentLevel];
+      if (!tier) return { success: false, message: 'Niveau invalide.' };
+      const costReduction = Math.min(0.5, computeTalentBonus(state.player.talentsUnlocked, 'upgradeCostReduction'));
+      const goldCost = Math.round(tier.goldCost * (1 - costReduction));
+      if (state.player.gold < goldCost) {
+        return { success: false, message: `Or insuffisant (${goldCost}g requis, ${state.player.gold}g disponible).` };
+      }
+      for (const rc of tier.resourceCosts) {
+        const have = state.inventory.find((i) => i.resourceId === rc.resourceId)?.quantity ?? 0;
+        if (have < rc.qty) {
+          const res = ALL_RESOURCES.find((r) => r.id === rc.resourceId);
+          return { success: false, message: `${res?.name ?? rc.resourceId} insuffisant (${rc.qty} requis, ${have} disponible).` };
+        }
+      }
+      dispatch({ type: 'UPGRADE_FORGE_ELEMENT', element, goldCost, resourceCosts: tier.resourceCosts });
+      return { success: true, message: `${upgradeData.name} améliorée au niveau ${currentLevel + 1} !` };
+    },
+    [state.forgeUpgrades, state.player.gold, state.player.talentsUnlocked, state.inventory],
+  );
+
+  const unlockTalent = useCallback(
+    (talentId: string): boolean => {
+      const talent = ALL_TALENTS.find((t) => t.id === talentId);
+      if (!talent) return false;
+      if (state.player.talentsUnlocked.includes(talentId)) return false;
+      if (state.player.talentPoints < talent.cost) return false;
+      if (talent.requiredSkill) {
+        if ((state.player.skills[talent.requiredSkill] ?? 0) < talent.requiredSkillLevel) return false;
+      } else {
+        const maxSkillLevel = Math.max(...Object.values(state.player.skills).map(Number));
+        if (maxSkillLevel < talent.requiredSkillLevel) return false;
+      }
+      for (const prereqId of talent.prerequisiteIds) {
+        if (!state.player.talentsUnlocked.includes(prereqId)) return false;
+      }
+      dispatch({ type: 'UNLOCK_TALENT', talentId, cost: talent.cost });
+      return true;
+    },
+    [state.player.talentsUnlocked, state.player.talentPoints, state.player.skills],
+  );
 
   // -------------------------------------------------------------------------
   // Context value (memoized to avoid re-renders)
@@ -1193,6 +1336,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       addExploration,
       saveGame,
       resetGame,
+      allTalents: ALL_TALENTS,
+      allForgeUpgrades: ALL_FORGE_UPGRADES,
+      forgeUpgrades: state.forgeUpgrades,
+      upgradeForgeElement,
+      unlockTalent,
+      getTalentBonus,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [state],
