@@ -863,54 +863,110 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   // Load saved game + player-id on mount
   useEffect(() => {
     (async () => {
+      // ── Step 1: ensure a persistent player ID ────────────────────────────
+      let pid = '';
       try {
-        // Ensure persistent player ID exists
-        let pid = await AsyncStorage.getItem(PLAYER_ID_KEY);
-        if (!pid) {
-          pid = makeId();
-          await AsyncStorage.setItem(PLAYER_ID_KEY, pid);
+        let stored = await AsyncStorage.getItem(PLAYER_ID_KEY);
+        if (!stored) {
+          stored = makeId();
+          await AsyncStorage.setItem(PLAYER_ID_KEY, stored);
         }
+        pid = stored;
         playerIdRef.current = pid;
       } catch {
-        playerIdRef.current = makeId();
+        pid = makeId();
+        playerIdRef.current = pid;
       }
 
+      // ── Step 2: load local save + cloud save in parallel ─────────────────
+      const base = getCloudApiBase();
+
+      const [localRaw, cloudResult] = await Promise.allSettled([
+        AsyncStorage.getItem(SAVE_KEY),
+        base && pid
+          ? fetch(`${base}/save/${pid}`).then((r) => (r.ok ? r.json() : null))
+          : Promise.resolve(null),
+      ]);
+
+      // Parse local save
+      let localData: SaveData | null = null;
       try {
-        const raw = await AsyncStorage.getItem(SAVE_KEY);
+        const raw = localRaw.status === 'fulfilled' ? localRaw.value : null;
         if (raw) {
-          const data: SaveData = JSON.parse(raw);
-          if (data.version === SAVE_VERSION) {
-            // Compute streak update here (before dispatch) so it's saved atomically
-            const todayMidnight = new Date();
-            todayMidnight.setHours(0, 0, 0, 0);
-            const todayMs = todayMidnight.getTime();
-            const yesterdayMs = todayMs - 86400000;
-            const lastPlayed = data.player.lastPlayedDate ?? 0;
-            let streakChanged = false;
-            if (lastPlayed < todayMs) {
-              if (lastPlayed >= yesterdayMs) {
-                // Played yesterday — continue streak
-                data.player = { ...data.player, streak: (data.player.streak ?? 1) + 1, lastPlayedDate: todayMs };
-              } else {
-                // Missed a day or first session — reset streak
-                data.player = { ...data.player, streak: 1, lastPlayedDate: todayMs };
-              }
-              streakChanged = true;
-            }
-            dispatch({ type: 'LOAD', payload: data });
-            // Save immediately so streak persists even if user quits before autosave
-            if (streakChanged) {
-              try {
-                await AsyncStorage.setItem(SAVE_KEY, JSON.stringify({ ...data, lastSaved: Date.now() }));
-              } catch { /* ignore */ }
-            }
-            return;
-          }
+          const parsed: SaveData = JSON.parse(raw);
+          if (parsed.version === SAVE_VERSION) localData = parsed;
         }
-      } catch {
-        // ignore parse errors — start fresh
+      } catch { /* ignore parse errors */ }
+
+      // Parse cloud save
+      let cloudData: SaveData | null = null;
+      try {
+        const json = cloudResult.status === 'fulfilled' ? cloudResult.value : null;
+        if (json?.saveData?.version === SAVE_VERSION) {
+          cloudData = json.saveData as SaveData;
+        }
+      } catch { /* ignore */ }
+
+      // ── Step 3: merge sessionSnapshots from cloud into whichever save we use ──
+      function mergeSnapshots(
+        primary: SessionSnapshot[],
+        secondary: SessionSnapshot[],
+      ): SessionSnapshot[] {
+        const seen = new Set(primary.map((s) => s.timestamp));
+        return [...primary, ...secondary.filter((s) => !seen.has(s.timestamp))]
+          .sort((a, b) => a.timestamp - b.timestamp)
+          .slice(-30);
       }
-      // No valid save: start fresh but mark as loaded
+
+      // ── Step 4: apply streak logic then dispatch ──────────────────────────
+      function applyStreak(data: SaveData): { data: SaveData; changed: boolean } {
+        const todayMidnight = new Date();
+        todayMidnight.setHours(0, 0, 0, 0);
+        const todayMs = todayMidnight.getTime();
+        const yesterdayMs = todayMs - 86400000;
+        const lastPlayed = data.player.lastPlayedDate ?? 0;
+        if (lastPlayed >= todayMs) return { data, changed: false };
+        const updatedPlayer =
+          lastPlayed >= yesterdayMs
+            ? { ...data.player, streak: (data.player.streak ?? 1) + 1, lastPlayedDate: todayMs }
+            : { ...data.player, streak: 1, lastPlayedDate: todayMs };
+        return { data: { ...data, player: updatedPlayer }, changed: true };
+      }
+
+      if (localData) {
+        // Merge cloud snapshots into local save (local is authoritative for all other fields)
+        if (cloudData?.sessionSnapshots?.length) {
+          localData = {
+            ...localData,
+            sessionSnapshots: mergeSnapshots(
+              localData.sessionSnapshots ?? [],
+              cloudData.sessionSnapshots,
+            ),
+          };
+        }
+        const { data, changed } = applyStreak(localData);
+        dispatch({ type: 'LOAD', payload: data });
+        if (changed) {
+          try {
+            await AsyncStorage.setItem(SAVE_KEY, JSON.stringify({ ...data, lastSaved: Date.now() }));
+          } catch { /* ignore */ }
+        }
+        return;
+      }
+
+      if (cloudData) {
+        // Full restore from cloud (reinstall scenario)
+        const { data, changed } = applyStreak(cloudData);
+        dispatch({ type: 'LOAD', payload: data });
+        // Persist cloud save locally so subsequent launches are fast
+        try {
+          await AsyncStorage.setItem(SAVE_KEY, JSON.stringify({ ...data, lastSaved: Date.now() }));
+        } catch { /* ignore */ }
+        if (changed) { /* already saved above with streak applied */ }
+        return;
+      }
+
+      // No valid save anywhere: start fresh
       dispatch({ type: 'RESET' });
     })();
   }, []);
