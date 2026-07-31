@@ -63,10 +63,19 @@ const QUALITY_ORDER_UI: Record<string, number> = { poor: 0, normal: 1, good: 2, 
 
 const oStyles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
-  sheet: { maxHeight: '85%', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, borderWidth: 1, borderBottomWidth: 0, flex: 0 },
-  sheetInner: { flex: 1 },
+  sheet: {
+    height: '82%',
+    maxHeight: '85%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+  },
   handle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
+  content: { flex: 1, minHeight: 0 },
+  list: { flex: 1 },
   title: { flex: 1, fontSize: 18, fontWeight: '700' },
   msgBanner: { borderRadius: 8, padding: 10, marginBottom: 10 },
   msgText: { fontSize: 13, fontWeight: '600', textAlign: 'center' },
@@ -160,7 +169,7 @@ function OrdersModal({
           )}
 
           {deliverOrderId && selectedOrder ? (
-            <View style={{ flex: 1 }}>
+            <View style={oStyles.content}>
               <TouchableOpacity style={oStyles.backRow} onPress={() => setDeliverOrderId(null)}>
                 <Feather name="arrow-left" size={14} color={colors.mutedForeground} />
                 <Text style={[oStyles.backText, { color: colors.mutedForeground }]}>Retour aux commandes</Text>
@@ -180,6 +189,7 @@ function OrdersModal({
                 </View>
               ) : (
                 <FlatList
+                  style={oStyles.list}
                   data={eligibleItems}
                   keyExtractor={(i) => i.instanceId}
                   contentContainerStyle={{ paddingBottom: bottomPad }}
@@ -203,7 +213,7 @@ function OrdersModal({
             </View>
           ) : (
             <FlatList
-              style={{ flex: 1 }}
+              style={oStyles.list}
               data={pendingOrders}
               keyExtractor={(o) => o.id}
               contentContainerStyle={{ paddingBottom: bottomPad }}
