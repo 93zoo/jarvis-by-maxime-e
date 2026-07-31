@@ -63,7 +63,8 @@ const QUALITY_ORDER_UI: Record<string, number> = { poor: 0, normal: 1, good: 2, 
 
 const oStyles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
-  sheet: { maxHeight: '85%', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, borderWidth: 1, borderBottomWidth: 0 },
+  sheet: { maxHeight: '85%', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, borderWidth: 1, borderBottomWidth: 0, flex: 0 },
+  sheetInner: { flex: 1 },
   handle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
   title: { flex: 1, fontSize: 18, fontWeight: '700' },
@@ -144,6 +145,7 @@ function OrdersModal({
         <View style={[oStyles.sheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={[oStyles.handle, { backgroundColor: colors.muted }]} />
           <View style={oStyles.headerRow}>
+
             <Feather name="inbox" size={18} color={colors.accent} />
             <Text style={[oStyles.title, { color: colors.foreground }]}>COMMANDES CLIENTS</Text>
             <TouchableOpacity onPress={onClose}>
@@ -201,6 +203,7 @@ function OrdersModal({
             </View>
           ) : (
             <FlatList
+              style={{ flex: 1 }}
               data={pendingOrders}
               keyExtractor={(o) => o.id}
               contentContainerStyle={{ paddingBottom: bottomPad }}
