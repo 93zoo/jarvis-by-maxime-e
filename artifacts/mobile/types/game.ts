@@ -51,6 +51,8 @@ export interface Player {
   skills: Record<SkillType, number>;
   skillXP: Record<SkillType, number>;
   talentsUnlocked: string[];
+  /** Recipe blueprints the player has purchased or received. */
+  unlockedRecipeIds: string[];
   talentPoints: number;
   totalItemsCrafted: number;
   totalGoldEarned: number;
@@ -368,6 +370,8 @@ export interface SessionSnapshot {
 // ---------------------------------------------------------------------------
 export interface ForgeHistoryEntry {
   instanceId: string;
+  /** Optional for backward compatibility with history entries from older saves. */
+  recipeId?: string;
   name: string;
   category: ItemCategory;
   quality: Quality;

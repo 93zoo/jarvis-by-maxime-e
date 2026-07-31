@@ -34,6 +34,7 @@ export default function CodexScreen() {
   const game = useGame();
   const [activeTab, setActiveTab] = useState<CodexTab>('resources');
   const [selectedResource, setSelectedResource] = useState<ResourceData | null>(null);
+  const [recipeMessage, setRecipeMessage] = useState<string | null>(null);
   const headerTopPad = Platform.OS === 'web' ? 67 : insets.top;
 
   if (!game.isLoaded) {
@@ -186,25 +187,44 @@ export default function CodexScreen() {
   };
 
   const renderRecipeEntry = ({ item: recipe }: { item: (typeof game.allRecipes)[0] }) => {
+    const unlocked = game.player.unlockedRecipeIds.includes(recipe.id);
     const discovered = discoveredRecipeIds.has(recipe.id);
+    const skillLevel = game.player.skills[recipe.skillRequired] ?? 0;
+    const meetsLevel = skillLevel >= recipe.levelRequired;
+    const unlockCost = game.getRecipeUnlockCost(recipe.id);
+    const canUnlock = !unlocked && meetsLevel && game.player.gold >= unlockCost;
+    const handleUnlock = () => {
+      if (!game.unlockRecipe(recipe.id)) {
+        setRecipeMessage(
+          !meetsLevel
+            ? `Forge niveau ${recipe.levelRequired} requis pour cette recette.`
+            : `Or insuffisant : ${unlockCost}g requis.`,
+        );
+        setTimeout(() => setRecipeMessage(null), 2400);
+        return;
+      }
+      setRecipeMessage(`${recipe.name} débloquée !`);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setTimeout(() => setRecipeMessage(null), 2400);
+    };
     return (
       <View
         style={[
           styles.entryCard,
           {
             backgroundColor: colors.card,
-            borderColor: discovered ? colors.primary : colors.border,
-            opacity: discovered ? 1 : 0.5,
+            borderColor: unlocked ? colors.primary : colors.border,
+            opacity: unlocked ? 1 : 0.82,
           },
         ]}
       >
-        {discovered ? (
+        {unlocked ? (
           <>
             <Feather name="tool" size={18} color={colors.primary} />
             <View style={styles.entryInfo}>
               <Text style={[styles.entryName, { color: colors.foreground }]}>{recipe.name}</Text>
               <Text style={[styles.entryRarity, { color: colors.mutedForeground }]}>
-                {recipe.category} · Forge Niv.{recipe.levelRequired}
+                {recipe.category} · Forge Niv.{recipe.levelRequired} {discovered ? '· Découverte' : '· Débloquée'}
               </Text>
             </View>
             <Text style={[styles.entryValue, { color: colors.accent }]}>
@@ -215,11 +235,25 @@ export default function CodexScreen() {
           <>
             <Feather name="lock" size={18} color={colors.mutedForeground} />
             <View style={styles.entryInfo}>
-              <Text style={[styles.entryName, { color: colors.mutedForeground }]}>???</Text>
+              <Text style={[styles.entryName, { color: colors.foreground }]}>{recipe.name}</Text>
               <Text style={[styles.entryRarity, { color: colors.mutedForeground }]}>
                 Forge Niv.{recipe.levelRequired}
               </Text>
             </View>
+            <TouchableOpacity
+              style={[
+                styles.unlockRecipeBtn,
+                { backgroundColor: canUnlock ? colors.primary : colors.secondary, borderColor: canUnlock ? colors.primary : colors.border },
+              ]}
+              onPress={handleUnlock}
+              disabled={!canUnlock}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.unlockRecipeText, { color: canUnlock ? colors.primaryForeground : colors.mutedForeground }]}>
+                {meetsLevel ? `${unlockCost}g` : `Niv.${recipe.levelRequired}`}
+              </Text>
+              {meetsLevel && <Text style={[styles.unlockRecipeLabel, { color: canUnlock ? colors.primaryForeground : colors.mutedForeground }]}>Débloquer</Text>}
+            </TouchableOpacity>
           </>
         )}
       </View>
@@ -340,16 +374,23 @@ export default function CodexScreen() {
       )}
 
       {activeTab === 'recipes' && (
-        <FlatList
-          data={game.allRecipes}
-          renderItem={renderRecipeEntry}
-          keyExtractor={(r) => r.id}
-          contentContainerStyle={[
-            styles.listContent,
-            { paddingBottom: insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 100 },
-          ]}
-          showsVerticalScrollIndicator={false}
-        />
+        <>
+          {recipeMessage && (
+            <View style={[styles.recipeMessage, { backgroundColor: colors.secondary, borderColor: colors.primary }]}>
+              <Text style={[styles.recipeMessageText, { color: colors.foreground }]}>{recipeMessage}</Text>
+            </View>
+          )}
+          <FlatList
+            data={game.allRecipes}
+            renderItem={renderRecipeEntry}
+            keyExtractor={(r) => r.id}
+            contentContainerStyle={[
+              styles.listContent,
+              { paddingBottom: insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 100 },
+            ]}
+            showsVerticalScrollIndicator={false}
+          />
+        </>
       )}
 
       {activeTab === 'regions' && (
@@ -557,6 +598,11 @@ const styles = StyleSheet.create({
   entryName: { fontSize: 14, fontWeight: '600' },
   entryRarity: { fontSize: 11, marginTop: 2 },
   entryValue: { fontSize: 13 },
+  unlockRecipeBtn: { minWidth: 76, paddingHorizontal: 8, paddingVertical: 6, borderRadius: 8, borderWidth: 1, alignItems: 'center' },
+  unlockRecipeText: { fontSize: 12, fontWeight: '800' },
+  unlockRecipeLabel: { fontSize: 9, fontWeight: '700', marginTop: 1 },
+  recipeMessage: { marginHorizontal: 16, marginTop: 8, padding: 10, borderRadius: 10, borderWidth: 1 },
+  recipeMessageText: { fontSize: 12, fontWeight: '700', textAlign: 'center' },
   regionEntry: {
     flexDirection: 'row',
     alignItems: 'center',

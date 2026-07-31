@@ -648,14 +648,18 @@ function WorldMapCanvas({
   );
 }
 
-// ─── Market Section ───────────────────────────────────────────────────────────
+// ─── Market ───────────────────────────────────────────────────────────────────
 const mStyles = StyleSheet.create({
-  section: {},
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 10 },
-  sectionTitle: { fontSize: 10, fontWeight: '800', letterSpacing: 2, flex: 1 },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.86)', justifyContent: 'flex-end' },
+  sheet: { height: '83%', borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, borderBottomWidth: 0, padding: 20 },
+  handle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  title: { flex: 1, fontSize: 18, fontWeight: '800', letterSpacing: 1 },
+  subtitle: { fontSize: 12, lineHeight: 17, marginBottom: 14 },
+  tabs: { flexDirection: 'row', gap: 8, marginBottom: 14 },
+  tab: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 10, borderWidth: 1 },
+  tabText: { fontSize: 13, fontWeight: '700' },
   sellMsg: { fontSize: 14, fontWeight: '700' },
-  toggleText: { fontSize: 12, fontWeight: '600' },
-  marketHint: { fontSize: 11, marginBottom: 10, lineHeight: 16 },
   emptyRow: { borderRadius: 10, borderWidth: 1, padding: 14 },
   emptyText: { fontSize: 12, textAlign: 'center' },
   marketRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1, padding: 10, marginBottom: 8, gap: 10 },
@@ -668,56 +672,87 @@ const mStyles = StyleSheet.create({
   qtyText: { fontSize: 13, fontWeight: '700', minWidth: 20, textAlign: 'center' },
   sellBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
   sellBtnText: { fontSize: 11, fontWeight: '700' },
+  confirmOverlay: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: 'rgba(0,0,0,0.7)' },
+  confirmCard: { borderRadius: 18, padding: 20, borderWidth: 1 },
+  confirmTitle: { fontSize: 17, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
+  confirmText: { fontSize: 14, lineHeight: 20, textAlign: 'center', marginBottom: 18 },
+  confirmReward: { fontSize: 24, fontWeight: '800', textAlign: 'center', marginBottom: 18 },
+  confirmActions: { flexDirection: 'row', gap: 10 },
+  confirmBtn: { flex: 1, alignItems: 'center', paddingVertical: 11, borderRadius: 10 },
+  confirmBtnText: { fontSize: 14, fontWeight: '800' },
 });
 
-function MarketSection({ game, colors }: { game: ReturnType<typeof useGame>; colors: ReturnType<typeof useColors> }) {
+type PendingSale =
+  | { kind: 'resource'; resourceId: string; name: string; qty: number; gold: number }
+  | { kind: 'item'; instanceId: string; name: string; gold: number };
+
+function MarketModal({ visible, onClose, game, colors, bottomPad }: {
+  visible: boolean;
+  onClose: () => void;
+  game: ReturnType<typeof useGame>;
+  colors: ReturnType<typeof useColors>;
+  bottomPad: number;
+}) {
   const [sellQtys, setSellQtys] = useState<Record<string, number>>({});
   const [lastSellMsg, setLastSellMsg] = useState<string | null>(null);
   const [showItems, setShowItems] = useState(false);
+  const [pendingSale, setPendingSale] = useState<PendingSale | null>(null);
 
   const inventoryResources = game.inventory.filter((i) => i.quantity > 0);
-  const sellableItems = game.craftedItems.slice(0, 10);
+  const sellableItems = game.craftedItems;
 
   const getQty = (id: string) => sellQtys[id] ?? 1;
   const setQty = (id: string, qty: number) => setSellQtys((prev) => ({ ...prev, [id]: qty }));
 
-  const handleSellResource = (resourceId: string, qty: number) => {
-    const earned = game.sellResource(resourceId, qty);
+  const confirmSale = () => {
+    if (!pendingSale) return;
+    const earned = pendingSale.kind === 'resource'
+      ? game.sellResource(pendingSale.resourceId, pendingSale.qty)
+      : game.sellItem(pendingSale.instanceId);
     if (earned > 0) {
-      setLastSellMsg(`+${earned} 🪙`);
+      setLastSellMsg(`+${earned} 🪙 reçus`);
       setTimeout(() => setLastSellMsg(null), 1800);
       AudioManager.playCoin();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-  };
-
-  const handleSellItem = (instanceId: string) => {
-    const earned = game.sellItem(instanceId);
-    if (earned > 0) {
-      setLastSellMsg(`+${earned} 🪙`);
-      setTimeout(() => setLastSellMsg(null), 1800);
-      AudioManager.playCoin();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
+    setPendingSale(null);
   };
 
   return (
-    <View style={[mStyles.section, { paddingHorizontal: 16, marginTop: 16 }]}>
-      <View style={mStyles.sectionHeader}>
-        <Text style={[mStyles.sectionTitle, { color: colors.accent }]}>MARCHÉ</Text>
-        {lastSellMsg && <Text style={[mStyles.sellMsg, { color: '#4CAF50' }]}>{lastSellMsg}</Text>}
-        <TouchableOpacity onPress={() => setShowItems(!showItems)}>
-          <Text style={[mStyles.toggleText, { color: colors.primary }]}>
-            {showItems ? 'Ressources' : 'Objets forgés'}
+    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+      <View style={mStyles.overlay}>
+        <View style={[mStyles.sheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={[mStyles.handle, { backgroundColor: colors.muted }]} />
+          <View style={mStyles.header}>
+            <Feather name="shopping-bag" size={19} color={colors.accent} />
+            <Text style={[mStyles.title, { color: colors.foreground }]}>PLACE DU MARCHÉ</Text>
+            <TouchableOpacity onPress={onClose} accessibilityLabel="Fermer le marché">
+              <Feather name="x" size={22} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          </View>
+          <Text style={[mStyles.subtitle, { color: colors.mutedForeground }]}>
+            Vendez ce dont vous n’avez pas besoin contre de l’or. Les ressources suivent les cours du marché.
           </Text>
-        </TouchableOpacity>
-      </View>
+          <View style={mStyles.tabs}>
+            <TouchableOpacity
+              style={[mStyles.tab, { backgroundColor: !showItems ? colors.primary : colors.secondary, borderColor: !showItems ? colors.primary : colors.border }]}
+              onPress={() => setShowItems(false)}
+            >
+              <Text style={[mStyles.tabText, { color: !showItems ? colors.primaryForeground : colors.mutedForeground }]}>Ressources</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[mStyles.tab, { backgroundColor: showItems ? colors.primary : colors.secondary, borderColor: showItems ? colors.primary : colors.border }]}
+              onPress={() => setShowItems(true)}
+            >
+              <Text style={[mStyles.tabText, { color: showItems ? colors.primaryForeground : colors.mutedForeground }]}>Objets forgés</Text>
+            </TouchableOpacity>
+          </View>
+          {lastSellMsg && <Text style={[mStyles.sellMsg, { color: '#4CAF50', textAlign: 'center', marginBottom: 10 }]}>{lastSellMsg}</Text>}
 
-      {!showItems && (
-        <>
-          <Text style={[mStyles.marketHint, { color: colors.mutedForeground }]}>
-            Ventes à 80% de la valeur marchande. Les prix fluctuent selon l'offre.
-          </Text>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomPad + 20 }}>
+            {!showItems && (
+              <>
+                <Text style={[mStyles.subtitle, { color: colors.mutedForeground }]}>Vous recevez 80% du cours affiché.</Text>
           {inventoryResources.length === 0 ? (
             <View style={[mStyles.emptyRow, { borderColor: colors.border }]}>
               <Text style={[mStyles.emptyText, { color: colors.mutedForeground }]}>
@@ -750,7 +785,10 @@ function MarketSection({ game, colors }: { game: ReturnType<typeof useGame>; col
                     <TouchableOpacity style={[mStyles.qtyBtn, { backgroundColor: colors.secondary }]} onPress={() => setQty(inv.resourceId, Math.min(inv.quantity, qty + 1))}>
                       <Feather name="plus" size={11} color={colors.foreground} />
                     </TouchableOpacity>
-                    <TouchableOpacity style={[mStyles.sellBtn, { backgroundColor: colors.primary }]} onPress={() => handleSellResource(inv.resourceId, qty)}>
+                    <TouchableOpacity
+                      style={[mStyles.sellBtn, { backgroundColor: colors.primary }]}
+                      onPress={() => setPendingSale({ kind: 'resource', resourceId: inv.resourceId, name: res.name, qty, gold: sellPrice * qty })}
+                    >
                       <Text style={[mStyles.sellBtnText, { color: colors.primaryForeground }]}>
                         Vendre · {sellPrice * qty}g
                       </Text>
@@ -760,14 +798,12 @@ function MarketSection({ game, colors }: { game: ReturnType<typeof useGame>; col
               );
             })
           )}
-        </>
-      )}
+              </>
+            )}
 
-      {showItems && (
-        <>
-          <Text style={[mStyles.marketHint, { color: colors.mutedForeground }]}>
-            Ventes à 85% de la valeur d'estimation.
-          </Text>
+            {showItems && (
+              <>
+                <Text style={[mStyles.subtitle, { color: colors.mutedForeground }]}>Vous recevez 85% de la valeur d’estimation.</Text>
           {sellableItems.length === 0 ? (
             <View style={[mStyles.emptyRow, { borderColor: colors.border }]}>
               <Text style={[mStyles.emptyText, { color: colors.mutedForeground }]}>
@@ -784,16 +820,44 @@ function MarketSection({ game, colors }: { game: ReturnType<typeof useGame>; col
                     <Text style={[mStyles.resName, { color: colors.foreground }]}>{item.name}</Text>
                     <Text style={[mStyles.resStock, { color: colors.mutedForeground }]}>{item.category} · {item.quality} · {item.value}g</Text>
                   </View>
-                  <TouchableOpacity style={[mStyles.sellBtn, { backgroundColor: colors.primary }]} onPress={() => handleSellItem(item.instanceId)}>
-                    <Text style={[mStyles.sellBtnText, { color: colors.primaryForeground }]}>{sellPrice}g</Text>
+                  <TouchableOpacity
+                    style={[mStyles.sellBtn, { backgroundColor: colors.primary }]}
+                    onPress={() => setPendingSale({ kind: 'item', instanceId: item.instanceId, name: item.name, gold: sellPrice })}
+                  >
+                    <Text style={[mStyles.sellBtnText, { color: colors.primaryForeground }]}>Vendre · {sellPrice}g</Text>
                   </TouchableOpacity>
                 </View>
               );
             })
           )}
-        </>
+              </>
+            )}
+          </ScrollView>
+        </View>
+      </View>
+
+      {pendingSale && (
+        <View style={[StyleSheet.absoluteFillObject, mStyles.confirmOverlay]}>
+          <View style={[mStyles.confirmCard, { backgroundColor: colors.card, borderColor: colors.accent }]}>
+            <Text style={[mStyles.confirmTitle, { color: colors.foreground }]}>Confirmer la vente</Text>
+            <Text style={[mStyles.confirmText, { color: colors.mutedForeground }]}>
+              {pendingSale?.kind === 'resource'
+                ? `Vendre ${pendingSale.qty} × ${pendingSale.name} ?`
+                : `Vendre ${pendingSale?.name ?? ''} ?`}
+            </Text>
+            <Text style={[mStyles.confirmReward, { color: colors.accent }]}>+{pendingSale?.gold ?? 0} or</Text>
+            <View style={mStyles.confirmActions}>
+              <TouchableOpacity style={[mStyles.confirmBtn, { backgroundColor: colors.secondary }]} onPress={() => setPendingSale(null)}>
+                <Text style={[mStyles.confirmBtnText, { color: colors.mutedForeground }]}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[mStyles.confirmBtn, { backgroundColor: colors.primary }]} onPress={confirmSale}>
+                <Text style={[mStyles.confirmBtnText, { color: colors.primaryForeground }]}>Vendre</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       )}
-    </View>
+    </Modal>
   );
 }
 
@@ -810,6 +874,7 @@ export default function WorldScreen() {
   const [gameHour, setGameHour] = useState(() => new Date().getHours());
   const [collectResult, setCollectResult] = useState<{ resourceId: string; quantity: number }[]>([]);
   const [showCollectResult, setShowCollectResult] = useState(false);
+  const [showMarket, setShowMarket] = useState(false);
 
   const headerTopPad = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPad = insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 96;
@@ -900,6 +965,14 @@ export default function WorldScreen() {
           </View>
         </View>
         <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={[styles.marketShortcut, { backgroundColor: colors.accent }]}
+            onPress={() => setShowMarket(true)}
+            accessibilityLabel="Ouvrir la place du marché"
+          >
+            <Feather name="shopping-bag" size={13} color="#000" />
+            <Text style={styles.marketShortcutText}>Marché</Text>
+          </TouchableOpacity>
           <View style={[styles.headerBadge, { backgroundColor: colors.secondary }]}>
             <Text style={[styles.headerBadgeText, { color: colors.mutedForeground }]}>
               {phaseConf.emoji} {phaseConf.label}
@@ -997,9 +1070,9 @@ export default function WorldScreen() {
           })}
         </View>
 
-        {/* ── Market section ── */}
-        <MarketSection game={game} colors={colors} />
       </ScrollView>
+
+      <MarketModal visible={showMarket} onClose={() => setShowMarket(false)} game={game} colors={colors} bottomPad={bottomPad} />
 
       {/* ── Region detail sheet ── */}
       <Modal visible={showDetail && !!selectedRegion} transparent animationType="slide" statusBarTranslucent>
@@ -1133,6 +1206,8 @@ const styles = StyleSheet.create({
   headerRight: { flexDirection: 'row', gap: 6 },
   headerBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 16 },
   headerBadgeText: { fontSize: 11, fontWeight: '600' },
+  marketShortcut: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 16 },
+  marketShortcutText: { fontSize: 11, fontWeight: '800', color: '#000' },
 
   // Map
   mapWrapper: {},

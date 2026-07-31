@@ -51,6 +51,12 @@ const ALL_FORGE_UPGRADES: ForgeUpgradeData[] = require('@/data/forgeUpgrades.jso
 
 /** Generate a random order from the NPC roster */
 const QUALITY_ORDER: Record<Quality, number> = { poor: 0, normal: 1, good: 2, excellent: 3, legendary: 4 };
+const STARTER_RECIPE_IDS = ['iron_sword', 'iron_axe', 'iron_lance'];
+
+function recipeUnlockCost(recipe: RecipeData): number {
+  if (STARTER_RECIPE_IDS.includes(recipe.id)) return 0;
+  return Math.max(100, recipe.levelRequired * 150);
+}
 
 /** How long (ms) between auto-generated NPC orders */
 const ORDER_INTERVAL_MS = 3 * 60 * 1000; // 3 minutes
@@ -184,6 +190,7 @@ type GameAction =
   | { type: 'UPGRADE_FORGE_ELEMENT'; element: string; goldCost: number; resourceCosts: { resourceId: string; qty: number }[] }
   // Talents
   | { type: 'UNLOCK_TALENT'; talentId: string; cost: number }
+  | { type: 'UNLOCK_RECIPE'; recipeId: string; goldCost: number }
   // Customization
   | { type: 'CUSTOMIZE_PLAYER'; name: string; forgeName: string; avatarColor?: string; avatarIcon?: string | null; avatarImage?: string | null }
   // Session snapshot
@@ -210,6 +217,7 @@ function buildInitialPlayer(): Player {
     skills,
     skillXP,
     talentsUnlocked: [],
+    unlockedRecipeIds: STARTER_RECIPE_IDS,
     talentPoints: 0,
     totalItemsCrafted: 0,
     totalGoldEarned: 150,
@@ -261,11 +269,19 @@ function buildInitialState(): GameState {
 
 /** Generate a random NPC order based on player level */
 function generateNpcOrder(playerLevel: number, forgeLevel: number): CraftOrder {
-  const npc = ALL_NPCS[Math.floor(Math.random() * ALL_NPCS.length)];
+  // High-tier NPCs can have requests that a new forge simply cannot fulfill.
+  // Only introduce them once the player has the matching progression.
+  const eligibleNpcs = ALL_NPCS.filter((npc) => {
+    if (npc.type === 'king') return playerLevel >= 20 && forgeLevel >= 5;
+    if (npc.type === 'noble') return playerLevel >= 12 && forgeLevel >= 3;
+    return true;
+  });
+  const npcPool = eligibleNpcs.length > 0 ? eligibleNpcs : ALL_NPCS;
+  const npc = npcPool[Math.floor(Math.random() * npcPool.length)];
 
   // Pick a recipe matching NPC preferences and player level
-  // Cap recipe level so early players always have a craftable recipe
-  const maxRecipeLevel = Math.max(1, Math.min(playerLevel, playerLevel + 1));
+  // Never request a recipe above the forge skill level; it must be craftable now.
+  const maxRecipeLevel = Math.max(1, Math.min(playerLevel, forgeLevel));
   const eligible = ALL_RECIPES.filter((r) => {
     const matchesCategory = npc.preferredCategories.includes(r.category);
     return matchesCategory && r.levelRequired <= maxRecipeLevel;
@@ -283,17 +299,16 @@ function generateNpcOrder(playerLevel: number, forgeLevel: number): CraftOrder {
   const deadlineHours = 6 + Math.floor(Math.random() * 13);
   const deadline = Date.now() + deadlineHours * 60 * 60 * 1000;
 
-  // Cap minQuality based on player level so early-game orders are achievable
-  // Level  1-4:  max normal
-  // Level  5-9:  max good
-  // Level 10-14: max excellent
-  // Level 15+:   original NPC quality (including legendary for king etc.)
+  // Orders start with forgiving quality targets and rise only with actual forge
+  // ability. This avoids "good" requests before the player can reliably make one.
+  // Forge 1-3: poor/normal, 4-7: at most good, 8-9: at most excellent, 10: all.
   const npcQualityIdx = QUALITY_ORDER[npc.minQuality] ?? 1;
   let maxQualityIdx: number;
-  if (playerLevel < 5) maxQualityIdx = 1;      // normal
-  else if (playerLevel < 10) maxQualityIdx = 2; // good
-  else if (playerLevel < 15) maxQualityIdx = 3; // excellent
-  else maxQualityIdx = 4;                        // legendary (king-tier)
+  if (forgeLevel <= 1 || playerLevel < 4) maxQualityIdx = 0; // poor
+  else if (forgeLevel <= 3 || playerLevel < 8) maxQualityIdx = 1; // normal
+  else if (forgeLevel <= 7 || playerLevel < 15) maxQualityIdx = 2; // good
+  else if (forgeLevel <= 9 || playerLevel < 25) maxQualityIdx = 3; // excellent
+  else maxQualityIdx = 4; // legendary
   const minQualityIdx = Math.min(npcQualityIdx, maxQualityIdx);
   const qualities: Quality[] = ['poor', 'normal', 'good', 'excellent', 'legendary'];
 
@@ -370,6 +385,12 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         forgeName: s.player.forgeName ?? 'La Forge du Débutant',
         talentPoints: migratedTalentPoints,
         talentsUnlocked: s.player.talentsUnlocked ?? [],
+        unlockedRecipeIds: Array.from(new Set([
+          ...STARTER_RECIPE_IDS,
+          ...(s.player.unlockedRecipeIds ?? []),
+          ...(s.craftedItems ?? []).map((item) => item.recipeId),
+          ...(s.forgeHistory ?? []).flatMap((item) => item.recipeId ? [item.recipeId] : []),
+        ])),
         totalGoldEarned: s.player.totalGoldEarned ?? 0,
         totalItemsCrafted: s.player.totalItemsCrafted ?? 0,
         totalOrdersDelivered: s.player.totalOrdersDelivered ?? 0,
@@ -447,6 +468,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
       const historyEntry: ForgeHistoryEntry = {
         instanceId: action.item.instanceId,
+        recipeId: action.item.recipeId,
         name: action.item.name,
         category: action.item.category,
         quality: action.item.quality,
@@ -723,6 +745,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
     // ── Market & selling ─────────────────────────────────────────────────────
     case 'SELL_ITEM': {
+      if (!state.craftedItems.some((item) => item.instanceId === action.instanceId) || action.goldAmount <= 0) {
+        return state;
+      }
       const player = {
         ...state.player,
         gold: state.player.gold + action.goldAmount,
@@ -736,6 +761,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
     case 'SELL_RESOURCE': {
+      const owned = state.inventory.find((item) => item.resourceId === action.resourceId)?.quantity ?? 0;
+      if (action.qty <= 0 || action.qty > owned || action.goldAmount <= 0) return state;
       const player = {
         ...state.player,
         gold: state.player.gold + action.goldAmount,
@@ -798,6 +825,24 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, player };
     }
 
+    case 'UNLOCK_RECIPE': {
+      const recipe = ALL_RECIPES.find((candidate) => candidate.id === action.recipeId);
+      if (!recipe || state.player.unlockedRecipeIds.includes(action.recipeId)) return state;
+      const skillLevel = state.player.skills[recipe.skillRequired] ?? 0;
+      const expectedCost = recipeUnlockCost(recipe);
+      if (skillLevel < recipe.levelRequired || action.goldCost !== expectedCost || state.player.gold < expectedCost) {
+        return state;
+      }
+      return {
+        ...state,
+        player: {
+          ...state.player,
+          gold: state.player.gold - expectedCost,
+          unlockedRecipeIds: [...state.player.unlockedRecipeIds, action.recipeId],
+        },
+      };
+    }
+
     case 'CUSTOMIZE_PLAYER': {
       const player: Player = {
         ...state.player,
@@ -854,9 +899,11 @@ interface GameContextType {
   // Helpers
   getResourceById: (id: string) => ResourceData | undefined;
   getRecipeById: (id: string) => RecipeData | undefined;
+  getRecipeUnlockCost: (recipeId: string) => number;
   getInventoryQty: (resourceId: string) => number;
   canCraftRecipe: (recipeId: string) => boolean;
   getAvailableRecipes: () => RecipeData[];
+  unlockRecipe: (recipeId: string) => boolean;
   getSocketableGems: () => GemData[];
   getActiveQuests: () => (Quest & { progress: Record<string, number> })[];
   getMarketPrice: (resourceId: string) => number;
@@ -1131,6 +1178,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     (recipeId: string) => {
       const recipe = ALL_RECIPES.find((r) => r.id === recipeId);
       if (!recipe) return false;
+      if (!state.player.unlockedRecipeIds.includes(recipeId)) return false;
       const skillLevel = state.player.skills[recipe.skillRequired] ?? 0;
       if (skillLevel < recipe.levelRequired) return false;
       return recipe.requirements.every(
@@ -1139,15 +1187,36 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           req.quantity,
       );
     },
-    [state.inventory, state.player.skills],
+    [state.inventory, state.player.skills, state.player.unlockedRecipeIds],
   );
 
   const getAvailableRecipes = useCallback(() => {
     return ALL_RECIPES.filter((r) => {
       const skillLevel = state.player.skills[r.skillRequired] ?? 0;
-      return skillLevel >= r.levelRequired;
+      return state.player.unlockedRecipeIds.includes(r.id) && skillLevel >= r.levelRequired;
     });
-  }, [state.player.skills]);
+  }, [state.player.skills, state.player.unlockedRecipeIds]);
+
+  const getRecipeUnlockCost = useCallback(
+    (recipeId: string) => {
+      const recipe = ALL_RECIPES.find((candidate) => candidate.id === recipeId);
+      return recipe ? recipeUnlockCost(recipe) : 0;
+    },
+    [],
+  );
+
+  const unlockRecipe = useCallback(
+    (recipeId: string): boolean => {
+      const recipe = ALL_RECIPES.find((candidate) => candidate.id === recipeId);
+      if (!recipe || state.player.unlockedRecipeIds.includes(recipeId)) return false;
+      const skillLevel = state.player.skills[recipe.skillRequired] ?? 0;
+      const cost = recipeUnlockCost(recipe);
+      if (skillLevel < recipe.levelRequired || state.player.gold < cost) return false;
+      dispatch({ type: 'UNLOCK_RECIPE', recipeId, goldCost: cost });
+      return true;
+    },
+    [state.player.gold, state.player.skills, state.player.unlockedRecipeIds],
+  );
 
   // -------------------------------------------------------------------------
   // Actions
@@ -1773,9 +1842,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       maxWeight,
       getResourceById,
       getRecipeById,
+       getRecipeUnlockCost,
       getInventoryQty,
       canCraftRecipe,
       getAvailableRecipes,
+       unlockRecipe,
       getSocketableGems,
       getActiveQuests,
       getMarketPrice,
