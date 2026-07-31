@@ -968,7 +968,7 @@ export default function WorldScreen() {
   const [exploringRegion, setExploringRegion] = useState<RegionData | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [gameHour, setGameHour] = useState(() => new Date().getHours());
-  const [collectResult, setCollectResult] = useState<{ resourceId: string; quantity: number }[]>([]);
+  const [collectResult, setCollectResult] = useState<{ drops: { resourceId: string; quantity: number }[]; regionCompleted: boolean; completionRewards?: { gold: number; playerXp: number; harvestXp: number; talentPoint: number } }>({ drops: [], regionCompleted: false });
   const [showCollectResult, setShowCollectResult] = useState(false);
   const [showMarket, setShowMarket] = useState(false);
 
@@ -1006,11 +1006,14 @@ export default function WorldScreen() {
     if (!selectedRegion) return;
     AudioManager.playCollect();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const drops = game.collectFromRegion(selectedRegion.id);
+    const result = game.collectFromRegion(selectedRegion.id);
     setShowDetail(false);
     setSelectedRegion(null);
-    setCollectResult(drops);
+    setCollectResult(result);
     setShowCollectResult(true);
+    if (result.regionCompleted) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
   }, [selectedRegion, game]);
 
   const handleExplore = useCallback(() => {
@@ -1129,7 +1132,12 @@ export default function WorldScreen() {
                     <Text style={[styles.regionRowName, { color: isUnlocked ? colors.foreground : colors.mutedForeground }]}>
                       {region.name}
                     </Text>
-                    {isUnlocked && (
+                    {isUnlocked && game.completedRegions.includes(region.id) && (
+                      <View style={[styles.unlockedBadge, { backgroundColor: '#FFD70028' }]}>
+                        <Text style={[styles.unlockedText, { color: '#FFD700' }]}>🏆 COMPLÉTÉ</Text>
+                      </View>
+                    )}
+                    {isUnlocked && !game.completedRegions.includes(region.id) && (
                       <View style={[styles.unlockedBadge, { backgroundColor: rc + '28' }]}>
                         <Text style={[styles.unlockedText, { color: rc }]}>DÉBLOQUÉ</Text>
                       </View>
@@ -1259,13 +1267,41 @@ export default function WorldScreen() {
       {/* ── Quick collect result ── */}
       <Modal visible={showCollectResult} transparent animationType="fade" statusBarTranslucent>
         <View style={styles.overlay}>
-          <View style={[styles.resultBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={{ fontSize: 36, textAlign: 'center' }}>🎒</Text>
+          <View style={[
+            styles.resultBox,
+            {
+              backgroundColor: colors.card,
+              borderColor: collectResult.regionCompleted ? '#FFD700' : colors.border,
+              borderWidth: collectResult.regionCompleted ? 2 : 1,
+            },
+          ]}>
+            {/* Region completion banner */}
+            {collectResult.regionCompleted && collectResult.completionRewards && (
+              <View style={[styles.completionBanner, { backgroundColor: '#FFD70022', borderColor: '#FFD70066' }]}>
+                <Text style={{ fontSize: 28, textAlign: 'center' }}>🏆</Text>
+                <Text style={[styles.completionTitle, { color: '#FFD700' }]}>Région explorée à 100 % !</Text>
+                <View style={styles.completionRewards}>
+                  <Text style={[styles.completionRewardText, { color: colors.foreground }]}>
+                    +{collectResult.completionRewards.gold}g
+                  </Text>
+                  <Text style={[styles.completionRewardText, { color: colors.accent }]}>
+                    +{collectResult.completionRewards.playerXp} XP
+                  </Text>
+                  {collectResult.completionRewards.talentPoint > 0 && (
+                    <Text style={[styles.completionRewardText, { color: '#CE93D8' }]}>
+                      +1 talent
+                    </Text>
+                  )}
+                </View>
+              </View>
+            )}
+
+            <Text style={{ fontSize: 32, textAlign: 'center' }}>🎒</Text>
             <Text style={[styles.resultTitle, { color: colors.foreground }]}>Ressources collectées !</Text>
-            {collectResult.length === 0 ? (
+            {collectResult.drops.length === 0 ? (
               <Text style={[styles.resultEmpty, { color: colors.mutedForeground }]}>Rien trouvé… réessayez !</Text>
             ) : (
-              collectResult.map((drop) => {
+              collectResult.drops.map((drop) => {
                 const res = game.getResourceById(drop.resourceId);
                 return (
                   <View key={drop.resourceId} style={styles.dropRow}>
@@ -1279,9 +1315,15 @@ export default function WorldScreen() {
             )}
             <TouchableOpacity
               style={[styles.resultBtn, { backgroundColor: colors.primary }]}
-              onPress={() => { setShowCollectResult(false); setCollectResult([]); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); }}
+              onPress={() => {
+                setShowCollectResult(false);
+                setCollectResult({ drops: [], regionCompleted: false });
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              }}
             >
-              <Text style={[styles.resultBtnText, { color: colors.primaryForeground }]}>Super !</Text>
+              <Text style={[styles.resultBtnText, { color: colors.primaryForeground }]}>
+                {collectResult.regionCompleted ? '🎉 Incroyable !' : 'Super !'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1368,6 +1410,10 @@ const styles = StyleSheet.create({
   btnExploreText: { fontSize: 14, fontWeight: '800', color: '#fff' },
 
   // Quick collect result
+  completionBanner: { borderWidth: 1, borderRadius: 12, padding: 12, alignItems: 'center', gap: 6, width: '100%' },
+  completionTitle: { fontSize: 15, fontWeight: '800', textAlign: 'center' },
+  completionRewards: { flexDirection: 'row', gap: 12, flexWrap: 'wrap', justifyContent: 'center' },
+  completionRewardText: { fontSize: 14, fontWeight: '700' },
   resultBox: { margin: 40, borderRadius: 20, padding: 28, borderWidth: 1, alignItems: 'center', gap: 12 },
   resultTitle: { fontSize: 20, fontWeight: '700', textAlign: 'center' },
   resultEmpty: { fontSize: 14, textAlign: 'center' },

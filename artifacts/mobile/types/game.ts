@@ -417,5 +417,6 @@ export interface SaveData {
   forgeHistory: ForgeHistoryEntry[];
   sessionSnapshots: SessionSnapshot[];
   apprentice: Apprentice | null;
+  completedRegions: string[];
   lastSaved: number;
 }

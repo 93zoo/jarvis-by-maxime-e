@@ -157,6 +157,7 @@ interface GameState {
   forgeHistory: ForgeHistoryEntry[]; // persistent craft history, never deleted on sell
   sessionSnapshots: SessionSnapshot[]; // one per session, newest-last, max 30
   apprentice: Apprentice | null;
+  completedRegions: string[];
 }
 
 type GameAction =
@@ -203,6 +204,8 @@ type GameAction =
   | { type: 'CUSTOMIZE_PLAYER'; name: string; forgeName: string; avatarColor?: string; avatarIcon?: string | null; avatarImage?: string | null }
   // Session snapshot
   | { type: 'ADD_SESSION_SNAPSHOT'; snapshot: SessionSnapshot }
+  // Region completion
+  | { type: 'REGION_COMPLETE'; regionId: string; goldReward: number; playerXp: number; harvestXp: number; talentPoint: number }
   // Apprentice
   | { type: 'HIRE_APPRENTICE'; name: string }
   | { type: 'DISMISS_APPRENTICE' }
@@ -333,6 +336,7 @@ function buildInitialState(): GameState {
     forgeHistory: [],
     sessionSnapshots: [],
     apprentice: null,
+    completedRegions: [],
   };
 }
 
@@ -493,6 +497,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         forgeHistory: s.forgeHistory ?? [],
         sessionSnapshots: s.sessionSnapshots ?? [],
         apprentice: s.apprentice ?? null,
+        completedRegions: s.completedRegions ?? [],
       };
     }
     case 'RESET': {
@@ -961,6 +966,22 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, sessionSnapshots: snapshots };
     }
 
+    // ── Region completion ─────────────────────────────────────────────────────
+    case 'REGION_COMPLETE': {
+      if (state.completedRegions.includes(action.regionId)) return state;
+      const player: Player = {
+        ...state.player,
+        gold: state.player.gold + action.goldReward,
+        xp: state.player.xp + action.playerXp,
+        talentPoints: state.player.talentPoints + action.talentPoint,
+      };
+      return {
+        ...state,
+        player,
+        completedRegions: [...state.completedRegions, action.regionId],
+      };
+    }
+
     // ── Apprentice ────────────────────────────────────────────────────────────
     case 'HIRE_APPRENTICE': {
       if (state.player.gold < APPRENTICE_HIRE_COST) return state;
@@ -1124,7 +1145,8 @@ interface GameContextType {
   spendGold: (amount: number) => boolean;
   addPlayerXP: (amount: number) => void;
   addSkillXP: (skill: SkillType, amount: number) => void;
-  collectFromRegion: (regionId: string) => { resourceId: string; quantity: number }[];
+  collectFromRegion: (regionId: string) => { drops: { resourceId: string; quantity: number }[]; regionCompleted: boolean; completionRewards?: { gold: number; playerXp: number; harvestXp: number; talentPoint: number } };
+  completedRegions: string[];
   unlockRegion: (regionId: string) => void;
   addExploration: (regionId: string, gain: number) => void;
   fightForMaterials: (regionId: string, playerTotal: number, enemyTotal: number) => CombatResult;
@@ -1355,6 +1377,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           forgeHistory: state.forgeHistory,
           sessionSnapshots: updatedSnaps,
           apprentice: state.apprentice,
+          completedRegions: state.completedRegions,
           lastSaved: now,
         };
         await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
@@ -1455,6 +1478,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         forgeHistory: state.forgeHistory,
         sessionSnapshots: state.sessionSnapshots,
         apprentice: state.apprentice,
+        completedRegions: state.completedRegions,
         lastSaved: Date.now(),
       };
       AsyncStorage.setItem(SAVE_KEY, JSON.stringify(immediteSave)).catch(() => {
@@ -1617,19 +1641,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const collectFromRegion = useCallback(
-    (regionId: string): { resourceId: string; quantity: number }[] => {
+    (regionId: string): { drops: { resourceId: string; quantity: number }[]; regionCompleted: boolean; completionRewards?: { gold: number; playerXp: number; harvestXp: number; talentPoint: number } } => {
       const region = ALL_REGIONS.find((r) => r.id === regionId);
-      if (!region) return [];
-      if (!state.unlockedRegions.includes(regionId)) return [];
+      if (!region || !state.unlockedRegions.includes(regionId)) return { drops: [], regionCompleted: false };
 
       const collectBonus = Math.floor(computeTalentBonus(state.player.talentsUnlocked, 'collectBonus'));
       const collectYield = computeTalentBonus(state.player.talentsUnlocked, 'collectYield');
       const drops: { resourceId: string; quantity: number }[] = [];
       for (const node of region.resourceNodes) {
         if (Math.random() < node.dropRate) {
-          const baseQty = Math.floor(
-            Math.random() * (node.maxQty - node.minQty + 1) + node.minQty,
-          );
+          const baseQty = Math.floor(Math.random() * (node.maxQty - node.minQty + 1) + node.minQty);
           const qty = Math.max(1, Math.round((baseQty + collectBonus) * (1 + collectYield)));
           drops.push({ resourceId: node.resourceId, quantity: qty });
           dispatch({ type: 'ADD_RESOURCE', resourceId: node.resourceId, qty });
@@ -1639,13 +1660,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       // Update exploration percent
       const currentExploration = state.regionExploration[regionId] ?? 0;
       const gain = Math.floor(Math.random() * 5 + 1);
-      dispatch({
-        type: 'SET_EXPLORATION',
-        regionId,
-        percent: currentExploration + gain,
-      });
+      const newExploration = Math.min(100, currentExploration + gain);
+      dispatch({ type: 'SET_EXPLORATION', regionId, percent: newExploration });
 
-      // Reward harvest XP + quest progress
+      // Harvest XP + quest progress
       if (drops.length > 0) {
         dispatch({ type: 'ADD_SKILL_XP', skill: 'harvest', amount: drops.length * 3 });
         dispatch({ type: 'ADD_PLAYER_XP', amount: drops.length * 2 });
@@ -1654,9 +1672,22 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      return drops;
+      // Check region completion (first time hitting 100%)
+      const wasAlreadyCompleted = state.completedRegions.includes(regionId);
+      if (newExploration >= 100 && !wasAlreadyCompleted) {
+        const lv = region.levelRequired;
+        const goldReward    = Math.round(lv * 150 + 300);
+        const playerXp      = Math.round(lv * 40 + 100);
+        const harvestXp     = Math.round(lv * 25 + 50);
+        const talentPoint   = lv >= 5 ? 1 : 0;
+        dispatch({ type: 'REGION_COMPLETE', regionId, goldReward, playerXp, harvestXp, talentPoint });
+        dispatch({ type: 'ADD_SKILL_XP', skill: 'harvest', amount: harvestXp });
+        return { drops, regionCompleted: true, completionRewards: { gold: goldReward, playerXp, harvestXp, talentPoint } };
+      }
+
+      return { drops, regionCompleted: false };
     },
-    [state.unlockedRegions, state.regionExploration, state.player.talentsUnlocked],
+    [state.unlockedRegions, state.regionExploration, state.player.talentsUnlocked, state.completedRegions],
   );
 
   const unlockRegion = useCallback((regionId: string) => {
@@ -1964,6 +1995,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       forgeHistory: state.forgeHistory,
       sessionSnapshots: updatedSnaps,
       apprentice: state.apprentice,
+      completedRegions: state.completedRegions,
       lastSaved: now,
     };
     await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
@@ -1992,6 +2024,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         forgeHistory: state.forgeHistory,
         sessionSnapshots: state.sessionSnapshots,
         apprentice: state.apprentice,
+        completedRegions: state.completedRegions,
         lastSaved: Date.now(),
       };
       const res = await fetch(`${base}/save`, {
@@ -2230,6 +2263,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       syncToCloud,
       // Customization
       customizePlayer,
+      // Regions
+      completedRegions: state.completedRegions,
       // Apprentice
       apprentice: state.apprentice,
       hireApprentice,
