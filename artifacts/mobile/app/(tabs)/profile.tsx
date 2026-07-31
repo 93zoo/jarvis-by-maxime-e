@@ -934,6 +934,41 @@ function SkillProgressChart({
 }) {
   const [selectedSkill, setSelectedSkill] = useState<SkillType>('forge');
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const [chartWidth, setChartWidth] = useState(0);
+  const drawProgress = useSharedValue(0);
+  const reducedMotion = useReducedMotion();
+
+  // Animate wipe-in on skill-tab change
+  useEffect(() => {
+    drawProgress.value = 0;
+    if (reducedMotion) {
+      drawProgress.value = 1;
+    } else {
+      drawProgress.value = withTiming(1, {
+        duration: 500,
+        easing: Easing.out(Easing.cubic),
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSkill]);
+
+  // Animate on first valid chartWidth measurement
+  const scHasAnimated = useRef(false);
+  useEffect(() => {
+    if (chartWidth > 0 && !scHasAnimated.current) {
+      scHasAnimated.current = true;
+      drawProgress.value = 0;
+      if (!reducedMotion) {
+        drawProgress.value = withTiming(1, {
+          duration: 500,
+          easing: Easing.out(Easing.cubic),
+        });
+      } else {
+        drawProgress.value = 1;
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chartWidth]);
 
   // Restore last-used skill on mount
   useEffect(() => {
@@ -1048,7 +1083,11 @@ function SkillProgressChart({
       </ScrollView>
 
       {/* Chart area — swipe left/right to step through sessions */}
-      <View style={[scStyles.chart, { height: SPARKLINE_H }]} {...scPanResponder.panHandlers}>
+      <View
+        style={[scStyles.chart, { height: SPARKLINE_H }]}
+        onLayout={(e) => setChartWidth(e.nativeEvent.layout.width)}
+        {...scPanResponder.panHandlers}
+      >
         {/* Gridlines */}
         {[0, 0.5, 1].map((frac) => (
           <View
@@ -1064,45 +1103,91 @@ function SkillProgressChart({
           />
         ))}
 
-        {/* Dots */}
+        {/* Connecting lines between adjacent dots */}
+        {chartWidth > 0 && count > 1 && skillSnapshots.map((snap, i) => {
+          if (i === 0) return null;
+          const prevSnap = skillSnapshots[i - 1];
+          const prevVal = prevSnap.skills?.[selectedSkill] ?? 1;
+          const currVal = snap.skills?.[selectedSkill] ?? 1;
+          const prevFrac = (prevVal - lo) / range;
+          const currFrac = (currVal - lo) / range;
+          const prevBottom = prevFrac * (SPARKLINE_H - SPARKLINE_DOT * 2) + SPARKLINE_DOT - SPARKLINE_DOT / 2;
+          const currBottom = currFrac * (SPARKLINE_H - SPARKLINE_DOT * 2) + SPARKLINE_DOT - SPARKLINE_DOT / 2;
+          const prevLeftPct = (i - 1) / (count - 1);
+          const currLeftPct = i / (count - 1);
+          const x1 = prevLeftPct * chartWidth;
+          const y1 = SPARKLINE_H - prevBottom - SPARKLINE_DOT / 2;
+          const x2 = currLeftPct * chartWidth;
+          const y2 = SPARKLINE_H - currBottom - SPARKLINE_DOT / 2;
+          const dx = x2 - x1;
+          const dy = y2 - y1;
+          const length = Math.sqrt(dx * dx + dy * dy);
+          const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+          return (
+            <View
+              key={`line-${snap.timestamp}`}
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                left: (x1 + x2) / 2 - length / 2,
+                top: (y1 + y2) / 2 - 1,
+                width: length,
+                height: 2,
+                backgroundColor: dotColor,
+                opacity: 0.55,
+                transform: [{ rotate: `${angle}deg` }],
+              }}
+            />
+          );
+        })}
+
+        {/* Reveal mask — sweeps from right to left, uncovering lines */}
+        {chartWidth > 0 && (
+          <SparklineRevealMask
+            drawProgress={drawProgress}
+            chartWidth={chartWidth}
+            color={colors.card}
+          />
+        )}
+
+        {/* Dots — each fades in as the wipe reaches its x position */}
         {skillSnapshots.map((snap, i) => {
           const val = snap.skills?.[selectedSkill] ?? 1;
           const frac = (val - lo) / range;
           const dotBottom = frac * (SPARKLINE_H - SPARKLINE_DOT * 2) + SPARKLINE_DOT - SPARKLINE_DOT / 2;
           const leftPct = count === 1 ? 50 : (i / (count - 1)) * 100;
+          const xFraction = count === 1 ? 0.5 : i / (count - 1);
           const isLast = i === count - 1;
           const isSelected = selectedIdx === i;
           const dotSize = isSelected ? SPARKLINE_DOT + 5 : isLast ? SPARKLINE_DOT + 2 : SPARKLINE_DOT;
           return (
-            <TouchableOpacity
+            <AnimatedSparkDot
               key={snap.timestamp}
-              activeOpacity={0.7}
-              onPress={() => {
-                setSelectedIdx(selectedIdx === i ? null : i);
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }}
-              style={{
-                position: 'absolute',
-                left: `${leftPct}%` as `${number}%`,
-                bottom: dotBottom - 12,
-                width: 28,
-                height: 28,
-                marginLeft: -14,
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
+              xFraction={xFraction}
+              drawProgress={drawProgress}
+              leftPct={leftPct}
+              bottom={dotBottom - 12}
             >
-              <View
-                style={{
-                  width: dotSize,
-                  height: dotSize,
-                  borderRadius: dotSize / 2,
-                  backgroundColor: isSelected ? dotColor : isLast ? dotColor : `${dotColor}99`,
-                  borderWidth: isSelected ? 2 : 0,
-                  borderColor: '#fff',
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  setSelectedIdx(selectedIdx === i ? null : i);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 }}
-              />
-            </TouchableOpacity>
+                style={{ width: 28, height: 28, justifyContent: 'center', alignItems: 'center' }}
+              >
+                <View
+                  style={{
+                    width: dotSize,
+                    height: dotSize,
+                    borderRadius: dotSize / 2,
+                    backgroundColor: isSelected ? dotColor : isLast ? dotColor : `${dotColor}99`,
+                    borderWidth: isSelected ? 2 : 0,
+                    borderColor: '#fff',
+                  }}
+                />
+              </TouchableOpacity>
+            </AnimatedSparkDot>
           );
         })}
       </View>
