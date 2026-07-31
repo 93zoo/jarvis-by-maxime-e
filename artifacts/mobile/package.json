@@ -57,6 +57,7 @@
   },
   "dependencies": {
     "@types/three": "^0.168.0",
+    "expo-audio": "^1.1.1",
     "expo-av": "^16.0.8",
     "expo-gl": "~16.0.10",
     "three": "^0.168.0"

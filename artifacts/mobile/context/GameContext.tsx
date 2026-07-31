@@ -191,6 +191,10 @@ type GameAction =
   // Talents
   | { type: 'UNLOCK_TALENT'; talentId: string; cost: number }
   | { type: 'UNLOCK_RECIPE'; recipeId: string; goldCost: number }
+  // Market buying
+  | { type: 'BUY_RESOURCE'; resourceId: string; qty: number; goldCost: number }
+  // Order reroll
+  | { type: 'REROLL_ORDER'; orderId: string; newOrder: CraftOrder; goldCost: number }
   // Customization
   | { type: 'CUSTOMIZE_PLAYER'; name: string; forgeName: string; avatarColor?: string; avatarIcon?: string | null; avatarImage?: string | null }
   // Session snapshot
@@ -843,6 +847,32 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    case 'BUY_RESOURCE': {
+      if (state.player.gold < action.goldCost) return state;
+      const inv = [...state.inventory];
+      const idx = inv.findIndex((i) => i.resourceId === action.resourceId);
+      if (idx >= 0) {
+        inv[idx] = { ...inv[idx], quantity: inv[idx].quantity + action.qty };
+      } else {
+        inv.push({ resourceId: action.resourceId, quantity: action.qty });
+      }
+      return {
+        ...state,
+        player: { ...state.player, gold: state.player.gold - action.goldCost },
+        inventory: inv,
+      };
+    }
+
+    case 'REROLL_ORDER': {
+      if (state.player.gold < action.goldCost) return state;
+      const orders = state.activeOrders.filter((o) => o.id !== action.orderId);
+      return {
+        ...state,
+        player: { ...state.player, gold: state.player.gold - action.goldCost },
+        activeOrders: [...orders, action.newOrder],
+      };
+    }
+
     case 'CUSTOMIZE_PLAYER': {
       const player: Player = {
         ...state.player,
@@ -921,6 +951,8 @@ interface GameContextType {
   updateQuestProgress: (type: 'craft' | 'collect' | 'sell' | 'deliver', targetId: string, amount: number) => void;
   sellItem: (instanceId: string) => number;
   sellResource: (resourceId: string, qty: number) => number;
+  buyResource: (resourceId: string, qty: number) => boolean;
+  rerollOrder: (orderId: string) => { success: boolean; cost: number };
   addGold: (amount: number) => void;
   spendGold: (amount: number) => boolean;
   addPlayerXP: (amount: number) => void;
@@ -1505,6 +1537,32 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [state.activeOrders, state.craftedItems],
   );
 
+  const buyResource = useCallback(
+    (resourceId: string, qty: number): boolean => {
+      const res = ALL_RESOURCES.find((r) => r.id === resourceId);
+      if (!res) return false;
+      const unitPrice = Math.round(res.baseValue * 1.35);
+      const goldCost = unitPrice * qty;
+      if (state.player.gold < goldCost) return false;
+      dispatch({ type: 'BUY_RESOURCE', resourceId, qty, goldCost });
+      return true;
+    },
+    [state.player.gold],
+  );
+
+  const rerollOrder = useCallback(
+    (orderId: string): { success: boolean; cost: number } => {
+      const order = state.activeOrders.find((o) => o.id === orderId);
+      if (!order || order.accepted) return { success: false, cost: 0 };
+      const cost = Math.max(30, Math.round(state.player.level * 8));
+      if (state.player.gold < cost) return { success: false, cost };
+      const newOrder = generateNpcOrder(state.player.level, state.player.forgeLevel);
+      dispatch({ type: 'REROLL_ORDER', orderId, newOrder, goldCost: cost });
+      return { success: true, cost };
+    },
+    [state.activeOrders, state.player.gold, state.player.level, state.player.forgeLevel],
+  );
+
   // -------------------------------------------------------------------------
   // Quest actions
   // -------------------------------------------------------------------------
@@ -1864,6 +1922,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       updateQuestProgress,
       sellItem,
       sellResource,
+      buyResource,
+      rerollOrder,
       addGold,
       spendGold,
       addPlayerXP,

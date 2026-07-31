@@ -656,9 +656,11 @@ const mStyles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
   title: { flex: 1, fontSize: 18, fontWeight: '800', letterSpacing: 1 },
   subtitle: { fontSize: 12, lineHeight: 17, marginBottom: 14 },
-  tabs: { flexDirection: 'row', gap: 8, marginBottom: 14 },
-  tab: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 10, borderWidth: 1 },
-  tabText: { fontSize: 13, fontWeight: '700' },
+  goldRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, alignSelf: 'flex-start', marginBottom: 12 },
+  goldText: { fontSize: 13, fontWeight: '700' },
+  tabs: { flexDirection: 'row', gap: 6, marginBottom: 14 },
+  tab: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 10, borderWidth: 1 },
+  tabText: { fontSize: 11, fontWeight: '700' },
   sellMsg: { fontSize: 14, fontWeight: '700' },
   emptyRow: { borderRadius: 10, borderWidth: 1, padding: 14 },
   emptyText: { fontSize: 12, textAlign: 'center' },
@@ -686,6 +688,8 @@ type PendingSale =
   | { kind: 'resource'; resourceId: string; name: string; qty: number; gold: number }
   | { kind: 'item'; instanceId: string; name: string; gold: number };
 
+type MarketTab = 'sell_res' | 'sell_items' | 'buy';
+
 function MarketModal({ visible, onClose, game, colors, bottomPad }: {
   visible: boolean;
   onClose: () => void;
@@ -694,15 +698,29 @@ function MarketModal({ visible, onClose, game, colors, bottomPad }: {
   bottomPad: number;
 }) {
   const [sellQtys, setSellQtys] = useState<Record<string, number>>({});
+  const [buyQtys, setBuyQtys] = useState<Record<string, number>>({});
   const [lastSellMsg, setLastSellMsg] = useState<string | null>(null);
-  const [showItems, setShowItems] = useState(false);
+  const [tab, setTab] = useState<MarketTab>('sell_res');
   const [pendingSale, setPendingSale] = useState<PendingSale | null>(null);
 
   const inventoryResources = game.inventory.filter((i) => i.quantity > 0);
   const sellableItems = game.craftedItems;
 
-  const getQty = (id: string) => sellQtys[id] ?? 1;
-  const setQty = (id: string, qty: number) => setSellQtys((prev) => ({ ...prev, [id]: qty }));
+  // Resources available to buy: all resources the player hasn't discovered yet
+  // or that are useful for crafting, sorted by level
+  const buyableResources = game.allResources
+    .filter((r) => r.level <= game.player.forgeLevel * 3 + 3)
+    .sort((a, b) => a.level - b.level);
+
+  const getSellQty = (id: string) => sellQtys[id] ?? 1;
+  const setSellQty = (id: string, qty: number) => setSellQtys((prev) => ({ ...prev, [id]: qty }));
+  const getBuyQty = (id: string) => buyQtys[id] ?? 1;
+  const setBuyQty = (id: string, qty: number) => setBuyQtys((prev) => ({ ...prev, [id]: qty }));
+
+  const getBuyPrice = (resourceId: string) => {
+    const res = game.getResourceById(resourceId);
+    return res ? Math.round(res.baseValue * 1.35) : 0;
+  };
 
   const confirmSale = () => {
     if (!pendingSale) return;
@@ -718,6 +736,31 @@ function MarketModal({ visible, onClose, game, colors, bottomPad }: {
     setPendingSale(null);
   };
 
+  const handleBuy = (resourceId: string) => {
+    const qty = getBuyQty(resourceId);
+    const res = game.getResourceById(resourceId);
+    const unitPrice = getBuyPrice(resourceId);
+    const total = unitPrice * qty;
+    if (game.player.gold < total) {
+      setLastSellMsg(`Or insuffisant (${total}g requis)`);
+      setTimeout(() => setLastSellMsg(null), 2000);
+      return;
+    }
+    const ok = game.buyResource(resourceId, qty);
+    if (ok) {
+      setLastSellMsg(`${qty}× ${res?.name ?? resourceId} acheté${qty > 1 ? 's' : ''} (-${total}g)`);
+      setTimeout(() => setLastSellMsg(null), 2000);
+      AudioManager.playCoin();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  };
+
+  const TABS: { key: MarketTab; label: string }[] = [
+    { key: 'sell_res', label: 'Vendre res.' },
+    { key: 'sell_items', label: 'Vendre objets' },
+    { key: 'buy', label: '🛒 Acheter' },
+  ];
+
   return (
     <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
       <View style={mStyles.overlay}>
@@ -730,106 +773,149 @@ function MarketModal({ visible, onClose, game, colors, bottomPad }: {
               <Feather name="x" size={22} color={colors.mutedForeground} />
             </TouchableOpacity>
           </View>
-          <Text style={[mStyles.subtitle, { color: colors.mutedForeground }]}>
-            Vendez ce dont vous n’avez pas besoin contre de l’or. Les ressources suivent les cours du marché.
-          </Text>
-          <View style={mStyles.tabs}>
-            <TouchableOpacity
-              style={[mStyles.tab, { backgroundColor: !showItems ? colors.primary : colors.secondary, borderColor: !showItems ? colors.primary : colors.border }]}
-              onPress={() => setShowItems(false)}
-            >
-              <Text style={[mStyles.tabText, { color: !showItems ? colors.primaryForeground : colors.mutedForeground }]}>Ressources</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[mStyles.tab, { backgroundColor: showItems ? colors.primary : colors.secondary, borderColor: showItems ? colors.primary : colors.border }]}
-              onPress={() => setShowItems(true)}
-            >
-              <Text style={[mStyles.tabText, { color: showItems ? colors.primaryForeground : colors.mutedForeground }]}>Objets forgés</Text>
-            </TouchableOpacity>
+          <View style={[mStyles.goldRow, { backgroundColor: colors.secondary }]}>
+            <Feather name="dollar-sign" size={13} color={colors.accent} />
+            <Text style={[mStyles.goldText, { color: colors.accent }]}>{game.player.gold}g disponible</Text>
           </View>
-          {lastSellMsg && <Text style={[mStyles.sellMsg, { color: '#4CAF50', textAlign: 'center', marginBottom: 10 }]}>{lastSellMsg}</Text>}
+          <View style={mStyles.tabs}>
+            {TABS.map((t) => (
+              <TouchableOpacity
+                key={t.key}
+                style={[mStyles.tab, { backgroundColor: tab === t.key ? colors.primary : colors.secondary, borderColor: tab === t.key ? colors.primary : colors.border }]}
+                onPress={() => setTab(t.key)}
+              >
+                <Text style={[mStyles.tabText, { color: tab === t.key ? colors.primaryForeground : colors.mutedForeground }]}>{t.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {lastSellMsg && (
+            <Text style={[mStyles.sellMsg, { color: lastSellMsg.startsWith('+') || lastSellMsg.includes('acheté') ? '#4CAF50' : '#F44336', textAlign: 'center', marginBottom: 8 }]}>
+              {lastSellMsg}
+            </Text>
+          )}
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomPad + 20 }}>
-            {!showItems && (
+            {tab === 'sell_res' && (
               <>
                 <Text style={[mStyles.subtitle, { color: colors.mutedForeground }]}>Vous recevez 80% du cours affiché.</Text>
-          {inventoryResources.length === 0 ? (
-            <View style={[mStyles.emptyRow, { borderColor: colors.border }]}>
-              <Text style={[mStyles.emptyText, { color: colors.mutedForeground }]}>
-                Votre inventaire est vide. Collectez des ressources pour vendre.
-              </Text>
-            </View>
-          ) : (
-            inventoryResources.map((inv) => {
-              const res = game.getResourceById(inv.resourceId);
-              if (!res) return null;
-              const marketMult = game.marketPrices[inv.resourceId] ?? 1.0;
-              const sellPrice = Math.round(res.baseValue * marketMult * 0.8);
-              const trend = marketMult > 1.05 ? '↑' : marketMult < 0.95 ? '↓' : '→';
-              const trendColor = marketMult > 1.05 ? '#4CAF50' : marketMult < 0.95 ? '#F44336' : colors.mutedForeground;
-              const qty = getQty(inv.resourceId);
-              return (
-                <View key={inv.resourceId} style={[mStyles.marketRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                  <View style={[mStyles.resDot, { backgroundColor: res.color }]} />
-                  <View style={mStyles.resInfo}>
-                    <Text style={[mStyles.resName, { color: colors.foreground }]}>{res.name}</Text>
-                    <Text style={[mStyles.resStock, { color: colors.mutedForeground }]}>
-                      Stock: {inv.quantity} · {sellPrice}g/u <Text style={{ color: trendColor }}>{trend}</Text>
+                {inventoryResources.length === 0 ? (
+                  <View style={[mStyles.emptyRow, { borderColor: colors.border }]}>
+                    <Text style={[mStyles.emptyText, { color: colors.mutedForeground }]}>
+                      Votre inventaire est vide. Collectez des ressources pour vendre.
                     </Text>
                   </View>
-                  <View style={mStyles.sellControls}>
-                    <TouchableOpacity style={[mStyles.qtyBtn, { backgroundColor: colors.secondary }]} onPress={() => setQty(inv.resourceId, Math.max(1, qty - 1))}>
-                      <Feather name="minus" size={11} color={colors.foreground} />
-                    </TouchableOpacity>
-                    <Text style={[mStyles.qtyText, { color: colors.foreground }]}>{qty}</Text>
-                    <TouchableOpacity style={[mStyles.qtyBtn, { backgroundColor: colors.secondary }]} onPress={() => setQty(inv.resourceId, Math.min(inv.quantity, qty + 1))}>
-                      <Feather name="plus" size={11} color={colors.foreground} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[mStyles.sellBtn, { backgroundColor: colors.primary }]}
-                      onPress={() => setPendingSale({ kind: 'resource', resourceId: inv.resourceId, name: res.name, qty, gold: sellPrice * qty })}
-                    >
-                      <Text style={[mStyles.sellBtnText, { color: colors.primaryForeground }]}>
-                        Vendre · {sellPrice * qty}g
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              );
-            })
-          )}
+                ) : (
+                  inventoryResources.map((inv) => {
+                    const res = game.getResourceById(inv.resourceId);
+                    if (!res) return null;
+                    const marketMult = game.marketPrices[inv.resourceId] ?? 1.0;
+                    const sellPrice = Math.round(res.baseValue * marketMult * 0.8);
+                    const trend = marketMult > 1.05 ? '↑' : marketMult < 0.95 ? '↓' : '→';
+                    const trendColor = marketMult > 1.05 ? '#4CAF50' : marketMult < 0.95 ? '#F44336' : colors.mutedForeground;
+                    const qty = getSellQty(inv.resourceId);
+                    return (
+                      <View key={inv.resourceId} style={[mStyles.marketRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                        <View style={[mStyles.resDot, { backgroundColor: res.color }]} />
+                        <View style={mStyles.resInfo}>
+                          <Text style={[mStyles.resName, { color: colors.foreground }]}>{res.name}</Text>
+                          <Text style={[mStyles.resStock, { color: colors.mutedForeground }]}>
+                            Stock: {inv.quantity} · {sellPrice}g/u <Text style={{ color: trendColor }}>{trend}</Text>
+                          </Text>
+                        </View>
+                        <View style={mStyles.sellControls}>
+                          <TouchableOpacity style={[mStyles.qtyBtn, { backgroundColor: colors.secondary }]} onPress={() => setSellQty(inv.resourceId, Math.max(1, qty - 1))}>
+                            <Feather name="minus" size={11} color={colors.foreground} />
+                          </TouchableOpacity>
+                          <Text style={[mStyles.qtyText, { color: colors.foreground }]}>{qty}</Text>
+                          <TouchableOpacity style={[mStyles.qtyBtn, { backgroundColor: colors.secondary }]} onPress={() => setSellQty(inv.resourceId, Math.min(inv.quantity, qty + 1))}>
+                            <Feather name="plus" size={11} color={colors.foreground} />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[mStyles.sellBtn, { backgroundColor: colors.primary }]}
+                            onPress={() => setPendingSale({ kind: 'resource', resourceId: inv.resourceId, name: res.name, qty, gold: sellPrice * qty })}
+                          >
+                            <Text style={[mStyles.sellBtnText, { color: colors.primaryForeground }]}>
+                              Vendre · {sellPrice * qty}g
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    );
+                  })
+                )}
               </>
             )}
 
-            {showItems && (
+            {tab === 'sell_items' && (
               <>
-                <Text style={[mStyles.subtitle, { color: colors.mutedForeground }]}>Vous recevez 85% de la valeur d’estimation.</Text>
-          {sellableItems.length === 0 ? (
-            <View style={[mStyles.emptyRow, { borderColor: colors.border }]}>
-              <Text style={[mStyles.emptyText, { color: colors.mutedForeground }]}>
-                Aucun objet forgé. Forgez d'abord des objets.
-              </Text>
-            </View>
-          ) : (
-            sellableItems.map((item) => {
-              const sellPrice = Math.round(item.value * 0.85);
-              return (
-                <View key={item.instanceId} style={[mStyles.marketRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                  <Text style={{ fontSize: 20 }}>⚒️</Text>
-                  <View style={mStyles.resInfo}>
-                    <Text style={[mStyles.resName, { color: colors.foreground }]}>{item.name}</Text>
-                    <Text style={[mStyles.resStock, { color: colors.mutedForeground }]}>{item.category} · {item.quality} · {item.value}g</Text>
+                <Text style={[mStyles.subtitle, { color: colors.mutedForeground }]}>Vous recevez 85% de la valeur d'estimation.</Text>
+                {sellableItems.length === 0 ? (
+                  <View style={[mStyles.emptyRow, { borderColor: colors.border }]}>
+                    <Text style={[mStyles.emptyText, { color: colors.mutedForeground }]}>
+                      Aucun objet forgé. Forgez d'abord des objets.
+                    </Text>
                   </View>
-                  <TouchableOpacity
-                    style={[mStyles.sellBtn, { backgroundColor: colors.primary }]}
-                    onPress={() => setPendingSale({ kind: 'item', instanceId: item.instanceId, name: item.name, gold: sellPrice })}
-                  >
-                    <Text style={[mStyles.sellBtnText, { color: colors.primaryForeground }]}>Vendre · {sellPrice}g</Text>
-                  </TouchableOpacity>
-                </View>
-              );
-            })
-          )}
+                ) : (
+                  sellableItems.map((item) => {
+                    const sellPrice = Math.round(item.value * 0.85);
+                    return (
+                      <View key={item.instanceId} style={[mStyles.marketRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                        <Text style={{ fontSize: 20 }}>⚒️</Text>
+                        <View style={mStyles.resInfo}>
+                          <Text style={[mStyles.resName, { color: colors.foreground }]}>{item.name}</Text>
+                          <Text style={[mStyles.resStock, { color: colors.mutedForeground }]}>{item.category} · {item.quality} · {item.value}g</Text>
+                        </View>
+                        <TouchableOpacity
+                          style={[mStyles.sellBtn, { backgroundColor: colors.primary }]}
+                          onPress={() => setPendingSale({ kind: 'item', instanceId: item.instanceId, name: item.name, gold: sellPrice })}
+                        >
+                          <Text style={[mStyles.sellBtnText, { color: colors.primaryForeground }]}>Vendre · {sellPrice}g</Text>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })
+                )}
+              </>
+            )}
+
+            {tab === 'buy' && (
+              <>
+                <Text style={[mStyles.subtitle, { color: colors.mutedForeground }]}>Achetez des matériaux directement — prix marchand (+35%).</Text>
+                {buyableResources.map((res) => {
+                  const unitPrice = getBuyPrice(res.id);
+                  const qty = getBuyQty(res.id);
+                  const total = unitPrice * qty;
+                  const canAfford = game.player.gold >= total;
+                  return (
+                    <View key={res.id} style={[mStyles.marketRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                      <View style={[mStyles.resDot, { backgroundColor: res.color }]} />
+                      <View style={mStyles.resInfo}>
+                        <Text style={[mStyles.resName, { color: colors.foreground }]}>{res.name}</Text>
+                        <Text style={[mStyles.resStock, { color: colors.mutedForeground }]}>
+                          {unitPrice}g/u · Niv.{res.level}
+                        </Text>
+                      </View>
+                      <View style={mStyles.sellControls}>
+                        <TouchableOpacity style={[mStyles.qtyBtn, { backgroundColor: colors.secondary }]} onPress={() => setBuyQty(res.id, Math.max(1, qty - 1))}>
+                          <Feather name="minus" size={11} color={colors.foreground} />
+                        </TouchableOpacity>
+                        <Text style={[mStyles.qtyText, { color: colors.foreground }]}>{qty}</Text>
+                        <TouchableOpacity style={[mStyles.qtyBtn, { backgroundColor: colors.secondary }]} onPress={() => setBuyQty(res.id, qty + 1)}>
+                          <Feather name="plus" size={11} color={colors.foreground} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[mStyles.sellBtn, { backgroundColor: canAfford ? '#2196F3' : colors.muted }]}
+                          onPress={() => canAfford && handleBuy(res.id)}
+                          activeOpacity={canAfford ? 0.8 : 1}
+                        >
+                          <Text style={[mStyles.sellBtnText, { color: canAfford ? '#fff' : colors.mutedForeground }]}>
+                            Acheter · {total}g
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  );
+                })}
               </>
             )}
           </ScrollView>

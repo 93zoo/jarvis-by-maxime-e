@@ -1,11 +1,26 @@
 /**
  * AudioManager — centralized audio for Forge & Kingdoms
  *
- * Native (iOS/Android): loads real .mp3 files via expo-av for premium feel.
+ * Native (iOS/Android): plays real .mp3 files via expo-audio.
  * Web: synthesizes sounds via the Web Audio API (no external files required).
  */
 
 import { Platform } from 'react-native';
+
+// expo-audio is loaded lazily on native so a missing native module doesn't
+// crash the whole app on Expo Go SDK 54 if the module isn't registered.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ExpoAudioPlayer = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _createAudioPlayer: ((src: any) => ExpoAudioPlayer) | null = null;
+function getCreateAudioPlayer() {
+  if (_createAudioPlayer) return _createAudioPlayer;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    _createAudioPlayer = require('expo-audio').createAudioPlayer;
+  } catch { _createAudioPlayer = null; }
+  return _createAudioPlayer;
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,10 +63,11 @@ class AudioManagerClass {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
 
-  // expo-av fields (native only)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private avSounds: Record<string, any> = {};
-  private avLoaded = false;
+  // expo-audio players (native only)
+  private nativePlayers: Record<string, ExpoAudioPlayer> = {};
+  private nativeLoaded = false;
+  private nativeAmbiencePlayer: ExpoAudioPlayer | null = null;
+  private ambienceVolume = 0.18;
 
   private muted = false;
   private volume = 0.35;
@@ -73,24 +89,35 @@ class AudioManagerClass {
     }
   }
 
-  // ── Native (expo-av) ────────────────────────────────────────────────────────
+  // ── Native (expo-audio) ──────────────────────────────────────────────────────
 
-  private async _loadNativeSounds(): Promise<void> {
-    // expo-av is deprecated in Expo SDK 54 and its native modules are not
-    // registered in Expo Go for SDK 54 → crashes with "Requiring unknown module".
-    // Disable entirely until migrated to expo-audio.
-    // Native sounds are silent; web synthesis still works via Web Audio API.
-    this.avLoaded = false;
+  private _loadNativeSounds(): void {
+    const cap = getCreateAudioPlayer();
+    if (!cap) { this.nativeLoaded = false; return; }
+    try {
+      for (const [key, src] of Object.entries(SOUND_FILES)) {
+        const player: ExpoAudioPlayer = cap(src);
+        player.volume = this.muted ? 0 : this.volume;
+        this.nativePlayers[key] = player;
+      }
+      this.nativeLoaded = true;
+    } catch {
+      this.nativeLoaded = false;
+    }
   }
 
-  private async _playNative(key: string): Promise<void> {
+  private _playNative(key: string): void {
     if (this.muted) return;
-    if (!this.avLoaded) return;
-    const sound = this.avSounds[key];
-    if (!sound) return;
+    if (!this.nativeLoaded) return;
+    const player: ExpoAudioPlayer = this.nativePlayers[key];
+    if (!player) return;
     try {
-      await sound.setVolumeAsync(this.volume);
-      await sound.replayAsync();
+      player.volume = this.volume;
+      // Seek to start then play so the same player can be reused
+      player.seekTo(0).then(() => player.play()).catch(() => {
+        // Fallback: just call play directly
+        try { player.play(); } catch { /* ignore */ }
+      });
     } catch {
       // ignore playback errors
     }
@@ -276,12 +303,27 @@ class AudioManagerClass {
   // ── Forge ambience — fire crackle + low rumble loop ─────────────────────────
 
   /**
-   * Starts a looping fire-crackle ambience using Web Audio noise synthesis.
-   * On native the method is a no-op (expo-av background audio not needed here).
+   * Starts a looping fire-crackle ambience.
+   * Web: synthesised brown-noise via Web Audio API.
+   * Native: loops hammer_strike at low volume as a stand-in until a real
+   *         ambience track is added (task #77).
    * Safe to call multiple times — won't stack layers.
    */
   startForgeAmbience(): void {
-    if (Platform.OS !== 'web') return;
+    if (Platform.OS !== 'web') {
+      if (!this.nativeLoaded || this.muted) return;
+      if (this.nativeAmbiencePlayer) return; // already running
+      try {
+        const cap = getCreateAudioPlayer();
+        if (!cap) return;
+        const p: ExpoAudioPlayer = cap(require('../assets/sounds/hammer_strike.mp3'));
+        p.volume = this.ambienceVolume * this.volumeLevel;
+        p.loop = true;
+        p.play();
+        this.nativeAmbiencePlayer = p;
+      } catch { /* ignore */ }
+      return;
+    }
     if (!this.ctx || !this.masterGain) this._initWebAudio();
     if (!this.ctx || !this.masterGain || this.muted) return;
     if (this.ambienceSource) return; // already running
@@ -378,6 +420,14 @@ class AudioManagerClass {
 
   /** Stops the forge ambience loop. */
   stopForgeAmbience(): void {
+    // Native: pause the looping player
+    if (Platform.OS !== 'web') {
+      if (this.nativeAmbiencePlayer) {
+        try { this.nativeAmbiencePlayer.pause(); } catch { /* ignore */ }
+        this.nativeAmbiencePlayer = null;
+      }
+      return;
+    }
     if (this.ambienceRafId !== null) {
       cancelAnimationFrame(this.ambienceRafId);
       this.ambienceRafId = null;
@@ -401,10 +451,13 @@ class AudioManagerClass {
       this.masterGain.gain.value = value ? 0 : this.volume;
     }
     if (Platform.OS !== 'web') {
-      // Update volume on all loaded sounds
-      Object.values(this.avSounds).forEach((sound) => {
-        try { sound?.setVolumeAsync(value ? 0 : this.volume); } catch { /* ignore */ }
+      const v = value ? 0 : this.volume;
+      Object.values(this.nativePlayers).forEach((p) => {
+        try { p.volume = v; } catch { /* ignore */ }
       });
+      if (this.nativeAmbiencePlayer) {
+        try { this.nativeAmbiencePlayer.volume = value ? 0 : this.ambienceVolume; } catch { /* ignore */ }
+      }
     }
   }
 
@@ -419,9 +472,13 @@ class AudioManagerClass {
       this.masterGain.gain.value = this.muted ? 0 : this.volume;
     }
     if (Platform.OS !== 'web') {
-      Object.values(this.avSounds).forEach((sound) => {
-        try { sound?.setVolumeAsync(this.muted ? 0 : this.volume); } catch { /* ignore */ }
+      const v = this.muted ? 0 : this.volume;
+      Object.values(this.nativePlayers).forEach((p) => {
+        try { p.volume = v; } catch { /* ignore */ }
       });
+      if (this.nativeAmbiencePlayer) {
+        try { this.nativeAmbiencePlayer.volume = this.muted ? 0 : this.ambienceVolume; } catch { /* ignore */ }
+      }
     }
   }
 

@@ -264,6 +264,22 @@ function OrdersModal({
                             >
                               <Text style={[oStyles.btnText, { color: colors.mutedForeground }]}>Refuser</Text>
                             </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[oStyles.btnRefuse, { backgroundColor: colors.secondary, borderColor: colors.accent + '60' }]}
+                              onPress={() => {
+                                const result = game.rerollOrder(order.id);
+                                if (!result.success) {
+                                  setDeliverMsg(`Or insuffisant (${result.cost}g requis pour relancer)`);
+                                  setTimeout(() => setDeliverMsg(null), 2500);
+                                } else {
+                                  AudioManager.playClick();
+                                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                }
+                              }}
+                            >
+                              <Feather name="refresh-cw" size={11} color={colors.accent} />
+                              <Text style={[oStyles.btnText, { color: colors.accent }]}>{Math.max(30, game.player.level * 8)}g</Text>
+                            </TouchableOpacity>
                           </>
                         ) : (
                           <TouchableOpacity
