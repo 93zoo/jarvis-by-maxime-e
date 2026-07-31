@@ -4,7 +4,16 @@
     "name": "Épée en Fer",
     "description": "Une épée simple mais fiable en fer brut.",
     "category": "sword",
-    "requirements": [{ "resourceId": "iron", "quantity": 3 }, { "resourceId": "wood", "quantity": 1 }],
+    "requirements": [
+      {
+        "resourceId": "iron",
+        "quantity": 3
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 1
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 1,
     "baseTime": 30,
@@ -14,11 +23,14 @@
       "description": "Une épée robuste forgée dans le fer.",
       "lore": "La première épée que tout apprenti forgeron apprend à fabriquer.",
       "category": "sword",
-      "baseStats": { "attack": 10, "speed": 5 },
+      "baseStats": {
+        "attack": 10,
+        "speed": 5
+      },
       "gemSlots": 1,
       "weight": 2.5,
       "durabilityBase": 80,
-      "valueMultiplier": 1.0
+      "valueMultiplier": 1
     }
   },
   {
@@ -26,7 +38,16 @@
     "name": "Lame de Cuivre",
     "description": "Une lame légère en cuivre, rapide à manier.",
     "category": "sword",
-    "requirements": [{ "resourceId": "copper", "quantity": 3 }, { "resourceId": "wood", "quantity": 1 }],
+    "requirements": [
+      {
+        "resourceId": "copper",
+        "quantity": 3
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 1
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 1,
     "baseTime": 25,
@@ -36,7 +57,10 @@
       "description": "Une lame fine et rapide en cuivre.",
       "lore": "Le cuivre, trop tendre pour durer, offre une légèreté sans pareille.",
       "category": "sword",
-      "baseStats": { "attack": 7, "speed": 10 },
+      "baseStats": {
+        "attack": 7,
+        "speed": 10
+      },
       "gemSlots": 1,
       "weight": 1.8,
       "durabilityBase": 60,
@@ -48,7 +72,16 @@
     "name": "Hache en Fer",
     "description": "Une hache lourde capable de fendre le bois et l'armure.",
     "category": "axe",
-    "requirements": [{ "resourceId": "iron", "quantity": 4 }, { "resourceId": "wood", "quantity": 2 }],
+    "requirements": [
+      {
+        "resourceId": "iron",
+        "quantity": 4
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 2
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 1,
     "baseTime": 35,
@@ -58,7 +91,10 @@
       "description": "Une hache de guerre en fer forgé.",
       "lore": "Arme préférée des bûcherons et des guerriers du nord.",
       "category": "axe",
-      "baseStats": { "attack": 14, "speed": 3 },
+      "baseStats": {
+        "attack": 14,
+        "speed": 3
+      },
       "gemSlots": 1,
       "weight": 3.5,
       "durabilityBase": 90,
@@ -70,7 +106,16 @@
     "name": "Marteau en Fer",
     "description": "Un marteau de guerre lourd aux dégâts massifs.",
     "category": "hammer",
-    "requirements": [{ "resourceId": "iron", "quantity": 5 }, { "resourceId": "wood", "quantity": 2 }],
+    "requirements": [
+      {
+        "resourceId": "iron",
+        "quantity": 5
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 2
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 2,
     "baseTime": 40,
@@ -80,7 +125,11 @@
       "description": "Un marteau de guerre dévastateur.",
       "lore": "Chaque coup fait trembler la terre.",
       "category": "hammer",
-      "baseStats": { "attack": 18, "speed": 1, "defense": 2 },
+      "baseStats": {
+        "attack": 18,
+        "speed": 1,
+        "defense": 2
+      },
       "gemSlots": 2,
       "weight": 4.5,
       "durabilityBase": 100,
@@ -92,7 +141,16 @@
     "name": "Lance en Fer",
     "description": "Une lance effilée pour frapper de loin.",
     "category": "lance",
-    "requirements": [{ "resourceId": "iron", "quantity": 2 }, { "resourceId": "wood", "quantity": 3 }],
+    "requirements": [
+      {
+        "resourceId": "iron",
+        "quantity": 2
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 3
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 1,
     "baseTime": 28,
@@ -102,9 +160,12 @@
       "description": "Une lance légère à pointe de fer.",
       "lore": "Portée par les légions du royaume depuis des générations.",
       "category": "lance",
-      "baseStats": { "attack": 12, "speed": 7 },
+      "baseStats": {
+        "attack": 12,
+        "speed": 7
+      },
       "gemSlots": 1,
-      "weight": 2.0,
+      "weight": 2,
       "durabilityBase": 75,
       "valueMultiplier": 0.95
     }
@@ -114,7 +175,16 @@
     "name": "Bouclier en Fer",
     "description": "Un bouclier solide qui absorbe les coups.",
     "category": "shield",
-    "requirements": [{ "resourceId": "iron", "quantity": 4 }, { "resourceId": "wood", "quantity": 2 }],
+    "requirements": [
+      {
+        "resourceId": "iron",
+        "quantity": 4
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 2
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 1,
     "baseTime": 35,
@@ -124,11 +194,14 @@
       "description": "Un bouclier de forge en fer battu.",
       "lore": "La première ligne de défense d'un guerrier.",
       "category": "shield",
-      "baseStats": { "defense": 15, "speed": -2 },
+      "baseStats": {
+        "defense": 15,
+        "speed": -2
+      },
       "gemSlots": 1,
-      "weight": 4.0,
+      "weight": 4,
       "durabilityBase": 120,
-      "valueMultiplier": 1.0
+      "valueMultiplier": 1
     }
   },
   {
@@ -136,7 +209,16 @@
     "name": "Casque en Fer",
     "description": "Un casque robuste protégeant la tête.",
     "category": "helmet",
-    "requirements": [{ "resourceId": "iron", "quantity": 3 }, { "resourceId": "coal", "quantity": 2 }],
+    "requirements": [
+      {
+        "resourceId": "iron",
+        "quantity": 3
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 2
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 1,
     "baseTime": 30,
@@ -146,9 +228,11 @@
       "description": "Un casque de guerre en fer.",
       "lore": "Forgé pour résister aux coups les plus rudes.",
       "category": "helmet",
-      "baseStats": { "defense": 10 },
+      "baseStats": {
+        "defense": 10
+      },
       "gemSlots": 1,
-      "weight": 2.0,
+      "weight": 2,
       "durabilityBase": 90,
       "valueMultiplier": 0.9
     }
@@ -158,7 +242,20 @@
     "name": "Armure en Fer",
     "description": "Une armure complète forgée en plaques de fer.",
     "category": "armor",
-    "requirements": [{ "resourceId": "iron", "quantity": 8 }, { "resourceId": "coal", "quantity": 4 }, { "resourceId": "wood", "quantity": 1 }],
+    "requirements": [
+      {
+        "resourceId": "iron",
+        "quantity": 8
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 4
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 1
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 3,
     "baseTime": 60,
@@ -168,9 +265,12 @@
       "description": "Une armure de plaques en fer forgé.",
       "lore": "L'équipement standard des soldats du royaume.",
       "category": "armor",
-      "baseStats": { "defense": 25, "speed": -5 },
+      "baseStats": {
+        "defense": 25,
+        "speed": -5
+      },
       "gemSlots": 2,
-      "weight": 10.0,
+      "weight": 10,
       "durabilityBase": 150,
       "valueMultiplier": 1.5
     }
@@ -180,7 +280,12 @@
     "name": "Anneau de Cuivre",
     "description": "Un anneau simple en cuivre.",
     "category": "ring",
-    "requirements": [{ "resourceId": "copper", "quantity": 1 }],
+    "requirements": [
+      {
+        "resourceId": "copper",
+        "quantity": 1
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 1,
     "baseTime": 15,
@@ -190,7 +295,9 @@
       "description": "Un anneau ornemental en cuivre.",
       "lore": "Un anneau simple, mais apprécié des villageois.",
       "category": "ring",
-      "baseStats": { "luck": 2 },
+      "baseStats": {
+        "luck": 2
+      },
       "gemSlots": 0,
       "weight": 0.1,
       "durabilityBase": 50,
@@ -202,7 +309,16 @@
     "name": "Outil en Fer",
     "description": "Un outil polyvalent pour les travaux quotidiens.",
     "category": "tool",
-    "requirements": [{ "resourceId": "iron", "quantity": 2 }, { "resourceId": "wood", "quantity": 1 }],
+    "requirements": [
+      {
+        "resourceId": "iron",
+        "quantity": 2
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 1
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 1,
     "baseTime": 20,
@@ -224,7 +340,16 @@
     "name": "Épée de Bronze",
     "description": "Une épée en bronze, plus résistante que le fer.",
     "category": "sword",
-    "requirements": [{ "resourceId": "bronze", "quantity": 3 }, { "resourceId": "wood", "quantity": 1 }],
+    "requirements": [
+      {
+        "resourceId": "bronze",
+        "quantity": 3
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 1
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 4,
     "baseTime": 45,
@@ -234,7 +359,10 @@
       "description": "Une épée élégante en bronze poli.",
       "lore": "Appréciée pour son équilibre entre robustesse et légèreté.",
       "category": "sword",
-      "baseStats": { "attack": 16, "speed": 6 },
+      "baseStats": {
+        "attack": 16,
+        "speed": 6
+      },
       "gemSlots": 2,
       "weight": 2.3,
       "durabilityBase": 100,
@@ -246,7 +374,16 @@
     "name": "Hache de Bronze",
     "description": "Une hache de bronze aux reflets dorés.",
     "category": "axe",
-    "requirements": [{ "resourceId": "bronze", "quantity": 4 }, { "resourceId": "wood", "quantity": 2 }],
+    "requirements": [
+      {
+        "resourceId": "bronze",
+        "quantity": 4
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 2
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 4,
     "baseTime": 50,
@@ -256,7 +393,10 @@
       "description": "Une hache de guerre en bronze.",
       "lore": "Forgée selon la tradition des guerriers du désert.",
       "category": "axe",
-      "baseStats": { "attack": 20, "speed": 4 },
+      "baseStats": {
+        "attack": 20,
+        "speed": 4
+      },
       "gemSlots": 2,
       "weight": 3.2,
       "durabilityBase": 110,
@@ -268,7 +408,16 @@
     "name": "Bouclier de Bronze",
     "description": "Un bouclier résistant en bronze avec gravures.",
     "category": "shield",
-    "requirements": [{ "resourceId": "bronze", "quantity": 4 }, { "resourceId": "wood", "quantity": 2 }],
+    "requirements": [
+      {
+        "resourceId": "bronze",
+        "quantity": 4
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 2
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 4,
     "baseTime": 50,
@@ -278,7 +427,10 @@
       "description": "Un bouclier rond en bronze gravé.",
       "lore": "Orné des armoiries d'une ancienne maison noble.",
       "category": "shield",
-      "baseStats": { "defense": 22, "speed": -1 },
+      "baseStats": {
+        "defense": 22,
+        "speed": -1
+      },
       "gemSlots": 2,
       "weight": 3.8,
       "durabilityBase": 130,
@@ -290,7 +442,16 @@
     "name": "Casque de Bronze",
     "description": "Un casque en bronze avec protège-joues.",
     "category": "helmet",
-    "requirements": [{ "resourceId": "bronze", "quantity": 3 }, { "resourceId": "coal", "quantity": 2 }],
+    "requirements": [
+      {
+        "resourceId": "bronze",
+        "quantity": 3
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 2
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 4,
     "baseTime": 45,
@@ -300,7 +461,10 @@
       "description": "Un casque de bronze avec ornements.",
       "lore": "Porté par les capitaines de légion.",
       "category": "helmet",
-      "baseStats": { "defense": 15, "magic": 2 },
+      "baseStats": {
+        "defense": 15,
+        "magic": 2
+      },
       "gemSlots": 1,
       "weight": 1.8,
       "durabilityBase": 110,
@@ -312,7 +476,20 @@
     "name": "Armure de Bronze",
     "description": "Une armure de plaques en bronze, légère et résistante.",
     "category": "armor",
-    "requirements": [{ "resourceId": "bronze", "quantity": 8 }, { "resourceId": "coal", "quantity": 4 }, { "resourceId": "wood", "quantity": 1 }],
+    "requirements": [
+      {
+        "resourceId": "bronze",
+        "quantity": 8
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 4
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 1
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 5,
     "baseTime": 80,
@@ -322,9 +499,12 @@
       "description": "Une armure complète en bronze forgé.",
       "lore": "L'équipement des officiers de l'armée royale.",
       "category": "armor",
-      "baseStats": { "defense": 35, "speed": -3 },
+      "baseStats": {
+        "defense": 35,
+        "speed": -3
+      },
       "gemSlots": 3,
-      "weight": 9.0,
+      "weight": 9,
       "durabilityBase": 170,
       "valueMultiplier": 2.2
     }
@@ -334,7 +514,20 @@
     "name": "Épée en Acier",
     "description": "La maîtrise de l'acier donne naissance à une lame redoutable.",
     "category": "sword",
-    "requirements": [{ "resourceId": "steel", "quantity": 3 }, { "resourceId": "wood", "quantity": 1 }, { "resourceId": "coal", "quantity": 2 }],
+    "requirements": [
+      {
+        "resourceId": "steel",
+        "quantity": 3
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 1
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 2
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 5,
     "baseTime": 60,
@@ -344,7 +537,11 @@
       "description": "Une épée d'acier d'une précision chirurgicale.",
       "lore": "Forgée dans le respect des vieilles traditions, elle est d'une fiabilité absolue.",
       "category": "sword",
-      "baseStats": { "attack": 25, "speed": 8, "luck": 2 },
+      "baseStats": {
+        "attack": 25,
+        "speed": 8,
+        "luck": 2
+      },
       "gemSlots": 2,
       "weight": 2.2,
       "durabilityBase": 130,
@@ -356,7 +553,20 @@
     "name": "Hache en Acier",
     "description": "Une hache d'acier qui fend le fer comme du beurre.",
     "category": "axe",
-    "requirements": [{ "resourceId": "steel", "quantity": 4 }, { "resourceId": "wood", "quantity": 2 }, { "resourceId": "coal", "quantity": 2 }],
+    "requirements": [
+      {
+        "resourceId": "steel",
+        "quantity": 4
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 2
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 2
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 5,
     "baseTime": 65,
@@ -366,7 +576,11 @@
       "description": "Une hache lourde à lame d'acier trempé.",
       "lore": "Redoutée sur les champs de bataille pour sa puissance dévastatrice.",
       "category": "axe",
-      "baseStats": { "attack": 30, "speed": 3, "defense": 3 },
+      "baseStats": {
+        "attack": 30,
+        "speed": 3,
+        "defense": 3
+      },
       "gemSlots": 2,
       "weight": 3.8,
       "durabilityBase": 140,
@@ -378,7 +592,16 @@
     "name": "Bouclier en Acier",
     "description": "Un bouclier d'acier pratiquement indestructible.",
     "category": "shield",
-    "requirements": [{ "resourceId": "steel", "quantity": 5 }, { "resourceId": "coal", "quantity": 3 }],
+    "requirements": [
+      {
+        "resourceId": "steel",
+        "quantity": 5
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 3
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 5,
     "baseTime": 65,
@@ -388,9 +611,12 @@
       "description": "Un bouclier d'acier aux dimensions imposantes.",
       "lore": "Utilisé par la garde rapprochée du roi.",
       "category": "shield",
-      "baseStats": { "defense": 32, "speed": -2 },
+      "baseStats": {
+        "defense": 32,
+        "speed": -2
+      },
       "gemSlots": 2,
-      "weight": 5.0,
+      "weight": 5,
       "durabilityBase": 160,
       "valueMultiplier": 2.4
     }
@@ -400,7 +626,16 @@
     "name": "Casque en Acier",
     "description": "Un casque complet en acier trempé.",
     "category": "helmet",
-    "requirements": [{ "resourceId": "steel", "quantity": 4 }, { "resourceId": "coal", "quantity": 3 }],
+    "requirements": [
+      {
+        "resourceId": "steel",
+        "quantity": 4
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 3
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 5,
     "baseTime": 60,
@@ -410,7 +645,10 @@
       "description": "Un casque intégral en acier.",
       "lore": "Protège la tête des pires coups.",
       "category": "helmet",
-      "baseStats": { "defense": 22, "magic": 3 },
+      "baseStats": {
+        "defense": 22,
+        "magic": 3
+      },
       "gemSlots": 2,
       "weight": 2.5,
       "durabilityBase": 140,
@@ -422,7 +660,20 @@
     "name": "Armure en Acier",
     "description": "L'armure complète la plus résistante accessible avant le mithril.",
     "category": "armor",
-    "requirements": [{ "resourceId": "steel", "quantity": 10 }, { "resourceId": "coal", "quantity": 6 }, { "resourceId": "wood", "quantity": 2 }],
+    "requirements": [
+      {
+        "resourceId": "steel",
+        "quantity": 10
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 6
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 2
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 8,
     "baseTime": 120,
@@ -432,11 +683,15 @@
       "description": "Une armure complète d'acier forgé, symbole du savoir-faire.",
       "lore": "Il faut trois jours à un maître forgeron pour en venir à bout.",
       "category": "armor",
-      "baseStats": { "defense": 50, "speed": -4, "magic": 3 },
+      "baseStats": {
+        "defense": 50,
+        "speed": -4,
+        "magic": 3
+      },
       "gemSlots": 4,
-      "weight": 15.0,
+      "weight": 15,
       "durabilityBase": 200,
-      "valueMultiplier": 4.0
+      "valueMultiplier": 4
     }
   },
   {
@@ -444,7 +699,16 @@
     "name": "Anneau d'Argent",
     "description": "Un anneau en argent pur avec des propriétés magiques.",
     "category": "ring",
-    "requirements": [{ "resourceId": "silver", "quantity": 1 }, { "resourceId": "coal", "quantity": 1 }],
+    "requirements": [
+      {
+        "resourceId": "silver",
+        "quantity": 1
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 1
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 8,
     "baseTime": 30,
@@ -454,11 +718,14 @@
       "description": "Un anneau en argent pur gravé de runes.",
       "lore": "Porté par les mages pour amplifier leurs sorts.",
       "category": "ring",
-      "baseStats": { "magic": 8, "luck": 5 },
+      "baseStats": {
+        "magic": 8,
+        "luck": 5
+      },
       "gemSlots": 1,
       "weight": 0.1,
       "durabilityBase": 80,
-      "valueMultiplier": 3.0
+      "valueMultiplier": 3
     }
   },
   {
@@ -466,7 +733,16 @@
     "name": "Anneau d'Or",
     "description": "Un anneau d'or massif, symbole de richesse.",
     "category": "ring",
-    "requirements": [{ "resourceId": "gold_ore", "quantity": 1 }, { "resourceId": "coal", "quantity": 1 }],
+    "requirements": [
+      {
+        "resourceId": "gold_ore",
+        "quantity": 1
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 1
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 12,
     "baseTime": 40,
@@ -476,11 +752,14 @@
       "description": "Un anneau d'or pur, objet de grande valeur.",
       "lore": "Offert en guise de faveur royale aux forgerons d'exception.",
       "category": "ring",
-      "baseStats": { "luck": 10, "magic": 5 },
+      "baseStats": {
+        "luck": 10,
+        "magic": 5
+      },
       "gemSlots": 2,
       "weight": 0.15,
       "durabilityBase": 100,
-      "valueMultiplier": 8.0
+      "valueMultiplier": 8
     }
   },
   {
@@ -488,7 +767,16 @@
     "name": "Amulette de Cristal",
     "description": "Une amulette taillée dans un cristal magique.",
     "category": "amulet",
-    "requirements": [{ "resourceId": "crystal", "quantity": 2 }, { "resourceId": "silver", "quantity": 1 }],
+    "requirements": [
+      {
+        "resourceId": "crystal",
+        "quantity": 2
+      },
+      {
+        "resourceId": "silver",
+        "quantity": 1
+      }
+    ],
     "skillRequired": "enchantment",
     "levelRequired": 10,
     "baseTime": 50,
@@ -498,11 +786,14 @@
       "description": "Une amulette scintillante aux pouvoirs mystérieux.",
       "lore": "Les cristaux anciens capturent la lumière de la lune.",
       "category": "amulet",
-      "baseStats": { "magic": 15, "luck": 8 },
+      "baseStats": {
+        "magic": 15,
+        "luck": 8
+      },
       "gemSlots": 1,
       "weight": 0.2,
       "durabilityBase": 90,
-      "valueMultiplier": 5.0
+      "valueMultiplier": 5
     }
   },
   {
@@ -510,7 +801,16 @@
     "name": "Pioche en Fer",
     "description": "Une pioche solide pour extraire les minerais.",
     "category": "tool",
-    "requirements": [{ "resourceId": "iron", "quantity": 3 }, { "resourceId": "wood", "quantity": 2 }],
+    "requirements": [
+      {
+        "resourceId": "iron",
+        "quantity": 3
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 2
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 2,
     "baseTime": 30,
@@ -522,7 +822,7 @@
       "category": "tool",
       "baseStats": {},
       "gemSlots": 0,
-      "weight": 2.0,
+      "weight": 2,
       "durabilityBase": 80,
       "valueMultiplier": 0.8
     }
@@ -532,7 +832,16 @@
     "name": "Pioche de Bronze",
     "description": "Une pioche renforcée en bronze.",
     "category": "tool",
-    "requirements": [{ "resourceId": "bronze", "quantity": 3 }, { "resourceId": "wood", "quantity": 2 }],
+    "requirements": [
+      {
+        "resourceId": "bronze",
+        "quantity": 3
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 2
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 4,
     "baseTime": 40,
@@ -554,7 +863,20 @@
     "name": "Épée d'Argent",
     "description": "Une épée en argent pur, redoutable contre les créatures magiques.",
     "category": "sword",
-    "requirements": [{ "resourceId": "silver", "quantity": 3 }, { "resourceId": "wood", "quantity": 1 }, { "resourceId": "coal", "quantity": 3 }],
+    "requirements": [
+      {
+        "resourceId": "silver",
+        "quantity": 3
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 1
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 3
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 8,
     "baseTime": 90,
@@ -564,11 +886,15 @@
       "description": "Une lame d'argent étincelante.",
       "lore": "L'argent pur repousse les démons et les monstres nocturnes.",
       "category": "sword",
-      "baseStats": { "attack": 35, "speed": 10, "magic": 10 },
+      "baseStats": {
+        "attack": 35,
+        "speed": 10,
+        "magic": 10
+      },
       "gemSlots": 3,
-      "weight": 2.0,
+      "weight": 2,
       "durabilityBase": 120,
-      "valueMultiplier": 5.0
+      "valueMultiplier": 5
     }
   },
   {
@@ -576,7 +902,20 @@
     "name": "Épée de Mithril",
     "description": "La lame de mithril, légère comme le vent et tranchante comme le soleil.",
     "category": "sword",
-    "requirements": [{ "resourceId": "mithril", "quantity": 2 }, { "resourceId": "coal", "quantity": 5 }, { "resourceId": "crystal", "quantity": 1 }],
+    "requirements": [
+      {
+        "resourceId": "mithril",
+        "quantity": 2
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 5
+      },
+      {
+        "resourceId": "crystal",
+        "quantity": 1
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 18,
     "baseTime": 180,
@@ -586,11 +925,16 @@
       "description": "Une épée légendaire en mithril pur.",
       "lore": "Une arme digne d'un roi. Rare et précieuse entre toutes.",
       "category": "sword",
-      "baseStats": { "attack": 60, "speed": 20, "magic": 15, "luck": 10 },
+      "baseStats": {
+        "attack": 60,
+        "speed": 20,
+        "magic": 15,
+        "luck": 10
+      },
       "gemSlots": 4,
       "weight": 1.2,
       "durabilityBase": 250,
-      "valueMultiplier": 15.0
+      "valueMultiplier": 15
     }
   },
   {
@@ -598,7 +942,20 @@
     "name": "Lame d'Obsidienne",
     "description": "Une lame taillée dans l'obsidienne volcanique, tranchante à l'extrême.",
     "category": "sword",
-    "requirements": [{ "resourceId": "obsidian", "quantity": 3 }, { "resourceId": "steel", "quantity": 1 }, { "resourceId": "coal", "quantity": 4 }],
+    "requirements": [
+      {
+        "resourceId": "obsidian",
+        "quantity": 3
+      },
+      {
+        "resourceId": "steel",
+        "quantity": 1
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 4
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 20,
     "baseTime": 150,
@@ -608,11 +965,15 @@
       "description": "Une lame noire d'une tranchant incomparable.",
       "lore": "Née du feu des volcans, elle dévore l'armure de ses ennemis.",
       "category": "sword",
-      "baseStats": { "attack": 55, "speed": 12, "defense": 5 },
+      "baseStats": {
+        "attack": 55,
+        "speed": 12,
+        "defense": 5
+      },
       "gemSlots": 3,
-      "weight": 2.0,
+      "weight": 2,
       "durabilityBase": 200,
-      "valueMultiplier": 12.0
+      "valueMultiplier": 12
     }
   },
   {
@@ -620,7 +981,16 @@
     "name": "Candélabre en Fer",
     "description": "Un beau candélabre forgé pour décorer une demeure.",
     "category": "decoration",
-    "requirements": [{ "resourceId": "iron", "quantity": 2 }, { "resourceId": "coal", "quantity": 1 }],
+    "requirements": [
+      {
+        "resourceId": "iron",
+        "quantity": 2
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 1
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 1,
     "baseTime": 20,
@@ -642,7 +1012,20 @@
     "name": "Lance en Acier",
     "description": "Une lance d'acier trempé, équilibrée et mortelle.",
     "category": "lance",
-    "requirements": [{ "resourceId": "steel", "quantity": 3 }, { "resourceId": "wood", "quantity": 2 }, { "resourceId": "coal", "quantity": 2 }],
+    "requirements": [
+      {
+        "resourceId": "steel",
+        "quantity": 3
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 2
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 2
+      }
+    ],
     "skillRequired": "forge",
     "levelRequired": 8,
     "baseTime": 80,
@@ -652,11 +1035,684 @@
       "description": "Une lance forgée dans l'acier le plus pur, redoutable au combat.",
       "lore": "Les chevaliers du roi la réclament avant chaque tournoi.",
       "category": "lance",
-      "baseStats": { "attack": 28, "speed": 8, "luck": 3 },
+      "baseStats": {
+        "attack": 28,
+        "speed": 8,
+        "luck": 3
+      },
       "gemSlots": 2,
       "weight": 3.2,
       "durabilityBase": 130,
-      "valueMultiplier": 5.0
+      "valueMultiplier": 5
+    }
+  },
+  {
+    "id": "platinum_ring",
+    "name": "Anneau de Platine",
+    "description": "Un anneau taillé dans le platine le plus pur, symbole de prestige.",
+    "category": "ring",
+    "requirements": [
+      {
+        "resourceId": "platinum",
+        "quantity": 2
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 2
+      }
+    ],
+    "skillRequired": "forge",
+    "levelRequired": 21,
+    "baseTime": 160,
+    "xpReward": 140,
+    "outputItemBase": {
+      "name": "Anneau de Platine",
+      "description": "Un anneau d'une pureté éclatante, porté par les nobles du royaume.",
+      "lore": "Le platine est si rare que même les rois en font peu de cas.",
+      "category": "ring",
+      "baseStats": {
+        "defense": 8,
+        "luck": 6
+      },
+      "gemSlots": 2,
+      "weight": 0.2,
+      "durabilityBase": 220,
+      "valueMultiplier": 14
+    }
+  },
+  {
+    "id": "crystal_sword",
+    "name": "Épée de Cristal",
+    "description": "Une épée forgée dans les cristaux magiques des profondeurs.",
+    "category": "sword",
+    "requirements": [
+      {
+        "resourceId": "crystal",
+        "quantity": 3
+      },
+      {
+        "resourceId": "steel",
+        "quantity": 2
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 5
+      }
+    ],
+    "skillRequired": "forge",
+    "levelRequired": 22,
+    "baseTime": 175,
+    "xpReward": 155,
+    "outputItemBase": {
+      "name": "Épée de Cristal",
+      "description": "Une lame translucide qui scintille dans l'obscurité.",
+      "lore": "Les guerriers qui la brandissent semblent puiser une force mystérieuse dans le cristal.",
+      "category": "sword",
+      "baseStats": {
+        "attack": 62,
+        "speed": 15,
+        "luck": 8
+      },
+      "gemSlots": 3,
+      "weight": 1.7,
+      "durabilityBase": 210,
+      "valueMultiplier": 15
+    }
+  },
+  {
+    "id": "adamantium_dagger",
+    "name": "Dague d'Adamantium",
+    "description": "Une dague légère et indestructible forgée dans l'adamantium.",
+    "category": "dagger",
+    "requirements": [
+      {
+        "resourceId": "adamantium",
+        "quantity": 2
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 4
+      }
+    ],
+    "skillRequired": "forge",
+    "levelRequired": 23,
+    "baseTime": 170,
+    "xpReward": 160,
+    "outputItemBase": {
+      "name": "Dague d'Adamantium",
+      "description": "Une dague à la lame imperturbable, capable de percer les armures les plus épaisses.",
+      "lore": "L'adamantium ne rouille jamais. Cette dague traversera les siècles.",
+      "category": "dagger",
+      "baseStats": {
+        "attack": 48,
+        "speed": 22,
+        "luck": 12
+      },
+      "gemSlots": 1,
+      "weight": 0.8,
+      "durabilityBase": 280,
+      "valueMultiplier": 16
+    }
+  },
+  {
+    "id": "emerald_amulet",
+    "name": "Amulette d'Émeraude",
+    "description": "Une amulette ornée d'une émeraude qui pulse d'une lumière verte.",
+    "category": "amulet",
+    "requirements": [
+      {
+        "resourceId": "emerald",
+        "quantity": 2
+      },
+      {
+        "resourceId": "gold_ore",
+        "quantity": 1
+      },
+      {
+        "resourceId": "silver",
+        "quantity": 2
+      }
+    ],
+    "skillRequired": "forge",
+    "levelRequired": 24,
+    "baseTime": 180,
+    "xpReward": 165,
+    "outputItemBase": {
+      "name": "Amulette d'Émeraude",
+      "description": "Un bijou d'une beauté rare, chargé d'une magie ancienne.",
+      "lore": "Les druides prétendent que l'émeraude est le cœur cristallisé de la forêt éternelle.",
+      "category": "amulet",
+      "baseStats": {
+        "defense": 15,
+        "luck": 18,
+        "speed": 5
+      },
+      "gemSlots": 2,
+      "weight": 0.3,
+      "durabilityBase": 240,
+      "valueMultiplier": 17
+    }
+  },
+  {
+    "id": "adamantium_shield",
+    "name": "Bouclier d'Adamantium",
+    "description": "Un bouclier massif forgé dans l'adamantium, pratiquement impénétrable.",
+    "category": "shield",
+    "requirements": [
+      {
+        "resourceId": "adamantium",
+        "quantity": 5
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 6
+      },
+      {
+        "resourceId": "crystal",
+        "quantity": 1
+      }
+    ],
+    "skillRequired": "forge",
+    "levelRequired": 25,
+    "baseTime": 200,
+    "xpReward": 180,
+    "outputItemBase": {
+      "name": "Bouclier d'Adamantium",
+      "description": "Une forteresse portable — aucune arme ne peut le transpercer.",
+      "lore": "Forgé pour les paladins de la Garde Royale lors de la Grande Guerre.",
+      "category": "shield",
+      "baseStats": {
+        "defense": 50,
+        "speed": -3
+      },
+      "gemSlots": 2,
+      "weight": 5,
+      "durabilityBase": 350,
+      "valueMultiplier": 18
+    }
+  },
+  {
+    "id": "ruby_ring",
+    "name": "Anneau de Rubis",
+    "description": "Un anneau serti d'un rubis incandescent qui réchauffe la main de son porteur.",
+    "category": "ring",
+    "requirements": [
+      {
+        "resourceId": "ruby",
+        "quantity": 2
+      },
+      {
+        "resourceId": "gold_ore",
+        "quantity": 2
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 3
+      }
+    ],
+    "skillRequired": "forge",
+    "levelRequired": 26,
+    "baseTime": 190,
+    "xpReward": 185,
+    "outputItemBase": {
+      "name": "Anneau de Rubis",
+      "description": "Un rubis taillé en cabochon, serti dans l'or avec une précision parfaite.",
+      "lore": "On dit que les rubis de ce calibre naissent dans le cœur des volcans actifs.",
+      "category": "ring",
+      "baseStats": {
+        "attack": 10,
+        "luck": 15,
+        "defense": 8
+      },
+      "gemSlots": 2,
+      "weight": 0.2,
+      "durabilityBase": 250,
+      "valueMultiplier": 19
+    }
+  },
+  {
+    "id": "sapphire_crown",
+    "name": "Couronne de Saphir",
+    "description": "Une couronne royale ornée de saphirs, digne d'un monarque.",
+    "category": "crown",
+    "requirements": [
+      {
+        "resourceId": "sapphire",
+        "quantity": 3
+      },
+      {
+        "resourceId": "gold_ore",
+        "quantity": 3
+      },
+      {
+        "resourceId": "silver",
+        "quantity": 3
+      }
+    ],
+    "skillRequired": "forge",
+    "levelRequired": 27,
+    "baseTime": 210,
+    "xpReward": 195,
+    "outputItemBase": {
+      "name": "Couronne de Saphir",
+      "description": "Un chef-d'œuvre de l'art du forgeron, digne des plus grands royaumes.",
+      "lore": "Chaque saphir représente une vertu royale : sagesse, courage, et justice.",
+      "category": "crown",
+      "baseStats": {
+        "defense": 20,
+        "luck": 25,
+        "speed": 8
+      },
+      "gemSlots": 4,
+      "weight": 1.5,
+      "durabilityBase": 300,
+      "valueMultiplier": 22
+    }
+  },
+  {
+    "id": "adamantium_sword",
+    "name": "Épée d'Adamantium",
+    "description": "La lame la plus résistante jamais forgée, tranchant à travers tout.",
+    "category": "sword",
+    "requirements": [
+      {
+        "resourceId": "adamantium",
+        "quantity": 4
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 7
+      },
+      {
+        "resourceId": "crystal",
+        "quantity": 2
+      }
+    ],
+    "skillRequired": "forge",
+    "levelRequired": 28,
+    "baseTime": 220,
+    "xpReward": 210,
+    "outputItemBase": {
+      "name": "Épée d'Adamantium",
+      "description": "Une lame d'une dureté inégalée, forgée pour durer une éternité.",
+      "lore": "Les légions impériales paient une fortune pour en posséder une seule.",
+      "category": "sword",
+      "baseStats": {
+        "attack": 78,
+        "speed": 10,
+        "defense": 12
+      },
+      "gemSlots": 3,
+      "weight": 2.2,
+      "durabilityBase": 380,
+      "valueMultiplier": 24
+    }
+  },
+  {
+    "id": "dragon_shield",
+    "name": "Bouclier de Dragon",
+    "description": "Un bouclier recouvert d'écailles de dragon, offrant une protection légendaire.",
+    "category": "shield",
+    "requirements": [
+      {
+        "resourceId": "dragon_scale",
+        "quantity": 2
+      },
+      {
+        "resourceId": "adamantium",
+        "quantity": 4
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 6
+      }
+    ],
+    "skillRequired": "forge",
+    "levelRequired": 29,
+    "baseTime": 230,
+    "xpReward": 220,
+    "outputItemBase": {
+      "name": "Bouclier de Dragon",
+      "description": "Incrusté d'écailles de dragon, ce bouclier résiste au feu et à l'acier.",
+      "lore": "Seul un forgeron légendaire peut lier les écailles d'un dragon à du métal sans les briser.",
+      "category": "shield",
+      "baseStats": {
+        "defense": 65,
+        "attack": 8,
+        "speed": -2
+      },
+      "gemSlots": 3,
+      "weight": 4.5,
+      "durabilityBase": 420,
+      "valueMultiplier": 26
+    }
+  },
+  {
+    "id": "diamond_ring",
+    "name": "Anneau de Diamant",
+    "description": "Un anneau orné d'un diamant parfait — le summum de l'art joaillier.",
+    "category": "ring",
+    "requirements": [
+      {
+        "resourceId": "diamond",
+        "quantity": 1
+      },
+      {
+        "resourceId": "gold_ore",
+        "quantity": 3
+      },
+      {
+        "resourceId": "platinum",
+        "quantity": 1
+      }
+    ],
+    "skillRequired": "forge",
+    "levelRequired": 30,
+    "baseTime": 240,
+    "xpReward": 240,
+    "outputItemBase": {
+      "name": "Anneau de Diamant",
+      "description": "Un diamant d'une clarté absolue, monté sur or et platine.",
+      "lore": "On dit qu'un vrai diamant capture la lumière des étoiles dans ses facettes.",
+      "category": "ring",
+      "baseStats": {
+        "luck": 30,
+        "defense": 15,
+        "speed": 10
+      },
+      "gemSlots": 3,
+      "weight": 0.2,
+      "durabilityBase": 350,
+      "valueMultiplier": 30
+    }
+  },
+  {
+    "id": "dragon_helmet",
+    "name": "Casque de Dragon",
+    "description": "Un casque forgé avec des écailles de dragon, offrant une protection extraordinaire.",
+    "category": "helmet",
+    "requirements": [
+      {
+        "resourceId": "dragon_scale",
+        "quantity": 3
+      },
+      {
+        "resourceId": "adamantium",
+        "quantity": 3
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 7
+      }
+    ],
+    "skillRequired": "forge",
+    "levelRequired": 32,
+    "baseTime": 260,
+    "xpReward": 265,
+    "outputItemBase": {
+      "name": "Casque de Dragon",
+      "description": "Un casque imposant orné de crêtes draconiques, intimidant autant que protecteur.",
+      "lore": "Les guerriers qui portent ce casque sont craints sur tous les champs de bataille.",
+      "category": "helmet",
+      "baseStats": {
+        "defense": 55,
+        "attack": 10
+      },
+      "gemSlots": 2,
+      "weight": 3.8,
+      "durabilityBase": 400,
+      "valueMultiplier": 28
+    }
+  },
+  {
+    "id": "diamond_sword",
+    "name": "Épée de Diamant",
+    "description": "Une épée dont la lame incorpore des éclats de diamant, capable de trancher la pierre.",
+    "category": "sword",
+    "requirements": [
+      {
+        "resourceId": "diamond",
+        "quantity": 2
+      },
+      {
+        "resourceId": "adamantium",
+        "quantity": 3
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 8
+      }
+    ],
+    "skillRequired": "forge",
+    "levelRequired": 34,
+    "baseTime": 280,
+    "xpReward": 295,
+    "outputItemBase": {
+      "name": "Épée de Diamant",
+      "description": "Une épée redoutable dont le fil ne peut être émoussé.",
+      "lore": "Seul un maître forgeron peut travailler le diamant sans qu'il se brise en mille éclats.",
+      "category": "sword",
+      "baseStats": {
+        "attack": 92,
+        "speed": 12,
+        "luck": 10
+      },
+      "gemSlots": 4,
+      "weight": 2,
+      "durabilityBase": 450,
+      "valueMultiplier": 34
+    }
+  },
+  {
+    "id": "dragon_armor",
+    "name": "Armure de Dragon",
+    "description": "L'armure ultime, forgée à partir des écailles d'un dragon légendaire.",
+    "category": "armor",
+    "requirements": [
+      {
+        "resourceId": "dragon_scale",
+        "quantity": 5
+      },
+      {
+        "resourceId": "adamantium",
+        "quantity": 8
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 12
+      }
+    ],
+    "skillRequired": "forge",
+    "levelRequired": 35,
+    "baseTime": 300,
+    "xpReward": 320,
+    "outputItemBase": {
+      "name": "Armure de Dragon",
+      "description": "Une armure qui confère à son porteur la résistance d'un dragon.",
+      "lore": "Il fallut quarante ans à Maître Aldric pour en percer le secret de fabrication.",
+      "category": "armor",
+      "baseStats": {
+        "defense": 90,
+        "attack": 15,
+        "speed": -5
+      },
+      "gemSlots": 4,
+      "weight": 12,
+      "durabilityBase": 550,
+      "valueMultiplier": 40
+    }
+  },
+  {
+    "id": "eternal_lance",
+    "name": "Lance Éternelle",
+    "description": "Une lance dont la pointe ne s'use jamais, forgée entre deux mondes.",
+    "category": "lance",
+    "requirements": [
+      {
+        "resourceId": "dragon_scale",
+        "quantity": 3
+      },
+      {
+        "resourceId": "crystal",
+        "quantity": 4
+      },
+      {
+        "resourceId": "adamantium",
+        "quantity": 5
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 10
+      }
+    ],
+    "skillRequired": "forge",
+    "levelRequired": 37,
+    "baseTime": 320,
+    "xpReward": 360,
+    "outputItemBase": {
+      "name": "Lance Éternelle",
+      "description": "Une lance de guerre qui traverse les âges sans jamais se rouiller.",
+      "lore": "Les dieux des batailles l'auraient forgée lors de la guerre des Titans.",
+      "category": "lance",
+      "baseStats": {
+        "attack": 85,
+        "speed": 18,
+        "luck": 15
+      },
+      "gemSlots": 3,
+      "weight": 3.5,
+      "durabilityBase": 500,
+      "valueMultiplier": 38
+    }
+  },
+  {
+    "id": "celestial_axe",
+    "name": "Hache Céleste",
+    "description": "Une hache de guerre forgée avec des matériaux tombés des cieux.",
+    "category": "axe",
+    "requirements": [
+      {
+        "resourceId": "dragon_scale",
+        "quantity": 3
+      },
+      {
+        "resourceId": "diamond",
+        "quantity": 2
+      },
+      {
+        "resourceId": "adamantium",
+        "quantity": 5
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 10
+      }
+    ],
+    "skillRequired": "forge",
+    "levelRequired": 38,
+    "baseTime": 330,
+    "xpReward": 380,
+    "outputItemBase": {
+      "name": "Hache Céleste",
+      "description": "Une hache surpuissante dont le choc fait trembler la terre.",
+      "lore": "Les barbares du Nord lui vouent un culte, convaincus qu'elle contient l'âme d'un dieu.",
+      "category": "axe",
+      "baseStats": {
+        "attack": 105,
+        "defense": 10,
+        "speed": -8
+      },
+      "gemSlots": 3,
+      "weight": 6,
+      "durabilityBase": 480,
+      "valueMultiplier": 42
+    }
+  },
+  {
+    "id": "arcane_scepter",
+    "name": "Sceptre Arcanique",
+    "description": "Un sceptre rituel incrusté de gemmes magiques, outil des grands mages.",
+    "category": "decoration",
+    "requirements": [
+      {
+        "resourceId": "crystal",
+        "quantity": 5
+      },
+      {
+        "resourceId": "emerald",
+        "quantity": 2
+      },
+      {
+        "resourceId": "platinum",
+        "quantity": 3
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 8
+      }
+    ],
+    "skillRequired": "forge",
+    "levelRequired": 39,
+    "baseTime": 340,
+    "xpReward": 400,
+    "outputItemBase": {
+      "name": "Sceptre Arcanique",
+      "description": "Un bâton de commandement dont les gemmes résonnent avec la magie ambiante.",
+      "lore": "Le Conseil des Arcanes paie n'importe quel prix pour en acquérir un.",
+      "category": "decoration",
+      "baseStats": {
+        "luck": 40,
+        "speed": 20,
+        "defense": 5
+      },
+      "gemSlots": 5,
+      "weight": 2,
+      "durabilityBase": 400,
+      "valueMultiplier": 45
+    }
+  },
+  {
+    "id": "legendary_blade",
+    "name": "Lame Légendaire",
+    "description": "Le summum de l'art du forgeron — une lame dont les bardes chanteront les exploits.",
+    "category": "sword",
+    "requirements": [
+      {
+        "resourceId": "dragon_scale",
+        "quantity": 5
+      },
+      {
+        "resourceId": "diamond",
+        "quantity": 3
+      },
+      {
+        "resourceId": "adamantium",
+        "quantity": 6
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 14
+      }
+    ],
+    "skillRequired": "forge",
+    "levelRequired": 40,
+    "baseTime": 360,
+    "xpReward": 450,
+    "outputItemBase": {
+      "name": "Lame Légendaire",
+      "description": "Une épée qui transcende les limites du métal et de la magie.",
+      "lore": "Un seul forgeron par génération peut espérer en créer une. Vous êtes cet élu.",
+      "category": "sword",
+      "baseStats": {
+        "attack": 120,
+        "speed": 20,
+        "defense": 20,
+        "luck": 20
+      },
+      "gemSlots": 5,
+      "weight": 2.5,
+      "durabilityBase": 600,
+      "valueMultiplier": 55
     }
   }
 ]

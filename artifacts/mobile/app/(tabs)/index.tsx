@@ -888,6 +888,11 @@ export default function ForgeScreen() {
         )}
       </View>
 
+      {/* ── Apprentice Card ── */}
+      {craftPhase === 'IDLE' && (
+        <ApprenticeCard game={game} colors={colors} />
+      )}
+
       {/* ── Recipe Sheet ── */}
       <Modal visible={showRecipeSheet} transparent animationType="slide" statusBarTranslucent>
         <View style={styles.overlay}>
@@ -1124,6 +1129,205 @@ export default function ForgeScreen() {
     </View>
   );
 }
+
+// ─── Apprentice Card ─────────────────────────────────────────────────────────
+function ApprenticeCard({
+  game,
+  colors,
+}: {
+  game: ReturnType<typeof useGame>;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const ap = game.apprentice;
+  const [msg, setMsg] = React.useState<string | null>(null);
+  const [pickingRecipe, setPickingRecipe] = React.useState(false);
+  const [now, setNow] = React.useState(Date.now());
+
+  // Tick every 5 s to update the progress bar
+  React.useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(t);
+  }, []);
+
+  const showMsg = (m: string) => { setMsg(m); setTimeout(() => setMsg(null), 2500); };
+
+  const HIRE_COST = 500;
+  const hireCost = HIRE_COST;
+
+  if (!ap) {
+    return (
+      <View style={[apStyles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={[apStyles.title, { color: colors.foreground }]}>🔨 Apprenti Forgeron</Text>
+        <Text style={[apStyles.sub, { color: colors.mutedForeground }]}>
+          Recrutez un apprenti pour qu'il forge des objets pendant que vous vous occupez des commandes.
+        </Text>
+        <TouchableOpacity
+          style={[apStyles.btn, { backgroundColor: colors.primary }]}
+          onPress={() => {
+            const ok = game.hireApprentice();
+            if (!ok) showMsg('Or insuffisant.');
+          }}
+          activeOpacity={0.8}
+        >
+          <Text style={[apStyles.btnText, { color: colors.primaryForeground }]}>
+            Recruter — {hireCost}g
+          </Text>
+        </TouchableOpacity>
+        {msg && <Text style={[apStyles.msg, { color: '#E57373' }]}>{msg}</Text>}
+      </View>
+    );
+  }
+
+  // Progress bar when crafting
+  const isCrafting = !!ap.craftStartedAt && !ap.readyItem;
+  const isReady    = !!ap.readyItem;
+  const craftPct   = isCrafting && ap.craftDurationMs > 0
+    ? Math.min(1, (now - (ap.craftStartedAt ?? 0)) / ap.craftDurationMs)
+    : 0;
+  const remaining  = isCrafting
+    ? Math.max(0, Math.round(((ap.craftStartedAt ?? 0) + ap.craftDurationMs - now) / 1000))
+    : 0;
+
+  const assignedRecipe = ap.assignedRecipeId
+    ? game.allRecipes.find((r) => r.id === ap.assignedRecipeId)
+    : null;
+
+  const xpPct = Math.min(100, Math.round((ap.xp / ap.xpToNextLevel) * 100));
+  const trainCost = ap.level < 10
+    ? Math.round(300 * Math.pow(1.8, ap.level - 1))
+    : null;
+
+  const availableForApprenticeship = game.allRecipes.filter(
+    (r) => r.levelRequired <= Math.max(1, ap.level * 4),
+  );
+
+  return (
+    <View style={[apStyles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      {/* Header */}
+      <View style={apStyles.row}>
+        <Text style={[apStyles.title, { color: colors.foreground }]}>
+          🔨 {ap.name}
+        </Text>
+        <View style={[apStyles.badge, { backgroundColor: colors.secondary }]}>
+          <Text style={[apStyles.badgeText, { color: colors.accent }]}>Niv. {ap.level}</Text>
+        </View>
+      </View>
+
+      {/* XP bar */}
+      <View style={[apStyles.track, { backgroundColor: colors.muted }]}>
+        <View style={[apStyles.fill, { width: `${xpPct}%` as `${number}%`, backgroundColor: colors.accent }]} />
+      </View>
+      <Text style={[apStyles.xpLabel, { color: colors.mutedForeground }]}>
+        XP {ap.xp}/{ap.xpToNextLevel}
+      </Text>
+
+      {/* Craft status */}
+      {isReady && ap.readyItem && (
+        <TouchableOpacity
+          style={[apStyles.readyRow, { backgroundColor: '#1B5E2088' }]}
+          onPress={() => {
+            const item = game.collectApprenticeItem();
+            if (item) { showMsg(`${item.name} (${item.quality}) récupéré !`); AudioManager.playCollect(); }
+          }}
+          activeOpacity={0.8}
+        >
+          <Text style={{ color: '#A5D6A7', fontWeight: '700' }}>
+            ✓ {ap.readyItem.name} prêt — Appuyer pour récupérer
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      {isCrafting && assignedRecipe && (
+        <View>
+          <Text style={[apStyles.craftLabel, { color: colors.mutedForeground }]}>
+            Forge : {assignedRecipe.name}  ({remaining}s restant)
+          </Text>
+          <View style={[apStyles.track, { backgroundColor: colors.muted }]}>
+            <View style={[apStyles.fill, { width: `${Math.round(craftPct * 100)}%` as `${number}%`, backgroundColor: colors.primary }]} />
+          </View>
+        </View>
+      )}
+
+      {!isCrafting && !isReady && (
+        <Text style={[apStyles.craftLabel, { color: colors.mutedForeground }]}>
+          {ap.assignedRecipeId ? 'En attente de recette…' : 'Aucune recette assignée.'}
+        </Text>
+      )}
+
+      {msg && <Text style={[apStyles.msg, { color: '#A5D6A7' }]}>{msg}</Text>}
+
+      {/* Action buttons */}
+      <View style={apStyles.row}>
+        <TouchableOpacity
+          style={[apStyles.btnSm, { backgroundColor: colors.secondary, borderColor: colors.border, flex: 1 }]}
+          onPress={() => setPickingRecipe(true)}
+          activeOpacity={0.8}
+        >
+          <Text style={[apStyles.btnSmText, { color: colors.foreground }]}>📋 Recette</Text>
+        </TouchableOpacity>
+        {trainCost !== null && (
+          <TouchableOpacity
+            style={[apStyles.btnSm, { backgroundColor: colors.secondary, borderColor: colors.accent + '80', flex: 1 }]}
+            onPress={() => {
+              const r = game.trainApprentice();
+              showMsg(r.message);
+              if (r.success) AudioManager.playTalentUnlock();
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={[apStyles.btnSmText, { color: colors.accent }]}>⬆ Former ({trainCost}g)</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Recipe picker */}
+      {pickingRecipe && (
+        <View style={[apStyles.pickerBox, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+          <Text style={[apStyles.pickerTitle, { color: colors.mutedForeground }]}>Choisir une recette :</Text>
+          {availableForApprenticeship.map((r) => (
+            <TouchableOpacity
+              key={r.id}
+              style={[apStyles.pickerRow, { borderBottomColor: colors.border }]}
+              onPress={() => {
+                game.assignApprenticeRecipe(r.id);
+                setPickingRecipe(false);
+                showMsg(`${ap.name} forge maintenant : ${r.name}`);
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={[apStyles.pickerName, { color: colors.foreground }]}>{r.name}</Text>
+              <Text style={[apStyles.pickerMeta, { color: colors.mutedForeground }]}>Niv.{r.levelRequired}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+const apStyles = StyleSheet.create({
+  card:        { borderWidth: 1, borderRadius: 14, padding: 14, marginHorizontal: 16, marginTop: 14, gap: 8 },
+  title:       { fontSize: 15, fontWeight: '700' },
+  sub:         { fontSize: 12, lineHeight: 18 },
+  row:         { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  badge:       { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  badgeText:   { fontSize: 12, fontWeight: '700' },
+  track:       { height: 6, borderRadius: 3, overflow: 'hidden' },
+  fill:        { height: '100%', borderRadius: 3 },
+  xpLabel:     { fontSize: 10 },
+  craftLabel:  { fontSize: 12 },
+  readyRow:    { borderRadius: 10, padding: 10, alignItems: 'center' },
+  msg:         { fontSize: 12, fontWeight: '600', textAlign: 'center' },
+  btn:         { borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
+  btnText:     { fontWeight: '700', fontSize: 14 },
+  btnSm:       { borderWidth: 1, borderRadius: 10, paddingVertical: 8, alignItems: 'center', gap: 4 },
+  btnSmText:   { fontSize: 12, fontWeight: '600' },
+  pickerBox:   { borderWidth: 1, borderRadius: 10, marginTop: 4, maxHeight: 200, overflow: 'hidden' },
+  pickerTitle: { fontSize: 11, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 4 },
+  pickerRow:   { borderBottomWidth: StyleSheet.hairlineWidth, paddingHorizontal: 10, paddingVertical: 8, flexDirection: 'row', justifyContent: 'space-between' },
+  pickerName:  { fontSize: 13 },
+  pickerMeta:  { fontSize: 11 },
+});
 
 // ─── Idle Panel ──────────────────────────────────────────────────────────────
 function IdlePanel({

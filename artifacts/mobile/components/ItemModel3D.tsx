@@ -154,7 +154,7 @@ function CategoryFallback({ category, color }: { category: ItemCategory; color: 
   const shapes: Record<ItemCategory, string> = {
     sword: '⚔', axe: '🪓', hammer: '⚒', lance: '🔱',
     shield: '🛡', armor: '🥋', helmet: '⛑', ring: '💍',
-    amulet: '📿', tool: '🔧', decoration: '✨',
+    amulet: '📿', dagger: '🗡', crown: '👑', tool: '🔧', decoration: '✨',
   };
   return (
     <View style={[styles.fallback, { backgroundColor: `${color}18` }]}>

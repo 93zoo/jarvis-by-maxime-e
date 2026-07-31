@@ -11,6 +11,7 @@ import React, {
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {
+  Apprentice,
   CraftOrder,
   CombatDrop,
   CombatResult,
@@ -106,7 +107,9 @@ function computeTalentBonus(unlocked: string[], bonusType: string): number {
 }
 
 function xpForLevel(level: number): number {
-  return level * 100;
+  // Exponential curve: early levels stay accessible, late levels require real effort.
+  // Level 5 ≈ 207 XP, Level 10 ≈ 516, Level 20 ≈ 3 200, Level 30 ≈ 19 800, Level 40 ≈ 122 700
+  return Math.max(100, Math.floor(100 * Math.pow(1.2, level - 1)));
 }
 
 function skillXpForLevel(level: number): number {
@@ -153,6 +156,7 @@ interface GameState {
   forgeUpgrades: Record<string, number>; // element → level (0-5)
   forgeHistory: ForgeHistoryEntry[]; // persistent craft history, never deleted on sell
   sessionSnapshots: SessionSnapshot[]; // one per session, newest-last, max 30
+  apprentice: Apprentice | null;
 }
 
 type GameAction =
@@ -198,7 +202,14 @@ type GameAction =
   // Customization
   | { type: 'CUSTOMIZE_PLAYER'; name: string; forgeName: string; avatarColor?: string; avatarIcon?: string | null; avatarImage?: string | null }
   // Session snapshot
-  | { type: 'ADD_SESSION_SNAPSHOT'; snapshot: SessionSnapshot };
+  | { type: 'ADD_SESSION_SNAPSHOT'; snapshot: SessionSnapshot }
+  // Apprentice
+  | { type: 'HIRE_APPRENTICE'; name: string }
+  | { type: 'DISMISS_APPRENTICE' }
+  | { type: 'ASSIGN_APPRENTICE_RECIPE'; recipeId: string; durationMs: number }
+  | { type: 'APPRENTICE_FINISH_CRAFT'; item: Item }
+  | { type: 'COLLECT_APPRENTICE_ITEM' }
+  | { type: 'TRAIN_APPRENTICE'; goldCost: number };
 
 function buildInitialPlayer(): Player {
   const skills = SKILL_TYPES.reduce(
@@ -250,6 +261,59 @@ const INITIAL_INVENTORY: InventoryItem[] = [
   { resourceId: 'amethyst', quantity: 1 },
 ];
 
+const APPRENTICE_NAMES = ['Aldric', 'Bryn', 'Caelum', 'Doric', 'Eira', 'Finn', 'Gwen', 'Holt', 'Idris', 'Jora'];
+const APPRENTICE_HIRE_COST = 500;
+
+function apprenticeXpForLevel(level: number): number {
+  return Math.round(100 * Math.pow(1.5, level - 1));
+}
+
+function apprenticeCraftDuration(recipe: RecipeData, apprenticeLevel: number): number {
+  const baseSec = recipe.baseTime * 2; // apprentice is 2× slower at level 1
+  const speedup = Math.min(0.55, (apprenticeLevel - 1) * 0.07); // up to 55% faster by level 9
+  return Math.round(baseSec * (1 - speedup) * 1000);
+}
+
+function makeApprenticeItem(recipe: RecipeData, apprenticeLevel: number): Item {
+  const roll = Math.random() * 100;
+  let quality: Quality;
+  if (apprenticeLevel <= 2)      quality = roll < 60 ? 'poor' : 'normal';
+  else if (apprenticeLevel <= 4) quality = roll < 35 ? 'normal' : roll < 85 ? 'good' : 'excellent';
+  else if (apprenticeLevel <= 6) quality = roll < 15 ? 'normal' : roll < 55 ? 'good' : roll < 88 ? 'excellent' : 'legendary';
+  else if (apprenticeLevel <= 8) quality = roll < 25 ? 'good' : roll < 70 ? 'excellent' : 'legendary';
+  else                           quality = roll < 35 ? 'excellent' : 'legendary';
+
+  const QUALITY_SCORE: Record<Quality, number> = { poor: 15, normal: 45, good: 65, excellent: 82, legendary: 96 };
+  const qualityMults: Record<Quality, number>  = { poor: 0.5, normal: 0.8, good: 1.0, excellent: 1.5, legendary: 2.5 };
+  const RARITY_MAP: Record<Quality, Rarity>    = { poor: 'common', normal: 'uncommon', good: 'rare', excellent: 'epic', legendary: 'legendary' };
+
+  const base  = recipe.outputItemBase;
+  const value = Math.round(base.valueMultiplier * 100 * qualityMults[quality]);
+
+  return {
+    instanceId:   makeId(),
+    recipeId:     recipe.id,
+    name:         base.name,
+    description:  base.description,
+    lore:         base.lore,
+    category:     base.category as ItemCategory,
+    level:        recipe.levelRequired,
+    quality,
+    rarity:       RARITY_MAP[quality],
+    durability:   base.durabilityBase,
+    maxDurability: base.durabilityBase,
+    weight:       base.weight,
+    value,
+    stats:        base.baseStats ?? {},
+    gemSlots:     base.gemSlots ?? 0,
+    gems:         Array(base.gemSlots ?? 0).fill(null),
+    materials:    recipe.requirements.map((r) => r.resourceId),
+    craftedBy:    'apprentice',
+    craftedAt:    Date.now(),
+    qualityScore: QUALITY_SCORE[quality],
+  };
+}
+
 function buildInitialState(): GameState {
   return {
     isLoaded: false,
@@ -268,6 +332,7 @@ function buildInitialState(): GameState {
     forgeUpgrades: {},
     forgeHistory: [],
     sessionSnapshots: [],
+    apprentice: null,
   };
 }
 
@@ -427,6 +492,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         forgeUpgrades: s.forgeUpgrades ?? {},
         forgeHistory: s.forgeHistory ?? [],
         sessionSnapshots: s.sessionSnapshots ?? [],
+        apprentice: s.apprentice ?? null,
       };
     }
     case 'RESET': {
@@ -895,6 +961,105 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, sessionSnapshots: snapshots };
     }
 
+    // ── Apprentice ────────────────────────────────────────────────────────────
+    case 'HIRE_APPRENTICE': {
+      if (state.player.gold < APPRENTICE_HIRE_COST) return state;
+      const apprentice: Apprentice = {
+        name: action.name,
+        level: 1,
+        xp: 0,
+        xpToNextLevel: apprenticeXpForLevel(1),
+        assignedRecipeId: null,
+        craftStartedAt: null,
+        craftDurationMs: 0,
+        readyItem: null,
+      };
+      return {
+        ...state,
+        player: { ...state.player, gold: state.player.gold - APPRENTICE_HIRE_COST },
+        apprentice,
+      };
+    }
+
+    case 'DISMISS_APPRENTICE':
+      return { ...state, apprentice: null };
+
+    case 'ASSIGN_APPRENTICE_RECIPE': {
+      if (!state.apprentice) return state;
+      return {
+        ...state,
+        apprentice: {
+          ...state.apprentice,
+          assignedRecipeId: action.recipeId,
+          craftStartedAt: Date.now(),
+          craftDurationMs: action.durationMs,
+          readyItem: null,
+        },
+      };
+    }
+
+    case 'APPRENTICE_FINISH_CRAFT': {
+      if (!state.apprentice) return state;
+      return {
+        ...state,
+        apprentice: {
+          ...state.apprentice,
+          craftStartedAt: null,
+          readyItem: action.item,
+        },
+      };
+    }
+
+    case 'COLLECT_APPRENTICE_ITEM': {
+      if (!state.apprentice?.readyItem) return state;
+      const item = state.apprentice.readyItem;
+      // Give apprentice XP on collection
+      let newXp = state.apprentice.xp + Math.round(20 * state.apprentice.level);
+      let newLevel = state.apprentice.level;
+      let newXpNeeded = state.apprentice.xpToNextLevel;
+      if (newXp >= newXpNeeded && newLevel < 10) {
+        newXp -= newXpNeeded;
+        newLevel += 1;
+        newXpNeeded = apprenticeXpForLevel(newLevel);
+      }
+      // Auto-restart craft if recipe still assigned
+      const now = Date.now();
+      const recipe = state.apprentice.assignedRecipeId
+        ? ALL_RECIPES.find((r) => r.id === state.apprentice!.assignedRecipeId)
+        : null;
+      const newDuration = recipe ? apprenticeCraftDuration(recipe, newLevel) : 0;
+      return {
+        ...state,
+        craftedItems: [...state.craftedItems, item],
+        apprentice: {
+          ...state.apprentice,
+          level: newLevel,
+          xp: newXp,
+          xpToNextLevel: newXpNeeded,
+          readyItem: null,
+          craftStartedAt: recipe ? now : null,
+          craftDurationMs: newDuration,
+        },
+      };
+    }
+
+    case 'TRAIN_APPRENTICE': {
+      if (!state.apprentice) return state;
+      if (state.player.gold < action.goldCost) return state;
+      if (state.apprentice.level >= 10) return state;
+      const newLevel = state.apprentice.level + 1;
+      return {
+        ...state,
+        player: { ...state.player, gold: state.player.gold - action.goldCost },
+        apprentice: {
+          ...state.apprentice,
+          level: newLevel,
+          xp: 0,
+          xpToNextLevel: apprenticeXpForLevel(newLevel),
+        },
+      };
+    }
+
     default:
       return state;
   }
@@ -981,6 +1146,13 @@ interface GameContextType {
   syncToCloud: () => Promise<void>;
   // Customization
   customizePlayer: (name: string, forgeName: string, avatarColor?: string, avatarIcon?: string | null, avatarImage?: string | null) => void;
+  // Apprentice
+  apprentice: Apprentice | null;
+  hireApprentice: () => boolean;
+  dismissApprentice: () => void;
+  assignApprenticeRecipe: (recipeId: string) => boolean;
+  collectApprenticeItem: () => Item | null;
+  trainApprentice: () => { success: boolean; cost: number; message: string };
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -1180,6 +1352,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           forgeUpgrades: state.forgeUpgrades,
           forgeHistory: state.forgeHistory,
           sessionSnapshots: updatedSnaps,
+          apprentice: state.apprentice,
           lastSaved: now,
         };
         await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
@@ -1754,6 +1927,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       forgeUpgrades: state.forgeUpgrades,
       forgeHistory: state.forgeHistory,
       sessionSnapshots: updatedSnaps,
+      apprentice: state.apprentice,
       lastSaved: now,
     };
     await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
@@ -1781,6 +1955,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         forgeUpgrades: state.forgeUpgrades,
         forgeHistory: state.forgeHistory,
         sessionSnapshots: state.sessionSnapshots,
+        apprentice: state.apprentice,
         lastSaved: Date.now(),
       };
       const res = await fetch(`${base}/save`, {
@@ -1847,6 +2022,63 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     },
     [state.forgeUpgrades, state.player.gold, state.player.talentsUnlocked, state.inventory],
   );
+
+  // -------------------------------------------------------------------------
+  // Apprentice callbacks
+  // -------------------------------------------------------------------------
+  const hireApprentice = useCallback((): boolean => {
+    if (state.apprentice) return false;
+    if (state.player.gold < APPRENTICE_HIRE_COST) return false;
+    const name = APPRENTICE_NAMES[Math.floor(Math.random() * APPRENTICE_NAMES.length)];
+    dispatch({ type: 'HIRE_APPRENTICE', name });
+    return true;
+  }, [state.apprentice, state.player.gold]);
+
+  const dismissApprentice = useCallback(() => {
+    dispatch({ type: 'DISMISS_APPRENTICE' });
+  }, []);
+
+  const assignApprenticeRecipe = useCallback((recipeId: string): boolean => {
+    if (!state.apprentice) return false;
+    const recipe = ALL_RECIPES.find((r) => r.id === recipeId);
+    if (!recipe) return false;
+    const durationMs = apprenticeCraftDuration(recipe, state.apprentice.level);
+    dispatch({ type: 'ASSIGN_APPRENTICE_RECIPE', recipeId, durationMs });
+    return true;
+  }, [state.apprentice]);
+
+  const collectApprenticeItem = useCallback((): Item | null => {
+    const item = state.apprentice?.readyItem ?? null;
+    if (!item) return null;
+    dispatch({ type: 'COLLECT_APPRENTICE_ITEM' });
+    return item;
+  }, [state.apprentice]);
+
+  const trainApprentice = useCallback((): { success: boolean; cost: number; message: string } => {
+    if (!state.apprentice) return { success: false, cost: 0, message: 'Pas d\'apprenti.' };
+    if (state.apprentice.level >= 10) return { success: false, cost: 0, message: 'Niveau maximum atteint.' };
+    const cost = Math.round(300 * Math.pow(1.8, state.apprentice.level - 1));
+    if (state.player.gold < cost) return { success: false, cost, message: `Or insuffisant (${cost}g requis).` };
+    dispatch({ type: 'TRAIN_APPRENTICE', goldCost: cost });
+    return { success: true, cost, message: `${state.apprentice.name} est maintenant niveau ${state.apprentice.level + 1} !` };
+  }, [state.apprentice, state.player.gold]);
+
+  // Timer: check every 30 s whether the apprentice has finished crafting
+  useEffect(() => {
+    if (!state.isLoaded) return;
+    const t = setInterval(() => {
+      const ap = state.apprentice;
+      if (!ap || ap.readyItem || !ap.craftStartedAt || !ap.assignedRecipeId) return;
+      if (Date.now() - ap.craftStartedAt >= ap.craftDurationMs) {
+        const recipe = ALL_RECIPES.find((r) => r.id === ap.assignedRecipeId);
+        if (recipe) {
+          dispatch({ type: 'APPRENTICE_FINISH_CRAFT', item: makeApprenticeItem(recipe, ap.level) });
+        }
+      }
+    }, 30_000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.isLoaded, state.apprentice]);
 
   const customizePlayer = useCallback(
     (name: string, forgeName: string, avatarColor?: string, avatarIcon?: string | null, avatarImage?: string | null): void => {
@@ -1957,6 +2189,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       syncToCloud,
       // Customization
       customizePlayer,
+      // Apprentice
+      apprentice: state.apprentice,
+      hireApprentice,
+      dismissApprentice,
+      assignApprenticeRecipe,
+      collectApprenticeItem,
+      trainApprentice,
     }),
     // Include cloud sync reactive state so status transitions propagate to consumers
     // eslint-disable-next-line react-hooks/exhaustive-deps

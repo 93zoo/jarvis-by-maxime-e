@@ -24,6 +24,8 @@ export type ItemCategory =
   | 'helmet'
   | 'ring'
   | 'amulet'
+  | 'dagger'
+  | 'crown'
   | 'tool'
   | 'decoration';
 export type ResourceType = 'metal' | 'wood' | 'stone' | 'clay' | 'gem' | 'organic' | 'misc';
@@ -381,6 +383,20 @@ export interface ForgeHistoryEntry {
 }
 
 // ---------------------------------------------------------------------------
+// Apprentice
+// ---------------------------------------------------------------------------
+export interface Apprentice {
+  name: string;
+  level: number;          // 1–10
+  xp: number;
+  xpToNextLevel: number;
+  assignedRecipeId: string | null;
+  craftStartedAt: number | null;  // timestamp ms
+  craftDurationMs: number;        // ms to finish current craft
+  readyItem: Item | null;         // finished item waiting to be collected
+}
+
+// ---------------------------------------------------------------------------
 // Save file
 // ---------------------------------------------------------------------------
 export interface SaveData {
@@ -400,5 +416,6 @@ export interface SaveData {
   forgeUpgrades: Record<string, number>;
   forgeHistory: ForgeHistoryEntry[];
   sessionSnapshots: SessionSnapshot[];
+  apprentice: Apprentice | null;
   lastSaved: number;
 }
