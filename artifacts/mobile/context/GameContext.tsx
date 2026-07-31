@@ -501,7 +501,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, player: updated };
     }
     case 'ADD_SKILL_XP': {
-      const updated = levelUpSkill(state.player, action.skill, action.amount);
+      const xpMultiplier = 1
+        + computeTalentBonus(state.player.talentsUnlocked, 'allXPBonus')
+        + computeTalentBonus(state.player.talentsUnlocked, `${action.skill}XPBonus`);
+      const boostedAmount = Math.round(action.amount * xpMultiplier);
+      const updated = levelUpSkill(state.player, action.skill, boostedAmount);
       return { ...state, player: updated };
     }
     case 'UNLOCK_REGION': {
@@ -1228,7 +1232,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         dispatch({ type: 'REMOVE_RESOURCE', resourceId: req.resourceId, qty: req.quantity });
       }
 
-      const clampedScore = Math.max(0, Math.min(100, Math.round(qualityScore)));
+      const talentQualityBonus = computeTalentBonus(state.player.talentsUnlocked, 'qualityBonus') * 100;
+      const clampedScore = Math.max(0, Math.min(100, Math.round(qualityScore + talentQualityBonus)));
       const { quality, rarity } = qualityFromScore(clampedScore);
       const base = recipe.outputItemBase;
 
@@ -1301,12 +1306,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (!region) return [];
       if (!state.unlockedRegions.includes(regionId)) return [];
 
+      const collectBonus = Math.floor(computeTalentBonus(state.player.talentsUnlocked, 'collectBonus'));
+      const collectYield = computeTalentBonus(state.player.talentsUnlocked, 'collectYield');
       const drops: { resourceId: string; quantity: number }[] = [];
       for (const node of region.resourceNodes) {
         if (Math.random() < node.dropRate) {
-          const qty = Math.floor(
+          const baseQty = Math.floor(
             Math.random() * (node.maxQty - node.minQty + 1) + node.minQty,
           );
+          const qty = Math.max(1, Math.round((baseQty + collectBonus) * (1 + collectYield)));
           drops.push({ resourceId: node.resourceId, quantity: qty });
           dispatch({ type: 'ADD_RESOURCE', resourceId: node.resourceId, qty });
         }
@@ -1332,7 +1340,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
       return drops;
     },
-    [state.unlockedRegions, state.regionExploration],
+    [state.unlockedRegions, state.regionExploration, state.player.talentsUnlocked],
   );
 
   const unlockRegion = useCallback((regionId: string) => {
@@ -1466,14 +1474,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     (instanceId: string): number => {
       const item = state.craftedItems.find((i) => i.instanceId === instanceId);
       if (!item) return 0;
-      const goldAmount = Math.round(item.value * 0.85);
+      const sellBonus = 1
+        + computeTalentBonus(state.player.talentsUnlocked, 'sellPriceBonus')
+        + computeTalentBonus(state.player.talentsUnlocked, 'allGoldBonus');
+      const goldAmount = Math.round(item.value * 0.85 * sellBonus);
       dispatch({ type: 'SELL_ITEM', instanceId, goldAmount });
       dispatch({ type: 'ADD_SKILL_XP', skill: 'commerce', amount: 5 });
       dispatch({ type: 'UPDATE_QUEST_PROGRESS', objectiveType: 'sell', targetId: item.category, amount: 1 });
       dispatch({ type: 'UPDATE_QUEST_PROGRESS', objectiveType: 'sell', targetId: 'any', amount: 1 });
       return goldAmount;
     },
-    [state.craftedItems],
+    [state.craftedItems, state.player.talentsUnlocked],
   );
 
   const sellResource = useCallback(
@@ -1482,13 +1493,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (!inv || inv.quantity < qty) return 0;
       const res = ALL_RESOURCES.find((r) => r.id === resourceId);
       const pricePerUnit = Math.round((res?.baseValue ?? 10) * (state.marketPrices[resourceId] ?? 1.0) * 0.8);
-      const goldAmount = pricePerUnit * qty;
+      const sellBonus = 1
+        + computeTalentBonus(state.player.talentsUnlocked, 'sellPriceBonus')
+        + computeTalentBonus(state.player.talentsUnlocked, 'allGoldBonus');
+      const goldAmount = Math.round(pricePerUnit * qty * sellBonus);
       dispatch({ type: 'SELL_RESOURCE', resourceId, qty, goldAmount });
       dispatch({ type: 'ADJUST_MARKET', resourceId, delta: -0.03 * qty }); // selling reduces price
       dispatch({ type: 'ADD_SKILL_XP', skill: 'commerce', amount: qty });
       return goldAmount;
     },
-    [state.inventory, state.marketPrices],
+    [state.inventory, state.marketPrices, state.player.talentsUnlocked],
   );
 
   const meltItem = useCallback(
