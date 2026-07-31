@@ -1,7 +1,11 @@
 /**
- * ForgeScene — Bird's-eye 2D animated smithy view.
- * Pure React Native Animated — no Three.js / WebGL dependency.
- * Works on all Android / iOS devices via Expo Go or native build.
+ * ForgeScene — Ultra-realistic animated smithy interior.
+ * Pure React Native Animated (no WebGL). Works on all Android / iOS devices.
+ *
+ * Architecture rules (never break these):
+ *  • useNativeDriver: true  → transform, opacity only
+ *  • useNativeDriver: false → backgroundColor, shadowColor (any color/layout prop)
+ *  • NEVER mix the two inside the same Animated.parallel / Animated.sequence
  */
 import React, {
   forwardRef,
@@ -9,88 +13,96 @@ import React, {
   useImperativeHandle,
   useMemo,
   useRef,
+  useState,
 } from 'react';
-import {
-  Animated,
-  Easing,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { Animated, Easing, LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AudioManager from '@/utils/AudioManager';
 
-// ─── Public types (kept identical for parent compatibility) ───────────────────
+// ─── Public types (kept for parent compatibility) ────────────────────────────
 export type CraftPhase = 'IDLE' | 'HEATING' | 'HAMMERING' | 'COOLING' | 'RESULT';
 export interface ForgeScene3DRef { triggerHammerStrike: () => void; }
 interface Props { craftPhase: CraftPhase; upgradeLevel?: number; }
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+/** Run an infinite flicker loop on a single Animated.Value. Returns stop fn. */
+function startFlicker(
+  val: Animated.Value,
+  steps: [number, number][],   // [toValue, duration][]
+): () => void {
+  const loop = Animated.loop(
+    Animated.sequence(
+      steps.map(([toValue, duration]) =>
+        Animated.timing(val, { toValue, duration, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
+      ),
+    ),
+  );
+  loop.start();
+  return () => loop.stop();
+}
+
 // ─── Spark particle ───────────────────────────────────────────────────────────
-interface SparkConfig { id: number; ox: number; oy: number; delay: number; color: string }
+interface SparkSeed {
+  id: number;
+  ox: number; oy: number;   // spawn position (absolute px)
+  dx: number; dy: number;   // displacement over lifetime
+  dur: number; delay: number;
+  size: number; color: string;
+}
 
-function Spark({ ox, oy, delay, color }: SparkConfig) {
-  const tx   = useRef(new Animated.Value(0)).current;
-  const ty   = useRef(new Animated.Value(0)).current;
-  const fade = useRef(new Animated.Value(0)).current;
-
-  const { dx, dy, dur } = useMemo(() => ({
-    dx:  (Math.random() - 0.5) * 70,
-    dy:  -(35 + Math.random() * 90),
-    dur: 700 + Math.random() * 700,
-  }), []);
+function Spark({ ox, oy, dx, dy, dur, delay, size, color }: SparkSeed) {
+  const prog = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
         Animated.delay(delay),
-        Animated.parallel([
-          Animated.timing(ty, { toValue: dy,  duration: dur, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-          Animated.timing(tx, { toValue: dx,  duration: dur, useNativeDriver: true }),
-          Animated.sequence([
-            Animated.timing(fade, { toValue: 1,   duration: 80,  useNativeDriver: true }),
-            Animated.timing(fade, { toValue: 0,   duration: dur - 80, useNativeDriver: true }),
-          ]),
-        ]),
-        Animated.parallel([
-          Animated.timing(ty, { toValue: 0, duration: 0, useNativeDriver: true }),
-          Animated.timing(tx, { toValue: 0, duration: 0, useNativeDriver: true }),
-        ]),
+        Animated.timing(prog, { toValue: 1, duration: dur, useNativeDriver: true, easing: Easing.out(Easing.quad) }),
+        Animated.timing(prog, { toValue: 0, duration: 0,   useNativeDriver: true }),
       ]),
     );
     loop.start();
     return () => loop.stop();
   }, []);
 
+  const tx      = prog.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const ty      = prog.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
+  const opacity = prog.interpolate({ inputRange: [0, 0.06, 0.7, 1], outputRange: [0, 1, 0.7, 0] });
+
   return (
     <Animated.View
-      style={[
-        styles.spark,
-        { left: ox, top: oy, backgroundColor: color, opacity: fade,
-          transform: [{ translateX: tx }, { translateY: ty }] },
-      ]}
+      style={{
+        position: 'absolute',
+        left: ox - size / 2,
+        top:  oy - size / 2,
+        width: size, height: size, borderRadius: size / 2,
+        backgroundColor: color,
+        opacity,
+        transform: [{ translateX: tx }, { translateY: ty }],
+      }}
     />
   );
 }
 
-// ─── Strike sparks (burst on hammer hit) ─────────────────────────────────────
-interface StrikeSparkProps { id: number; triggerAnim: Animated.Value; ox: number; oy: number }
+// ─── Strike burst sparks (on anvil hammer hit) ────────────────────────────────
+interface StrikeSeed { id: number; dx: number; dy: number; color: string }
 
-function StrikeSpark({ triggerAnim, ox, oy }: StrikeSparkProps) {
-  const tx   = useRef(new Animated.Value(0)).current;
-  const ty   = useRef(new Animated.Value(0)).current;
-  const fade = useRef(new Animated.Value(0)).current;
-  const dx = useMemo(() => (Math.random() - 0.5) * 100, []);
-  const dy = useMemo(() => -(20 + Math.random() * 70),  []);
+function StrikeSpark({
+  dx, dy, color, triggerAnim,
+  ox, oy,
+}: StrikeSeed & { triggerAnim: Animated.Value; ox: number; oy: number }) {
+  const prog    = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const id = triggerAnim.addListener(({ value }) => {
       if (value < 0.05) {
-        tx.setValue(0); ty.setValue(0); fade.setValue(0);
+        prog.setValue(0); opacity.setValue(0);
         Animated.parallel([
-          Animated.timing(ty,   { toValue: dy, duration: 500, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-          Animated.timing(tx,   { toValue: dx, duration: 500, useNativeDriver: true }),
+          Animated.timing(prog,    { toValue: 1, duration: 500, useNativeDriver: true, easing: Easing.out(Easing.quad) }),
           Animated.sequence([
-            Animated.timing(fade, { toValue: 1,  duration: 60,  useNativeDriver: true }),
-            Animated.timing(fade, { toValue: 0,  duration: 440, useNativeDriver: true }),
+            Animated.timing(opacity, { toValue: 1, duration: 60,  useNativeDriver: true }),
+            Animated.timing(opacity, { toValue: 0, duration: 440, useNativeDriver: true }),
           ]),
         ]).start();
       }
@@ -98,13 +110,92 @@ function StrikeSpark({ triggerAnim, ox, oy }: StrikeSparkProps) {
     return () => triggerAnim.removeListener(id);
   }, []);
 
+  const tx = prog.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const ty = prog.interpolate({ inputRange: [0, 1], outputRange: [0, dy] });
+
   return (
     <Animated.View
-      style={[
-        styles.strikeSpark,
-        { left: ox, top: oy, opacity: fade,
-          transform: [{ translateX: tx }, { translateY: ty }] },
-      ]}
+      style={{
+        position: 'absolute',
+        left: ox - 3, top: oy - 3,
+        width: 6, height: 6, borderRadius: 3,
+        backgroundColor: color,
+        opacity,
+        transform: [{ translateX: tx }, { translateY: ty }],
+      }}
+    />
+  );
+}
+
+// ─── Smoke wisp ───────────────────────────────────────────────────────────────
+interface SmokeSeed { id: number; ox: number; oy: number; dx: number; delay: number; size: number }
+
+function SmokeWisp({ ox, oy, dx, delay, size }: SmokeSeed) {
+  const prog = useRef(new Animated.Value(0)).current;
+  const dur  = useMemo(() => 2800 + Math.random() * 2200, []);
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.delay(delay),
+        Animated.timing(prog, { toValue: 1, duration: dur, useNativeDriver: true, easing: Easing.out(Easing.quad) }),
+        Animated.timing(prog, { toValue: 0, duration: 0,   useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, []);
+
+  const ty      = prog.interpolate({ inputRange: [0, 1], outputRange: [0, -(size * 3 + 60)] });
+  const tx      = prog.interpolate({ inputRange: [0, 1], outputRange: [0, dx] });
+  const scale   = prog.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1.6] });
+  const opacity = prog.interpolate({ inputRange: [0, 0.08, 0.6, 1], outputRange: [0, 0.14, 0.08, 0] });
+
+  return (
+    <Animated.View
+      style={{
+        position: 'absolute',
+        left: ox - size / 2, top: oy - size / 2,
+        width: size, height: size, borderRadius: size / 2,
+        backgroundColor: '#5A4830',
+        opacity,
+        transform: [{ translateX: tx }, { translateY: ty }, { scale }],
+      }}
+    />
+  );
+}
+
+// ─── Fire layer ───────────────────────────────────────────────────────────────
+/** A single elliptical glow layer, bottom-anchored at (cx, cy), rising upward. */
+function FireLayer({
+  cx, cy, w, h, color, flicker, phaseScale, opacity,
+}: {
+  cx: number; cy: number;
+  w: number; h: number;
+  color: string;
+  flicker: Animated.Value;
+  phaseScale: Animated.AnimatedMultiplication;
+  opacity: number;
+}) {
+  const combinedScale = Animated.multiply(flicker, phaseScale);
+  return (
+    <Animated.View
+      style={{
+        position: 'absolute',
+        left: cx - w / 2,
+        top:  cy - h,
+        width: w, height: h,
+        borderRadius: w / 2,
+        backgroundColor: color,
+        opacity,
+        transform: [
+          { translateY: h / 2 },          // anchor to bottom
+          { scaleX: combinedScale },
+          { scaleY: combinedScale },
+          { translateY: -h / 2 },
+        ],
+      }}
+      pointerEvents="none"
     />
   );
 }
@@ -112,239 +203,520 @@ function StrikeSpark({ triggerAnim, ox, oy }: StrikeSparkProps) {
 // ─── Main component ───────────────────────────────────────────────────────────
 const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(
   ({ craftPhase, upgradeLevel = 0 }, ref) => {
-    // ── Continuous fire flicker ─────────────────────────────────────────────
-    const flicker = useRef(new Animated.Value(1)).current;
+
+    // ── Layout measurement ──────────────────────────────────────────────────
+    const [dims, setDims] = useState({ w: 390, h: 280 });
+    const onLayout = (e: LayoutChangeEvent) => {
+      const { width, height } = e.nativeEvent.layout;
+      if (width > 0 && height > 0) setDims({ w: width, h: height });
+    };
+
+    const { w, h } = dims;
+
+    // Anchor points (fractional)
+    const fireCX  = w * 0.50;
+    const fireCY  = h * 0.64;   // fire origin (base of flame = forge opening)
+    const chimneyX = w * 0.50;
+    const chimneyY = h * 0.08;
+    const anvilCX = w * 0.74;
+    const anvilCY = h * 0.66;
+
+    // ── 3 independent flicker oscillators (prime-period for no sync) ────────
+    const flk1 = useRef(new Animated.Value(1)).current;
+    const flk2 = useRef(new Animated.Value(1)).current;
+    const flk3 = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
-      const loop = Animated.loop(
-        Animated.sequence([
-          Animated.timing(flicker, { toValue: 1.18, duration: 110, useNativeDriver: true }),
-          Animated.timing(flicker, { toValue: 0.88, duration: 80,  useNativeDriver: true }),
-          Animated.timing(flicker, { toValue: 1.12, duration: 130, useNativeDriver: true }),
-          Animated.timing(flicker, { toValue: 0.93, duration: 90,  useNativeDriver: true }),
-          Animated.timing(flicker, { toValue: 1.08, duration: 120, useNativeDriver: true }),
-          Animated.timing(flicker, { toValue: 0.97, duration: 160, useNativeDriver: true }),
-        ]),
-      );
-      loop.start();
-      return () => loop.stop();
+      const s1 = startFlicker(flk1, [
+        [1.14, 90], [0.92, 70], [1.09, 110], [0.96, 60], [1.06, 130], [1.0, 80],
+      ]);
+      const s2 = startFlicker(flk2, [
+        [0.95, 110], [1.12, 90], [0.98, 130], [1.08, 70], [0.93, 100], [1.0, 110],
+      ]);
+      const s3 = startFlicker(flk3, [
+        [1.07, 137], [0.94, 83], [1.11, 110], [0.97, 93], [1.05, 127], [0.99, 97],
+      ]);
+      return () => { s1(); s2(); s3(); };
     }, []);
 
-    // ── Phase-based fire glow size ──────────────────────────────────────────
-    const fireSize = useRef(new Animated.Value(1)).current;
-    const glowOpacity = useRef(new Animated.Value(0.6)).current;
-    const metalGlow = useRef(new Animated.Value(0)).current;
-    const coolBlue  = useRef(new Animated.Value(0)).current;
+    // Combine flickers for each layer (different combinations = unique rhythm)
+    const flkA = Animated.multiply(flk1, flk2);
+    const flkB = Animated.multiply(flk2, flk3);
+    const flkC = Animated.multiply(flk1, flk3);
+    const flkD = Animated.multiply(flkA, new Animated.Value(1));  // same as flkA
+    const flkE = flk1;
+    const flkF = flk2;
+    const flkG = flk3;
+
+    // ── Phase → fire scale (native driver) ─────────────────────────────────
+    const fireScale = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
-      const boost = upgradeLevel * 0.04;
+      const boost = upgradeLevel * 0.05;
       const target =
-        craftPhase === 'IDLE'      ? 1.0 + boost :
-        craftPhase === 'HEATING'   ? 1.45 + boost :
-        craftPhase === 'HAMMERING' ? 1.15 + boost :
-        craftPhase === 'COOLING'   ? 0.7  + boost : 1.0 + boost;
-      const glow =
-        craftPhase === 'HEATING'   ? 0.95 :
-        craftPhase === 'HAMMERING' ? 0.85 :
-        craftPhase === 'COOLING'   ? 0.40 : 0.65;
-      const metal =
-        craftPhase === 'HEATING'   ? 0.9 :
-        craftPhase === 'HAMMERING' ? 1.0 : 0;
-      const cool = craftPhase === 'COOLING' ? 1 : 0;
-
-      // Native driver (transform only)
-      Animated.timing(fireSize, { toValue: target, duration: 600, useNativeDriver: true }).start();
-      // JS driver (color/opacity properties)
-      Animated.parallel([
-        Animated.timing(glowOpacity, { toValue: glow,  duration: 600, useNativeDriver: false }),
-        Animated.timing(metalGlow,   { toValue: metal, duration: 400, useNativeDriver: false }),
-        Animated.timing(coolBlue,    { toValue: cool,  duration: 800, useNativeDriver: false }),
-      ]).start();
+        craftPhase === 'HEATING'   ? 1.55 + boost :
+        craftPhase === 'HAMMERING' ? 1.20 + boost :
+        craftPhase === 'COOLING'   ? 0.65 + boost :
+        craftPhase === 'RESULT'    ? 1.70 + boost : 1.0 + boost;
+      Animated.timing(fireScale, { toValue: target, duration: 700, useNativeDriver: true, easing: Easing.out(Easing.cubic) }).start();
     }, [craftPhase, upgradeLevel]);
 
-    // ── Hammer strike trigger ───────────────────────────────────────────────
+    const phaseScaleA = Animated.multiply(flkA, fireScale);
+    const phaseScaleB = Animated.multiply(flkB, fireScale);
+    const phaseScaleC = Animated.multiply(flkC, fireScale);
+    const phaseScaleD = Animated.multiply(flkD, fireScale);
+    const phaseScaleE = Animated.multiply(flkE, fireScale);
+    const phaseScaleF = Animated.multiply(flkF, fireScale);
+    const phaseScaleG = Animated.multiply(flkG, fireScale);
+
+    // ── Phase → ambient glow opacity (native driver → opacity is supported) ─
+    const ambientOpacity = useRef(new Animated.Value(0.5)).current;
+
+    useEffect(() => {
+      const target =
+        craftPhase === 'HEATING'   ? 1.0 :
+        craftPhase === 'HAMMERING' ? 0.85 :
+        craftPhase === 'COOLING'   ? 0.25 :
+        craftPhase === 'RESULT'    ? 1.0 : 0.5;
+      Animated.timing(ambientOpacity, { toValue: target, duration: 700, useNativeDriver: true }).start();
+    }, [craftPhase]);
+
+    // ── Metal glow on anvil (JS driver — backgroundColor interpolation) ─────
+    const metalGlow  = useRef(new Animated.Value(0)).current;
+    const coolBlue   = useRef(new Animated.Value(0)).current;
+    const anvilFlash = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+      const metal = craftPhase === 'HEATING' ? 0.8 : craftPhase === 'HAMMERING' ? 1.0 : 0;
+      const cool  = craftPhase === 'COOLING' ? 1 : 0;
+      // JS driver only — no transform, just color
+      Animated.parallel([
+        Animated.timing(metalGlow, { toValue: metal, duration: 500, useNativeDriver: false }),
+        Animated.timing(coolBlue,  { toValue: cool,  duration: 900, useNativeDriver: false }),
+      ]).start();
+    }, [craftPhase]);
+
+    // ── Hammer strike ───────────────────────────────────────────────────────
     const triggerAnim = useRef(new Animated.Value(1)).current;
-    const anvilFlash  = useRef(new Animated.Value(0)).current;
 
     useImperativeHandle(ref, () => ({
       triggerHammerStrike: () => {
         triggerAnim.setValue(0);
         Animated.timing(triggerAnim, { toValue: 1, duration: 20, useNativeDriver: true }).start();
+        // Flash (JS driver — backgroundColor)
         Animated.sequence([
           Animated.timing(anvilFlash, { toValue: 1, duration: 40,  useNativeDriver: false }),
-          Animated.timing(anvilFlash, { toValue: 0, duration: 280, useNativeDriver: false }),
+          Animated.timing(anvilFlash, { toValue: 0, duration: 300, useNativeDriver: false }),
         ]).start();
       },
     }));
 
-    // ── Forge ambience (web only) ───────────────────────────────────────────
+    // ── Forge ambience ──────────────────────────────────────────────────────
     useEffect(() => {
       AudioManager.startForgeAmbience();
       return () => AudioManager.stopForgeAmbience();
     }, []);
 
-    // ── Spark configs (stable across renders) ───────────────────────────────
-    const ambientSparks = useMemo<SparkConfig[]>(() =>
-      Array.from({ length: 14 }, (_, i) => ({
-        id: i,
-        ox: 140 + (Math.random() - 0.5) * 50,
-        oy: 100 + (Math.random() - 0.5) * 30,
-        delay: i * 180,
-        color: i % 3 === 0 ? '#FFCC44' : i % 3 === 1 ? '#FF6600' : '#FF3300',
-      })), [],
-    );
+    // ── Spark seeds ─────────────────────────────────────────────────────────
+    const ambientSparks = useMemo<SparkSeed[]>(() =>
+      Array.from({ length: 30 }, (_, i) => {
+        const angle = (Math.random() - 0.5) * Math.PI * 0.9; // spread cone
+        const speed = 80 + Math.random() * 180;
+        const cat   = i % 3;
+        return {
+          id: i,
+          ox: fireCX + (Math.random() - 0.5) * 40,
+          oy: fireCY - 10,
+          dx: Math.sin(angle) * speed,
+          dy: -(Math.cos(angle) * speed + 40),
+          dur: cat === 0 ? 500 + Math.random() * 400
+             : cat === 1 ? 800 + Math.random() * 600
+             :              1200 + Math.random() * 800,
+          delay: i * 120 + Math.random() * 300,
+          size:  cat === 0 ? 2.5 : cat === 1 ? 3.5 : 4.5,
+          color: cat === 0 ? '#FFFFFF'
+               : cat === 1 ? '#FFEE55'
+               :              '#FF8800',
+        };
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [fireCX, fireCY]);
 
-    const strikeSparks = useMemo(() =>
-      Array.from({ length: 18 }, (_, i) => ({
-        id: i,
-        ox: 200 + (Math.random() - 0.5) * 30,
-        oy: 260 + (Math.random() - 0.5) * 20,
-      })), [],
-    );
+    const strikeSparks = useMemo<(StrikeSeed & { ox: number; oy: number })[]>(() =>
+      Array.from({ length: 22 }, (_, i) => {
+        const angle = (Math.random() - 0.5) * Math.PI * 1.4;
+        const spd   = 60 + Math.random() * 130;
+        return {
+          id: i,
+          ox: anvilCX + (Math.random() - 0.5) * 24,
+          oy: anvilCY - 18,
+          dx: Math.sin(angle) * spd,
+          dy: -(Math.cos(angle) * spd + 20),
+          color: i % 2 === 0 ? '#FFEE44' : '#FFFFFF',
+        };
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [anvilCX, anvilCY]);
 
-    const fireScale = Animated.multiply(flicker, fireSize);
+    const smokeWisps = useMemo<SmokeSeed[]>(() =>
+      Array.from({ length: 7 }, (_, i) => ({
+        id: i,
+        ox: chimneyX + (Math.random() - 0.5) * 30,
+        oy: chimneyY,
+        dx: (Math.random() - 0.5) * 70,
+        delay: i * 450,
+        size: 36 + Math.random() * 32,
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [chimneyX, chimneyY]);
+
+    // ── Forge structure geometry ─────────────────────────────────────────────
+    const archW   = w * 0.44;
+    const archH   = h * 0.42;
+    const archX   = (w - archW) / 2;
+    const archY   = fireCY - archH + h * 0.08;
+    const openW   = archW * 0.55;
+    const openH   = archH * 0.50;
+    const openX   = (w - openW) / 2;
+    const openY   = fireCY - openH;
 
     return (
-      <View style={styles.container}>
-        {/* ── Stone floor background ─────────────────────────────────────── */}
+      <View style={styles.container} onLayout={onLayout}>
+
+        {/* ── 1. Deep background ─────────────────────────────────────────── */}
         <LinearGradient
-          colors={['#0A0806', '#12100C', '#0E0B08']}
+          colors={['#080402', '#0E0806', '#110A05']}
           style={StyleSheet.absoluteFill}
         />
 
-        {/* ── Floor texture grid lines ──────────────────────────────────── */}
-        <View style={styles.grid} pointerEvents="none">
-          {[0,1,2,3,4,5].map(i => (
-            <View key={`h${i}`} style={[styles.gridH, { top: i * 80 + 40 }]} />
-          ))}
-          {[0,1,2,3,4].map(i => (
-            <View key={`v${i}`} style={[styles.gridV, { left: i * 80 + 20 }]} />
-          ))}
-        </View>
-
-        {/* ── Ambient ground glow from forge fire ───────────────────────── */}
+        {/* ── 2. Warm ambient from fire (full-scene glow) ────────────────── */}
         <Animated.View
-          style={[styles.groundGlow, { opacity: glowOpacity }]}
+          style={[styles.sceneGlow, { opacity: ambientOpacity }]}
           pointerEvents="none"
         />
 
-        {/* ── Barrels (top-right) ───────────────────────────────────────── */}
-        <View style={[styles.barrel, { left: 280, top: 60 }]} />
-        <View style={[styles.barrel, { left: 305, top: 85, width: 28, height: 28, borderRadius: 14 }]} />
-        <View style={[styles.barrel, { left: 265, top: 88, width: 24, height: 24, borderRadius: 12 }]} />
+        {/* ── 3. Stone side walls ──────────────────────────────────────────── */}
+        <View style={[styles.wallLeft,  { height: h, backgroundColor: '#0D0A07' }]} />
+        <View style={[styles.wallRight, { height: h, backgroundColor: '#0D0A07' }]} />
+        {/* Wall stone blocks (subtle texture) */}
+        {[0,1,2,3,4,5].map(r =>
+          [0,1].map(c => (
+            <View
+              key={`wl${r}${c}`}
+              style={{
+                position: 'absolute',
+                left: c * 22 + 2,
+                top: r * 44 + (c % 2) * 22 + 8,
+                width: 20, height: 20,
+                borderRadius: 2,
+                backgroundColor: 'rgba(255,150,60,0.025)',
+              }}
+            />
+          ))
+        )}
+        {[0,1,2,3,4,5].map(r =>
+          [0,1].map(c => (
+            <View
+              key={`wr${r}${c}`}
+              style={{
+                position: 'absolute',
+                right: c * 22 + 2,
+                top: r * 44 + (c % 2) * 22 + 8,
+                width: 20, height: 20,
+                borderRadius: 2,
+                backgroundColor: 'rgba(255,150,60,0.025)',
+              }}
+            />
+          ))
+        )}
 
-        {/* ── Tool rack (left wall) ─────────────────────────────────────── */}
-        <View style={styles.toolRack} />
-        <View style={[styles.tool, { left: 14, top: 110 }]} />
-        <View style={[styles.tool, { left: 22, top: 140, height: 60 }]} />
-        <View style={[styles.tool, { left: 10, top: 180, height: 50 }]} />
-        <View style={[styles.tool, { left: 20, top: 230, height: 40 }]} />
+        {/* ── 4. Smoke wisps (behind forge body) ───────────────────────────── */}
+        {smokeWisps.map(s => <SmokeWisp key={s.id} {...s} />)}
 
-        {/* ── Water trough (bottom-right) ───────────────────────────────── */}
-        <Animated.View
-          style={[styles.trough, {
-            shadowColor: coolBlue.interpolate({ inputRange: [0,1], outputRange: ['transparent', '#4488FF'] }),
-            shadowOpacity: 0.8, shadowRadius: 10,
-          }]}
-        >
-          <Animated.View style={[styles.troughWater, {
-            backgroundColor: coolBlue.interpolate({
-              inputRange: [0, 1], outputRange: ['#0D1A26', '#1E4A88'],
-            }),
-          }]} />
-        </Animated.View>
-
-        {/* ── Workbench (right) ─────────────────────────────────────────── */}
-        <View style={styles.workbench}>
-          <View style={[styles.workItem, { left: 4, top: 8 }]} />
-          <View style={[styles.workItem, { left: 28, top: 6, height: 14 }]} />
-        </View>
-
-        {/* ── Left back anvil ───────────────────────────────────────────── */}
-        <View style={[styles.stump, { left: 58, top: 148 }]} />
-        <View style={[styles.anvil, { left: 46, top: 130, width: 44 }]} />
-        <View style={[styles.anvilHorn, { left: 86, top: 136 }]} />
-
-        {/* ── Right back anvil ──────────────────────────────────────────── */}
-        <View style={[styles.stump, { left: 228, top: 155 }]} />
-        <View style={[styles.anvil, { left: 215, top: 136, width: 40 }]} />
-        <View style={[styles.anvilHorn, { left: 251, top: 141 }]} />
-
-        {/* ── Main active anvil (center) ─────────────────────────────────── */}
-        <View style={[styles.stump, { left: 178, top: 255 }]} />
-        <View style={[styles.anvil, { left: 164, top: 236 }]} />
-        <Animated.View
-          style={[styles.anvilFace, {
-            backgroundColor: anvilFlash.interpolate({
-              inputRange: [0, 1], outputRange: ['#707070', '#FFEE88'],
-            }),
-          }]}
+        {/* ── 5. Forge body (stone arch) ────────────────────────────────────  */}
+        {/* Arch shadow */}
+        <View
+          style={{
+            position: 'absolute',
+            left: archX - 8, top: archY + 8,
+            width: archW + 16, height: archH,
+            borderRadius: (archW + 16) / 2,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+          }}
         />
-        <View style={[styles.anvilHorn, { left: 214, top: 242 }]} />
+        {/* Main arch body */}
+        <View
+          style={{
+            position: 'absolute',
+            left: archX, top: archY,
+            width: archW, height: archH,
+            borderTopLeftRadius:  archW / 2,
+            borderTopRightRadius: archW / 2,
+            borderBottomLeftRadius:  8,
+            borderBottomRightRadius: 8,
+            backgroundColor: '#1A1410',
+            borderWidth: 2,
+            borderColor: '#251C14',
+          }}
+        />
+        {/* Arch stone highlight (top edge) */}
+        <View
+          style={{
+            position: 'absolute',
+            left: archX + 4, top: archY + 4,
+            width: archW - 8, height: 12,
+            borderTopLeftRadius:  (archW - 8) / 2,
+            borderTopRightRadius: (archW - 8) / 2,
+            backgroundColor: 'rgba(255,200,100,0.06)',
+          }}
+        />
+        {/* Inner arch recess */}
+        <View
+          style={{
+            position: 'absolute',
+            left: archX + 12, top: archY + 12,
+            width: archW - 24, height: archH - 12,
+            borderTopLeftRadius:  (archW - 24) / 2,
+            borderTopRightRadius: (archW - 24) / 2,
+            borderBottomLeftRadius:  4,
+            borderBottomRightRadius: 4,
+            backgroundColor: '#120D09',
+          }}
+        />
 
-        {/* ── Metal piece on anvil (visible when heating/hammering) ──────── */}
+        {/* ── 6. Forge opening (glowing mouth) ─────────────────────────────── */}
+        {/* Outer opening glow */}
+        <View
+          style={{
+            position: 'absolute',
+            left: openX - 8, top: openY - 8,
+            width: openW + 16, height: openH + 8,
+            borderTopLeftRadius:  (openW + 16) / 2,
+            borderTopRightRadius: (openW + 16) / 2,
+            backgroundColor: 'rgba(255,80,0,0.30)',
+          }}
+        />
+        {/* Opening */}
+        <View
+          style={{
+            position: 'absolute',
+            left: openX, top: openY,
+            width: openW, height: openH,
+            borderTopLeftRadius:  openW / 2,
+            borderTopRightRadius: openW / 2,
+            backgroundColor: '#FF5500',
+            shadowColor: '#FF6600',
+            shadowOffset: { width: 0, height: 0 },
+            shadowOpacity: 1,
+            shadowRadius: 20,
+            elevation: 10,
+          }}
+        />
+        {/* Opening inner (brighter center) */}
+        <LinearGradient
+          colors={['#FFFAE0', '#FFD040', '#FF8800', '#FF4400']}
+          style={{
+            position: 'absolute',
+            left: openX + openW * 0.15,
+            top:  openY + openH * 0.10,
+            width: openW * 0.70,
+            height: openH * 0.85,
+            borderTopLeftRadius:  openW * 0.35,
+            borderTopRightRadius: openW * 0.35,
+          }}
+        />
+
+        {/* ── 7. Fire glow layers (all native driver — transform + opacity) ── */}
+        {/* Layer 1: wide base glow */}
+        <FireLayer cx={fireCX} cy={fireCY} w={w * 0.75} h={h * 0.80}
+          color="rgba(255,40,0,0.09)"  opacity={1} flicker={flkA} phaseScale={phaseScaleA} />
+        {/* Layer 2: outer flame */}
+        <FireLayer cx={fireCX} cy={fireCY} w={w * 0.52} h={h * 0.70}
+          color="rgba(255,70,0,0.17)"  opacity={1} flicker={flkB} phaseScale={phaseScaleB} />
+        {/* Layer 3: mid flame */}
+        <FireLayer cx={fireCX} cy={fireCY} w={w * 0.36} h={h * 0.62}
+          color="rgba(255,110,0,0.28)" opacity={1} flicker={flkC} phaseScale={phaseScaleC} />
+        {/* Layer 4: inner flame */}
+        <FireLayer cx={fireCX} cy={fireCY} w={w * 0.25} h={h * 0.54}
+          color="rgba(255,160,10,0.42)" opacity={1} flicker={flkD} phaseScale={phaseScaleD} />
+        {/* Layer 5: bright column */}
+        <FireLayer cx={fireCX} cy={fireCY} w={w * 0.16} h={h * 0.46}
+          color="rgba(255,210,40,0.58)" opacity={1} flicker={flkE} phaseScale={phaseScaleE} />
+        {/* Layer 6: hot core */}
+        <FireLayer cx={fireCX} cy={fireCY} w={w * 0.10} h={h * 0.35}
+          color="rgba(255,240,130,0.72)" opacity={1} flicker={flkF} phaseScale={phaseScaleF} />
+        {/* Layer 7: white-hot tip */}
+        <FireLayer cx={fireCX} cy={fireCY} w={w * 0.055} h={h * 0.18}
+          color="rgba(255,255,230,0.90)" opacity={1} flicker={flkG} phaseScale={phaseScaleG} />
+
+        {/* ── 8. Ambient spark particles ────────────────────────────────────── */}
+        {ambientSparks.map(s => <Spark key={s.id} {...s} />)}
+
+        {/* ── 9. Chimney ───────────────────────────────────────────────────── */}
+        <View
+          style={{
+            position: 'absolute',
+            left: w * 0.43, top: h * 0.02,
+            width: w * 0.14, height: h * 0.14,
+            backgroundColor: '#181210',
+            borderRadius: 4,
+            borderWidth: 1, borderColor: '#221A12',
+          }}
+        />
+
+        {/* ── 10. Anvil ────────────────────────────────────────────────────── */}
+        {/* Anvil stump */}
+        <View
+          style={{
+            position: 'absolute',
+            left: anvilCX - w * 0.06,
+            top:  anvilCY + h * 0.04,
+            width: w * 0.12, height: h * 0.10,
+            borderRadius: 4,
+            backgroundColor: '#2A1E0E',
+          }}
+        />
+        {/* Anvil body */}
+        <View
+          style={{
+            position: 'absolute',
+            left:  anvilCX - w * 0.10,
+            top:   anvilCY,
+            width: w * 0.20, height: h * 0.08,
+            borderRadius: 4,
+            backgroundColor: '#1E1E1E',
+            borderTopWidth: 3,
+            borderTopColor: '#484840',
+          }}
+        />
+        {/* Anvil horn */}
+        <View
+          style={{
+            position: 'absolute',
+            left:  anvilCX + w * 0.09,
+            top:   anvilCY + h * 0.015,
+            width: w * 0.06, height: h * 0.035,
+            borderRadius: 12,
+            backgroundColor: '#303030',
+          }}
+        />
+        {/* Anvil face — flash on strike (JS driver) */}
+        <Animated.View
+          style={{
+            position: 'absolute',
+            left:  anvilCX - w * 0.10,
+            top:   anvilCY,
+            width: w * 0.20, height: h * 0.025,
+            borderRadius: 3,
+            backgroundColor: anvilFlash.interpolate({
+              inputRange: [0, 1], outputRange: ['#686860', '#FFEE88'],
+            }),
+          }}
+        />
+        {/* Metal piece on anvil when heating/hammering (JS driver) */}
         {(craftPhase === 'HEATING' || craftPhase === 'HAMMERING') && (
           <Animated.View
-            style={[styles.metalPiece, {
+            style={{
+              position: 'absolute',
+              left:  anvilCX - w * 0.07,
+              top:   anvilCY - h * 0.022,
+              width: w * 0.14, height: h * 0.028,
+              borderRadius: 3,
               backgroundColor: metalGlow.interpolate({
-                inputRange: [0, 0.5, 1],
-                outputRange: ['#5A5A5A', '#FF6600', '#FFCC00'],
+                inputRange: [0, 0.4, 1],
+                outputRange: ['#444440', '#FF6600', '#FFCC00'],
               }),
-              shadowColor: '#FF6600',
-              shadowOpacity: metalGlow as unknown as number,
+              shadowColor: '#FF8800',
+              shadowOpacity: 0.9,
               shadowRadius: 12,
-            }]}
+              elevation: 4,
+            }}
           />
         )}
 
-        {/* ── Forge furnace (top-center) ────────────────────────────────── */}
-        <View style={styles.furnaceBase} />
-        <View style={styles.furnaceBody} />
-        <View style={styles.furnaceOpening} />
-        {/* Chimney */}
-        <View style={styles.chimney} />
-
-        {/* ── Fire glow layers ─────────────────────────────────────────────  */}
-        <Animated.View
-          style={[styles.fireGlow3, { transform: [{ scale: fireScale }], opacity: glowOpacity }]}
-          pointerEvents="none"
-        />
-        <Animated.View
-          style={[styles.fireGlow2, { transform: [{ scale: fireScale }], opacity: glowOpacity }]}
-          pointerEvents="none"
-        />
-        <Animated.View
-          style={[styles.fireGlow1, { transform: [{ scale: fireScale }] }]}
-          pointerEvents="none"
-        />
-        <Animated.View
-          style={[styles.fireCore, { transform: [{ scale: Animated.multiply(flicker, new Animated.Value(0.85)) }] }]}
-          pointerEvents="none"
-        />
-
-        {/* ── Ambient sparks from furnace ───────────────────────────────── */}
-        {ambientSparks.map(s => <Spark key={s.id} {...s} />)}
-
-        {/* ── Strike sparks from active anvil ──────────────────────────── */}
+        {/* ── 11. Strike sparks ────────────────────────────────────────────── */}
         {strikeSparks.map(s => (
-          <StrikeSpark key={s.id} id={s.id} triggerAnim={triggerAnim} ox={s.ox} oy={s.oy} />
+          <StrikeSpark
+            key={s.id}
+            {...s}
+            triggerAnim={triggerAnim}
+          />
         ))}
 
-        {/* ── Coal pile near furnace ────────────────────────────────────── */}
-        {[0,1,2,3,4,5].map(i => (
-          <View key={`c${i}`} style={[styles.coal, {
-            left: 100 + i * 9 + (i % 2) * 4,
-            top: 168 + (i % 3) * 6,
-            width: 8 + (i % 3) * 2,
-            height: 5 + (i % 2) * 2,
-          }]} />
+        {/* ── 12. Coal embers at base of forge ─────────────────────────────── */}
+        {Array.from({ length: 10 }, (_, i) => (
+          <View
+            key={`coal${i}`}
+            style={{
+              position: 'absolute',
+              left: openX + openW * 0.1 + i * (openW * 0.08),
+              top:  fireCY + 2,
+              width: 6 + (i % 3) * 3,
+              height: 4 + (i % 2) * 2,
+              borderRadius: 3,
+              backgroundColor: i % 3 === 0 ? '#CC2200' : i % 3 === 1 ? '#AA1800' : '#220800',
+            }}
+          />
         ))}
 
-        {/* ── Cool blue overlay when COOLING ───────────────────────────── */}
-        <Animated.View
-          style={[styles.coolOverlay, { opacity: coolBlue.interpolate({ inputRange: [0, 1], outputRange: [0, 0.18] }) }]}
+        {/* ── 13. Floor / ground ───────────────────────────────────────────── */}
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.70)']}
+          style={{
+            position: 'absolute',
+            left: 0, right: 0,
+            top: h * 0.72, bottom: 0,
+          }}
           pointerEvents="none"
         />
+        {/* Floor fire reflection */}
+        <Animated.View
+          style={{
+            position: 'absolute',
+            left: w * 0.15, right: w * 0.15,
+            top: h * 0.85, height: h * 0.12,
+            borderRadius: w * 0.3,
+            backgroundColor: 'rgba(255,80,0,0.10)',
+            opacity: ambientOpacity,
+          }}
+          pointerEvents="none"
+        />
+
+        {/* ── 14. Cool blue overlay for COOLING phase ───────────────────────── */}
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              backgroundColor: coolBlue.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['rgba(0,0,0,0)', 'rgba(20,60,160,0.16)'],
+              }),
+              pointerEvents: 'none',
+            } as any,
+          ]}
+          pointerEvents="none"
+        />
+
+        {/* ── 15. Top vignette ─────────────────────────────────────────────── */}
+        <LinearGradient
+          colors={['rgba(0,0,0,0.55)', 'transparent']}
+          style={{ position: 'absolute', left: 0, right: 0, top: 0, height: h * 0.22 }}
+          pointerEvents="none"
+        />
+        {/* Side vignettes */}
+        <LinearGradient
+          colors={['rgba(0,0,0,0.45)', 'transparent']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+          style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: w * 0.18 }}
+          pointerEvents="none"
+        />
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.45)']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+          style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: w * 0.18 }}
+          pointerEvents="none"
+        />
+
       </View>
     );
   },
@@ -355,168 +727,25 @@ export default ForgeScene3D;
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container:    { flex: 1, overflow: 'hidden' },
-
-  grid:         { ...StyleSheet.absoluteFillObject },
-  gridH:        { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,160,60,0.04)' },
-  gridV:        { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: 'rgba(255,160,60,0.04)' },
-
-  groundGlow: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, height: 300,
-    backgroundColor: 'rgba(255,60,0,0.06)',
-    borderRadius: 200,
-  },
-
-  // Furnace
-  furnaceBase: {
-    position: 'absolute', left: 100, top: 155,
-    width: 90, height: 30, borderRadius: 4,
-    backgroundColor: '#28201A',
-  },
-  furnaceBody: {
-    position: 'absolute', left: 103, top: 80,
-    width: 84, height: 80, borderRadius: 6,
-    backgroundColor: '#1E1812',
-    borderWidth: 1, borderColor: '#3A2A1A',
-  },
-  furnaceOpening: {
-    position: 'absolute', left: 122, top: 132,
-    width: 46, height: 30,
-    backgroundColor: '#FF4400',
-    borderRadius: 4,
-    shadowColor: '#FF6600', shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1, shadowRadius: 16,
-    elevation: 6,
-  },
-  chimney: {
-    position: 'absolute', left: 132, top: 38,
-    width: 26, height: 44,
-    backgroundColor: '#141010',
-    borderRadius: 4,
-    borderWidth: 1, borderColor: '#2A2020',
-  },
-
-  // Fire glow (centered on furnace opening)
-  fireGlow3: {
-    position: 'absolute', left: 80, top: 70,
-    width: 130, height: 130, borderRadius: 65,
-    backgroundColor: 'rgba(255,55,0,0.12)',
-  },
-  fireGlow2: {
-    position: 'absolute', left: 100, top: 90,
-    width: 90, height: 90, borderRadius: 45,
-    backgroundColor: 'rgba(255,100,0,0.22)',
-  },
-  fireGlow1: {
-    position: 'absolute', left: 116, top: 106,
-    width: 58, height: 58, borderRadius: 29,
-    backgroundColor: 'rgba(255,160,0,0.45)',
-  },
-  fireCore: {
-    position: 'absolute', left: 131, top: 120,
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: 'rgba(255,240,180,0.90)',
-  },
-
-  // Anvils
-  stump: {
-    position: 'absolute',
-    width: 34, height: 28, borderRadius: 4,
-    backgroundColor: '#3C2808',
-  },
-  anvil: {
-    position: 'absolute',
-    width: 50, height: 20, borderRadius: 3,
-    backgroundColor: '#2A2A2A',
-    borderTopWidth: 2, borderTopColor: '#505050',
-  },
-  anvilFace: {
-    position: 'absolute', left: 164, top: 236,
-    width: 50, height: 6, borderRadius: 2,
-    backgroundColor: '#707070',
-  },
-  anvilHorn: {
-    position: 'absolute',
-    width: 18, height: 10, borderRadius: 5,
-    backgroundColor: '#404040',
-  },
-
-  // Metal piece on anvil
-  metalPiece: {
-    position: 'absolute', left: 178, top: 238,
-    width: 32, height: 10, borderRadius: 3,
-    backgroundColor: '#5A5A5A',
-  },
-
-  // Tool rack
-  toolRack: {
-    position: 'absolute', left: 8, top: 80,
-    width: 8, height: 200,
-    backgroundColor: '#2A1A08',
-    borderRadius: 4,
-  },
-  tool: {
-    position: 'absolute',
-    width: 4, height: 45, borderRadius: 2,
-    backgroundColor: '#383838',
-  },
-
-  // Barrels
-  barrel: {
-    position: 'absolute',
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: '#2A1508',
-    borderWidth: 2, borderColor: '#1A1010',
-  },
-
-  // Water trough
-  trough: {
-    position: 'absolute', right: 18, bottom: 80,
-    width: 80, height: 30, borderRadius: 6,
-    backgroundColor: '#1A1208',
+  container: {
+    flex: 1,
     overflow: 'hidden',
+    backgroundColor: '#080402',
   },
-  troughWater: {
-    position: 'absolute', left: 4, right: 4, top: 6, bottom: 4,
-    borderRadius: 4,
-    backgroundColor: '#0D1A26',
-  },
-
-  // Workbench
-  workbench: {
-    position: 'absolute', right: 14, top: 160,
-    width: 60, height: 44, borderRadius: 4,
-    backgroundColor: '#2C1A08',
-    borderWidth: 1, borderColor: '#3A2210',
-  },
-  workItem: {
-    position: 'absolute',
-    width: 20, height: 10, borderRadius: 2,
-    backgroundColor: '#404040',
-  },
-
-  // Coal pile
-  coal: {
-    position: 'absolute',
-    borderRadius: 3,
-    backgroundColor: '#181010',
-    borderWidth: 1, borderColor: '#221818',
-  },
-
-  // Particles
-  spark: {
-    position: 'absolute',
-    width: 4, height: 4, borderRadius: 2,
-  },
-  strikeSpark: {
-    position: 'absolute',
-    width: 5, height: 5, borderRadius: 3,
-    backgroundColor: '#FFDD44',
-  },
-
-  // Cool overlay
-  coolOverlay: {
+  sceneGlow: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#2244AA',
+    backgroundColor: 'rgba(255,80,0,0.07)',
+  },
+  wallLeft: {
+    position: 'absolute',
+    left: 0, top: 0, bottom: 0,
+    width: 48,
+    backgroundColor: '#0D0A07',
+  },
+  wallRight: {
+    position: 'absolute',
+    right: 0, top: 0, bottom: 0,
+    width: 48,
+    backgroundColor: '#0D0A07',
   },
 });
