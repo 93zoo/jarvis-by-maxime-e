@@ -559,7 +559,14 @@ export default function ForgeScreen() {
       >
         <View style={styles.headerLeft}>
           <Feather name="tool" size={20} color={colors.primary} />
-          <Text style={[styles.headerTitle, { color: colors.foreground }]}>LA FORGE</Text>
+          <View>
+            <Text style={[styles.headerTitle, { color: colors.foreground }]}>LA FORGE</Text>
+            {player.forgeName ? (
+              <Text style={[styles.headerForgeName, { color: colors.mutedForeground }]} numberOfLines={1}>
+                {player.forgeName}
+              </Text>
+            ) : null}
+          </View>
         </View>
         <View style={styles.headerRight}>
           <View style={[styles.pill, { backgroundColor: colors.secondary }]}>
@@ -1041,6 +1048,7 @@ const styles = StyleSheet.create({
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   headerTitle: { fontSize: 17, fontWeight: '800', letterSpacing: 3 },
+  headerForgeName: { fontSize: 11, fontWeight: '500', letterSpacing: 1, marginTop: 1 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   pill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, gap: 3 },
   pillText: { fontSize: 13, fontWeight: '700' },
