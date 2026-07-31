@@ -1112,14 +1112,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   // Auto-generate NPC orders every ORDER_INTERVAL_MS
   useEffect(() => {
     if (!state.isLoaded) return;
-    // Generate on load if enough time has passed
-    const sinceLastOrder = Date.now() - state.lastOrderGeneratedAt;
-    if (sinceLastOrder >= ORDER_INTERVAL_MS && state.activeOrders.filter((o) => !o.completed).length < MAX_ORDERS) {
+    const pending = state.activeOrders.filter((o) => !o.completed).length;
+    // Always seed at least one order immediately if the queue is empty
+    if (pending === 0) {
       dispatch({ type: 'ADD_ORDER', order: generateNpcOrder(state.player.level, state.player.forgeLevel) });
+    } else {
+      // Generate on load if enough time has passed since last order
+      const sinceLastOrder = Date.now() - state.lastOrderGeneratedAt;
+      if (sinceLastOrder >= ORDER_INTERVAL_MS && pending < MAX_ORDERS) {
+        dispatch({ type: 'ADD_ORDER', order: generateNpcOrder(state.player.level, state.player.forgeLevel) });
+      }
     }
     const t = setInterval(() => {
-      const pending = state.activeOrders.filter((o) => !o.completed).length;
-      if (pending < MAX_ORDERS) {
+      const p = state.activeOrders.filter((o) => !o.completed).length;
+      if (p < MAX_ORDERS) {
         dispatch({ type: 'ADD_ORDER', order: generateNpcOrder(state.player.level, state.player.forgeLevel) });
       }
     }, ORDER_INTERVAL_MS);
