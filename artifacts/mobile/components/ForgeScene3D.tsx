@@ -1,14 +1,13 @@
 /**
- * ForgeScene3D — Cinematic forge with realistic blacksmith silhouette,
- * high-density spark bursts, and dramatic fire-lit atmosphere.
+ * ForgeScene3D — Cinematic close-up of a blacksmith hammering.
  *
- * Visual strategy
- * ───────────────
- * • The blacksmith is a dark silhouette lit from behind by the fire —
- *   any shape looks realistic when strong rim-light separates it from the BG.
- * • Sparks use AdditiveBlending: they glow and brighten surrounding surfaces.
- * • Three independently-flickering point-lights simulate an organic fire.
- * • During HAMMERING the right arm swings a full pendulum arc each beat.
+ * Visual strategy (matches reference photo)
+ * ──────────────────────────────────────────
+ * • Camera is LOW and CLOSE — anvil surface fills the lower frame.
+ * • Only forearms + hammer are visible — no uncanny full-body puppet.
+ * • Fire rages in the background left, casting intense orange rim light.
+ * • Sparks are LINE SEGMENTS (streaks) not dots — photorealistic trails.
+ * • Strike flash: brief point-light burst at impact point.
  */
 import React, {
   forwardRef,
@@ -35,21 +34,11 @@ function checkWebGL(): boolean {
   } catch { return false; }
 }
 
-// ─── 2D fallback (shown when WebGL is unavailable) ───────────────────────────
+// ─── 2D fallback ─────────────────────────────────────────────────────────────
 function ForgeFallback({ craftPhase }: { craftPhase: CraftPhase }) {
   return (
     <LinearGradient colors={['#0A0608', '#1C0A04', '#0A0608']} style={styles.fallback}>
       <View style={styles.fbGlow} />
-      <View style={styles.fbFurnace}>
-        <View style={[styles.fbOpening, craftPhase === 'HEATING' && styles.fbOpeningHot]} />
-      </View>
-      <View style={styles.fbAnvil}>
-        <View style={styles.fbAnvilTop} />
-        <View style={styles.fbAnvilHorn} />
-      </View>
-      {(craftPhase === 'HAMMERING' || craftPhase === 'COOLING') && (
-        <View style={[styles.fbMetal, craftPhase === 'HAMMERING' && styles.fbMetalHot]} />
-      )}
       <Text style={styles.fbLabel}>
         {craftPhase === 'IDLE' ? '⚒  FORGE' :
          craftPhase === 'HEATING' ? '🔥  Chauffe…' :
@@ -64,7 +53,7 @@ export type CraftPhase = 'IDLE' | 'HEATING' | 'HAMMERING' | 'COOLING' | 'RESULT'
 export interface ForgeScene3DRef { triggerHammerStrike: () => void; }
 interface Props { craftPhase: CraftPhase; upgradeLevel?: number; }
 
-// ─── Geometry shortcuts ───────────────────────────────────────────────────────
+// ─── Geometry helpers ─────────────────────────────────────────────────────────
 function mkBox(w: number, h: number, d: number, mat: THREE.Material,
                px = 0, py = 0, pz = 0, ry = 0): THREE.Mesh {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
@@ -73,20 +62,20 @@ function mkBox(w: number, h: number, d: number, mat: THREE.Material,
   return m;
 }
 function mkCyl(rt: number, rb: number, h: number, s: number, mat: THREE.Material,
-               px = 0, py = 0, pz = 0, rz = 0): THREE.Mesh {
+               px = 0, py = 0, pz = 0, rx = 0, rz = 0): THREE.Mesh {
   const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, s), mat);
   m.position.set(px, py, pz);
+  if (rx) m.rotation.x = rx;
   if (rz) m.rotation.z = rz;
   return m;
 }
-function mkSphere(r: number, mat: THREE.Material,
-                  px = 0, py = 0, pz = 0): THREE.Mesh {
+function mkSphere(r: number, mat: THREE.Material, px = 0, py = 0, pz = 0): THREE.Mesh {
   const m = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 10), mat);
   m.position.set(px, py, pz);
   return m;
 }
 
-// ─── Main scene component ─────────────────────────────────────────────────────
+// ─── Main component ───────────────────────────────────────────────────────────
 const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(
   ({ craftPhase, upgradeLevel = 0 }, ref) => {
     const [webglOk] = useState(() => checkWebGL());
@@ -131,603 +120,641 @@ const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(
       }
       renderer.setPixelRatio(1);
       renderer.setSize(W, H);
-      renderer.setClearColor(0x0C0810);
+      renderer.setClearColor(0x050306);
 
       // ── Scene ───────────────────────────────────────────────────────────────
       const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x0C0810);
-      // Gentle linear fog — keeps far objects from looking flat without hiding them
-      scene.fog = new THREE.Fog(0x0C0810, 12, 28);
+      scene.background = new THREE.Color(0x050306);
+      scene.fog = new THREE.FogExp2(0x050306, 0.09);
 
-      // ── Camera — low-angle looking UP slightly at the smith ─────────────────
-      // This gives a heroic, cinematic perspective
-      const camera = new THREE.PerspectiveCamera(58, W / H, 0.1, 50);
-      camera.position.set(0.4, 1.8, 4.2);
-      camera.lookAt(0.1, 1.1, 0);
+      // ── Camera — tight close-up, low angle, side view like the photo ────────
+      // Camera is at anvil-surface height, slightly to the right and close
+      const camera = new THREE.PerspectiveCamera(52, W / H, 0.05, 30);
+      camera.position.set(1.6, 0.85, 1.9);
+      camera.lookAt(0.1, 0.62, 0.0);
 
       // ── Materials ───────────────────────────────────────────────────────────
-      // Environment: mid-tones so fire light registers strongly
-      const stoneMat     = new THREE.MeshStandardMaterial({ color: 0x584840, roughness: 0.93 });
-      const stoneDarkMat = new THREE.MeshStandardMaterial({ color: 0x3C2E24, roughness: 0.96 });
-      const mortarMat    = new THREE.MeshStandardMaterial({ color: 0x6E5C48, roughness: 0.90 });
-      const floorMat     = new THREE.MeshStandardMaterial({ color: 0x3A2C22, roughness: 0.95 });
-      const woodMat      = new THREE.MeshStandardMaterial({ color: 0x5E3C1A, roughness: 0.88 });
-      const woodLightMat = new THREE.MeshStandardMaterial({ color: 0x7A5028, roughness: 0.82 });
-      const ironMat      = new THREE.MeshStandardMaterial({ color: 0x505050, roughness: 0.18, metalness: 0.96 });
-      const steelMat     = new THREE.MeshStandardMaterial({ color: 0x787878, roughness: 0.10, metalness: 0.99 });
-      const ironDullMat  = new THREE.MeshStandardMaterial({ color: 0x606060, roughness: 0.45, metalness: 0.85 });
-      const coalMat      = new THREE.MeshStandardMaterial({ color: 0x241C14, roughness: 0.99 });
+      const ironMat   = new THREE.MeshStandardMaterial({ color: 0x303030, roughness: 0.20, metalness: 0.96 });
+      const steelMat  = new THREE.MeshStandardMaterial({ color: 0x686868, roughness: 0.08, metalness: 0.99 });
+      const ironDark  = new THREE.MeshStandardMaterial({ color: 0x1E1E1E, roughness: 0.45, metalness: 0.90 });
+      const woodMat   = new THREE.MeshStandardMaterial({ color: 0x3E2208, roughness: 0.90 });
+      const woodLight = new THREE.MeshStandardMaterial({ color: 0x5C3414, roughness: 0.82 });
+      const stoneMat  = new THREE.MeshStandardMaterial({ color: 0x3C3028, roughness: 0.95 });
+      const floorMat  = new THREE.MeshStandardMaterial({ color: 0x1A1210, roughness: 0.98 });
+      const leatherMat= new THREE.MeshStandardMaterial({ color: 0x2A1408, roughness: 0.90 });
+      const gloveMat  = new THREE.MeshStandardMaterial({ color: 0x1C0E06, roughness: 0.85 });
+      const skinMat   = new THREE.MeshStandardMaterial({ color: 0x8A5030, roughness: 0.72 });
+      const hammerHdl = new THREE.MeshStandardMaterial({ color: 0x4A2C0E, roughness: 0.86 });
+      const hammerHd  = new THREE.MeshStandardMaterial({ color: 0x383838, roughness: 0.14, metalness: 0.97 });
+      const hammerFace= new THREE.MeshStandardMaterial({ color: 0x707070, roughness: 0.06, metalness: 0.99 });
 
-      // Blacksmith — dark leather/skin but catches rim-light from fire behind
-      const smithBodyMat = new THREE.MeshStandardMaterial({ color: 0x3A2416, roughness: 0.88 });
-      const smithApronMat= new THREE.MeshStandardMaterial({ color: 0x2A1C10, roughness: 0.92 });
-      const smithSkinMat = new THREE.MeshStandardMaterial({ color: 0x9A6040, roughness: 0.70 });
-      const smithHairMat = new THREE.MeshStandardMaterial({ color: 0x180E06, roughness: 0.96 });
-      const hammerWoodMat= new THREE.MeshStandardMaterial({ color: 0x6A4020, roughness: 0.85 });
-      const hammerIronMat= new THREE.MeshStandardMaterial({ color: 0x4A4A4A, roughness: 0.15, metalness: 0.97 });
-
-      // Emissive fire materials
-      const emberMat = new THREE.MeshStandardMaterial({
-        color: 0xFF5500, emissive: new THREE.Color(0xFF5500), emissiveIntensity: 5.0,
-      });
-      const ember2Mat = new THREE.MeshStandardMaterial({
-        color: 0xFFAA00, emissive: new THREE.Color(0xFFAA00), emissiveIntensity: 3.5,
-      });
-      const glowMat = new THREE.MeshStandardMaterial({
-        color: 0xFF3300, emissive: new THREE.Color(0xFF2200), emissiveIntensity: 6.0,
-        transparent: true, opacity: 0.85,
-      });
-
-      // ── Lighting ────────────────────────────────────────────────────────────
-      // Warm ambient — fills shadows so nothing goes pitch-black
-      scene.add(new THREE.AmbientLight(0x4A3020, 2.2));
-
-      // THREE independent fire lights for organic flicker (each gets its own noise)
-      const fire1 = new THREE.PointLight(0xFF6600, 9.0, 20);
-      fire1.position.set(-2.1, 1.4, -1.8);
-      scene.add(fire1);
-
-      const fire2 = new THREE.PointLight(0xFF4400, 6.0, 14);
-      fire2.position.set(-1.8, 0.6, -1.6);
-      scene.add(fire2);
-
-      const fire3 = new THREE.PointLight(0xFFAA00, 4.0, 10);
-      fire3.position.set(-1.5, 1.8, -1.4);
-      scene.add(fire3);
-
-      // Overhead warm torch — ensures the whole room is readable
-      const ceilingLight = new THREE.PointLight(0xFFCC88, 3.5, 16);
-      ceilingLight.position.set(0.2, 4.5, 1.5);
-      scene.add(ceilingLight);
-
-      // Rim / back light on blacksmith from fire behind (key cinematic light)
-      const rimLight = new THREE.PointLight(0xFF8800, 5.0, 8);
-      rimLight.position.set(-1.8, 2.2, -0.4);
-      scene.add(rimLight);
-
-      // Cool moonlight through a gap — creates colour contrast, separation
-      const moonLight = new THREE.DirectionalLight(0x6688CC, 0.8);
-      moonLight.position.set(6, 12, 8);
-      scene.add(moonLight);
-
-      // Anvil work-light — illuminates metal piece
-      const anvilLight = new THREE.PointLight(0xFFEEDD, 3.0, 4);
-      anvilLight.position.set(0.6, 2.5, 0.8);
-      scene.add(anvilLight);
-
-      // ── Floor ───────────────────────────────────────────────────────────────
-      scene.add(mkBox(20, 0.06, 20, floorMat, 0, -0.03, 0));
-      // Flagstone seams
-      const groutM = new THREE.MeshStandardMaterial({ color: 0x201510, roughness: 1 });
-      for (let i = -5; i <= 5; i++) {
-        scene.add(mkBox(20, 0.015, 0.035, groutM, 0, 0.01, i * 1.05));
-        scene.add(mkBox(0.035, 0.015, 20, groutM, i * 1.05, 0.01, 0));
-      }
-
-      // ── Back & side walls ───────────────────────────────────────────────────
-      scene.add(mkBox(20, 8, 0.3, stoneMat, 0, 4, -4.5));
-      // Brick rows on back wall
-      for (let row = 0; row < 8; row++) {
-        for (let col = -6; col <= 6; col++) {
-          const offset = row % 2 === 0 ? 0 : 0.82;
-          scene.add(mkBox(1.52, 0.28, 0.045,
-            row % 4 === 0 ? mortarMat : stoneDarkMat,
-            col * 1.68 + offset, 0.5 + row * 0.45, -4.34));
-        }
-      }
-      scene.add(mkBox(0.3, 8, 12, stoneMat, -6.5, 4, 0));
-      scene.add(mkBox(0.3, 8, 12, stoneMat,  6.5, 4, 0));
-
-      // ── Ceiling beams ───────────────────────────────────────────────────────
-      const beamMat = new THREE.MeshStandardMaterial({ color: 0x2C1A0A, roughness: 0.92 });
-      for (const bx of [-2.2, -0.4, 1.4]) {
-        scene.add(mkBox(0.22, 0.26, 16, beamMat, bx, 5.5, -1));
-      }
-      for (const bz of [-2.5, -0.5, 1.5]) {
-        scene.add(mkBox(16, 0.20, 0.20, beamMat, 0, 5.3, bz));
-      }
-
-      // ── Forge hearth ────────────────────────────────────────────────────────
-      const fg = new THREE.Group();
-      // Plinth
-      fg.add(mkBox(2.8, 0.35, 2.0, stoneMat, 0, 0.175, 0));
-      // Left pillar
-      fg.add(mkBox(0.72, 2.4, 1.9, stoneMat, -1.04, 1.375, 0));
-      // Right pillar
-      fg.add(mkBox(0.72, 2.4, 1.9, stoneMat,  1.04, 1.375, 0));
-      // Lintel
-      fg.add(mkBox(2.8, 0.50, 1.9, stoneMat, 0, 2.825, 0));
-      // Arch stones over opening
-      for (let i = -2; i <= 2; i++) {
-        fg.add(mkBox(0.42, 0.26, 0.22, i === 0 ? mortarMat : stoneDarkMat,
-          i * 0.42, 2.44, 0.9));
-      }
-      // Soot-black interior
-      const sootM = new THREE.MeshStandardMaterial({ color: 0x080604, roughness: 1 });
-      fg.add(mkBox(1.22, 1.92, 0.12, sootM, 0, 1.31, -0.88));
-      fg.add(mkBox(0.12, 1.92, 1.66, sootM, -0.59, 1.31, 0));
-      fg.add(mkBox(0.12, 1.92, 1.66, sootM,  0.59, 1.31, 0));
-      // Grate floor
-      fg.add(mkBox(1.18, 0.07, 1.62, coalMat, 0, 0.385, 0));
-      // Coal lumps
-      for (let c = 0; c < 14; c++) {
-        const sz = 0.06 + Math.random() * 0.07;
-        const coal = mkSphere(sz, coalMat,
-          (Math.random() - 0.5) * 0.72,
-          0.43 + sz,
-          (Math.random() - 0.5) * 0.52);
-        coal.scale.y = 0.55;
-        fg.add(coal);
-      }
-      // Glowing ember planes (emissive — self-lit)
-      const ep1 = mkBox(0.60, 0.02, 0.42, emberMat, -0.06, 0.46, -0.05);
-      ep1.rotation.x = -Math.PI / 2;
-      fg.add(ep1);
-      const ep2 = mkBox(0.35, 0.02, 0.26, ember2Mat, 0.18, 0.46, 0.12);
-      ep2.rotation.x = -Math.PI / 2;
-      fg.add(ep2);
-      // Central white-hot glow
-      const epCore = mkBox(0.22, 0.015, 0.18, glowMat, -0.04, 0.47, 0.02);
-      epCore.rotation.x = -Math.PI / 2;
-      fg.add(epCore);
-      // Chimney
-      fg.add(mkCyl(0.26, 0.32, 1.8, 8, stoneMat, -0.25, 4.05, -0.45));
-      fg.add(mkCyl(0.40, 0.28, 0.14, 8, stoneDarkMat, -0.25, 4.96, -0.45));
-      fg.position.set(-2.1, 0, -2.0);
-      fg.rotation.y = 0.15;
-      scene.add(fg);
-
-      // ── Anvil on oak stump ──────────────────────────────────────────────────
-      // Stump
-      scene.add(mkCyl(0.28, 0.33, 0.62, 10, woodMat, 0.55, 0.31, 0.18));
-      scene.add(mkCyl(0.27, 0.27, 0.025, 10, woodLightMat, 0.55, 0.635, 0.18));
-
-      const ag = new THREE.Group();
-      // Base foot
-      ag.add(mkBox(0.80, 0.24, 0.46, ironMat, 0, 0.12, 0));
-      // Waist
-      ag.add(mkBox(0.40, 0.32, 0.38, ironMat, 0, 0.40, 0));
-      // Body
-      ag.add(mkBox(1.06, 0.19, 0.44, ironDullMat, 0, 0.595, 0));
-      // Polished face
-      ag.add(mkBox(0.80, 0.032, 0.38, steelMat, 0, 0.700, 0));
-      // Horn
-      const horn = new THREE.Mesh(new THREE.ConeGeometry(0.074, 0.52, 10), steelMat);
-      horn.rotation.z = -Math.PI / 2;
-      horn.position.set(0.78, 0.595, 0);
-      ag.add(horn);
-      // Heel
-      ag.add(mkBox(0.13, 0.11, 0.30, ironMat, -0.52, 0.63, 0));
-      // Hardy hole
-      const holeM = new THREE.MeshStandardMaterial({ color: 0x060606, roughness: 1 });
-      ag.add(mkBox(0.064, 0.032, 0.064, holeM, 0.18, 0.720, 0));
-      ag.position.set(0.55, 0.635, 0.18);
-      ag.rotation.y = -0.22;
-      scene.add(ag);
-
-      // Tongs resting on anvil
-      const tg = new THREE.Group();
-      for (const s of [-1, 1]) {
-        const tong = mkCyl(0.012, 0.012, 0.70, 6, ironDullMat);
-        tong.rotation.z = s * 0.12;
-        tong.position.x = s * 0.022;
-        tg.add(tong);
-      }
-      tg.position.set(0.35, 0.82, 0.02);
-      tg.rotation.x = 1.45;
-      tg.rotation.y = 0.35;
-      scene.add(tg);
-
-      // ── Water bucket ─────────────────────────────────────────────────────────
-      const bg = new THREE.Group();
-      bg.add(mkCyl(0.20, 0.165, 0.40, 10, woodMat, 0, 0.20, 0));
-      bg.add(mkCyl(0.21, 0.21, 0.026, 10, ironDullMat, 0, 0.09, 0));
-      bg.add(mkCyl(0.21, 0.21, 0.026, 10, ironDullMat, 0, 0.30, 0));
-      const waterM = new THREE.MeshStandardMaterial({ color: 0x1A3A4E, roughness: 0.06, metalness: 0.3 });
-      bg.add(mkCyl(0.188, 0.188, 0.012, 10, waterM, 0, 0.385, 0));
-      bg.position.set(1.55, 0, 0.85);
-      scene.add(bg);
-
-      // ── Tool rack ───────────────────────────────────────────────────────────
-      scene.add(mkBox(0.08, 0.12, 1.7, woodMat, 3.1, 2.35, -0.6));
-      for (let p = 0; p < 5; p++) {
-        scene.add(mkCyl(0.015, 0.015, 0.16, 6, ironDullMat, 3.06, 2.25, -0.85 + p * 0.42));
-        const toolH = 0.26 + Math.random() * 0.22;
-        scene.add(mkCyl(0.020, 0.014, toolH, 6, ironDullMat, 3.06, 2.18 - toolH / 2, -0.85 + p * 0.42));
-      }
-
-      // ── Workbench ────────────────────────────────────────────────────────────
-      scene.add(mkBox(1.8, 0.11, 0.75, woodLightMat, 2.2, 0.93, 1.65));
-      for (const [dx, dz] of [[-0.72, 0.28], [0.72, 0.28], [-0.72, -0.28], [0.72, -0.28]] as [number,number][]) {
-        scene.add(mkCyl(0.040, 0.040, 0.93, 6, woodMat, 2.2 + dx, 0.465, 1.65 + dz));
-      }
-
-      // ─── BLACKSMITH — correct human proportions ────────────────────────────
-      //
-      // Total height: 1.82 units standing straight.
-      // Tilted 22° forward (bent at hips over the anvil).
-      // Right arm group swings the hammer.
-      //
-      const smithRoot = new THREE.Group();
-
-      // Feet
-      for (const sx of [-0.10, 0.10]) {
-        smithRoot.add(mkBox(0.14, 0.08, 0.22, smithBodyMat, sx, 0.04, 0.04));
-      }
-
-      // Calves
-      smithRoot.add(mkCyl(0.065, 0.060, 0.42, 8, smithBodyMat, -0.12, 0.27, 0));
-      smithRoot.add(mkCyl(0.065, 0.060, 0.42, 8, smithBodyMat,  0.12, 0.27, 0));
-
-      // Knees
-      smithRoot.add(mkSphere(0.068, smithBodyMat, -0.12, 0.50, 0));
-      smithRoot.add(mkSphere(0.068, smithBodyMat,  0.12, 0.50, 0));
-
-      // Thighs
-      smithRoot.add(mkCyl(0.080, 0.072, 0.40, 8, smithBodyMat, -0.12, 0.72, 0));
-      smithRoot.add(mkCyl(0.080, 0.072, 0.40, 8, smithBodyMat,  0.12, 0.72, 0));
-
-      // Pelvis / hips block
-      smithRoot.add(mkBox(0.36, 0.20, 0.22, smithBodyMat, 0, 0.965, 0));
-
-      // Lower torso
-      smithRoot.add(mkCyl(0.170, 0.160, 0.28, 10, smithBodyMat, 0, 1.225, 0));
-
-      // Upper torso (wider at shoulders)
-      smithRoot.add(mkCyl(0.200, 0.175, 0.38, 10, smithBodyMat, 0, 1.535, 0));
-
-      // Shoulders — wider cap
-      smithRoot.add(mkBox(0.54, 0.14, 0.24, smithBodyMat, 0, 1.755, 0));
-
-      // Leather apron (darker, in front)
-      smithRoot.add(mkBox(0.28, 0.72, 0.045, smithApronMat, -0.01, 1.14, 0.18));
-
-      // Left arm (slightly forward, relaxed at side)
-      const leftArmG = new THREE.Group();
-      leftArmG.add(mkCyl(0.058, 0.050, 0.36, 8, smithBodyMat, 0, -0.18, 0)); // upper
-      leftArmG.add(mkSphere(0.055, smithBodyMat, 0, -0.385, 0));               // elbow
-      leftArmG.add(mkCyl(0.048, 0.040, 0.30, 8, smithBodyMat, 0, -0.57, 0));  // forearm
-      leftArmG.add(mkSphere(0.042, smithSkinMat, 0, -0.74, 0));                // fist
-      leftArmG.position.set(-0.29, 1.75, 0.05);
-      leftArmG.rotation.z = 0.30;
-      leftArmG.rotation.x = 0.18;
-      smithRoot.add(leftArmG);
-
-      // Right arm GROUP — this is what swings (pivot at shoulder)
-      const rightArmG = new THREE.Group();
-      rightArmG.add(mkCyl(0.058, 0.050, 0.38, 8, smithBodyMat, 0, -0.19, 0)); // upper arm
-      rightArmG.add(mkSphere(0.055, smithBodyMat, 0, -0.40, 0));                // elbow
-      rightArmG.add(mkCyl(0.048, 0.040, 0.30, 8, smithBodyMat, 0, -0.60, 0));  // forearm
-      rightArmG.add(mkSphere(0.042, smithSkinMat, 0, -0.77, 0));                // fist
-
-      // Hammer attached to fist
-      const hammerG = new THREE.Group();
-      hammerG.add(mkCyl(0.022, 0.026, 0.62, 8, hammerWoodMat, 0, -0.31, 0));  // handle
-      hammerG.add(mkBox(0.12, 0.26, 0.10, hammerIronMat, 0, -0.67, 0));        // head
-      hammerG.add(mkBox(0.12, 0.04, 0.10, steelMat, 0, -0.80, 0));             // poll face
-      hammerG.position.set(0, -0.77, 0);
-      rightArmG.add(hammerG);
-
-      // Right arm pivot is at shoulder
-      rightArmG.position.set(0.29, 1.75, 0.05);
-      rightArmG.rotation.z = -0.28;
-      smithRoot.add(rightArmG);
-
-      // Neck
-      smithRoot.add(mkCyl(0.065, 0.070, 0.16, 8, smithSkinMat, 0, 1.85, 0));
-
-      // Head — realistic oval
-      const headM = mkSphere(0.148, smithSkinMat, 0, 2.06, 0);
-      headM.scale.y = 1.12;
-      smithRoot.add(headM);
-
-      // Hair (dark cap on top)
-      const hairMesh = mkSphere(0.142, smithHairMat, 0, 2.10, -0.02);
-      hairMesh.scale.y = 0.72;
-      smithRoot.add(hairMesh);
-
-      // Beard
-      const beardMesh = mkSphere(0.095, smithHairMat, 0, 1.96, 0.11);
-      beardMesh.scale.y = 0.60;
-      beardMesh.scale.x = 0.75;
-      smithRoot.add(beardMesh);
-
-      // Eyebrows (tiny dark boxes)
-      for (const ex of [-0.06, 0.06]) {
-        smithRoot.add(mkBox(0.055, 0.016, 0.022, smithHairMat, ex, 2.11, 0.135));
-      }
-
-      // Band around head (headband)
-      const bandM = new THREE.MeshStandardMaterial({ color: 0x5C2A10, roughness: 0.85 });
-      smithRoot.add(mkCyl(0.152, 0.152, 0.044, 12, bandM, 0, 2.00, 0));
-
-      // Tilt whole body forward (working pose)
-      smithRoot.rotation.x = 0.22;
-      smithRoot.position.set(-0.18, 0, 0.55);
-      smithRoot.rotation.y = 0.28;
-      scene.add(smithRoot);
-
-      // ── Metal piece on anvil (animated) ─────────────────────────────────────
-      const metalMat = new THREE.MeshStandardMaterial({
-        color: 0x5A5A5A, roughness: 0.25, metalness: 0.93,
+      const metalMat  = new THREE.MeshStandardMaterial({
+        color: 0x5A5A5A, roughness: 0.22, metalness: 0.95,
         emissive: new THREE.Color(0x000000), emissiveIntensity: 0,
       });
-      const metalPiece = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.07, 0.14), metalMat);
-      metalPiece.position.set(0.55, 0.758, 0.16);
-      metalPiece.rotation.y = -0.22;
+      const coalMat   = new THREE.MeshStandardMaterial({ color: 0x181210, roughness: 1.0 });
+
+      // Fire glow planes (emissive self-lit)
+      const fireMat1  = new THREE.MeshStandardMaterial({
+        color: 0xFF4400, emissive: new THREE.Color(0xFF3300), emissiveIntensity: 8.0,
+        transparent: true, opacity: 0.85, side: THREE.DoubleSide,
+      });
+      const fireMat2  = new THREE.MeshStandardMaterial({
+        color: 0xFF8800, emissive: new THREE.Color(0xFF7700), emissiveIntensity: 6.0,
+        transparent: true, opacity: 0.70, side: THREE.DoubleSide,
+      });
+      const fireMat3  = new THREE.MeshStandardMaterial({
+        color: 0xFFCC44, emissive: new THREE.Color(0xFFBB33), emissiveIntensity: 10.0,
+        transparent: true, opacity: 0.55, side: THREE.DoubleSide,
+      });
+      const emberCoreMat = new THREE.MeshStandardMaterial({
+        color: 0xFFFFAA, emissive: new THREE.Color(0xFFFFAA), emissiveIntensity: 14.0,
+        transparent: true, opacity: 0.90,
+      });
+
+      // ── Lighting ─────────────────────────────────────────────────────────────
+      // Very low ambient — almost pitch black; fire does the work
+      scene.add(new THREE.AmbientLight(0x1A0C06, 0.8));
+
+      // PRIMARY: massive orange fire light from top-left background
+      const fireMain = new THREE.PointLight(0xFF5500, 18.0, 12);
+      fireMain.position.set(-2.2, 2.4, -2.5);
+      scene.add(fireMain);
+
+      // Secondary fire fill
+      const fireFill = new THREE.PointLight(0xFF7700, 10.0, 8);
+      fireFill.position.set(-1.8, 1.2, -2.0);
+      scene.add(fireFill);
+
+      // Glow from fire floor level
+      const fireFloor = new THREE.PointLight(0xFF9900, 7.0, 6);
+      fireFloor.position.set(-1.6, 0.3, -1.8);
+      scene.add(fireFloor);
+
+      // Cool top-right hair-light for separation
+      const hairLight = new THREE.DirectionalLight(0x4466AA, 0.6);
+      hairLight.position.set(4, 6, 3);
+      scene.add(hairLight);
+
+      // Strike flash — brief burst at impact point
+      const strikeLight = new THREE.PointLight(0xFFEEAA, 0, 3);
+      strikeLight.position.set(0.1, 0.78, 0.1);
+      scene.add(strikeLight);
+
+      // Anvil work-light — subtle fill to see the metal piece
+      const anvilFill = new THREE.PointLight(0xFF8844, 4.0, 3);
+      anvilFill.position.set(0.8, 1.6, 0.6);
+      scene.add(anvilFill);
+
+      // Metal-glow light
+      const metalGlow = new THREE.PointLight(0xFF5500, 0, 2.5);
+      metalGlow.position.set(0.0, 0.9, 0.0);
+      scene.add(metalGlow);
+
+      // ── Floor ────────────────────────────────────────────────────────────────
+      scene.add(mkBox(14, 0.06, 14, floorMat, 0, -0.03, 0));
+
+      // ── Back wall ────────────────────────────────────────────────────────────
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0x1A1410, roughness: 0.98 });
+      scene.add(mkBox(14, 9, 0.20, wallMat, 0, 4.5, -3.6));
+      // Brick texture overlay rows
+      const brickMat = new THREE.MeshStandardMaterial({ color: 0x262018, roughness: 0.96 });
+      for (let row = 0; row < 6; row++) {
+        for (let col = -4; col <= 4; col++) {
+          const offset = row % 2 === 0 ? 0 : 0.88;
+          scene.add(mkBox(1.60, 0.28, 0.04, brickMat, col * 1.72 + offset, 0.5 + row * 0.46, -3.50));
+        }
+      }
+      // Left wall
+      scene.add(mkBox(0.20, 9, 10, wallMat, -5.0, 4.5, 0));
+
+      // ── Anvil on heavy oak stump — very prominent ─────────────────────────
+      // Stump
+      scene.add(mkCyl(0.38, 0.44, 0.72, 12, woodMat, 0.0, 0.36, 0.0));
+      // Stump top ring
+      scene.add(mkCyl(0.385, 0.385, 0.025, 12, woodLight, 0.0, 0.732, 0.0));
+      // Root buttress
+      for (let i = 0; i < 4; i++) {
+        const a = (i / 4) * Math.PI * 2;
+        const rx = Math.cos(a) * 0.38;
+        const rz = Math.sin(a) * 0.38;
+        const root = mkBox(0.12, 0.28, 0.22, woodMat, rx, 0.16, rz);
+        root.rotation.y = a;
+        scene.add(root);
+      }
+
+      // Anvil body group
+      const anvil = new THREE.Group();
+      // Base foot — wide heavy base
+      anvil.add(mkBox(1.10, 0.28, 0.60, ironDark, 0, 0.14, 0));
+      // Waist taper
+      anvil.add(mkBox(0.52, 0.34, 0.50, ironDark, 0, 0.45, 0));
+      // Shoulder
+      anvil.add(mkBox(1.20, 0.16, 0.56, ironMat, 0, 0.66, 0));
+      // Body / table
+      anvil.add(mkBox(1.14, 0.20, 0.52, ironMat, 0, 0.84, 0));
+      // Polished working face
+      anvil.add(mkBox(0.95, 0.035, 0.44, steelMat, -0.04, 0.950, 0));
+      // Horn (tapered cone)
+      const horn = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.66, 12), steelMat);
+      horn.rotation.z = -Math.PI / 2;
+      horn.position.set(0.90, 0.840, 0);
+      anvil.add(horn);
+      // Heel
+      anvil.add(mkBox(0.16, 0.13, 0.38, ironDark, -0.60, 0.83, 0));
+      // Hardy hole
+      const holeM = new THREE.MeshStandardMaterial({ color: 0x040404, roughness: 1 });
+      anvil.add(mkBox(0.075, 0.038, 0.075, holeM, 0.22, 0.968, 0));
+      // Pritchel hole
+      anvil.add(mkBox(0.042, 0.038, 0.042, holeM, 0.36, 0.968, -0.12));
+
+      anvil.position.set(0.0, 0.732, 0.0);
+      anvil.rotation.y = 0.12;
+      scene.add(anvil);
+
+      // ── Metal piece on anvil ─────────────────────────────────────────────────
+      const metalPiece = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.08, 0.15), metalMat);
+      metalPiece.position.set(0.0, 1.72, 0.04);
+      metalPiece.rotation.y = 0.12;
       metalPiece.visible = false;
       scene.add(metalPiece);
 
-      // Hot-metal glow light (under metal piece)
-      const metalGlowLight = new THREE.PointLight(0xFF5500, 0, 2.5);
-      metalGlowLight.position.set(0.55, 0.9, 0.16);
-      scene.add(metalGlowLight);
+      // ── FORGE FURNACE — background left, blazing ─────────────────────────────
+      const forge = new THREE.Group();
+      // Stone surround
+      forge.add(mkBox(2.6, 3.2, 0.25, stoneMat, 0, 1.6, 0));
+      // Opening (dark interior)
+      const sootM = new THREE.MeshStandardMaterial({ color: 0x060402, roughness: 1 });
+      forge.add(mkBox(1.10, 1.60, 0.30, sootM, 0, 1.12, 0.03));
+      // Lintel
+      forge.add(mkBox(2.6, 0.42, 0.26, stoneMat, 0, 2.32, 0));
+      // Side pillars
+      forge.add(mkBox(0.72, 1.60, 0.26, stoneMat, -0.91, 1.12, 0));
+      forge.add(mkBox(0.72, 1.60, 0.26, stoneMat,  0.91, 1.12, 0));
+      // Plinth
+      forge.add(mkBox(2.6, 0.35, 0.25, stoneMat, 0, 0.175, 0));
+      // Coal grate floor
+      forge.add(mkBox(1.06, 0.06, 0.20, coalMat, 0, 0.37, 0.04));
+      // Coal lumps
+      for (let c = 0; c < 16; c++) {
+        const sz = 0.055 + Math.random() * 0.065;
+        const coal = mkSphere(sz, coalMat,
+          (Math.random() - 0.5) * 0.72, 0.39 + sz * 0.6,
+          (Math.random() - 0.5) * 0.12);
+        coal.scale.y = 0.52;
+        forge.add(coal);
+      }
+      // FIRE — three layers of emissive planes at the opening
+      // Outer orange glow
+      const fp1 = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 1.30), fireMat1);
+      fp1.position.set(0, 1.0, 0.10);
+      forge.add(fp1);
+      // Mid hot yellow-orange
+      const fp2 = new THREE.Mesh(new THREE.PlaneGeometry(0.65, 0.95), fireMat2);
+      fp2.position.set(0.06, 0.92, 0.13);
+      forge.add(fp2);
+      // Core hot white
+      const fp3 = new THREE.Mesh(new THREE.PlaneGeometry(0.35, 0.50), fireMat3);
+      fp3.position.set(-0.04, 0.80, 0.16);
+      forge.add(fp3);
+      // Ember core
+      const fpCore = mkSphere(0.12, emberCoreMat, 0, 0.55, 0.14);
+      forge.add(fpCore);
 
-      // ── HIGH-DENSITY SPARK PARTICLES ────────────────────────────────────────
-      // Two layers: large glowing sparks + tiny fast ones
-      // AdditiveBlending makes them GLOW and brighten the scene
+      // Chimney
+      forge.add(mkCyl(0.28, 0.34, 2.0, 8, stoneMat, 0.0, 4.28, 0.0));
 
-      // Layer 1 — large sparks (strike burst)
-      const SPARK_A = 80;
-      const sparksAGeo = new THREE.BufferGeometry();
-      const sparksAPos = new Float32Array(SPARK_A * 3);
-      sparksAGeo.setAttribute('position', new THREE.BufferAttribute(sparksAPos, 3));
-      const sparksAVel: THREE.Vector3[] = Array.from({ length: SPARK_A }, () => new THREE.Vector3());
-      const sparksALife = new Float32Array(SPARK_A);
-      const sparksAMat = new THREE.PointsMaterial({
-        color: 0xFFCC44, size: 0.09, sizeAttenuation: true,
-        blending: THREE.AdditiveBlending, transparent: true, depthWrite: false,
-      });
-      const sparksA = new THREE.Points(sparksAGeo, sparksAMat);
-      sparksA.visible = false;
-      scene.add(sparksA);
+      forge.position.set(-2.6, 0.0, -2.4);
+      forge.rotation.y = 0.18;
+      scene.add(forge);
 
-      // Layer 2 — tiny hot white sparks (strike burst)
-      const SPARK_B = 120;
-      const sparksBGeo = new THREE.BufferGeometry();
-      const sparksBPos = new Float32Array(SPARK_B * 3);
-      sparksBGeo.setAttribute('position', new THREE.BufferAttribute(sparksBPos, 3));
-      const sparksBVel: THREE.Vector3[] = Array.from({ length: SPARK_B }, () => new THREE.Vector3());
-      const sparksBLife = new Float32Array(SPARK_B);
-      const sparksBMat = new THREE.PointsMaterial({
-        color: 0xFFFFDD, size: 0.05, sizeAttenuation: true,
-        blending: THREE.AdditiveBlending, transparent: true, depthWrite: false,
-      });
-      const sparksB = new THREE.Points(sparksBGeo, sparksBMat);
-      sparksB.visible = false;
-      scene.add(sparksB);
+      // ── BLACKSMITH ARMS — close-up only, no full body ─────────────────────
+      // Camera shows from mid-chest level. Only forearms, wrists, hands, and
+      // the hammer are visible. This matches the reference photo exactly.
 
-      // Layer 3 — ambient furnace embers (always present in HEATING/HAMMERING)
-      const AMB = 24;
-      const ambGeo = new THREE.BufferGeometry();
-      const ambPos = new Float32Array(AMB * 3);
-      ambGeo.setAttribute('position', new THREE.BufferAttribute(ambPos, 3));
-      const ambVel: THREE.Vector3[] = Array.from({ length: AMB }, () => new THREE.Vector3());
-      const ambLife = new Float32Array(AMB);
-      const ambMat = new THREE.PointsMaterial({
-        color: 0xFF6600, size: 0.06, sizeAttenuation: true,
-        blending: THREE.AdditiveBlending, transparent: true, depthWrite: false,
-      });
-      const ambParticles = new THREE.Points(ambGeo, ambMat);
-      ambParticles.visible = false;
-      scene.add(ambParticles);
+      // RIGHT ARM + HAMMER (hammer hand — the striking arm)
+      const rightArm = new THREE.Group();
 
-      // Smoke
-      const SMOKE = 20;
+      // Upper arm (partially visible at top of frame)
+      rightArm.add(mkCyl(0.095, 0.085, 0.55, 10, leatherMat, 0, 0.275, 0));
+      // Forearm — thicker, muscular
+      rightArm.add(mkCyl(0.085, 0.072, 0.42, 10, skinMat, 0, -0.05, 0));
+      // Wrist
+      rightArm.add(mkSphere(0.075, skinMat, 0, -0.29, 0));
+      // Gloved hand (heavy work glove)
+      const rHand = new THREE.Group();
+      rHand.add(mkBox(0.13, 0.10, 0.16, gloveMat, 0, 0, 0));         // palm
+      rHand.add(mkBox(0.13, 0.04, 0.06, gloveMat, 0, -0.07, -0.11)); // fingers curl
+      rHand.position.set(0, -0.37, 0);
+      rightArm.add(rHand);
+
+      // HAMMER — gripped firmly
+      const hammerG = new THREE.Group();
+      // Handle (hickory wood)
+      hammerG.add(mkCyl(0.028, 0.032, 0.78, 8, hammerHdl, 0, -0.39, 0));
+      // Head body
+      hammerG.add(mkBox(0.14, 0.32, 0.115, hammerHd, 0, -0.88, 0));
+      // Striking face (polished steel)
+      hammerG.add(mkBox(0.14, 0.04, 0.115, hammerFace, 0, -1.05, 0));
+      // Peen (back of head — slightly tapered)
+      const peenM = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.065, 0.15, 8), hammerHd);
+      peenM.rotation.x = Math.PI / 2;
+      peenM.position.set(0, -0.74, -0.088);
+      hammerG.add(peenM);
+      // Wedge at handle junction
+      hammerG.add(mkBox(0.025, 0.03, 0.10, steelMat, 0, -0.72, 0));
+
+      hammerG.position.set(0, -0.41, 0);
+      rightArm.add(hammerG);
+
+      // Right arm: angled downward, swings in X (toward anvil)
+      rightArm.position.set(-0.36, 2.48, -0.20);
+      rightArm.rotation.set(-0.45, 0.20, 0.15);
+      scene.add(rightArm);
+
+      // LEFT ARM (holding tongs — slightly in front)
+      const leftArm = new THREE.Group();
+      // Upper arm
+      leftArm.add(mkCyl(0.092, 0.082, 0.50, 10, leatherMat, 0, 0.25, 0));
+      // Forearm
+      leftArm.add(mkCyl(0.082, 0.070, 0.40, 10, skinMat, 0, -0.04, 0));
+      // Wrist/hand gloved
+      leftArm.add(mkSphere(0.073, gloveMat, 0, -0.28, 0));
+      const lHand = new THREE.Group();
+      lHand.add(mkBox(0.12, 0.09, 0.15, gloveMat, 0, 0, 0));
+      lHand.add(mkBox(0.12, 0.04, 0.06, gloveMat, 0, -0.065, -0.10));
+      lHand.position.set(0, -0.35, 0);
+      leftArm.add(lHand);
+
+      // Tongs in left hand
+      const tongsG = new THREE.Group();
+      for (const s of [-1, 1]) {
+        const jaw = mkCyl(0.014, 0.014, 0.52, 6, ironDark);
+        jaw.rotation.z = s * 0.09;
+        jaw.position.x = s * 0.018;
+        tongsG.add(jaw);
+        // Jaw tip (gripping the hot metal)
+        const tip = mkBox(0.025, 0.055, 0.03, ironDark, s * 0.018, -0.285, 0);
+        tongsG.add(tip);
+      }
+      tongsG.position.set(0, -0.38, 0);
+      tongsG.rotation.x = -0.25;
+      leftArm.add(tongsG);
+
+      // Left arm: reaches forward over the anvil, holding the work
+      leftArm.position.set(0.52, 2.22, -0.35);
+      leftArm.rotation.set(-0.82, -0.28, -0.12);
+      scene.add(leftArm);
+
+      // ── Partial torso / chest (dark, in background) ─────────────────────────
+      // Just enough to avoid a floating-arms look
+      const torsoG = new THREE.Group();
+      // Chest
+      torsoG.add(mkBox(0.68, 0.55, 0.34, leatherMat, 0, 0, 0));
+      // Leather apron bib
+      torsoG.add(mkBox(0.44, 0.62, 0.05, new THREE.MeshStandardMaterial({ color: 0x150A04, roughness: 0.92 }), 0, -0.12, 0.18));
+      torsoG.position.set(0.08, 2.72, -0.38);
+      torsoG.rotation.x = 0.32;
+      torsoG.rotation.y = 0.18;
+      scene.add(torsoG);
+
+      // ── Workbench / table in right mid-ground ───────────────────────────────
+      scene.add(mkBox(1.4, 0.12, 0.65, woodLight, 2.4, 0.96, 0.80));
+      for (const [dx, dz] of [[-0.55, 0.24], [0.55, 0.24], [-0.55, -0.24], [0.55, -0.24]] as [number,number][]) {
+        scene.add(mkCyl(0.038, 0.038, 0.96, 6, woodMat, 2.4 + dx, 0.48, 0.80 + dz));
+      }
+      // Some tools on bench
+      for (let i = 0; i < 3; i++) {
+        scene.add(mkCyl(0.018, 0.012, 0.30 + i * 0.08, 6, ironDark, 2.1 + i * 0.22, 1.03, 0.72));
+      }
+
+      // ── Water bucket ────────────────────────────────────────────────────────
+      const bucket = new THREE.Group();
+      bucket.add(mkCyl(0.22, 0.18, 0.42, 10, woodMat, 0, 0.21, 0));
+      bucket.add(mkCyl(0.225, 0.225, 0.026, 10, ironDark, 0, 0.08, 0));
+      bucket.add(mkCyl(0.225, 0.225, 0.026, 10, ironDark, 0, 0.34, 0));
+      const waterM = new THREE.MeshStandardMaterial({ color: 0x0E2030, roughness: 0.04, metalness: 0.4 });
+      bucket.add(mkCyl(0.210, 0.210, 0.012, 10, waterM, 0, 0.412, 0));
+      bucket.position.set(2.0, 0.0, -0.60);
+      scene.add(bucket);
+
+      // ── Smoke particles ──────────────────────────────────────────────────────
+      const SMOKE = 18;
       const smokeGeo = new THREE.BufferGeometry();
       const smokePos = new Float32Array(SMOKE * 3);
       smokeGeo.setAttribute('position', new THREE.BufferAttribute(smokePos, 3));
       const smokeVel: THREE.Vector3[] = Array.from({ length: SMOKE }, () => new THREE.Vector3());
       const smokeLife = new Float32Array(SMOKE);
       const smokeMat = new THREE.PointsMaterial({
-        color: 0x302820, size: 0.22, sizeAttenuation: true,
-        transparent: true, opacity: 0.40, depthWrite: false,
+        color: 0x221814, size: 0.28, sizeAttenuation: true,
+        transparent: true, opacity: 0.35, depthWrite: false,
       });
-      const smokePoints = new THREE.Points(smokeGeo, smokeMat);
-      scene.add(smokePoints);
+      const smokePts = new THREE.Points(smokeGeo, smokeMat);
+      scene.add(smokePts);
 
-      let strikeActive = false;
-      let strikeTimer = 0;
-
-      const ANVIL_POS = new THREE.Vector3(0.55, 0.76, 0.16);
-
-      const resetSparkA = (i: number) => {
-        sparksAPos[i*3]   = ANVIL_POS.x + (Math.random() - 0.5) * 0.14;
-        sparksAPos[i*3+1] = ANVIL_POS.y;
-        sparksAPos[i*3+2] = ANVIL_POS.z + (Math.random() - 0.5) * 0.10;
-        const spd = 0.20 + Math.random() * 0.28;
-        const ang = Math.random() * Math.PI * 2;
-        sparksAVel[i].set(Math.cos(ang) * spd, 0.18 + Math.random() * 0.22, Math.sin(ang) * spd);
-        sparksALife[i] = 0.6 + Math.random() * 0.7;
+      const resetSmoke = (i: number) => {
+        smokePos[i*3]   = -2.6  + (Math.random() - 0.5) * 0.22;
+        smokePos[i*3+1] = 3.5   + Math.random() * 0.3;
+        smokePos[i*3+2] = -2.44;
+        smokeVel[i].set((Math.random()-0.5)*0.008, 0.018+Math.random()*0.014, (Math.random()-0.5)*0.008);
+        smokeLife[i] = 1.2 + Math.random() * 1.5;
       };
-      const resetSparkB = (i: number) => {
-        sparksBPos[i*3]   = ANVIL_POS.x + (Math.random() - 0.5) * 0.08;
-        sparksBPos[i*3+1] = ANVIL_POS.y;
-        sparksBPos[i*3+2] = ANVIL_POS.z + (Math.random() - 0.5) * 0.06;
-        const spd = 0.30 + Math.random() * 0.42;
-        const ang = Math.random() * Math.PI * 2;
-        sparksBVel[i].set(Math.cos(ang) * spd, 0.22 + Math.random() * 0.30, Math.sin(ang) * spd);
-        sparksBLife[i] = 0.4 + Math.random() * 0.5;
+      for (let i = 0; i < SMOKE; i++) {
+        resetSmoke(i);
+        smokePos[i*3+1] += Math.random() * 2.8;
+      }
+
+      // ── SPARK STREAKS — line segments, not dots ──────────────────────────────
+      // Each spark = a line from tail to head, giving the photo-realistic streak look.
+      const SPARKS = 160;
+      const streakPositions = new Float32Array(SPARKS * 6); // 2 vertices × 3 coords per spark
+      const streakGeo = new THREE.BufferGeometry();
+      streakGeo.setAttribute('position', new THREE.BufferAttribute(streakPositions, 3));
+      // Draw pairs: [i*6..i*6+2] = tail, [i*6+3..i*6+5] = head
+      const streakVel: THREE.Vector3[] = Array.from({ length: SPARKS }, () => new THREE.Vector3());
+      const streakLife = new Float32Array(SPARKS);
+      const streakMaxLife = new Float32Array(SPARKS);
+
+      const streakMat = new THREE.LineSegments(
+        streakGeo,
+        new THREE.LineBasicMaterial({
+          color: 0xFFCC44,
+          blending: THREE.AdditiveBlending,
+          transparent: true,
+          depthWrite: false,
+          vertexColors: false,
+        })
+      );
+      streakMat.visible = false;
+      scene.add(streakMat);
+
+      // Secondary tiny white sparks (also streaks)
+      const SPARKS2 = 80;
+      const streakPos2 = new Float32Array(SPARKS2 * 6);
+      const streakGeo2 = new THREE.BufferGeometry();
+      streakGeo2.setAttribute('position', new THREE.BufferAttribute(streakPos2, 3));
+      const streakVel2: THREE.Vector3[] = Array.from({ length: SPARKS2 }, () => new THREE.Vector3());
+      const streakLife2 = new Float32Array(SPARKS2);
+      const streakMaxLife2 = new Float32Array(SPARKS2);
+      const streakMat2 = new THREE.LineSegments(
+        streakGeo2,
+        new THREE.LineBasicMaterial({
+          color: 0xFFFFEE,
+          blending: THREE.AdditiveBlending,
+          transparent: true,
+          depthWrite: false,
+        })
+      );
+      streakMat2.visible = false;
+      scene.add(streakMat2);
+
+      // Ambient furnace sparks (points, always on during heating)
+      const AMB = 28;
+      const ambGeo = new THREE.BufferGeometry();
+      const ambPos = new Float32Array(AMB * 3);
+      ambGeo.setAttribute('position', new THREE.BufferAttribute(ambPos, 3));
+      const ambVel: THREE.Vector3[] = Array.from({ length: AMB }, () => new THREE.Vector3());
+      const ambLife = new Float32Array(AMB);
+      const ambMat = new THREE.PointsMaterial({
+        color: 0xFF6600, size: 0.07, sizeAttenuation: true,
+        blending: THREE.AdditiveBlending, transparent: true, depthWrite: false,
+      });
+      const ambPts = new THREE.Points(ambGeo, ambMat);
+      ambPts.visible = false;
+      scene.add(ambPts);
+
+      const IMPACT = new THREE.Vector3(0.04, 0.97, 0.06); // hammer-on-anvil world position
+
+      const resetStreak = (i: number) => {
+        // Random direction fan — sparks fly radially from impact
+        const spd = 0.28 + Math.random() * 0.55;
+        // Bias upward and to the sides (matches photo: sparks fan up and sideways)
+        const elev = 0.15 + Math.random() * 0.75; // mostly upward
+        const azim = Math.random() * Math.PI * 2;
+        streakVel[i].set(
+          Math.cos(azim) * Math.cos(elev) * spd,
+          Math.sin(elev) * spd * 0.9,
+          Math.sin(azim) * Math.cos(elev) * spd,
+        );
+        // Start at impact point
+        streakPositions[i*6]   = IMPACT.x;
+        streakPositions[i*6+1] = IMPACT.y;
+        streakPositions[i*6+2] = IMPACT.z;
+        streakPositions[i*6+3] = IMPACT.x;
+        streakPositions[i*6+4] = IMPACT.y;
+        streakPositions[i*6+5] = IMPACT.z;
+        const life = 0.35 + Math.random() * 0.65;
+        streakLife[i] = life;
+        streakMaxLife[i] = life;
+      };
+      const resetStreak2 = (i: number) => {
+        const spd = 0.40 + Math.random() * 0.70;
+        const elev = 0.20 + Math.random() * 0.80;
+        const azim = Math.random() * Math.PI * 2;
+        streakVel2[i].set(
+          Math.cos(azim) * Math.cos(elev) * spd,
+          Math.sin(elev) * spd * 1.1,
+          Math.sin(azim) * Math.cos(elev) * spd,
+        );
+        streakPos2[i*6]   = IMPACT.x;
+        streakPos2[i*6+1] = IMPACT.y;
+        streakPos2[i*6+2] = IMPACT.z;
+        streakPos2[i*6+3] = IMPACT.x;
+        streakPos2[i*6+4] = IMPACT.y;
+        streakPos2[i*6+5] = IMPACT.z;
+        const life = 0.25 + Math.random() * 0.45;
+        streakLife2[i] = life;
+        streakMaxLife2[i] = life;
       };
       const resetAmb = (i: number) => {
-        const fx = fg.position.x + (Math.random() - 0.5) * 0.55;
-        const fz = fg.position.z + (Math.random() - 0.5) * 0.45;
+        const fx = forge.position.x + (Math.random() - 0.5) * 0.55;
+        const fz = forge.position.z + (Math.random() - 0.5) * 0.25;
         ambPos[i*3] = fx; ambPos[i*3+1] = 0.48; ambPos[i*3+2] = fz;
-        ambVel[i].set((Math.random()-0.5)*0.04, 0.05+Math.random()*0.08, (Math.random()-0.5)*0.04);
+        ambVel[i].set((Math.random()-0.5)*0.04, 0.05+Math.random()*0.09, (Math.random()-0.5)*0.025);
         ambLife[i] = Math.random();
       };
-      const resetSmoke = (i: number) => {
-        smokePos[i*3]   = -2.35 + (Math.random()-0.5)*0.18;
-        smokePos[i*3+1] = 3.8  + Math.random()*0.35;
-        smokePos[i*3+2] = -2.45;
-        smokeVel[i].set((Math.random()-0.5)*0.009, 0.022+Math.random()*0.016, (Math.random()-0.5)*0.009);
-        smokeLife[i] = 1.0 + Math.random()*1.2;
-      };
-      for (let i = 0; i < SMOKE; i++) { resetSmoke(i); smokePos[i*3+1] += Math.random()*2.5; }
+      for (let i = 0; i < AMB; i++) resetAmb(i);
+
+      let strikeActive = false;
+      let strikeTimer  = 0;
 
       triggerStrikeRef.current = () => {
         strikeActive = true;
-        strikeTimer = 0;
-        for (let i = 0; i < SPARK_A; i++) resetSparkA(i);
-        for (let i = 0; i < SPARK_B; i++) resetSparkB(i);
-        sparksA.visible = true;
-        sparksB.visible = true;
+        strikeTimer  = 0;
+        for (let i = 0; i < SPARKS;  i++) resetStreak(i);
+        for (let i = 0; i < SPARKS2; i++) resetStreak2(i);
+        streakMat.visible  = true;
+        streakMat2.visible = true;
+        strikeLight.intensity = 22;
       };
 
-      // ── Animation loop ───────────────────────────────────────────────────────
-      let t = 0;
-      let armSwing = 0;
-      let armDir = 1;
+      // ── Animation ────────────────────────────────────────────────────────────
+      let t        = 0;
+      let armSwing = -0.45;
+      let armDir   = 1;
       let lastPhase: CraftPhase = 'IDLE';
       let rafId: number;
+      const DT = 0.016;
 
       const animate = () => {
         rafId = requestAnimationFrame(animate);
-        t += 0.016;
+        t += DT;
         const phase = craftPhaseRef.current;
-        const boost = upgradeLevelRef.current * 0.18;
+        const boost = upgradeLevelRef.current * 0.20;
 
-        // ── Organic fire flicker (3 independent lights) ──────────────────────
-        const n1 = Math.sin(t * 8.3) * 0.9 + Math.sin(t * 3.1) * 0.5 + Math.sin(t * 17.7) * 0.3;
-        const n2 = Math.sin(t * 6.1) * 0.8 + Math.sin(t * 2.2) * 0.4 + Math.sin(t * 11.4) * 0.25;
-        const n3 = Math.sin(t * 5.7) * 0.7 + Math.sin(t * 4.3) * 0.35;
-        fire1.intensity = (9.0 + boost) + n1;
-        fire2.intensity = (6.0 + boost * 0.7) + n2;
-        fire3.intensity = (4.0 + boost * 0.5) + n3;
-        // Ember planes flicker
-        (ep1.material as THREE.MeshStandardMaterial).emissiveIntensity = 5.0 + n1 * 1.5;
-        (ep2.material as THREE.MeshStandardMaterial).emissiveIntensity = 3.5 + n2 * 1.2;
-        (epCore.material as THREE.MeshStandardMaterial).emissiveIntensity = 6.0 + n3 * 2.0;
+        // ── Fire flicker — 3 independent noise sums ──────────────────────────
+        const n1 = Math.sin(t * 8.4) * 1.0 + Math.sin(t * 3.2) * 0.6 + Math.sin(t * 19.1) * 0.35;
+        const n2 = Math.sin(t * 5.9) * 0.8 + Math.sin(t * 2.1) * 0.5 + Math.sin(t * 12.3) * 0.28;
+        const n3 = Math.sin(t * 7.3) * 0.7 + Math.sin(t * 4.5) * 0.40;
 
-        // ── Camera gentle breathing ──────────────────────────────────────────
-        camera.position.y = 1.8 + Math.sin(t * 0.30) * 0.04;
-        camera.position.x = 0.4 + Math.sin(t * 0.09) * 0.06;
-        camera.lookAt(0.1, 1.1, 0);
+        fireMain.intensity = (18.0 + boost * 1.2) + n1 * 2.0;
+        fireFill.intensity = (10.0 + boost * 0.8) + n2 * 1.4;
+        fireFloor.intensity= (7.0  + boost * 0.5) + n3 * 1.0;
+
+        // Fire plane flicker (scale + opacity)
+        const fScale = 1.0 + n1 * 0.06;
+        fp1.scale.set(1.0 + n1 * 0.05, fScale, 1);
+        fp2.scale.set(1.0 + n2 * 0.07, 1.0 + n2 * 0.08, 1);
+        fp3.scale.set(1.0 + n3 * 0.08, 1.0 + n3 * 0.10, 1);
+        fp1.position.y = forge.position.y === 0 ? 1.0 + n1 * 0.04 : fp1.position.y;
+        (fireMat1 as THREE.MeshStandardMaterial).emissiveIntensity = 8.0  + n1 * 2.5;
+        (fireMat2 as THREE.MeshStandardMaterial).emissiveIntensity = 6.0  + n2 * 2.0;
+        (fireMat3 as THREE.MeshStandardMaterial).emissiveIntensity = 10.0 + n3 * 3.0;
+        (emberCoreMat as THREE.MeshStandardMaterial).emissiveIntensity = 14.0 + n1 * 3.0;
+
+        // ── Camera subtle breathing ──────────────────────────────────────────
+        camera.position.y = 0.85 + Math.sin(t * 0.28) * 0.025;
+        camera.position.x = 1.60 + Math.sin(t * 0.11) * 0.04;
+        camera.lookAt(0.1, 0.62, 0.0);
 
         // ── Phase transitions ────────────────────────────────────────────────
         if (phase !== lastPhase) {
           if (phase === 'HEATING') {
             metalPiece.visible = true;
-            metalPiece.position.set(0.55, 0.758, 0.16);
+            metalPiece.position.set(-1.88, 0.82, -1.94); // in furnace
             metalMat.emissiveIntensity = 0;
-            ambParticles.visible = true;
+            ambPts.visible = true;
           }
           if (phase === 'HAMMERING') {
-            ambParticles.visible = false;
+            metalPiece.visible = true;
+            ambPts.visible = false;
           }
           if (phase === 'IDLE' || phase === 'RESULT') {
             metalPiece.visible = false;
             metalMat.emissiveIntensity = 0;
-            metalGlowLight.intensity = 0;
-            ambParticles.visible = false;
+            metalGlow.intensity = 0;
+            ambPts.visible = false;
           }
           if (phase === 'COOLING') {
-            ambParticles.visible = false;
+            ambPts.visible = false;
           }
           lastPhase = phase;
         }
 
-        // ── Per-phase ────────────────────────────────────────────────────────
+        // ── Per-phase updates ────────────────────────────────────────────────
         if (phase === 'HEATING') {
-          metalPiece.position.x = THREE.MathUtils.lerp(metalPiece.position.x, -1.48, 0.014);
-          metalPiece.position.z = THREE.MathUtils.lerp(metalPiece.position.z, -1.72, 0.014);
-          metalMat.emissiveIntensity = Math.min(3.2, metalMat.emissiveIntensity + 0.012);
+          // Metal lerps into furnace
+          metalPiece.position.x = THREE.MathUtils.lerp(metalPiece.position.x, -1.88, 0.010);
+          metalPiece.position.z = THREE.MathUtils.lerp(metalPiece.position.z, -1.94, 0.010);
+          metalMat.emissiveIntensity = Math.min(3.5, metalMat.emissiveIntensity + 0.010);
           metalMat.emissive.setHex(0xFF4400);
-          fire1.intensity = (12.0 + boost) + n1 * 1.4;
-          fire2.intensity = (8.0 + boost) + n2 * 1.2;
-          metalGlowLight.intensity = metalMat.emissiveIntensity * 1.8;
+          metalGlow.intensity = metalMat.emissiveIntensity * 1.6;
           // Ambient furnace sparks
           for (let i = 0; i < AMB; i++) {
-            ambLife[i] -= 0.016;
+            ambLife[i] -= DT;
             if (ambLife[i] <= 0) resetAmb(i);
-            ambPos[i*3] += ambVel[i].x; ambPos[i*3+1] += ambVel[i].y; ambPos[i*3+2] += ambVel[i].z;
-            ambVel[i].y -= 0.001;
+            ambPos[i*3]   += ambVel[i].x;
+            ambPos[i*3+1] += ambVel[i].y;
+            ambPos[i*3+2] += ambVel[i].z;
+            ambVel[i].y   -= 0.0008;
           }
           ambGeo.attributes.position.needsUpdate = true;
+          fireMain.intensity = (22.0 + boost) + n1 * 2.5;
+          fireFill.intensity = (13.0 + boost) + n2 * 1.8;
         }
 
         if (phase === 'HAMMERING') {
-          // Metal on anvil, orange-hot
-          metalPiece.position.x = THREE.MathUtils.lerp(metalPiece.position.x, 0.55, 0.06);
-          metalPiece.position.z = THREE.MathUtils.lerp(metalPiece.position.z, 0.16, 0.06);
-          metalMat.emissiveIntensity = 2.0 + Math.sin(t * 5.5) * 0.4;
+          // Metal on anvil
+          metalPiece.position.x = THREE.MathUtils.lerp(metalPiece.position.x, 0.04, 0.06);
+          metalPiece.position.z = THREE.MathUtils.lerp(metalPiece.position.z, 0.06, 0.06);
+          metalPiece.position.y = THREE.MathUtils.lerp(metalPiece.position.y, 1.72, 0.05);
+          metalMat.emissiveIntensity = 2.4 + Math.sin(t * 5.2) * 0.45;
           metalMat.emissive.setHex(0xFF5500);
-          metalGlowLight.intensity = metalMat.emissiveIntensity * 2.5;
+          metalGlow.intensity = metalMat.emissiveIntensity * 2.8;
 
-          // Hammer arm swings full arc (pendulum) — looks like real striking
-          armSwing += 0.055 * armDir;
-          if (armSwing >  1.05) { armDir = -1; armSwing = 1.05; }
-          if (armSwing < -0.40) { armDir =  1; armSwing = -0.40; }
-          rightArmG.rotation.x = armSwing;
+          // Hammer arm pendulum — wide arc with snap on downswing
+          armSwing += 0.065 * armDir;
+          if (armSwing >  0.90) { armDir = -1; armSwing =  0.90; }
+          if (armSwing < -0.45) { armDir =  1; armSwing = -0.45; }
+          rightArm.rotation.x = -0.45 + armSwing;
+          // Left arm slight bob (holding tongs)
+          leftArm.rotation.x = -0.82 + Math.sin(t * 4.0) * 0.04;
         } else {
-          // Idle — arm rests, gentle bob
-          armSwing = THREE.MathUtils.lerp(armSwing, -0.1, 0.06);
-          rightArmG.rotation.x = armSwing + Math.sin(t * 0.8) * 0.03;
+          // Arm at rest
+          armSwing = THREE.MathUtils.lerp(armSwing, 0, 0.04);
+          rightArm.rotation.x = -0.45 + armSwing + Math.sin(t * 0.9) * 0.025;
         }
 
         if (phase === 'COOLING') {
           metalPiece.visible = true;
           // Metal moves to bucket
-          metalPiece.position.x = THREE.MathUtils.lerp(metalPiece.position.x, 1.55, 0.022);
-          metalPiece.position.z = THREE.MathUtils.lerp(metalPiece.position.z, 0.85, 0.022);
-          metalMat.emissiveIntensity = Math.max(0, metalMat.emissiveIntensity - 0.012);
-          metalMat.color.lerp(new THREE.Color(0x5A5A5A), 0.016);
-          metalGlowLight.intensity = Math.max(0, metalGlowLight.intensity - 0.05);
+          metalPiece.position.x = THREE.MathUtils.lerp(metalPiece.position.x, 2.0, 0.018);
+          metalPiece.position.z = THREE.MathUtils.lerp(metalPiece.position.z, -0.60, 0.018);
+          metalPiece.position.y = THREE.MathUtils.lerp(metalPiece.position.y, 0.50, 0.018);
+          metalMat.emissiveIntensity = Math.max(0, metalMat.emissiveIntensity - 0.010);
+          metalMat.color.lerp(new THREE.Color(0x5A5A5A), 0.012);
+          metalGlow.intensity = Math.max(0, metalGlow.intensity - 0.04);
         }
 
-        // ── Strike sparks ────────────────────────────────────────────────────
+        // ── Strike spark streaks ─────────────────────────────────────────────
         if (strikeActive) {
-          strikeTimer += 0.016;
-          for (let i = 0; i < SPARK_A; i++) {
-            sparksALife[i] -= 0.018;
-            if (sparksALife[i] <= 0) resetSparkA(i);
-            sparksAPos[i*3]   += sparksAVel[i].x;
-            sparksAPos[i*3+1] += sparksAVel[i].y;
-            sparksAPos[i*3+2] += sparksAVel[i].z;
-            sparksAVel[i].y -= 0.008; // gravity
+          strikeTimer += DT;
+          // Decay flash
+          strikeLight.intensity = Math.max(0, 22 - strikeTimer * 55);
+
+          for (let i = 0; i < SPARKS; i++) {
+            streakLife[i] -= DT;
+            if (streakLife[i] <= 0) { resetStreak(i); continue; }
+            // Move head forward
+            streakPositions[i*6+3] += streakVel[i].x;
+            streakPositions[i*6+4] += streakVel[i].y;
+            streakPositions[i*6+5] += streakVel[i].z;
+            streakVel[i].y -= 0.009; // gravity
+            // Tail lags behind (creates the streak length)
+            const lag = 0.65;
+            streakPositions[i*6]   = THREE.MathUtils.lerp(streakPositions[i*6],   streakPositions[i*6+3], 1-lag);
+            streakPositions[i*6+1] = THREE.MathUtils.lerp(streakPositions[i*6+1], streakPositions[i*6+4], 1-lag);
+            streakPositions[i*6+2] = THREE.MathUtils.lerp(streakPositions[i*6+2], streakPositions[i*6+5], 1-lag);
           }
-          sparksAGeo.attributes.position.needsUpdate = true;
-          for (let i = 0; i < SPARK_B; i++) {
-            sparksBLife[i] -= 0.024;
-            if (sparksBLife[i] <= 0) resetSparkB(i);
-            sparksBPos[i*3]   += sparksBVel[i].x;
-            sparksBPos[i*3+1] += sparksBVel[i].y;
-            sparksBPos[i*3+2] += sparksBVel[i].z;
-            sparksBVel[i].y -= 0.010;
+          streakGeo.attributes.position.needsUpdate = true;
+
+          for (let i = 0; i < SPARKS2; i++) {
+            streakLife2[i] -= DT;
+            if (streakLife2[i] <= 0) { resetStreak2(i); continue; }
+            streakPos2[i*6+3] += streakVel2[i].x;
+            streakPos2[i*6+4] += streakVel2[i].y;
+            streakPos2[i*6+5] += streakVel2[i].z;
+            streakVel2[i].y -= 0.011;
+            const lag = 0.70;
+            streakPos2[i*6]   = THREE.MathUtils.lerp(streakPos2[i*6],   streakPos2[i*6+3], 1-lag);
+            streakPos2[i*6+1] = THREE.MathUtils.lerp(streakPos2[i*6+1], streakPos2[i*6+4], 1-lag);
+            streakPos2[i*6+2] = THREE.MathUtils.lerp(streakPos2[i*6+2], streakPos2[i*6+5], 1-lag);
           }
-          sparksBGeo.attributes.position.needsUpdate = true;
-          if (strikeTimer > 1.6) {
+          streakGeo2.attributes.position.needsUpdate = true;
+
+          if (strikeTimer > 1.8) {
             strikeActive = false;
-            sparksA.visible = false;
-            sparksB.visible = false;
+            streakMat.visible  = false;
+            streakMat2.visible = false;
+            strikeLight.intensity = 0;
           }
         }
 
-        // ── Smoke ─────────────────────────────────────────────────────────────
+        // ── Smoke ────────────────────────────────────────────────────────────
         for (let i = 0; i < SMOKE; i++) {
-          smokeLife[i] -= 0.007;
+          smokeLife[i] -= 0.006;
           if (smokeLife[i] <= 0) resetSmoke(i);
-          smokePos[i*3] += smokeVel[i].x;
+          smokePos[i*3]   += smokeVel[i].x;
           smokePos[i*3+1] += smokeVel[i].y;
           smokePos[i*3+2] += smokeVel[i].z;
         }
@@ -741,8 +768,8 @@ const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(
       cleanupRef.current = () => {
         cancelAnimationFrame(rafId);
         renderer.dispose();
-        sparksAGeo.dispose();
-        sparksBGeo.dispose();
+        streakGeo.dispose();
+        streakGeo2.dispose();
         ambGeo.dispose();
         smokeGeo.dispose();
       };
@@ -761,36 +788,11 @@ const styles = StyleSheet.create({
   gl: { flex: 1 },
   fallback: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   fbGlow: {
-    position: 'absolute', left: '8%', top: '18%',
-    width: 90, height: 90, borderRadius: 45, backgroundColor: '#FF440020',
+    position: 'absolute', left: '8%', top: '22%',
+    width: 100, height: 100, borderRadius: 50, backgroundColor: '#FF440028',
   },
-  fbFurnace: {
-    position: 'absolute', left: '10%', top: '26%',
-    width: 72, height: 94, backgroundColor: '#2A1204', borderRadius: 5,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  fbOpening: { width: 34, height: 32, backgroundColor: '#1A0A02', borderRadius: 4 },
-  fbOpeningHot: { backgroundColor: '#FF4400' },
-  fbAnvil: {
-    position: 'absolute', bottom: '30%', left: '42%',
-    width: 72, height: 40, backgroundColor: '#2A2A2A', borderRadius: 4,
-  },
-  fbAnvilTop: {
-    position: 'absolute', top: -13, left: -9,
-    width: 90, height: 15, backgroundColor: '#3E3E3E', borderRadius: 3,
-  },
-  fbAnvilHorn: {
-    position: 'absolute', top: -9, right: -23,
-    width: 28, height: 11, backgroundColor: '#3E3E3E',
-    borderTopRightRadius: 8, borderBottomRightRadius: 8,
-  },
-  fbMetal: {
-    position: 'absolute', bottom: '38%', left: '50%',
-    width: 28, height: 8, backgroundColor: '#666', borderRadius: 2,
-  },
-  fbMetalHot: { backgroundColor: '#FF8833' },
   fbLabel: {
-    position: 'absolute', bottom: '10%',
+    position: 'absolute', bottom: '12%',
     fontSize: 16, fontWeight: '800', color: '#D4851A', letterSpacing: 3,
   },
 });
