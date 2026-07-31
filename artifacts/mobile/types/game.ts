@@ -246,6 +246,19 @@ export interface InventoryItem {
   quantity: number;
 }
 
+export interface CombatDrop {
+  resourceId: string;
+  quantity: number;
+}
+
+export interface CombatResult {
+  won: boolean;
+  playerRoll: number;
+  enemyRoll: number;
+  drops: CombatDrop[];
+  message: string;
+}
+
 export interface QuestObjective {
   id: string;
   description: string;

@@ -182,6 +182,12 @@ function ExploreView({
   const [collecting, setCollecting] = useState<string | null>(null);
   const [lastDrops, setLastDrops] = useState<{ resourceId: string; qty: number } | null>(null);
   const [showToast, setShowToast] = useState(false);
+  const [showCombat, setShowCombat] = useState(false);
+  const [combatRound, setCombatRound] = useState(0);
+  const [combatPlayerScore, setCombatPlayerScore] = useState(0);
+  const [combatEnemyScore, setCombatEnemyScore] = useState(0);
+  const [combatLastRoll, setCombatLastRoll] = useState<{ player: number; enemy: number } | null>(null);
+  const [combatResult, setCombatResult] = useState<ReturnType<typeof game.fightForMaterials> | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const progress = useSharedValue(0);
@@ -279,6 +285,35 @@ function ExploreView({
     });
   };
 
+  const openCombat = () => {
+    setCombatRound(0);
+    setCombatPlayerScore(0);
+    setCombatEnemyScore(0);
+    setCombatLastRoll(null);
+    setCombatResult(null);
+    setShowCombat(true);
+  };
+
+  const rollCombatDice = () => {
+    if (combatResult) return;
+    const playerRoll = Math.floor(Math.random() * 6) + 1 + Math.floor((game.player.skills.combat ?? 1) / 5);
+    const enemyRoll = Math.floor(Math.random() * 6) + 1 + Math.floor(region.boss.level / 5);
+    const nextPlayerScore = combatPlayerScore + playerRoll;
+    const nextEnemyScore = combatEnemyScore + enemyRoll;
+    const nextRound = combatRound + 1;
+    setCombatLastRoll({ player: playerRoll, enemy: enemyRoll });
+    setCombatPlayerScore(nextPlayerScore);
+    setCombatEnemyScore(nextEnemyScore);
+    setCombatRound(nextRound);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (nextRound >= 3) {
+      const result = game.fightForMaterials(region.id, nextPlayerScore, nextEnemyScore);
+      setCombatResult(result);
+      if (result.won) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      else Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
@@ -315,9 +350,13 @@ function ExploreView({
       {/* Boss info strip */}
       <View style={[styles.bossStrip, { backgroundColor: colors.destructive + '18', borderBottomColor: colors.destructive + '30' }]}>
         <Feather name="alert-triangle" size={13} color={colors.destructive} />
-        <Text style={[styles.bossStripText, { color: colors.destructive }]}>
+        <Text style={[styles.bossStripText, { color: colors.destructive, flex: 1 }]}>
           Boss: {region.boss.name} · Niv.{region.boss.level}
         </Text>
+        <TouchableOpacity style={[styles.fightBtn, { backgroundColor: colors.destructive }]} onPress={openCombat}>
+          <Feather name="target" size={13} color="#fff" />
+          <Text style={styles.fightBtnText}>Combattre</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Resource nodes */}
@@ -434,6 +473,77 @@ function ExploreView({
           )}
         </Animated.View>
       )}
+
+      <Modal visible={showCombat} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setShowCombat(false)}>
+        <View style={styles.overlay}>
+          <View style={[styles.combatBox, { backgroundColor: colors.card, borderColor: colors.destructive + '80' }]}>
+            <View style={styles.combatHeader}>
+              <View>
+                <Text style={[styles.combatEyebrow, { color: colors.destructive }]}>DUEL DE DÉS</Text>
+                <Text style={[styles.combatTitle, { color: colors.foreground }]}>{region.boss.name}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowCombat(false)} disabled={combatRound > 0 && !combatResult}>
+                <Feather name="x" size={21} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.combatHint, { color: colors.mutedForeground }]}>
+              Lancez trois fois. Votre score de Combat améliore légèrement vos jets.
+            </Text>
+
+            <View style={styles.scoreRow}>
+              <View style={[styles.scoreCard, { backgroundColor: colors.secondary, borderColor: rc + '80' }]}>
+                <Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>VOUS</Text>
+                <Text style={[styles.scoreValue, { color: rc }]}>{combatPlayerScore}</Text>
+              </View>
+              <Text style={[styles.vsText, { color: colors.mutedForeground }]}>VS</Text>
+              <View style={[styles.scoreCard, { backgroundColor: colors.secondary, borderColor: colors.destructive + '80' }]}>
+                <Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>ENNEMI</Text>
+                <Text style={[styles.scoreValue, { color: colors.destructive }]}>{combatEnemyScore}</Text>
+              </View>
+            </View>
+
+            <Text style={[styles.roundText, { color: colors.mutedForeground }]}>
+              {combatResult ? 'Combat terminé' : `Manche ${Math.min(combatRound + 1, 3)} / 3`}
+            </Text>
+            {combatLastRoll && (
+              <View style={[styles.lastRoll, { backgroundColor: colors.secondary }]}>
+                <Text style={[styles.lastRollText, { color: colors.foreground }]}>
+                  Dernier lancer : <Text style={{ color: rc, fontWeight: '800' }}>vous {combatLastRoll.player}</Text>
+                  {'  ·  '}
+                  <Text style={{ color: colors.destructive, fontWeight: '800' }}>ennemi {combatLastRoll.enemy}</Text>
+                </Text>
+              </View>
+            )}
+
+            {combatResult ? (
+              <>
+                <Text style={[styles.combatOutcome, { color: combatResult.won ? '#4CAF50' : colors.destructive }]}>
+                  {combatResult.won ? 'VICTOIRE !' : 'DÉFAITE'}
+                </Text>
+                <Text style={[styles.combatMessage, { color: colors.mutedForeground }]}>{combatResult.message}</Text>
+                {combatResult.drops.length > 0 && (
+                  <View style={styles.combatDrops}>
+                    {combatResult.drops.map((drop) => (
+                      <Text key={drop.resourceId} style={[styles.combatDropText, { color: colors.accent }]}>
+                        +{drop.quantity} {game.getResourceById(drop.resourceId)?.name ?? drop.resourceId}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+                <TouchableOpacity style={[styles.combatAction, { backgroundColor: colors.primary }]} onPress={() => setShowCombat(false)}>
+                  <Text style={[styles.combatActionText, { color: colors.primaryForeground }]}>Continuer</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity style={[styles.combatAction, { backgroundColor: colors.destructive }]} onPress={rollCombatDice}>
+                <Feather name="rotate-cw" size={16} color="#fff" />
+                <Text style={styles.combatActionText}>Lancer les dés</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1110,6 +1220,8 @@ const styles = StyleSheet.create({
   expPct: { fontSize: 11, fontWeight: '700', minWidth: 30 },
   bossStrip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 7, borderBottomWidth: 1 },
   bossStripText: { fontSize: 12, fontWeight: '600' },
+  fightBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 6, borderRadius: 8 },
+  fightBtnText: { color: '#fff', fontSize: 10, fontWeight: '800' },
   nodesContent: { paddingHorizontal: 16, paddingTop: 14 },
   nodesTitle: { fontSize: 10, fontWeight: '800', letterSpacing: 2, marginBottom: 12 },
   nodeCard: { borderRadius: 12, borderWidth: 1, marginBottom: 8, overflow: 'hidden' },
@@ -1134,4 +1246,23 @@ const styles = StyleSheet.create({
   toastContent: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   toastDot: { width: 12, height: 12, borderRadius: 6 },
   toastText: { fontSize: 14, fontWeight: '600' },
+  combatBox: { width: '88%', maxWidth: 390, borderRadius: 22, padding: 20, borderWidth: 1 },
+  combatHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  combatEyebrow: { fontSize: 10, fontWeight: '800', letterSpacing: 2, marginBottom: 5 },
+  combatTitle: { fontSize: 22, fontWeight: '900' },
+  combatHint: { fontSize: 12, lineHeight: 18, marginTop: 10, marginBottom: 16 },
+  scoreRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
+  scoreCard: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 14, borderWidth: 1 },
+  scoreLabel: { fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+  scoreValue: { fontSize: 34, fontWeight: '900', marginTop: 3 },
+  vsText: { fontSize: 12, fontWeight: '900' },
+  roundText: { textAlign: 'center', fontSize: 11, fontWeight: '700', marginTop: 16 },
+  lastRoll: { borderRadius: 10, padding: 10, marginTop: 9 },
+  lastRollText: { textAlign: 'center', fontSize: 12 },
+  combatOutcome: { textAlign: 'center', fontSize: 20, fontWeight: '900', letterSpacing: 1, marginTop: 16 },
+  combatMessage: { textAlign: 'center', fontSize: 13, lineHeight: 19, marginTop: 6 },
+  combatDrops: { alignItems: 'center', gap: 4, marginTop: 12 },
+  combatDropText: { fontSize: 13, fontWeight: '800' },
+  combatAction: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, paddingVertical: 14, borderRadius: 12, marginTop: 18 },
+  combatActionText: { color: '#fff', fontSize: 14, fontWeight: '800' },
 });

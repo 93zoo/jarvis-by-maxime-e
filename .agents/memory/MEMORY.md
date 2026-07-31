@@ -2,3 +2,4 @@
 - [Achievement context placement](achievement-context.md) — AchievementProvider must be inside GameProvider (uses useGame); defined in `context/AchievementContext.tsx`.
 - [Hermes hoisting rule](hermes-hoisting.md) — sub-components with hooks must be defined BEFORE the screen component that uses them.
 - [Player new fields normalization](player-fields.md) — new Player fields (totalOrdersDelivered, craftedLegendaryCount, etc.) need `?? 0` defaults in the LOAD reducer for save backward compat.
+- [Gameplay progression rules](gameplay-progression.md) — player levels award talent points; melting returns quality-scaled recipe materials; region fights reward local drops and Combat XP.

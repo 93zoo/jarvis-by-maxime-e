@@ -173,8 +173,10 @@ function FireLayer({
   cx: number; cy: number;
   w: number; h: number;
   color: string;
-  flicker: Animated.Value;
-  phaseScale: Animated.AnimatedMultiplication;
+  // Animated.multiply returns an Animated node rather than a plain Value.
+  // Keep these props broad enough for composed native-driver animations.
+  flicker: any;
+  phaseScale: any;
   opacity: number;
 }) {
   const combinedScale = Animated.multiply(flicker, phaseScale);

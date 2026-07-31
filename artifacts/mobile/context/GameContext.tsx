@@ -12,6 +12,8 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {
   CraftOrder,
+  CombatDrop,
+  CombatResult,
   ForgeHistoryEntry,
   ForgeUpgradeData,
   GemData,
@@ -153,6 +155,7 @@ type GameAction =
   | { type: 'ADD_RESOURCE'; resourceId: string; qty: number }
   | { type: 'REMOVE_RESOURCE'; resourceId: string; qty: number }
   | { type: 'ADD_CRAFTED_ITEM'; item: Item }
+  | { type: 'MELT_ITEM'; instanceId: string; recovered: CombatDrop[] }
   | { type: 'ADD_GOLD'; amount: number }
   | { type: 'SPEND_GOLD'; amount: number }
   | { type: 'ADD_PLAYER_XP'; amount: number }
@@ -299,12 +302,14 @@ function generateNpcOrder(playerLevel: number, forgeLevel: number): CraftOrder {
 
 function levelUpPlayer(player: Player): Player {
   let { xp, xpToNextLevel, level } = player;
+  let talentPoints = player.talentPoints ?? 0;
   while (xp >= xpToNextLevel) {
     xp -= xpToNextLevel;
     level += 1;
+    talentPoints += 1;
     xpToNextLevel = xpForLevel(level);
   }
-  return { ...player, xp, level, xpToNextLevel };
+  return { ...player, xp, level, xpToNextLevel, talentPoints };
 }
 
 function levelUpSkill(player: Player, skill: SkillType, xpGain: number): Player {
@@ -317,9 +322,7 @@ function levelUpSkill(player: Player, skill: SkillType, xpGain: number): Player 
     skillXP[skill] -= threshold;
     const newLevel = (skills[skill] ?? 1) + 1;
     skills[skill] = newLevel;
-    // Award talent point every 5 skill levels
-    const talentPoints = result.talentPoints + (newLevel % 5 === 0 ? 1 : 0);
-    result = { ...result, skillXP, skills, talentPoints };
+    result = { ...result, skillXP, skills };
     // Forge skill drives forge level
     if (skill === 'forge') {
       const newForgeLevel = Math.min(10, Math.floor(newLevel / 10) + 1);
@@ -335,10 +338,22 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const s = action.payload;
       // Normalize player for backward-compat: any field added after initial release
       // must be defaulted here so legacy saves don't produce undefined/NaN.
+      const spentTalentPoints = (s.player.talentsUnlocked ?? []).reduce(
+        (total, talentId) => total + (ALL_TALENTS.find((talent) => talent.id === talentId)?.cost ?? 0),
+        0,
+      );
+      // Saves created before player-level talent points existed may contain
+      // skill-level points only. Bring them up to the new earned baseline
+      // without taking away points already earned or spent.
+      const earnedByPlayerLevel = Math.max(0, (s.player.level ?? 1) - 1);
+      const migratedTalentPoints = Math.max(
+        s.player.talentPoints ?? 0,
+        earnedByPlayerLevel - spentTalentPoints,
+      );
       let player: Player = {
         ...s.player,
         forgeName: s.player.forgeName ?? 'La Forge du Débutant',
-        talentPoints: s.player.talentPoints ?? 0,
+        talentPoints: migratedTalentPoints,
         talentsUnlocked: s.player.talentsUnlocked ?? [],
         totalGoldEarned: s.player.totalGoldEarned ?? 0,
         totalItemsCrafted: s.player.totalItemsCrafted ?? 0,
@@ -426,6 +441,27 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
       const forgeHistory = [historyEntry, ...state.forgeHistory].slice(0, FORGE_HISTORY_MAX);
       return { ...state, craftedItems: [...state.craftedItems, action.item], player, forgeHistory };
+    }
+    case 'MELT_ITEM': {
+      const item = state.craftedItems.find((candidate) => candidate.instanceId === action.instanceId);
+      if (!item) return state;
+      let inventory = [...state.inventory];
+      for (const recovered of action.recovered) {
+        const index = inventory.findIndex((entry) => entry.resourceId === recovered.resourceId);
+        if (index >= 0) {
+          inventory[index] = {
+            ...inventory[index],
+            quantity: inventory[index].quantity + recovered.quantity,
+          };
+        } else {
+          inventory.push(recovered);
+        }
+      }
+      return {
+        ...state,
+        craftedItems: state.craftedItems.filter((candidate) => candidate.instanceId !== action.instanceId),
+        inventory,
+      };
     }
     case 'ADD_GOLD': {
       const player = {
@@ -826,6 +862,7 @@ interface GameContextType {
   collectFromRegion: (regionId: string) => { resourceId: string; quantity: number }[];
   unlockRegion: (regionId: string) => void;
   addExploration: (regionId: string, gain: number) => void;
+  fightForMaterials: (regionId: string, playerTotal: number, enemyTotal: number) => CombatResult;
   saveGame: () => Promise<void>;
   resetGame: () => void;
   // Progression
@@ -834,6 +871,7 @@ interface GameContextType {
   forgeUpgrades: Record<string, number>;
   upgradeForgeElement: (element: string) => { success: boolean; message: string };
   unlockTalent: (talentId: string) => boolean;
+  meltItem: (instanceId: string) => { success: boolean; message: string; recovered: CombatDrop[] };
   getTalentBonus: (bonusType: string) => number;
   // Forge history
   forgeHistory: ForgeHistoryEntry[];
@@ -1290,6 +1328,62 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'ADD_EXPLORATION', regionId, gain });
   }, []);
 
+  const fightForMaterials = useCallback(
+    (regionId: string, playerTotal: number, enemyTotal: number): CombatResult => {
+      const region = ALL_REGIONS.find((candidate) => candidate.id === regionId);
+      if (!region || !state.unlockedRegions.includes(regionId)) {
+        return {
+          won: false,
+          playerRoll: playerTotal,
+          enemyRoll: enemyTotal,
+          drops: [],
+          message: 'Cette région n’est pas accessible.',
+        };
+      }
+
+      const won = playerTotal > enemyTotal;
+      const drops: CombatDrop[] = [];
+      if (won) {
+        // Combat rewards favour the region’s own materials. Two independent
+        // rolls make a win useful without flooding the inventory.
+        const candidates = region.resourceNodes
+          .filter((node) => Math.random() <= Math.min(1, node.dropRate + 0.15))
+          .slice(0, 2);
+        for (const node of candidates.length > 0 ? candidates : region.resourceNodes.slice(0, 1)) {
+          const quantity = Math.max(
+            1,
+            Math.floor(Math.random() * (node.maxQty - node.minQty + 1) + node.minQty),
+          );
+          drops.push({ resourceId: node.resourceId, quantity });
+          dispatch({ type: 'ADD_RESOURCE', resourceId: node.resourceId, qty: quantity });
+          dispatch({
+            type: 'UPDATE_QUEST_PROGRESS',
+            objectiveType: 'collect',
+            targetId: node.resourceId,
+            amount: quantity,
+          });
+        }
+        dispatch({ type: 'ADD_SKILL_XP', skill: 'combat', amount: 12 + region.levelRequired });
+        dispatch({ type: 'ADD_PLAYER_XP', amount: 8 + region.levelRequired });
+        dispatch({ type: 'ADD_EXPLORATION', regionId, gain: 2 });
+      } else {
+        dispatch({ type: 'ADD_SKILL_XP', skill: 'combat', amount: 3 });
+        dispatch({ type: 'ADD_PLAYER_XP', amount: 2 });
+      }
+
+      return {
+        won,
+        playerRoll: playerTotal,
+        enemyRoll: enemyTotal,
+        drops,
+        message: won
+          ? `Victoire contre ${region.boss.name} !`
+          : `${region.boss.name} vous repousse. Revenez plus fort !`,
+      };
+    },
+    [state.unlockedRegions],
+  );
+
   // -------------------------------------------------------------------------
   // NPC Order actions
   // -------------------------------------------------------------------------
@@ -1380,6 +1474,38 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       return goldAmount;
     },
     [state.inventory, state.marketPrices],
+  );
+
+  const meltItem = useCallback(
+    (instanceId: string): { success: boolean; message: string; recovered: CombatDrop[] } => {
+      const item = state.craftedItems.find((candidate) => candidate.instanceId === instanceId);
+      if (!item) return { success: false, message: 'Objet introuvable.', recovered: [] };
+
+      const recipe = ALL_RECIPES.find((candidate) => candidate.id === item.recipeId);
+      const qualityYield: Record<Quality, number> = {
+        poor: 0.45,
+        normal: 0.6,
+        good: 0.7,
+        excellent: 0.82,
+        legendary: 0.95,
+      };
+      const yieldRate = qualityYield[item.quality] ?? 0.6;
+      const totals = new Map<string, number>();
+      const requirements = recipe?.requirements ?? item.materials.map((resourceId) => ({ resourceId, quantity: 1 }));
+      for (const requirement of requirements) {
+        const quantity = Math.max(1, Math.floor(requirement.quantity * yieldRate));
+        totals.set(requirement.resourceId, (totals.get(requirement.resourceId) ?? 0) + quantity);
+      }
+      const recovered = Array.from(totals, ([resourceId, quantity]) => ({ resourceId, quantity }));
+      dispatch({ type: 'MELT_ITEM', instanceId, recovered });
+      dispatch({ type: 'ADD_SKILL_XP', skill: 'forge', amount: 4 });
+      return {
+        success: true,
+        message: `Fonte terminée : ${recovered.reduce((sum, drop) => sum + drop.quantity, 0)} matériau(x) récupéré(s).`,
+        recovered,
+      };
+    },
+    [state.craftedItems],
   );
 
   // -------------------------------------------------------------------------
@@ -1644,6 +1770,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       collectFromRegion,
       unlockRegion,
       addExploration,
+      fightForMaterials,
       saveGame,
       resetGame,
       allTalents: ALL_TALENTS,
@@ -1651,6 +1778,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       forgeUpgrades: state.forgeUpgrades,
       upgradeForgeElement,
       unlockTalent,
+      meltItem,
       getTalentBonus,
       // Forge history
       forgeHistory: state.forgeHistory,

@@ -43,7 +43,7 @@ const COL0_X = 70;
 const COL1_X = 190;
 const TIER0_Y = 70;
 const TIER_STEP = 110;
-const CANVAS_W = 280;
+const CANVAS_W = 320;
 const CANVAS_H = TIER0_Y + 4 * TIER_STEP + NODE_R + 40;
 
 function nodePosForTalent(t: TalentData) {
@@ -147,6 +147,7 @@ function TalentTreeView({
   };
 
   const selectedTalent = treeTalents.find((t) => t.id === selectedTalentId) ?? null;
+  const unlockedInTree = treeTalents.filter((t) => isTalentUnlocked(t.id)).length;
 
   const handleUnlock = () => {
     if (!selectedTalent) return;
@@ -161,6 +162,20 @@ function TalentTreeView({
 
   return (
     <View>
+      <View style={[tStyles.treeSummary, { backgroundColor: colors.card, borderColor: info.color + '55' }]}>
+        <View style={[tStyles.treeSummaryIcon, { backgroundColor: info.color + '22' }]}>
+          <Feather name={info.icon as 'tool'} size={18} color={info.color} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[tStyles.treeSummaryTitle, { color: colors.foreground }]}>{info.label}</Text>
+          <Text style={[tStyles.treeSummaryText, { color: colors.mutedForeground }]}>
+            {unlockedInTree}/{treeTalents.length} débloqués · Touchez un nœud pour voir ses prérequis
+          </Text>
+        </View>
+        <View style={[tStyles.treeState, { backgroundColor: '#9966CC22' }]}>
+          <Text style={[tStyles.treeStateText, { color: '#9966CC' }]}>{game.player.talentPoints} pt</Text>
+        </View>
+      </View>
       {/* Canvas */}
       <ScrollView
         horizontal
@@ -169,6 +184,15 @@ function TalentTreeView({
         contentContainerStyle={{ justifyContent: 'center' }}
       >
         <View style={{ width: CANVAS_W, height: CANVAS_H }}>
+          {Array.from({ length: 5 }).map((_, tier) => (
+            <View
+              key={`tier-${tier}`}
+              pointerEvents="none"
+              style={[tStyles.tierRow, { top: TIER0_Y + tier * TIER_STEP - 40, borderColor: colors.border }]}
+            >
+              <Text style={[tStyles.tierLabel, { color: colors.mutedForeground }]}>PALIER {tier + 1}</Text>
+            </View>
+          ))}
           {/* Connection lines */}
           {treeTalents.map((t) => {
             const toPos = nodePosForTalent(t);
@@ -265,6 +289,14 @@ function TalentTreeView({
 }
 
 const tStyles = StyleSheet.create({
+  treeSummary: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginBottom: 10, padding: 12, borderRadius: 14, borderWidth: 1 },
+  treeSummaryIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  treeSummaryTitle: { fontSize: 14, fontWeight: '800', marginBottom: 2 },
+  treeSummaryText: { fontSize: 11, lineHeight: 16 },
+  treeState: { paddingHorizontal: 9, paddingVertical: 6, borderRadius: 10 },
+  treeStateText: { fontSize: 12, fontWeight: '800' },
+  tierRow: { position: 'absolute', left: 18, right: 18, height: 80, borderTopWidth: 1, borderBottomWidth: 1, opacity: 0.42 },
+  tierLabel: { position: 'absolute', top: 5, left: 4, fontSize: 8, fontWeight: '800', letterSpacing: 1 },
   detail: { borderRadius: 14, padding: 14, marginHorizontal: 16, borderWidth: 1, marginTop: 8 },
   detailTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
   detailIcon: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
@@ -2012,8 +2044,8 @@ export default function ProfileScreen() {
             <View style={[styles.tpDisplay, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Feather name="star" size={18} color="#9966CC" />
               <Text style={[styles.tpCount, { color: '#9966CC' }]}>{player.talentPoints}</Text>
-              <Text style={[styles.tpLabel, { color: colors.mutedForeground }]}>
-                {player.talentPoints === 0 ? 'Points de talent (gagnez 1 pt tous les 5 niveaux de compétence)' : `Point${player.talentPoints > 1 ? 's' : ''} de talent disponible${player.talentPoints > 1 ? 's' : ''}`}
+            <Text style={[styles.tpLabel, { color: colors.mutedForeground }]}>
+                {player.talentPoints === 0 ? 'Points de talent (1 point gagné à chaque niveau joueur)' : `Point${player.talentPoints > 1 ? 's' : ''} de talent disponible${player.talentPoints > 1 ? 's' : ''}`}
               </Text>
             </View>
             <Text style={[styles.tpTip, { color: colors.mutedForeground }]}>

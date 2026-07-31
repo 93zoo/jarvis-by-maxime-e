@@ -4,6 +4,7 @@
  */
 import React, { useState } from 'react';
 import {
+  Alert,
   FlatList,
   Modal,
   Platform,
@@ -228,6 +229,20 @@ export default function ItemDetailSheet({ itemInstanceId, onClose }: Props) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
+  const handleMelt = () => {
+    const result = game.meltItem(item.instanceId);
+    if (!result.success) {
+      Alert.alert('Fonte impossible', result.message);
+      return;
+    }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const recoveredLabel = result.recovered
+      .map((drop) => `${drop.quantity} ${game.getResourceById(drop.resourceId)?.name ?? drop.resourceId}`)
+      .join(', ');
+    Alert.alert('Objet recyclé', `Matériaux récupérés : ${recoveredLabel}.`);
+    onClose();
+  };
+
   const durPct = item.maxDurability > 0 ? item.durability / item.maxDurability : 0;
   const durColor = durPct > 0.6 ? '#4CAF50' : durPct > 0.3 ? colors.primary : colors.destructive;
 
@@ -382,6 +397,27 @@ export default function ItemDetailSheet({ itemInstanceId, onClose }: Props) {
                   })}
                 </Text>
 
+                <TouchableOpacity
+                  style={[styles.meltBtn, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}66` }]}
+                  onPress={() => Alert.alert(
+                    'Fondre cet objet ?',
+                    `La fonte supprimera définitivement « ${item.name} ». Une partie de ses matériaux sera récupérée selon sa qualité.`,
+                    [
+                      { text: 'Annuler', style: 'cancel' },
+                      { text: 'Fondre', style: 'destructive', onPress: handleMelt },
+                    ],
+                  )}
+                >
+                  <Feather name="refresh-cw" size={16} color={colors.primary} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.meltTitle, { color: colors.primary }]}>Fondre / recycler</Text>
+                    <Text style={[styles.meltDesc, { color: colors.mutedForeground }]}>
+                      Récupérer une partie des matériaux de fabrication
+                    </Text>
+                  </View>
+                  <Feather name="chevron-right" size={16} color={colors.primary} />
+                </TouchableOpacity>
+
                 {/* Close */}
                 <TouchableOpacity
                   style={[styles.closeBtn, { backgroundColor: colors.secondary, borderColor: colors.border }]}
@@ -518,6 +554,9 @@ const styles = StyleSheet.create({
   craftInfo: { fontSize: 12, marginBottom: 4 },
   closeBtn: { marginTop: 22, paddingVertical: 14, borderRadius: 12, alignItems: 'center', borderWidth: 1 },
   closeBtnText: { fontSize: 15, fontWeight: '600' },
+  meltBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 13, marginTop: 20, borderRadius: 12, borderWidth: 1 },
+  meltTitle: { fontSize: 13, fontWeight: '800', marginBottom: 2 },
+  meltDesc: { fontSize: 11, lineHeight: 16 },
   // Gem picker
   pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   pickerSheet: { maxHeight: '65%', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, borderWidth: 1, borderBottomWidth: 0 },
