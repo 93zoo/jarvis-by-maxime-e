@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   FlatList,
   Modal,
   Platform,
@@ -494,12 +495,22 @@ export default function ForgeScreen() {
     // Start the looping fire-crackle ambience when the forge tab is entered
     AudioManager.startForgeAmbience();
 
+    // Pause ambience when the app goes to the background; resume on foreground
+    const appStateSub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        AudioManager.startForgeAmbience();
+      } else {
+        AudioManager.stopForgeAmbience();
+      }
+    });
+
     // Randomly assign atmospheric weather — changes every 5–10 minutes
     const WEATHER_TYPES: WeatherType[] = ['none', 'none', 'none', 'rain', 'fog', 'rain', 'snow'];
     const pick = () => WEATHER_TYPES[Math.floor(Math.random() * WEATHER_TYPES.length)];
     setWeather(pick());
     const t = setInterval(() => setWeather(pick()), 7 * 60 * 1000); // 7 min
     return () => {
+      appStateSub.remove();
       clearInterval(t);
       AudioManager.stopForgeAmbience();
     };
