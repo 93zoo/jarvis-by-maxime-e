@@ -76,8 +76,8 @@ class AudioManagerClass {
   private async _loadNativeSounds(): Promise<void> {
     if (this.avLoaded) return;
     try {
-      // Dynamic import so web bundlers never try to load expo-av
-      const { Audio } = await import('expo-av');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { Audio } = require('expo-av');
       await Audio.setAudioModeAsync({
         playsInSilentModeIOS: true,
         staysActiveInBackground: false,
