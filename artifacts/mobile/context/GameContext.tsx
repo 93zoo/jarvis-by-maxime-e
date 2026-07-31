@@ -1954,12 +1954,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return rw + iw;
   }, [state.inventory, state.craftedItems]);
 
+  // Storage upgrade bonus: +100 / +250 / +500 / +1000 / +2000 kg per level
+  const STORAGE_BONUS = [0, 100, 250, 500, 1000, 2000];
   const maxWeight = useMemo(
-    () =>
-      MAX_WEIGHT_BASE +
-      state.player.level * MAX_WEIGHT_PER_LEVEL +
-      computeTalentBonus(state.player.talentsUnlocked, 'weightBonus'),
-    [state.player.level, state.player.talentsUnlocked],
+    () => {
+      const storageLv = state.forgeUpgrades['storage'] ?? 0;
+      const storageBonus = STORAGE_BONUS[Math.min(storageLv, 5)] ?? 0;
+      return (
+        MAX_WEIGHT_BASE +
+        state.player.level * MAX_WEIGHT_PER_LEVEL +
+        computeTalentBonus(state.player.talentsUnlocked, 'weightBonus') +
+        storageBonus
+      );
+    },
+    [state.player.level, state.player.talentsUnlocked, state.forgeUpgrades],
   );
 
   const saveGame = useCallback(async () => {

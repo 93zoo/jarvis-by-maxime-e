@@ -712,8 +712,12 @@ export default function ForgeScreen() {
     const start = Date.now();
     setHeatingProgress(0);
 
+    // Furnace upgrade: -15% heating time per level (min 25% of base)
+    const furnaceLevel = game.forgeUpgrades['furnace'] ?? 0;
+    const heatingMs = Math.round(3200 * Math.max(0.25, 1 - furnaceLevel * 0.15));
+
     const interval = setInterval(() => {
-      const elapsed = (Date.now() - start) / 3200;
+      const elapsed = (Date.now() - start) / heatingMs;
       const clamped = Math.min(1, elapsed);
       setHeatingProgress(clamped);
       if (clamped >= 1) {
@@ -733,13 +737,36 @@ export default function ForgeScreen() {
       const { strikeScores, strikesCompleted, recipeId } = session;
       const totalStrikeScore = strikeScores.reduce((a, b) => a + b, 0);
       const maxScore = strikesCompleted * 25;
-      // Apply strike_multiplier event before ratio
-      const strikeMultiplier = activeForgeEvent?.effect === 'strike_multiplier' ? activeForgeEvent.value : 1;
-      const effectiveStrikeScore = Math.min(maxScore, totalStrikeScore * strikeMultiplier);
+      // ── Forge upgrade bonuses ─────────────────────────────────────────────
+      const anvilLevel      = game.forgeUpgrades['anvil']       ?? 0;
+      const forgeUpgLevel   = game.forgeUpgrades['forge']       ?? 0;
+      const quickQuenchLv   = game.forgeUpgrades['quick_quench'] ?? 0;
+      const masterGripLv    = game.forgeUpgrades['master_grip']  ?? 0;
+
+      // Anvil: +12% strike score per level; master_grip: +8% per level
+      const anvilMult    = 1 + anvilLevel * 0.12 + masterGripLv * 0.08;
+      // Event strike multiplier stacks on top
+      const eventMult    = activeForgeEvent?.effect === 'strike_multiplier' ? activeForgeEvent.value : 1;
+      const totalMult    = anvilMult * eventMult;
+      const effectiveStrikeScore = Math.min(maxScore * totalMult, totalStrikeScore * totalMult);
       const miniGameBonus = maxScore > 0 ? (effectiveStrikeScore / maxScore) * 50 : 25;
-      const forgeBonus = Math.min(40, (game.player.skills['forge'] ?? 1) * 4);
-      let qualityScore = Math.min(100, Math.round(10 + forgeBonus + miniGameBonus));
-      // Apply event modifiers
+
+      const forgeSkillBonus = Math.min(40, (game.player.skills['forge'] ?? 1) * 4);
+      let qualityScore = Math.min(100, Math.round(10 + forgeSkillBonus + miniGameBonus));
+
+      // Forge upgrade: +5/10/15/22/30% quality
+      const FORGE_QUALITY_PCT = [0, 5, 10, 15, 22, 30];
+      const forgeQPct = FORGE_QUALITY_PCT[Math.min(forgeUpgLevel, 5)];
+      qualityScore = Math.min(100, Math.round(qualityScore * (1 + forgeQPct / 100)));
+
+      // Quick Quench: +4/8/12/18/25 flat bonus
+      const QUENCH_FLAT = [0, 4, 8, 12, 18, 25];
+      qualityScore = Math.min(100, qualityScore + (QUENCH_FLAT[Math.min(quickQuenchLv, 5)] ?? 0));
+
+      // Anvil level 5: guaranteed minimum 60
+      if (anvilLevel >= 5) qualityScore = Math.max(qualityScore, 60);
+
+      // Apply forge event modifiers
       if (activeForgeEvent?.effect === 'bonus_score') qualityScore = Math.min(100, qualityScore + activeForgeEvent.value);
       if (activeForgeEvent?.effect === 'min_score')   qualityScore = Math.max(qualityScore, activeForgeEvent.value);
 

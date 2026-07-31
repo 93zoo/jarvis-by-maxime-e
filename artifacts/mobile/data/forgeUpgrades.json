@@ -23,21 +23,21 @@
       { "level": 1, "goldCost": 80, "resourceCosts": [{"resourceId":"stone","qty":8},{"resourceId":"coal","qty":5}], "bonus": "Phase de chauffe 15% plus rapide" },
       { "level": 2, "goldCost": 240, "resourceCosts": [{"resourceId":"stone","qty":15},{"resourceId":"coal","qty":10}], "bonus": "Phase de chauffe 30% plus rapide, flammes plus vives" },
       { "level": 3, "goldCost": 520, "resourceCosts": [{"resourceId":"stone","qty":25},{"resourceId":"iron","qty":10}], "bonus": "Phase de chauffe 45% plus rapide" },
-      { "level": 4, "goldCost": 1100, "resourceCosts": [{"resourceId":"stone","qty":35},{"resourceId":"steel","qty":10}], "bonus": "Double fourneau — +1 craft simultané" },
-      { "level": 5, "goldCost": 2200, "resourceCosts": [{"resourceId":"stone","qty":50},{"resourceId":"steel","qty":25}], "bonus": "Fourneau mythique — chauffe quasi-instantanée" }
+      { "level": 4, "goldCost": 1100, "resourceCosts": [{"resourceId":"stone","qty":35},{"resourceId":"steel","qty":10}], "bonus": "Phase de chauffe 60% plus rapide" },
+      { "level": 5, "goldCost": 2200, "resourceCosts": [{"resourceId":"stone","qty":50},{"resourceId":"steel","qty":25}], "bonus": "Fourneau mythique — chauffe quasi-instantanée (75%)" }
     ]
   },
   {
     "id": "anvil",
     "name": "Enclume",
-    "description": "Une meilleure enclume améliore la précision du martelage.",
+    "description": "Une meilleure enclume améliore la précision et le score de martelage.",
     "emoji": "⚒️",
     "color": "#7A7A8C",
     "tiers": [
-      { "level": 1, "goldCost": 120, "resourceCosts": [{"resourceId":"iron","qty":10}], "bonus": "Zone de précision 12% plus large au mini-jeu" },
-      { "level": 2, "goldCost": 350, "resourceCosts": [{"resourceId":"iron","qty":18},{"resourceId":"stone","qty":8}], "bonus": "Zone de précision 25% plus large, rebond réduit" },
-      { "level": 3, "goldCost": 750, "resourceCosts": [{"resourceId":"steel","qty":12},{"resourceId":"iron","qty":20}], "bonus": "Zone de précision 38% plus large" },
-      { "level": 4, "goldCost": 1600, "resourceCosts": [{"resourceId":"steel","qty":25},{"resourceId":"iron","qty":30}], "bonus": "Enclume runique — zone parfaite toujours active" },
+      { "level": 1, "goldCost": 120, "resourceCosts": [{"resourceId":"iron","qty":10}], "bonus": "+12% au score de martelage" },
+      { "level": 2, "goldCost": 350, "resourceCosts": [{"resourceId":"iron","qty":18},{"resourceId":"stone","qty":8}], "bonus": "+24% au score de martelage" },
+      { "level": 3, "goldCost": 750, "resourceCosts": [{"resourceId":"steel","qty":12},{"resourceId":"iron","qty":20}], "bonus": "+36% au score de martelage" },
+      { "level": 4, "goldCost": 1600, "resourceCosts": [{"resourceId":"steel","qty":25},{"resourceId":"iron","qty":30}], "bonus": "+50% au score de martelage" },
       { "level": 5, "goldCost": 3200, "resourceCosts": [{"resourceId":"steel","qty":50},{"resourceId":"iron","qty":40}], "bonus": "Enclume légendaire — score minimum 60 garanti" }
     ]
   },
@@ -81,6 +81,34 @@
       { "level": 3, "goldCost": 450, "resourceCosts": [{"resourceId":"wood","qty":25},{"resourceId":"iron","qty":10}], "bonus": "Capacité +500 kg" },
       { "level": 4, "goldCost": 950, "resourceCosts": [{"resourceId":"wood","qty":40},{"resourceId":"iron","qty":20}], "bonus": "Coffre magique — capacité +1000 kg" },
       { "level": 5, "goldCost": 1900, "resourceCosts": [{"resourceId":"wood","qty":60},{"resourceId":"steel","qty":20}], "bonus": "Coffre dimensionnel — capacité +2000 kg" }
+    ]
+  },
+  {
+    "id": "quick_quench",
+    "name": "Trempe Rapide",
+    "description": "Une technique de trempe optimisée améliore la qualité finale sans ressources supplémentaires.",
+    "emoji": "💧",
+    "color": "#48A0D0",
+    "tiers": [
+      { "level": 1, "goldCost": 250, "resourceCosts": [], "bonus": "+4 au score de qualité final" },
+      { "level": 2, "goldCost": 600, "resourceCosts": [], "bonus": "+8 au score de qualité final" },
+      { "level": 3, "goldCost": 1200, "resourceCosts": [], "bonus": "+12 au score de qualité final" },
+      { "level": 4, "goldCost": 2400, "resourceCosts": [], "bonus": "+18 au score de qualité final" },
+      { "level": 5, "goldCost": 4800, "resourceCosts": [], "bonus": "+25 au score de qualité final" }
+    ]
+  },
+  {
+    "id": "master_grip",
+    "name": "Prise de Maître",
+    "description": "Une prise optimisée sur le marteau amplifie chaque frappe sans équipement supplémentaire.",
+    "emoji": "🤜",
+    "color": "#E57373",
+    "tiers": [
+      { "level": 1, "goldCost": 350, "resourceCosts": [], "bonus": "+8% au score de martelage" },
+      { "level": 2, "goldCost": 800, "resourceCosts": [], "bonus": "+16% au score de martelage" },
+      { "level": 3, "goldCost": 1600, "resourceCosts": [], "bonus": "+24% au score de martelage" },
+      { "level": 4, "goldCost": 3200, "resourceCosts": [], "bonus": "+34% au score de martelage" },
+      { "level": 5, "goldCost": 6400, "resourceCosts": [], "bonus": "+45% au score de martelage" }
     ]
   }
 ]
