@@ -858,6 +858,7 @@ export default function ForgeScreen() {
             colors={colors}
             bottomPad={bottomPad}
             onStartCraft={() => setShowRecipeSheet(true)}
+            game={game}
           />
         )}
 
@@ -887,11 +888,6 @@ export default function ForgeScreen() {
           </View>
         )}
       </View>
-
-      {/* ── Apprentice Card ── */}
-      {craftPhase === 'IDLE' && (
-        <ApprenticeCard game={game} colors={colors} />
-      )}
 
       {/* ── Recipe Sheet ── */}
       <Modal visible={showRecipeSheet} transparent animationType="slide" statusBarTranslucent>
@@ -1339,6 +1335,7 @@ function IdlePanel({
   colors,
   bottomPad,
   onStartCraft,
+  game,
 }: {
   player: ReturnType<typeof useGame>['player'];
   forgeSkillLevel: number;
@@ -1348,9 +1345,14 @@ function IdlePanel({
   colors: ReturnType<typeof useColors>;
   bottomPad: number;
   onStartCraft: () => void;
+  game: ReturnType<typeof useGame>;
 }) {
   return (
-    <View style={[styles.idlePanel, { paddingBottom: bottomPad }]}>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={[styles.idlePanel, { paddingBottom: bottomPad + 8 }]}
+      keyboardShouldPersistTaps="handled"
+    >
       {/* Forge stats */}
       <View style={styles.forgeStats}>
         <View style={styles.forgeStat}>
@@ -1405,7 +1407,10 @@ function IdlePanel({
           FORGER  ·  {availableCount} recettes
         </Text>
       </TouchableOpacity>
-    </View>
+
+      {/* Apprentice card — inlined so it scrolls with the panel */}
+      <ApprenticeCard game={game} colors={colors} />
+    </ScrollView>
   );
 }
 
