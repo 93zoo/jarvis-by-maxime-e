@@ -28,6 +28,7 @@ import type {
   RegionData,
   ResourceData,
   SaveData,
+  SessionSnapshot,
   SkillData,
   SkillType,
   TalentData,
@@ -143,6 +144,7 @@ interface GameState {
   lastOrderGeneratedAt: number;
   forgeUpgrades: Record<string, number>; // element → level (0-5)
   forgeHistory: ForgeHistoryEntry[]; // persistent craft history, never deleted on sell
+  sessionSnapshots: SessionSnapshot[]; // one per session, newest-last, max 30
 }
 
 type GameAction =
@@ -180,7 +182,9 @@ type GameAction =
   // Talents
   | { type: 'UNLOCK_TALENT'; talentId: string; cost: number }
   // Customization
-  | { type: 'CUSTOMIZE_PLAYER'; name: string; forgeName: string };
+  | { type: 'CUSTOMIZE_PLAYER'; name: string; forgeName: string }
+  // Session snapshot
+  | { type: 'ADD_SESSION_SNAPSHOT'; snapshot: SessionSnapshot };
 
 function buildInitialPlayer(): Player {
   const skills = SKILL_TYPES.reduce(
@@ -248,6 +252,7 @@ function buildInitialState(): GameState {
     lastOrderGeneratedAt: 0,
     forgeUpgrades: {},
     forgeHistory: [],
+    sessionSnapshots: [],
   };
 }
 
@@ -363,6 +368,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         lastOrderGeneratedAt: s.lastOrderGeneratedAt ?? 0,
         forgeUpgrades: s.forgeUpgrades ?? {},
         forgeHistory: s.forgeHistory ?? [],
+        sessionSnapshots: s.sessionSnapshots ?? [],
       };
     }
     case 'RESET': {
@@ -743,6 +749,16 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, player };
     }
 
+    case 'ADD_SESSION_SNAPSHOT': {
+      const prev = state.sessionSnapshots;
+      // Deduplicate: skip if last snapshot was taken less than 10 minutes ago
+      if (prev.length > 0 && action.snapshot.timestamp - prev[prev.length - 1].timestamp < 10 * 60 * 1000) {
+        return state;
+      }
+      const snapshots = [...prev, action.snapshot].slice(-30);
+      return { ...state, sessionSnapshots: snapshots };
+    }
+
     default:
       return state;
   }
@@ -815,6 +831,8 @@ interface GameContextType {
   getTalentBonus: (bonusType: string) => number;
   // Forge history
   forgeHistory: ForgeHistoryEntry[];
+  // Session snapshots
+  sessionSnapshots: SessionSnapshot[];
   // Cloud sync
   cloudSyncStatus: CloudSyncStatus;
   lastCloudSync: number | null;
@@ -927,6 +945,19 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (!state.isLoaded) return;
     const doSave = async () => {
       try {
+        const now = Date.now();
+        const snapshot: SessionSnapshot = {
+          timestamp: now,
+          playerLevel: state.player.level,
+          gold: state.player.gold,
+          totalItemsCrafted: state.player.totalItemsCrafted,
+          forgeLevel: state.player.forgeLevel,
+        };
+        dispatch({ type: 'ADD_SESSION_SNAPSHOT', snapshot });
+        const prevSnaps = state.sessionSnapshots;
+        const shouldAdd = prevSnaps.length === 0 ||
+          now - prevSnaps[prevSnaps.length - 1].timestamp >= 10 * 60 * 1000;
+        const updatedSnaps = shouldAdd ? [...prevSnaps, snapshot].slice(-30) : prevSnaps;
         const save: SaveData = {
           version: SAVE_VERSION,
           player: state.player,
@@ -943,7 +974,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           lastOrderGeneratedAt: state.lastOrderGeneratedAt,
           forgeUpgrades: state.forgeUpgrades,
           forgeHistory: state.forgeHistory,
-          lastSaved: Date.now(),
+          sessionSnapshots: updatedSnaps,
+          lastSaved: now,
         };
         await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
       } catch {
@@ -1340,6 +1372,19 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   );
 
   const saveGame = useCallback(async () => {
+    const now = Date.now();
+    const snapshot: SessionSnapshot = {
+      timestamp: now,
+      playerLevel: state.player.level,
+      gold: state.player.gold,
+      totalItemsCrafted: state.player.totalItemsCrafted,
+      forgeLevel: state.player.forgeLevel,
+    };
+    dispatch({ type: 'ADD_SESSION_SNAPSHOT', snapshot });
+    const prevSnaps = state.sessionSnapshots;
+    const shouldAdd = prevSnaps.length === 0 ||
+      now - prevSnaps[prevSnaps.length - 1].timestamp >= 10 * 60 * 1000;
+    const updatedSnaps = shouldAdd ? [...prevSnaps, snapshot].slice(-30) : prevSnaps;
     const save: SaveData = {
       version: SAVE_VERSION,
       player: state.player,
@@ -1356,7 +1401,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       lastOrderGeneratedAt: state.lastOrderGeneratedAt,
       forgeUpgrades: state.forgeUpgrades,
       forgeHistory: state.forgeHistory,
-      lastSaved: Date.now(),
+      sessionSnapshots: updatedSnaps,
+      lastSaved: now,
     };
     await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
   }, [state]);
@@ -1382,6 +1428,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         lastOrderGeneratedAt: state.lastOrderGeneratedAt,
         forgeUpgrades: state.forgeUpgrades,
         forgeHistory: state.forgeHistory,
+        sessionSnapshots: state.sessionSnapshots,
         lastSaved: Date.now(),
       };
       const res = await fetch(`${base}/save`, {
@@ -1544,6 +1591,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       getTalentBonus,
       // Forge history
       forgeHistory: state.forgeHistory,
+      // Session snapshots
+      sessionSnapshots: state.sessionSnapshots,
       // Cloud sync
       cloudSyncStatus,
       lastCloudSync,

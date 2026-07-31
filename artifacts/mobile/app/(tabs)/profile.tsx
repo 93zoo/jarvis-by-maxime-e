@@ -18,7 +18,7 @@ import * as Haptics from 'expo-haptics';
 import { useGame } from '@/context/GameContext';
 import { useAchievements } from '@/context/AchievementContext';
 import { useColors } from '@/hooks/useColors';
-import type { Achievement, ForgeHistoryEntry, SkillData, SkillType, TalentData } from '@/types/game';
+import type { Achievement, ForgeHistoryEntry, SessionSnapshot, SkillData, SkillType, TalentData } from '@/types/game';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const SKILL_ICONS: Record<SkillType, string> = {
@@ -372,6 +372,156 @@ const sdStyles = StyleSheet.create({
   closeBtnText: { fontSize: 15, fontWeight: '700' },
 });
 
+// ─── Level Sparkline ─────────────────────────────────────────────────────────
+const SPARKLINE_H = 60;
+const SPARKLINE_DOT = 5;
+
+function LevelSparkline({
+  snapshots,
+  colors,
+}: {
+  snapshots: SessionSnapshot[];
+  colors: ReturnType<typeof useColors>;
+}) {
+  if (snapshots.length === 0) {
+    return (
+      <View style={[sparkStyles.empty, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Feather name="trending-up" size={20} color={colors.mutedForeground} />
+        <Text style={[sparkStyles.emptyText, { color: colors.mutedForeground }]}>
+          Sauvegardez votre partie pour commencer à tracer votre progression
+        </Text>
+      </View>
+    );
+  }
+
+  const levels = snapshots.map((s) => s.playerLevel);
+  const minLevel = Math.max(1, Math.min(...levels) - 1);
+  const maxLevel = Math.max(...levels) + 1;
+  const range = maxLevel - minLevel || 1;
+
+  // Compute dot positions in a fixed-width container; we render them via flex
+  const count = snapshots.length;
+
+  return (
+    <View style={[sparkStyles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      {/* Title row */}
+      <View style={sparkStyles.titleRow}>
+        <Text style={[sparkStyles.title, { color: colors.foreground }]}>NIVEAU FORGERON</Text>
+        <View style={[sparkStyles.badge, { backgroundColor: `${colors.primary}22` }]}>
+          <Text style={[sparkStyles.badgeText, { color: colors.primary }]}>
+            {count} session{count !== 1 ? 's' : ''}
+          </Text>
+        </View>
+      </View>
+
+      {/* Chart area */}
+      <View style={[sparkStyles.chart, { height: SPARKLINE_H }]}>
+        {/* Horizontal gridlines */}
+        {[0, 0.5, 1].map((frac) => (
+          <View
+            key={frac}
+            pointerEvents="none"
+            style={[
+              sparkStyles.gridLine,
+              {
+                bottom: frac * (SPARKLINE_H - SPARKLINE_DOT * 2) + SPARKLINE_DOT - 1,
+                backgroundColor: colors.border,
+              },
+            ]}
+          />
+        ))}
+
+        {/* Dots and connecting segments */}
+        {snapshots.map((snap, i) => {
+          const frac = (snap.playerLevel - minLevel) / range;
+          const dotBottom = frac * (SPARKLINE_H - SPARKLINE_DOT * 2) + SPARKLINE_DOT - SPARKLINE_DOT / 2;
+          const leftPct = count === 1 ? 50 : (i / (count - 1)) * 100;
+
+          return (
+            <View key={snap.timestamp} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: 0 }}>
+              {/* Dot */}
+              <View
+                style={[
+                  sparkStyles.dot,
+                  {
+                    left: `${leftPct}%` as `${number}%`,
+                    bottom: dotBottom,
+                    backgroundColor: i === count - 1 ? colors.primary : colors.accent,
+                    width: i === count - 1 ? SPARKLINE_DOT + 2 : SPARKLINE_DOT,
+                    height: i === count - 1 ? SPARKLINE_DOT + 2 : SPARKLINE_DOT,
+                    borderRadius: i === count - 1 ? (SPARKLINE_DOT + 2) / 2 : SPARKLINE_DOT / 2,
+                    marginLeft: i === count - 1 ? -(SPARKLINE_DOT + 2) / 2 : -SPARKLINE_DOT / 2,
+                  },
+                ]}
+              />
+            </View>
+          );
+        })}
+      </View>
+
+      {/* X-axis labels: first and last date */}
+      <View style={sparkStyles.xLabels}>
+        <Text style={[sparkStyles.xLabel, { color: colors.mutedForeground }]}>
+          {new Date(snapshots[0].timestamp).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+        </Text>
+        {snapshots.length > 1 && (
+          <Text style={[sparkStyles.xLabel, { color: colors.mutedForeground }]}>
+            {new Date(snapshots[snapshots.length - 1].timestamp).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+          </Text>
+        )}
+      </View>
+
+      {/* Y-axis labels */}
+      <View style={sparkStyles.yLabels}>
+        <Text style={[sparkStyles.yLabel, { color: colors.mutedForeground }]}>Niv.{maxLevel}</Text>
+        <Text style={[sparkStyles.yLabel, { color: colors.mutedForeground }]}>Niv.{minLevel}</Text>
+      </View>
+
+      {/* Summary row */}
+      <View style={[sparkStyles.summaryRow, { borderTopColor: colors.border }]}>
+        <View style={sparkStyles.summaryItem}>
+          <Text style={[sparkStyles.summaryLabel, { color: colors.mutedForeground }]}>Départ</Text>
+          <Text style={[sparkStyles.summaryValue, { color: colors.foreground }]}>Niv.{levels[0]}</Text>
+        </View>
+        <View style={[sparkStyles.summaryDivider, { backgroundColor: colors.border }]} />
+        <View style={sparkStyles.summaryItem}>
+          <Text style={[sparkStyles.summaryLabel, { color: colors.mutedForeground }]}>Actuel</Text>
+          <Text style={[sparkStyles.summaryValue, { color: colors.primary }]}>Niv.{levels[count - 1]}</Text>
+        </View>
+        <View style={[sparkStyles.summaryDivider, { backgroundColor: colors.border }]} />
+        <View style={sparkStyles.summaryItem}>
+          <Text style={[sparkStyles.summaryLabel, { color: colors.mutedForeground }]}>Progression</Text>
+          <Text style={[sparkStyles.summaryValue, { color: levels[count - 1] > levels[0] ? '#4CAF50' : colors.foreground }]}>
+            {levels[count - 1] >= levels[0] ? '+' : ''}{levels[count - 1] - levels[0]}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const sparkStyles = StyleSheet.create({
+  empty: { borderRadius: 14, borderWidth: 1, padding: 20, alignItems: 'center', gap: 8, marginBottom: 16 },
+  emptyText: { fontSize: 12, textAlign: 'center', lineHeight: 17 },
+  container: { borderRadius: 14, borderWidth: 1, marginBottom: 16, overflow: 'hidden' },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 12, marginBottom: 8 },
+  title: { fontSize: 11, fontWeight: '800', letterSpacing: 1.5 },
+  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  badgeText: { fontSize: 10, fontWeight: '700' },
+  chart: { marginHorizontal: 14, marginBottom: 4, position: 'relative' },
+  gridLine: { position: 'absolute', left: 0, right: 0, height: 1, opacity: 0.4 },
+  dot: { position: 'absolute' },
+  xLabels: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 14, marginBottom: 4 },
+  xLabel: { fontSize: 9, fontWeight: '600' },
+  yLabels: { position: 'absolute', right: 14, top: 40, justifyContent: 'space-between', height: SPARKLINE_H, gap: 0, flexDirection: 'column' },
+  yLabel: { fontSize: 9, fontWeight: '600', lineHeight: 12 },
+  summaryRow: { flexDirection: 'row', borderTopWidth: 1, paddingVertical: 10 },
+  summaryItem: { flex: 1, alignItems: 'center', gap: 2 },
+  summaryDivider: { width: 1, marginVertical: 4 },
+  summaryLabel: { fontSize: 9, fontWeight: '600', letterSpacing: 0.5 },
+  summaryValue: { fontSize: 14, fontWeight: '800' },
+});
+
 // ─── Stats tab content ────────────────────────────────────────────────────────
 const SKILL_COLORS: Record<SkillType, string> = {
   forge: '#D4851A', extraction: '#7A7A8C', commerce: '#D4AF37',
@@ -404,6 +554,9 @@ const HISTORY_LIMIT = 20;
 
 function StatsTabContent({ colors, game }: { colors: ReturnType<typeof useColors>; game: ReturnType<typeof useGame> }) {
   const { player } = game;
+
+  // Session snapshots for sparkline
+  const sessionSnapshots = useMemo(() => game.sessionSnapshots ?? [], [game.sessionSnapshots]);
 
   // Account age
   const createdAt = player.createdAt ?? Date.now();
@@ -470,6 +623,10 @@ function StatsTabContent({ colors, game }: { colors: ReturnType<typeof useColors
           <Text style={[stStyles.infoValue, { color: colors.foreground }]}>{accountAgeDays} jour{accountAgeDays !== 1 ? 's' : ''}</Text>
         </View>
       </View>
+
+      {/* ── Level progression sparkline ── */}
+      <Text style={[stStyles.sectionHeader, { color: colors.foreground }]}>ÉVOLUTION DU NIVEAU</Text>
+      <LevelSparkline snapshots={sessionSnapshots} colors={colors} />
 
       {/* ── Key records ── */}
       <Text style={[stStyles.sectionHeader, { color: colors.foreground }]}>RECORDS PERSONNELS</Text>

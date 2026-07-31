@@ -332,6 +332,17 @@ export interface ForgeUpgradeData {
 }
 
 // ---------------------------------------------------------------------------
+// Session snapshot (one per play session, kept for up to 30 entries)
+// ---------------------------------------------------------------------------
+export interface SessionSnapshot {
+  timestamp: number;
+  playerLevel: number;
+  gold: number;
+  totalItemsCrafted: number;
+  forgeLevel: number;
+}
+
+// ---------------------------------------------------------------------------
 // Forge history (persistent — never removed when items are sold)
 // ---------------------------------------------------------------------------
 export interface ForgeHistoryEntry {
@@ -363,5 +374,6 @@ export interface SaveData {
   lastOrderGeneratedAt: number;
   forgeUpgrades: Record<string, number>;
   forgeHistory: ForgeHistoryEntry[];
+  sessionSnapshots: SessionSnapshot[];
   lastSaved: number;
 }
