@@ -229,20 +229,21 @@ const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(
       scene.add(new THREE.AmbientLight(0x1A1008, 0.5));
 
       // Main furnace fire — powerful central orange light
-      const fireMain  = new THREE.PointLight(0xFF5500, 22.0, 18);
+      // decay=1: Three.js r155+ defaults to decay=2 (physical); use 1 for broader reach
+      const fireMain  = new THREE.PointLight(0xFF5500, 22.0, 18, 1);
       fireMain.position.set(-0.5, 3.2, -3.0);
       scene.add(fireMain);
 
-      const fireFill  = new THREE.PointLight(0xFF7700, 12.0, 12);
+      const fireFill  = new THREE.PointLight(0xFF7700, 12.0, 12, 1);
       fireFill.position.set(-0.5, 1.8, -2.6);
       scene.add(fireFill);
 
-      const fireFloor = new THREE.PointLight(0xFF9900, 8.0, 9);
+      const fireFloor = new THREE.PointLight(0xFF9900, 8.0, 9, 1);
       fireFloor.position.set(-0.5, 0.5, -2.8);
       scene.add(fireFloor);
 
       // Hanging lantern — warm secondary light above center
-      const lanternLight = new THREE.PointLight(0xFFAA44, 5.0, 10);
+      const lanternLight = new THREE.PointLight(0xFFAA44, 5.0, 10, 1);
       lanternLight.position.set(1.5, 4.5, 1.5);
       scene.add(lanternLight);
 
@@ -252,12 +253,12 @@ const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(
       scene.add(dayLeakLight);
 
       // Strike flash at active anvil
-      const strikeLight = new THREE.PointLight(0xFFEEAA, 0, 4);
+      const strikeLight = new THREE.PointLight(0xFFEEAA, 0, 4, 1);
       strikeLight.position.set(1.0, 2.0, 0.5);
       scene.add(strikeLight);
 
       // Metal glow light
-      const metalGlow = new THREE.PointLight(0xFF5500, 0, 3);
+      const metalGlow = new THREE.PointLight(0xFF5500, 0, 3, 1);
       metalGlow.position.set(1.0, 1.5, 0.5);
       scene.add(metalGlow);
 
