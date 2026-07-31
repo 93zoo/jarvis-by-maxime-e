@@ -65,6 +65,10 @@ export interface Player {
   lastPlayedDate: number;
   bestSalePrice: number;
   bestQualityScore: number;
+  /** Hex color for the avatar circle. Defaults to amber if absent. */
+  avatarColor?: string;
+  /** Feather icon name shown in the avatar circle. Null/absent = show initials. */
+  avatarIcon?: string | null;
 }
 
 // ── Achievement system ────────────────────────────────────────────────────────

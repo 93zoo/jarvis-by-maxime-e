@@ -182,7 +182,7 @@ type GameAction =
   // Talents
   | { type: 'UNLOCK_TALENT'; talentId: string; cost: number }
   // Customization
-  | { type: 'CUSTOMIZE_PLAYER'; name: string; forgeName: string }
+  | { type: 'CUSTOMIZE_PLAYER'; name: string; forgeName: string; avatarColor?: string; avatarIcon?: string | null }
   // Session snapshot
   | { type: 'ADD_SESSION_SNAPSHOT'; snapshot: SessionSnapshot };
 
@@ -351,6 +351,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         bestQualityScore: s.player.bestQualityScore ?? 0,
         lastPlayedDate: s.player.lastPlayedDate ?? 0,
         streak: s.player.streak ?? 1,
+        avatarColor: s.player.avatarColor ?? undefined,
+        avatarIcon: s.player.avatarIcon ?? undefined,
       };
       return {
         isLoaded: true,
@@ -741,10 +743,12 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case 'CUSTOMIZE_PLAYER': {
-      const player = {
+      const player: Player = {
         ...state.player,
         name: action.name.trim(),
         forgeName: action.forgeName.trim(),
+        avatarColor: action.avatarColor ?? state.player.avatarColor,
+        avatarIcon: action.avatarIcon !== undefined ? action.avatarIcon : state.player.avatarIcon,
       };
       return { ...state, player };
     }
@@ -838,7 +842,7 @@ interface GameContextType {
   lastCloudSync: number | null;
   syncToCloud: () => Promise<void>;
   // Customization
-  customizePlayer: (name: string, forgeName: string) => void;
+  customizePlayer: (name: string, forgeName: string, avatarColor?: string, avatarIcon?: string | null) => void;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -1497,12 +1501,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   );
 
   const customizePlayer = useCallback(
-    (name: string, forgeName: string): void => {
+    (name: string, forgeName: string, avatarColor?: string, avatarIcon?: string | null): void => {
       const trimmedName = name.trim();
       const trimmedForgeName = forgeName.trim();
       if (trimmedName.length < 2 || trimmedName.length > 24) return;
       if (trimmedForgeName.length < 2 || trimmedForgeName.length > 32) return;
-      dispatch({ type: 'CUSTOMIZE_PLAYER', name: trimmedName, forgeName: trimmedForgeName });
+      dispatch({ type: 'CUSTOMIZE_PLAYER', name: trimmedName, forgeName: trimmedForgeName, avatarColor, avatarIcon });
     },
     [],
   );

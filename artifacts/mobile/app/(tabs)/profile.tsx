@@ -893,6 +893,29 @@ function AchievementsTabContent({ colors }: { colors: ReturnType<typeof useColor
   );
 }
 
+// ─── Avatar presets ───────────────────────────────────────────────────────────
+const AVATAR_COLORS: { color: string; label: string }[] = [
+  { color: '#D4851A', label: 'Ambre' },
+  { color: '#EF5350', label: 'Cramoisi' },
+  { color: '#4CAF50', label: 'Émeraude' },
+  { color: '#42A5F5', label: 'Saphir' },
+  { color: '#9966CC', label: 'Violet' },
+  { color: '#26A69A', label: 'Jade' },
+  { color: '#EC407A', label: 'Rose' },
+  { color: '#78909C', label: 'Acier' },
+];
+
+const AVATAR_ICONS: { icon: string | null; label: string }[] = [
+  { icon: null,       label: 'Initiales' },
+  { icon: 'tool',     label: 'Marteau' },
+  { icon: 'shield',   label: 'Bouclier' },
+  { icon: 'star',     label: 'Étoile' },
+  { icon: 'zap',      label: 'Éclair' },
+  { icon: 'award',    label: 'Trophée' },
+  { icon: 'compass',  label: 'Boussole' },
+  { icon: 'anchor',   label: 'Ancre' },
+];
+
 // ─── Forge name suggestion pool ──────────────────────────────────────────────
 const FORGE_NAME_POOL: string[] = [
   "Forge de l'Aigle", "L'Enclume d'Or", "Atelier du Coucou",
@@ -920,6 +943,8 @@ function CustomizeModal({
   visible,
   initialName,
   initialForgeName,
+  initialAvatarColor,
+  initialAvatarIcon,
   onSave,
   onClose,
   colors,
@@ -927,12 +952,16 @@ function CustomizeModal({
   visible: boolean;
   initialName: string;
   initialForgeName: string;
-  onSave: (name: string, forgeName: string) => void;
+  initialAvatarColor?: string;
+  initialAvatarIcon?: string | null;
+  onSave: (name: string, forgeName: string, avatarColor: string, avatarIcon: string | null) => void;
   onClose: () => void;
   colors: ReturnType<typeof useColors>;
 }) {
   const [name, setName] = useState(initialName);
   const [forgeName, setForgeName] = useState(initialForgeName);
+  const [avatarColor, setAvatarColor] = useState(initialAvatarColor ?? AVATAR_COLORS[0].color);
+  const [avatarIcon, setAvatarIcon] = useState<string | null>(initialAvatarIcon ?? null);
   const nameRef = useRef(initialName);
   const forgeNameRef = useRef(initialForgeName);
   const [suggestions, setSuggestions] = useState<string[]>(() => pickSuggestions(4));
@@ -942,11 +971,13 @@ function CustomizeModal({
     if (visible) {
       setName(initialName);
       setForgeName(initialForgeName);
+      setAvatarColor(initialAvatarColor ?? AVATAR_COLORS[0].color);
+      setAvatarIcon(initialAvatarIcon ?? null);
       nameRef.current = initialName;
       forgeNameRef.current = initialForgeName;
       setSuggestions(pickSuggestions(4));
     }
-  }, [visible, initialName, initialForgeName]);
+  }, [visible, initialName, initialForgeName, initialAvatarColor, initialAvatarIcon]);
 
   const nameValid = name.trim().length >= 2 && name.trim().length <= 24;
   const forgeNameValid = forgeName.trim().length >= 2 && forgeName.trim().length <= 32;
@@ -955,113 +986,184 @@ function CustomizeModal({
   const handleSave = () => {
     if (!canSave) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    onSave(name.trim(), forgeName.trim());
+    onSave(name.trim(), forgeName.trim(), avatarColor, avatarIcon);
     onClose();
   };
+
+  const initials = name.trim().split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2) || '?';
 
   return (
     <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
       <View style={cmStyles.overlay}>
-        <View style={[cmStyles.sheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={[cmStyles.handle, { backgroundColor: colors.muted }]} />
-          {/* Header */}
-          <View style={cmStyles.header}>
-            <View style={[cmStyles.headerIcon, { backgroundColor: `${colors.primary}22` }]}>
-              <Feather name="edit-2" size={20} color={colors.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[cmStyles.title, { color: colors.foreground }]}>Personnaliser</Text>
-              <Text style={[cmStyles.subtitle, { color: colors.mutedForeground }]}>Votre identité de forgeron</Text>
-            </View>
-            <TouchableOpacity onPress={onClose} style={[cmStyles.closeIcon, { backgroundColor: colors.secondary }]}>
-              <Feather name="x" size={18} color={colors.mutedForeground} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Nom du joueur */}
-          <Text style={[cmStyles.fieldLabel, { color: colors.foreground }]}>Nom du forgeron</Text>
-          <Text style={[cmStyles.fieldHint, { color: colors.mutedForeground }]}>2 à 24 caractères</Text>
-          <View style={[cmStyles.inputWrap, { borderColor: nameValid ? colors.primary : name.trim().length > 0 ? '#EF5350' : colors.border, backgroundColor: colors.secondary }]}>
-            <Feather name="user" size={16} color={nameValid ? colors.primary : colors.mutedForeground} style={{ marginRight: 8 }} />
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              maxLength={24}
-              placeholder="Votre nom…"
-              placeholderTextColor={colors.mutedForeground}
-              style={[cmStyles.input, { color: colors.foreground }]}
-              autoCapitalize="words"
-              returnKeyType="next"
-            />
-            <Text style={[cmStyles.charCount, { color: name.trim().length > 24 ? '#EF5350' : colors.mutedForeground }]}>
-              {name.trim().length}/24
-            </Text>
-          </View>
-
-          {/* Nom de la forge */}
-          <Text style={[cmStyles.fieldLabel, { color: colors.foreground, marginTop: 14 }]}>Nom de la forge</Text>
-          <Text style={[cmStyles.fieldHint, { color: colors.mutedForeground }]}>2 à 32 caractères</Text>
-          <View style={[cmStyles.inputWrap, { borderColor: forgeNameValid ? colors.primary : forgeName.trim().length > 0 ? '#EF5350' : colors.border, backgroundColor: colors.secondary }]}>
-            <Feather name="tool" size={16} color={forgeNameValid ? colors.primary : colors.mutedForeground} style={{ marginRight: 8 }} />
-            <TextInput
-              value={forgeName}
-              onChangeText={setForgeName}
-              maxLength={32}
-              placeholder="Le nom de votre forge…"
-              placeholderTextColor={colors.mutedForeground}
-              style={[cmStyles.input, { color: colors.foreground }]}
-              autoCapitalize="words"
-              returnKeyType="done"
-              onSubmitEditing={handleSave}
-            />
-            <Text style={[cmStyles.charCount, { color: forgeName.trim().length > 32 ? '#EF5350' : colors.mutedForeground }]}>
-              {forgeName.trim().length}/32
-            </Text>
-          </View>
-
-          {/* Forge name suggestions */}
-          <View style={cmStyles.suggestionsRow}>
-            {suggestions.map((s) => (
-              <TouchableOpacity
-                key={s}
-                style={[cmStyles.suggestionChip, { backgroundColor: colors.secondary, borderColor: colors.border }]}
-                onPress={() => {
-                  setForgeName(s);
-                  Haptics.selectionAsync();
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={[cmStyles.suggestionText, { color: colors.mutedForeground }]}>{s}</Text>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={cmStyles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={[cmStyles.sheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[cmStyles.handle, { backgroundColor: colors.muted }]} />
+            {/* Header */}
+            <View style={cmStyles.header}>
+              <View style={[cmStyles.headerIcon, { backgroundColor: `${colors.primary}22` }]}>
+                <Feather name="edit-2" size={20} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[cmStyles.title, { color: colors.foreground }]}>Personnaliser</Text>
+                <Text style={[cmStyles.subtitle, { color: colors.mutedForeground }]}>Votre identité de forgeron</Text>
+              </View>
+              <TouchableOpacity onPress={onClose} style={[cmStyles.closeIcon, { backgroundColor: colors.secondary }]}>
+                <Feather name="x" size={18} color={colors.mutedForeground} />
               </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Preview */}
-          {canSave && (
-            <View style={[cmStyles.preview, { backgroundColor: `${colors.primary}11`, borderColor: `${colors.primary}33` }]}>
-              <Text style={[cmStyles.previewName, { color: colors.foreground }]}>{name.trim()}</Text>
-              <Text style={[cmStyles.previewForge, { color: colors.primary }]}>— {forgeName.trim()}</Text>
             </View>
-          )}
 
-          {/* Actions */}
-          <View style={cmStyles.actions}>
-            <TouchableOpacity
-              style={[cmStyles.cancelBtn, { backgroundColor: colors.secondary, borderColor: colors.border }]}
-              onPress={onClose}
-            >
-              <Text style={[cmStyles.cancelText, { color: colors.mutedForeground }]}>Annuler</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[cmStyles.saveBtn, { backgroundColor: canSave ? colors.primary : colors.muted, opacity: canSave ? 1 : 0.5 }]}
-              onPress={handleSave}
-              disabled={!canSave}
-            >
-              <Feather name="check" size={16} color={canSave ? '#fff' : colors.mutedForeground} />
-              <Text style={[cmStyles.saveText, { color: canSave ? '#fff' : colors.mutedForeground }]}>Enregistrer</Text>
-            </TouchableOpacity>
+            {/* ── Avatar preview ── */}
+            <View style={cmStyles.avatarPreviewRow}>
+              <View style={[cmStyles.avatarPreviewCircle, { backgroundColor: avatarColor }]}>
+                {avatarIcon ? (
+                  <Feather name={avatarIcon as 'tool'} size={26} color="#fff" />
+                ) : (
+                  <Text style={cmStyles.avatarPreviewInitials}>{initials}</Text>
+                )}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[cmStyles.avatarPreviewName, { color: colors.foreground }]} numberOfLines={1}>
+                  {name.trim() || '—'}
+                </Text>
+                <Text style={[cmStyles.avatarPreviewForge, { color: colors.mutedForeground }]} numberOfLines={1}>
+                  {forgeName.trim() || '—'}
+                </Text>
+              </View>
+            </View>
+
+            {/* ── Avatar color picker ── */}
+            <Text style={[cmStyles.fieldLabel, { color: colors.foreground, marginBottom: 8 }]}>Couleur de l'avatar</Text>
+            <View style={cmStyles.colorGrid}>
+              {AVATAR_COLORS.map(({ color, label }) => (
+                <TouchableOpacity
+                  key={color}
+                  activeOpacity={0.8}
+                  onPress={() => { setAvatarColor(color); Haptics.selectionAsync(); }}
+                  style={[
+                    cmStyles.colorSwatch,
+                    { backgroundColor: color },
+                    avatarColor === color && cmStyles.colorSwatchSelected,
+                  ]}
+                >
+                  {avatarColor === color && (
+                    <Feather name="check" size={14} color="#fff" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* ── Avatar icon picker ── */}
+            <Text style={[cmStyles.fieldLabel, { color: colors.foreground, marginTop: 14, marginBottom: 8 }]}>Icône de l'avatar</Text>
+            <View style={cmStyles.iconGrid}>
+              {AVATAR_ICONS.map(({ icon, label }) => {
+                const selected = avatarIcon === icon;
+                return (
+                  <TouchableOpacity
+                    key={String(icon)}
+                    activeOpacity={0.8}
+                    onPress={() => { setAvatarIcon(icon); Haptics.selectionAsync(); }}
+                    style={[
+                      cmStyles.iconSwatch,
+                      {
+                        backgroundColor: selected ? avatarColor : colors.secondary,
+                        borderColor: selected ? avatarColor : colors.border,
+                      },
+                    ]}
+                  >
+                    {icon ? (
+                      <Feather name={icon as 'tool'} size={16} color={selected ? '#fff' : colors.mutedForeground} />
+                    ) : (
+                      <Text style={[cmStyles.iconSwatchInitial, { color: selected ? '#fff' : colors.mutedForeground }]}>Aa</Text>
+                    )}
+                    <Text style={[cmStyles.iconSwatchLabel, { color: selected ? '#fff' : colors.mutedForeground }]} numberOfLines={1}>
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Nom du joueur */}
+            <Text style={[cmStyles.fieldLabel, { color: colors.foreground, marginTop: 16 }]}>Nom du forgeron</Text>
+            <Text style={[cmStyles.fieldHint, { color: colors.mutedForeground }]}>2 à 24 caractères</Text>
+            <View style={[cmStyles.inputWrap, { borderColor: nameValid ? colors.primary : name.trim().length > 0 ? '#EF5350' : colors.border, backgroundColor: colors.secondary }]}>
+              <Feather name="user" size={16} color={nameValid ? colors.primary : colors.mutedForeground} style={{ marginRight: 8 }} />
+              <TextInput
+                value={name}
+                onChangeText={setName}
+                maxLength={24}
+                placeholder="Votre nom…"
+                placeholderTextColor={colors.mutedForeground}
+                style={[cmStyles.input, { color: colors.foreground }]}
+                autoCapitalize="words"
+                returnKeyType="next"
+              />
+              <Text style={[cmStyles.charCount, { color: name.trim().length > 24 ? '#EF5350' : colors.mutedForeground }]}>
+                {name.trim().length}/24
+              </Text>
+            </View>
+
+            {/* Nom de la forge */}
+            <Text style={[cmStyles.fieldLabel, { color: colors.foreground, marginTop: 14 }]}>Nom de la forge</Text>
+            <Text style={[cmStyles.fieldHint, { color: colors.mutedForeground }]}>2 à 32 caractères</Text>
+            <View style={[cmStyles.inputWrap, { borderColor: forgeNameValid ? colors.primary : forgeName.trim().length > 0 ? '#EF5350' : colors.border, backgroundColor: colors.secondary }]}>
+              <Feather name="tool" size={16} color={forgeNameValid ? colors.primary : colors.mutedForeground} style={{ marginRight: 8 }} />
+              <TextInput
+                value={forgeName}
+                onChangeText={setForgeName}
+                maxLength={32}
+                placeholder="Le nom de votre forge…"
+                placeholderTextColor={colors.mutedForeground}
+                style={[cmStyles.input, { color: colors.foreground }]}
+                autoCapitalize="words"
+                returnKeyType="done"
+                onSubmitEditing={handleSave}
+              />
+              <Text style={[cmStyles.charCount, { color: forgeName.trim().length > 32 ? '#EF5350' : colors.mutedForeground }]}>
+                {forgeName.trim().length}/32
+              </Text>
+            </View>
+
+            {/* Forge name suggestions */}
+            <View style={cmStyles.suggestionsRow}>
+              {suggestions.map((s) => (
+                <TouchableOpacity
+                  key={s}
+                  style={[cmStyles.suggestionChip, { backgroundColor: colors.secondary, borderColor: colors.border }]}
+                  onPress={() => {
+                    setForgeName(s);
+                    Haptics.selectionAsync();
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[cmStyles.suggestionText, { color: colors.mutedForeground }]}>{s}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Actions */}
+            <View style={cmStyles.actions}>
+              <TouchableOpacity
+                style={[cmStyles.cancelBtn, { backgroundColor: colors.secondary, borderColor: colors.border }]}
+                onPress={onClose}
+              >
+                <Text style={[cmStyles.cancelText, { color: colors.mutedForeground }]}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[cmStyles.saveBtn, { backgroundColor: canSave ? colors.primary : colors.muted, opacity: canSave ? 1 : 0.5 }]}
+                onPress={handleSave}
+                disabled={!canSave}
+              >
+                <Feather name="check" size={16} color={canSave ? '#fff' : colors.mutedForeground} />
+                <Text style={[cmStyles.saveText, { color: canSave ? '#fff' : colors.mutedForeground }]}>Enregistrer</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        </ScrollView>
       </View>
     </Modal>
   );
@@ -1069,21 +1171,35 @@ function CustomizeModal({
 
 const cmStyles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
-  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 32, borderWidth: 1, borderBottomWidth: 0 },
+  scrollContent: { justifyContent: 'flex-end', flexGrow: 1 },
+  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40, borderWidth: 1, borderBottomWidth: 0 },
   handle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
   headerIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
   title: { fontSize: 18, fontWeight: '800' },
   subtitle: { fontSize: 12, marginTop: 2 },
   closeIcon: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
+  // Avatar preview row
+  avatarPreviewRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 18, padding: 12, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.04)' },
+  avatarPreviewCircle: { width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' },
+  avatarPreviewInitials: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  avatarPreviewName: { fontSize: 16, fontWeight: '700', marginBottom: 2 },
+  avatarPreviewForge: { fontSize: 11 },
+  // Color picker
+  colorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  colorSwatch: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
+  colorSwatchSelected: { borderWidth: 3, borderColor: '#fff' },
+  // Icon picker
+  iconGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  iconSwatch: { width: 64, height: 54, borderRadius: 12, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center', gap: 4 },
+  iconSwatchInitial: { fontSize: 14, fontWeight: '700' },
+  iconSwatchLabel: { fontSize: 9, fontWeight: '600', letterSpacing: 0.3 },
+  // Fields
   fieldLabel: { fontSize: 13, fontWeight: '700', marginBottom: 2 },
   fieldHint: { fontSize: 10, marginBottom: 8 },
   inputWrap: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1.5, paddingHorizontal: 12, paddingVertical: 12 },
   input: { flex: 1, fontSize: 15, fontWeight: '500' },
   charCount: { fontSize: 10, fontWeight: '600', marginLeft: 6 },
-  preview: { borderRadius: 12, borderWidth: 1, padding: 14, marginTop: 16, alignItems: 'center', gap: 4 },
-  previewName: { fontSize: 16, fontWeight: '800' },
-  previewForge: { fontSize: 13, fontWeight: '600' },
   actions: { flexDirection: 'row', gap: 10, marginTop: 20 },
   cancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center', borderWidth: 1 },
   cancelText: { fontSize: 14, fontWeight: '600' },
@@ -1181,8 +1297,12 @@ export default function ProfileScreen() {
         style={[styles.playerCard, { borderColor: colors.border }]}
       >
         <View style={styles.playerCardTop}>
-          <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-            <Text style={[styles.avatarText, { color: colors.primaryForeground }]}>{initials}</Text>
+          <View style={[styles.avatar, { backgroundColor: player.avatarColor ?? colors.primary }]}>
+            {player.avatarIcon ? (
+              <Feather name={player.avatarIcon as 'tool'} size={24} color="#fff" />
+            ) : (
+              <Text style={[styles.avatarText, { color: '#fff' }]}>{initials}</Text>
+            )}
           </View>
           <View style={styles.playerInfo}>
             <Text style={[styles.playerName, { color: colors.foreground }]}>{player.name}</Text>
@@ -1355,7 +1475,9 @@ export default function ProfileScreen() {
         visible={showCustomize}
         initialName={player.name}
         initialForgeName={player.forgeName ?? 'La Forge du Débutant'}
-        onSave={(name, forgeName) => game.customizePlayer(name, forgeName)}
+        initialAvatarColor={player.avatarColor}
+        initialAvatarIcon={player.avatarIcon}
+        onSave={(name, forgeName, avatarColor, avatarIcon) => game.customizePlayer(name, forgeName, avatarColor, avatarIcon)}
         onClose={() => setShowCustomize(false)}
         colors={colors}
       />
