@@ -294,6 +294,14 @@ class AudioManagerClass {
     this.note(659, now + 0.24, 0.2, 0.4);
   }
 
+  /** Short percussive sound for rolling dice */
+  playDiceRoll(): void {
+    if (Platform.OS !== 'web') { this._playNative('click'); return; }
+    // Quick rattling burst: two short detuned sawtooth hits
+    this.synth({ frequency: 180, type: 'sawtooth', duration: 70, gain: 0.45, decay: true, detune: 0 });
+    this.synth({ frequency: 240, type: 'sawtooth', duration: 50, gain: 0.25, decay: true, detune: +30 });
+  }
+
   /** Error / negative action */
   playError(): void {
     if (Platform.OS !== 'web') { this._playNative('craft_fail'); return; }

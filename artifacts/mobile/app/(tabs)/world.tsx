@@ -246,6 +246,7 @@ function ExploreView({
     if (finalQty > 0) {
       game.addResource(node.resourceId, finalQty);
       setLastDrops({ resourceId: node.resourceId, qty: finalQty });
+      AudioManager.playCollect();
     } else {
       setLastDrops(null); // miss (rolled === 0)
     }
@@ -305,7 +306,16 @@ function ExploreView({
     setCombatPlayerScore(nextPlayerScore);
     setCombatEnemyScore(nextEnemyScore);
     setCombatRound(nextRound);
+    // Dice roll sound, then win/lose feedback after a short delay
+    AudioManager.playDiceRoll();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setTimeout(() => {
+      if (playerRoll > enemyRoll) {
+        AudioManager.playHammerStrike();
+      } else {
+        AudioManager.playError();
+      }
+    }, 120);
     if (nextRound >= 3) {
       const result = game.fightForMaterials(region.id, nextPlayerScore, nextEnemyScore);
       setCombatResult(result);
@@ -983,6 +993,7 @@ export default function WorldScreen() {
     } else if (game.player.level >= region.levelRequired) {
       // Auto-unlock with animation
       game.unlockRegion(region.id);
+      AudioManager.playRegionUnlock();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setSelectedRegion(region);
       setShowDetail(true);
