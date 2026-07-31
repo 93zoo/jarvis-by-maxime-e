@@ -152,11 +152,13 @@ const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(
         craftPhase === 'HAMMERING' ? 1.0 : 0;
       const cool = craftPhase === 'COOLING' ? 1 : 0;
 
+      // Native driver (transform only)
+      Animated.timing(fireSize, { toValue: target, duration: 600, useNativeDriver: true }).start();
+      // JS driver (color/opacity properties)
       Animated.parallel([
-        Animated.timing(fireSize,    { toValue: target, duration: 600, useNativeDriver: true }),
-        Animated.timing(glowOpacity, { toValue: glow,   duration: 600, useNativeDriver: false }),
-        Animated.timing(metalGlow,   { toValue: metal,  duration: 400, useNativeDriver: false }),
-        Animated.timing(coolBlue,    { toValue: cool,   duration: 800, useNativeDriver: false }),
+        Animated.timing(glowOpacity, { toValue: glow,  duration: 600, useNativeDriver: false }),
+        Animated.timing(metalGlow,   { toValue: metal, duration: 400, useNativeDriver: false }),
+        Animated.timing(coolBlue,    { toValue: cool,  duration: 800, useNativeDriver: false }),
       ]).start();
     }, [craftPhase, upgradeLevel]);
 
