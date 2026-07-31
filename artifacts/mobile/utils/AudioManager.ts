@@ -56,6 +56,10 @@ const SOUND_FILES: Record<string, SoundModule> = {
   talent_unlock:  require('../assets/sounds/talent_unlock.mp3'),
 };
 
+// Ambience asset kept separate — loaded lazily on demand, not pre-warmed.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const FORGE_AMBIENCE_SRC: SoundModule = require('../assets/sounds/forge_ambience.mp3');
+
 // ─── AudioManagerClass ───────────────────────────────────────────────────────
 
 class AudioManagerClass {
@@ -67,7 +71,7 @@ class AudioManagerClass {
   private nativePlayers: Record<string, ExpoAudioPlayer> = {};
   private nativeLoaded = false;
   private nativeAmbiencePlayer: ExpoAudioPlayer | null = null;
-  private ambienceVolume = 0.18;
+  private ambienceVolume = 0.15;
 
   private muted = false;
   private volume = 0.35;
@@ -320,8 +324,23 @@ class AudioManagerClass {
    * Safe to call multiple times — won't stack layers.
    */
   startForgeAmbience(): void {
-    // Native: no looping sound — hammer plays only on actual taps
-    if (Platform.OS !== 'web') return;
+    // ── Native: looping .mp3 via expo-audio ───────────────────────────────────
+    if (Platform.OS !== 'web') {
+      if (this.nativeAmbiencePlayer) return; // already running
+      if (this.muted) return;
+      const cap = getCreateAudioPlayer();
+      if (!cap) return;
+      try {
+        const player: ExpoAudioPlayer = cap(FORGE_AMBIENCE_SRC);
+        player.loop = true;
+        player.volume = this.ambienceVolume;
+        player.play();
+        this.nativeAmbiencePlayer = player;
+      } catch {
+        // silently degrade if expo-audio is unavailable
+      }
+      return;
+    }
 
     if (!this.ctx || !this.masterGain) this._initWebAudio();
     if (!this.ctx || !this.masterGain || this.muted) return;
