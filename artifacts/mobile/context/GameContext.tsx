@@ -262,24 +262,39 @@ function buildInitialState(): GameState {
 /** Generate a random NPC order based on player level */
 function generateNpcOrder(playerLevel: number, forgeLevel: number): CraftOrder {
   const npc = ALL_NPCS[Math.floor(Math.random() * ALL_NPCS.length)];
+
   // Pick a recipe matching NPC preferences and player level
+  // Cap recipe level so early players always have a craftable recipe
+  const maxRecipeLevel = Math.max(1, Math.min(playerLevel, playerLevel + 1));
   const eligible = ALL_RECIPES.filter((r) => {
     const matchesCategory = npc.preferredCategories.includes(r.category);
-    return matchesCategory && r.levelRequired <= playerLevel + 2;
+    return matchesCategory && r.levelRequired <= maxRecipeLevel;
   });
   const recipe = eligible.length > 0
     ? eligible[Math.floor(Math.random() * eligible.length)]
-    : ALL_RECIPES[Math.floor(Math.random() * ALL_RECIPES.length)];
+    : ALL_RECIPES.filter((r) => r.levelRequired <= Math.max(1, playerLevel))[0]
+      ?? ALL_RECIPES[0];
 
   const budgetRange = npc.budgetMax - npc.budgetMin;
   const goldReward = Math.round(npc.budgetMin + Math.random() * budgetRange);
   const xpReward = Math.round(recipe.xpReward * (1.5 + Math.random()));
   const repReward = Math.round(5 + Math.random() * 15);
-  // Deadline: 4–12 hours from now
-  const deadlineHours = 4 + Math.floor(Math.random() * 9);
+  // Deadline: 6–18 hours from now (more generous than before)
+  const deadlineHours = 6 + Math.floor(Math.random() * 13);
   const deadline = Date.now() + deadlineHours * 60 * 60 * 1000;
 
-  const minQualityIdx = QUALITY_ORDER[npc.minQuality] ?? 1;
+  // Cap minQuality based on player level so early-game orders are achievable
+  // Level  1-4:  max normal
+  // Level  5-9:  max good
+  // Level 10-14: max excellent
+  // Level 15+:   original NPC quality (including legendary for king etc.)
+  const npcQualityIdx = QUALITY_ORDER[npc.minQuality] ?? 1;
+  let maxQualityIdx: number;
+  if (playerLevel < 5) maxQualityIdx = 1;      // normal
+  else if (playerLevel < 10) maxQualityIdx = 2; // good
+  else if (playerLevel < 15) maxQualityIdx = 3; // excellent
+  else maxQualityIdx = 4;                        // legendary (king-tier)
+  const minQualityIdx = Math.min(npcQualityIdx, maxQualityIdx);
   const qualities: Quality[] = ['poor', 'normal', 'good', 'excellent', 'legendary'];
 
   return {

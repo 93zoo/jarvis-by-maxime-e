@@ -252,13 +252,13 @@ function OrdersModal({
                           <>
                             <TouchableOpacity
                               style={[oStyles.btnAccept, { backgroundColor: colors.primary }]}
-                              onPress={() => { game.acceptOrder(order.id); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); }}
+                              onPress={() => { game.acceptOrder(order.id); AudioManager.playCollect(); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); }}
                             >
                               <Text style={[oStyles.btnText, { color: colors.primaryForeground }]}>Accepter</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                               style={[oStyles.btnRefuse, { backgroundColor: colors.secondary, borderColor: colors.border }]}
-                              onPress={() => { game.refuseOrder(order.id); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                              onPress={() => { game.refuseOrder(order.id); AudioManager.playClick(); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
                             >
                               <Text style={[oStyles.btnText, { color: colors.mutedForeground }]}>Refuser</Text>
                             </TouchableOpacity>
@@ -488,16 +488,21 @@ export default function ForgeScreen() {
   const headerTopPad = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPad = insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 80;
 
-  // Init audio on mount + weather cycle
+  // Init audio on mount + weather cycle + forge ambience
   useEffect(() => {
     AudioManager.init();
+    // Start the looping fire-crackle ambience when the forge tab is entered
+    AudioManager.startForgeAmbience();
 
     // Randomly assign atmospheric weather — changes every 5–10 minutes
     const WEATHER_TYPES: WeatherType[] = ['none', 'none', 'none', 'rain', 'fog', 'rain', 'snow'];
     const pick = () => WEATHER_TYPES[Math.floor(Math.random() * WEATHER_TYPES.length)];
     setWeather(pick());
     const t = setInterval(() => setWeather(pick()), 7 * 60 * 1000); // 7 min
-    return () => clearInterval(t);
+    return () => {
+      clearInterval(t);
+      AudioManager.stopForgeAmbience();
+    };
   }, []);
 
   // ─── Phase machine ───────────────────────────────────────────────────────
@@ -550,6 +555,8 @@ export default function ForgeScreen() {
     setHeatingProgress(0);
     setCraftedItem(null);
     setCraftPhase('HEATING');
+    // Ambience is already running (started on mount); just ensure it's live
+    AudioManager.startForgeAmbience();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   };
 
@@ -558,6 +565,17 @@ export default function ForgeScreen() {
     setLastHitLabel(label);
     if (hitTimerRef.current) clearTimeout(hitTimerRef.current);
     hitTimerRef.current = setTimeout(() => setLastHitLabel(null), 900);
+
+    // Sound feedback based on strike quality
+    if (score === 25) {
+      AudioManager.playPerfectStrike();
+    } else if (score >= 14) {
+      AudioManager.playHammerStrike();
+    } else if (score > 0) {
+      AudioManager.playHammerStrike();
+    } else {
+      AudioManager.playError();
+    }
 
     setSession((prev) => {
       const newStrikes = prev.strikesCompleted + 1;
