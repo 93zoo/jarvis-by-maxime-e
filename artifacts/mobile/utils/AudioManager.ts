@@ -303,115 +303,81 @@ class AudioManagerClass {
   // ── Forge ambience — fire crackle + low rumble loop ─────────────────────────
 
   /**
-   * Starts a looping fire-crackle ambience.
-   * Web: synthesised brown-noise via Web Audio API.
-   * Native: loops hammer_strike at low volume as a stand-in until a real
-   *         ambience track is added (task #77).
+   * Starts a melodic forge ambience — warm harmonic drone.
+   * Web: three detuned oscillators + shimmer + slow breath (Web Audio API).
+   * Native: silent — the hammer strike plays only on tap; a real audio file
+   *         will be wired in via task #77.
    * Safe to call multiple times — won't stack layers.
    */
   startForgeAmbience(): void {
-    if (Platform.OS !== 'web') {
-      if (!this.nativeLoaded || this.muted) return;
-      if (this.nativeAmbiencePlayer) return; // already running
-      try {
-        const cap = getCreateAudioPlayer();
-        if (!cap) return;
-        const p: ExpoAudioPlayer = cap(require('../assets/sounds/hammer_strike.mp3'));
-        p.volume = this.ambienceVolume * this.volumeLevel;
-        p.loop = true;
-        p.play();
-        this.nativeAmbiencePlayer = p;
-      } catch { /* ignore */ }
-      return;
-    }
+    // Native: no looping sound — hammer plays only on actual taps
+    if (Platform.OS !== 'web') return;
+
     if (!this.ctx || !this.masterGain) this._initWebAudio();
     if (!this.ctx || !this.masterGain || this.muted) return;
     if (this.ambienceSource) return; // already running
 
     try {
       const ctx = this.ctx;
+      const mg = this.masterGain;
 
-      // ── Layer 1: brown-noise fire crackle ──────────────────────────────────
-      // 3-second noise buffer looped; filtered to low-mid (fire texture)
-      const sampleRate = ctx.sampleRate;
-      const bufLen = Math.floor(sampleRate * 3);
-      const buf = ctx.createBuffer(1, bufLen, sampleRate);
-      const data = buf.getChannelData(0);
+      // ── Shared warm lowpass filter ─────────────────────────────────────────
+      const warmLp = ctx.createBiquadFilter();
+      warmLp.type = 'lowpass';
+      warmLp.frequency.value = 800;
+      warmLp.Q.value = 0.7;
+      warmLp.connect(mg);
 
-      // Generate brown noise (integrated white noise — warmer, deeper)
-      let lastOut = 0;
-      for (let i = 0; i < bufLen; i++) {
-        const white = Math.random() * 2 - 1;
-        lastOut = (lastOut + 0.02 * white) / 1.02;
-        data[i] = lastOut * 3.5; // amplify
-      }
+      // ── Master ambience gain (breathing envelope lives here) ───────────────
+      const ambiGain = ctx.createGain();
+      ambiGain.gain.value = 0.13;
+      ambiGain.connect(warmLp);
+      this.ambienceGainNode = ambiGain;
 
-      const crackleSrc = ctx.createBufferSource();
-      crackleSrc.buffer = buf;
-      crackleSrc.loop = true;
-      crackleSrc.playbackRate.value = 1.0;
-
-      // Bandpass + lowpass chain to sculpt fire sound
-      const bp = ctx.createBiquadFilter();
-      bp.type = 'bandpass';
-      bp.frequency.value = 380;
-      bp.Q.value = 0.6;
-
-      const lp = ctx.createBiquadFilter();
-      lp.type = 'lowpass';
-      lp.frequency.value = 900;
-      lp.Q.value = 0.5;
-
-      const crackleGain = ctx.createGain();
-      crackleGain.gain.value = 0.12;
-
-      crackleSrc.connect(bp);
-      bp.connect(lp);
-      lp.connect(crackleGain);
-      crackleGain.connect(this.masterGain);
-      crackleSrc.start();
-      this.ambienceSource = crackleSrc;
-
-      // ── Layer 2: deep sub-rumble (forge bellows / structural low end) ──────
-      const rumbleBuf = ctx.createBuffer(1, Math.floor(sampleRate * 5), sampleRate);
-      const rumbleData = rumbleBuf.getChannelData(0);
-      let rv = 0;
-      for (let i = 0; i < rumbleData.length; i++) {
-        rv = (rv + 0.005 * (Math.random() * 2 - 1)) / 1.005;
-        rumbleData[i] = rv * 8;
-      }
-
-      const rumbleSrc = ctx.createBufferSource();
-      rumbleSrc.buffer = rumbleBuf;
-      rumbleSrc.loop = true;
-      rumbleSrc.playbackRate.value = 0.7;
-
-      const rumbleLp = ctx.createBiquadFilter();
-      rumbleLp.type = 'lowpass';
-      rumbleLp.frequency.value = 120;
-      rumbleLp.Q.value = 0.4;
-
-      const rumbleGain = ctx.createGain();
-      rumbleGain.gain.value = 0.18;
-
-      rumbleSrc.connect(rumbleLp);
-      rumbleLp.connect(rumbleGain);
-      rumbleGain.connect(this.masterGain);
-      rumbleSrc.start();
-      this.ambienceSource2 = rumbleSrc;
-      this.ambienceGainNode = crackleGain;
-
-      // ── Slow gain modulation — makes the fire feel alive (breathing) ───────
-      let ambiT = 0;
-      const modulateAmbience = () => {
-        if (!this.ambienceSource) return; // stopped
-        ambiT += 0.016;
-        const mod = 1.0 + Math.sin(ambiT * 0.8) * 0.18 + Math.sin(ambiT * 1.9) * 0.10;
-        crackleGain.gain.value = 0.12 * mod;
-        rumbleGain.gain.value  = 0.18 * (0.9 + Math.sin(ambiT * 0.5) * 0.12);
-        this.ambienceRafId = requestAnimationFrame(modulateAmbience);
+      // Helper: make one sustained oscillator
+      const makeOsc = (freq: number, detuneCents: number, gainVal: number, type: OscType = 'sine') => {
+        const osc = ctx.createOscillator();
+        const g   = ctx.createGain();
+        osc.type  = type;
+        osc.frequency.value = freq;
+        osc.detune.value    = detuneCents;
+        g.gain.value        = gainVal;
+        osc.connect(g);
+        g.connect(ambiGain);
+        osc.start();
+        return osc;
       };
-      this.ambienceRafId = requestAnimationFrame(modulateAmbience);
+
+      // ── Layer 1: root drone F2 (~87 Hz) ────────────────────────────────────
+      const osc1 = makeOsc(87.3, 0,   1.0, 'sine');
+      // ── Layer 2: fifth C3 (~130 Hz) slightly detuned for warmth ───────────
+      const osc2 = makeOsc(130.8, +8, 0.55, 'sine');
+      // ── Layer 3: octave F3 (~175 Hz), soft triangle ─────────────────────── 
+      const osc3 = makeOsc(174.6, -6, 0.35, 'triangle');
+      // ── Layer 4: high shimmer F4, very quiet ───────────────────────────────
+      const osc4 = makeOsc(349.2, +14, 0.10, 'sine');
+
+      // Store first osc as the sentinel so stopForgeAmbience knows we're live
+      this.ambienceSource = osc1 as unknown as AudioBufferSourceNode;
+      this.ambienceSource2 = osc2 as unknown as AudioBufferSourceNode;
+      // (osc3 / osc4 are stopped in stopForgeAmbience via the gain disconnect)
+
+      // ── Slow breath: gentle amplitude swell every ~6 s ────────────────────
+      let t = 0;
+      const breathe = () => {
+        if (!this.ambienceSource) return;
+        t += 0.016;
+        // Two overlapping sine waves give an organic, uneven breath
+        const breath = 0.13 + Math.sin(t * 0.55) * 0.035 + Math.sin(t * 1.1) * 0.018;
+        ambiGain.gain.value = breath;
+        this.ambienceRafId = requestAnimationFrame(breathe);
+      };
+      this.ambienceRafId = requestAnimationFrame(breathe);
+
+      // Stop osc3 / osc4 on stopForgeAmbience by hooking into ambienceGainNode
+      // We store references via a closure so the stop method can reach them.
+      (this as unknown as Record<string, unknown>)._ambiOsc3 = osc3;
+      (this as unknown as Record<string, unknown>)._ambiOsc4 = osc4;
 
     } catch {
       // Silently degrade if Web Audio isn't available
@@ -432,13 +398,12 @@ class AudioManagerClass {
       cancelAnimationFrame(this.ambienceRafId);
       this.ambienceRafId = null;
     }
-    if (this.ambienceSource) {
-      try { this.ambienceSource.stop(); } catch { /* ignore */ }
-      this.ambienceSource = null;
-    }
-    if (this.ambienceSource2) {
-      try { this.ambienceSource2.stop(); } catch { /* ignore */ }
-      this.ambienceSource2 = null;
+    // Stop all oscillator nodes (ambienceSource = osc1, ambienceSource2 = osc2,
+    // plus osc3 / osc4 stored via closure key)
+    const self = this as unknown as Record<string, unknown>;
+    for (const key of ['ambienceSource', 'ambienceSource2', '_ambiOsc3', '_ambiOsc4']) {
+      const node = self[key] as { stop?: () => void } | null;
+      if (node) { try { node.stop?.(); } catch { /* ignore */ } self[key] = null; }
     }
     this.ambienceGainNode = null;
   }
