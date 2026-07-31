@@ -11,6 +11,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Reanimated, {
+  useSharedValue,
+  withTiming,
+  useAnimatedStyle,
+  useReducedMotion,
+  Easing,
+  type SharedValue,
+} from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -404,6 +412,79 @@ const sdStyles = StyleSheet.create({
   closeBtnText: { fontSize: 15, fontWeight: '700' },
 });
 
+// ─── Sparkline Animation Helpers ─────────────────────────────────────────────
+
+/** Covers the chart from the right, shrinks away to reveal lines left-to-right. */
+function SparklineRevealMask({
+  drawProgress,
+  chartWidth,
+  color,
+}: {
+  drawProgress: SharedValue<number>;
+  chartWidth: number;
+  color: string;
+}) {
+  const style = useAnimatedStyle(() => ({
+    width: (1 - drawProgress.value) * chartWidth,
+  }));
+  return (
+    <Reanimated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: 'absolute',
+          right: 0,
+          top: 0,
+          bottom: 0,
+          backgroundColor: color,
+          zIndex: 10,
+        },
+        style,
+      ]}
+    />
+  );
+}
+
+/** Fades a dot in once the wipe animation has passed its x position.
+ *  Renders as an absolutely-positioned overlay so dots sit on the chart. */
+function AnimatedSparkDot({
+  xFraction,
+  drawProgress,
+  leftPct,
+  bottom,
+  children,
+}: {
+  xFraction: number;
+  drawProgress: SharedValue<number>;
+  leftPct: number;
+  bottom: number;
+  children: React.ReactNode;
+}) {
+  const style = useAnimatedStyle(() => ({
+    opacity: drawProgress.value >= xFraction - 0.01 ? 1 : 0,
+  }));
+  return (
+    <Reanimated.View
+      style={[
+        {
+          position: 'absolute',
+          left: `${leftPct}%` as `${number}%`,
+          bottom,
+          width: 28,
+          height: 28,
+          marginLeft: -14,
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 11,
+        },
+        style,
+      ]}
+    >
+      {children}
+    </Reanimated.View>
+  );
+}
+
 // ─── Level Sparkline ─────────────────────────────────────────────────────────
 const SPARKLINE_H = 60;
 const SPARKLINE_DOT = 5;
@@ -470,6 +551,42 @@ function LevelSparkline({
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const cfg = SPARK_METRICS.find((m) => m.key === metric)!;
   const dotColor = cfg.color(colors);
+
+  // ── Draw-in animation ────────────────────────────────────────────────────
+  const reducedMotion = useReducedMotion();
+  const drawProgress = useSharedValue(reducedMotion ? 1 : 0);
+
+  // Trigger (or re-trigger) the wipe whenever metric tab changes
+  useEffect(() => {
+    drawProgress.value = 0;
+    if (reducedMotion) {
+      drawProgress.value = 1;
+    } else {
+      drawProgress.value = withTiming(1, {
+        duration: 500,
+        easing: Easing.out(Easing.cubic),
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [metric]);
+
+  // Also trigger on first valid chartWidth measurement
+  const hasAnimated = useRef(false);
+  useEffect(() => {
+    if (chartWidth > 0 && !hasAnimated.current) {
+      hasAnimated.current = true;
+      drawProgress.value = 0;
+      if (!reducedMotion) {
+        drawProgress.value = withTiming(1, {
+          duration: 500,
+          easing: Easing.out(Easing.cubic),
+        });
+      } else {
+        drawProgress.value = 1;
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chartWidth]);
 
   if (snapshots.length === 0) {
     return (
@@ -593,46 +710,54 @@ function LevelSparkline({
           );
         })}
 
-        {/* Dots */}
+        {/* Reveal mask — sweeps from right to left, uncovering lines */}
+        {chartWidth > 0 && (
+          <SparklineRevealMask
+            drawProgress={drawProgress}
+            chartWidth={chartWidth}
+            color={colors.card}
+          />
+        )}
+
+        {/* Dots — each fades in as the wipe reaches its x position */}
         {snapshots.map((snap, i) => {
           const val = cfg.getValue(snap);
           const frac = (val - lo) / range;
           const dotBottom = frac * (SPARKLINE_H - SPARKLINE_DOT * 2) + SPARKLINE_DOT - SPARKLINE_DOT / 2;
           const leftPct = count === 1 ? 50 : (i / (count - 1)) * 100;
+          const xFraction = count === 1 ? 0.5 : i / (count - 1);
           const isLast = i === count - 1;
           const isSelected = selectedIdx === i;
           const dotSize = isSelected ? SPARKLINE_DOT + 5 : isLast ? SPARKLINE_DOT + 2 : SPARKLINE_DOT;
 
           return (
-            <TouchableOpacity
+            <AnimatedSparkDot
               key={snap.timestamp}
-              activeOpacity={0.7}
-              onPress={() => {
-                setSelectedIdx(selectedIdx === i ? null : i);
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }}
-              style={{
-                position: 'absolute',
-                left: `${leftPct}%` as `${number}%`,
-                bottom: dotBottom - 12,
-                width: 28,
-                height: 28,
-                marginLeft: -14,
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
+              xFraction={xFraction}
+              drawProgress={drawProgress}
+              leftPct={leftPct}
+              bottom={dotBottom - 12}
             >
-              <View
-                style={{
-                  width: dotSize,
-                  height: dotSize,
-                  borderRadius: dotSize / 2,
-                  backgroundColor: isSelected ? dotColor : isLast ? dotColor : `${dotColor}99`,
-                  borderWidth: isSelected ? 2 : 0,
-                  borderColor: '#fff',
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  setSelectedIdx(selectedIdx === i ? null : i);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 }}
-              />
-            </TouchableOpacity>
+                style={{ width: 28, height: 28, justifyContent: 'center', alignItems: 'center' }}
+              >
+                <View
+                  style={{
+                    width: dotSize,
+                    height: dotSize,
+                    borderRadius: dotSize / 2,
+                    backgroundColor: isSelected ? dotColor : isLast ? dotColor : `${dotColor}99`,
+                    borderWidth: isSelected ? 2 : 0,
+                    borderColor: '#fff',
+                  }}
+                />
+              </TouchableOpacity>
+            </AnimatedSparkDot>
           );
         })}
       </View>
