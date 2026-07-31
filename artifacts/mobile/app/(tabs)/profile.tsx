@@ -454,18 +454,23 @@ function SparklineRevealMask({
 function AnimatedSparkDot({
   xFraction,
   drawProgress,
+  incrProgress,
   leftPct,
   bottom,
   children,
 }: {
   xFraction: number;
   drawProgress: SharedValue<number>;
+  /** When provided, multiplies the final opacity (used for incremental new-dot reveal). */
+  incrProgress?: SharedValue<number>;
   leftPct: number;
   bottom: number;
   children: React.ReactNode;
 }) {
   const style = useAnimatedStyle(() => ({
-    opacity: drawProgress.value >= xFraction - 0.01 ? 1 : 0,
+    opacity:
+      (drawProgress.value >= xFraction - 0.01 ? 1 : 0) *
+      (incrProgress != null ? incrProgress.value : 1),
   }));
   return (
     <Reanimated.View
@@ -487,6 +492,20 @@ function AnimatedSparkDot({
       {children}
     </Reanimated.View>
   );
+}
+
+/** Last line-segment wrapper that fades in for incremental new-data reveals. */
+function AnimatedSparkLine({
+  lineStyle,
+  incrProgress,
+}: {
+  lineStyle: object;
+  incrProgress: SharedValue<number>;
+}) {
+  const animStyle = useAnimatedStyle(() => ({
+    opacity: incrProgress.value * 0.55,
+  }));
+  return <Reanimated.View pointerEvents="none" style={[lineStyle, animStyle]} />;
 }
 
 // ─── Level Sparkline ─────────────────────────────────────────────────────────
@@ -573,9 +592,34 @@ function LevelSparkline({
   const reducedMotion = useReducedMotion();
   const drawProgress = useSharedValue(reducedMotion ? 1 : 0);
 
+  // Incremental reveal: animates only the newest dot/segment when a snapshot
+  // is appended while the chart is already visible. Starts at 1 so no
+  // animation fires on mount.
+  const incrProgress = useSharedValue(1);
+  const prevCountRef = useRef(snapshots.length);
+
+  // Detect snapshot growth and trigger an incremental reveal (~300 ms)
+  useEffect(() => {
+    if (prevCountRef.current > 0 && snapshots.length > prevCountRef.current) {
+      incrProgress.value = 0;
+      if (!reducedMotion) {
+        incrProgress.value = withTiming(1, {
+          duration: 300,
+          easing: Easing.out(Easing.cubic),
+        });
+      } else {
+        incrProgress.value = 1;
+      }
+    }
+    prevCountRef.current = snapshots.length;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snapshots.length]);
+
   // Trigger (or re-trigger) the wipe whenever metric tab changes
   useEffect(() => {
     drawProgress.value = 0;
+    // Reset incremental progress too so the last dot isn't hidden during wipe
+    incrProgress.value = 1;
     if (reducedMotion) {
       drawProgress.value = 1;
     } else {
@@ -593,6 +637,7 @@ function LevelSparkline({
     if (chartWidth > 0 && !hasAnimated.current) {
       hasAnimated.current = true;
       drawProgress.value = 0;
+      incrProgress.value = 1;
       if (!reducedMotion) {
         drawProgress.value = withTiming(1, {
           duration: 500,
@@ -733,20 +778,31 @@ function LevelSparkline({
           const dy = y2 - y1;
           const length = Math.sqrt(dx * dx + dy * dy);
           const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+          const isLastSegment = i === count - 1;
+          const lineStyle = {
+            position: 'absolute' as const,
+            left: (x1 + x2) / 2 - length / 2,
+            top: (y1 + y2) / 2 - 1,
+            width: length,
+            height: 2,
+            backgroundColor: dotColor,
+            transform: [{ rotate: `${angle}deg` }],
+          };
+          // The newest segment fades in via incrProgress on incremental updates
+          if (isLastSegment) {
+            return (
+              <AnimatedSparkLine
+                key={`line-${snap.timestamp}`}
+                lineStyle={lineStyle}
+                incrProgress={incrProgress}
+              />
+            );
+          }
           return (
             <View
               key={`line-${snap.timestamp}`}
               pointerEvents="none"
-              style={{
-                position: 'absolute',
-                left: (x1 + x2) / 2 - length / 2,
-                top: (y1 + y2) / 2 - 1,
-                width: length,
-                height: 2,
-                backgroundColor: dotColor,
-                opacity: 0.55,
-                transform: [{ rotate: `${angle}deg` }],
-              }}
+              style={[lineStyle, { opacity: 0.55 }]}
             />
           );
         })}
@@ -776,6 +832,7 @@ function LevelSparkline({
               key={snap.timestamp}
               xFraction={xFraction}
               drawProgress={drawProgress}
+              incrProgress={isLast ? incrProgress : undefined}
               leftPct={leftPct}
               bottom={dotBottom - 12}
             >
