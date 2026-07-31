@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ActivityIndicator,
   Alert,
@@ -542,6 +543,9 @@ const SPARK_METRICS: MetricConfig[] = [
   },
 ];
 
+const STORAGE_KEY_METRIC = '@profile/chart_metric';
+const STORAGE_KEY_SKILL  = '@profile/chart_skill';
+
 function LevelSparkline({
   snapshots,
   colors,
@@ -552,7 +556,17 @@ function LevelSparkline({
   const [metric, setMetric] = useState<SparkMetric>('level');
   const [chartWidth, setChartWidth] = useState(0);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
-  const cfg = SPARK_METRICS.find((m) => m.key === metric)!;
+  const cfg = SPARK_METRICS.find((m) => m.key === metric)!
+
+  // Restore last-used metric on mount
+  useEffect(() => {
+    AsyncStorage.getItem(STORAGE_KEY_METRIC).then((stored) => {
+      if (stored && SPARK_METRICS.some((m) => m.key === stored)) {
+        setMetric(stored as SparkMetric);
+      }
+    }).catch(() => {/* ignore */});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const dotColor = cfg.color(colors);
 
   // ── Draw-in animation ────────────────────────────────────────────────────
@@ -657,6 +671,7 @@ function LevelSparkline({
               onPress={() => {
                 setMetric(m.key);
                 setSelectedIdx(null);
+                AsyncStorage.setItem(STORAGE_KEY_METRIC, m.key).catch(() => {/* ignore */});
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
               style={[
@@ -920,6 +935,16 @@ function SkillProgressChart({
   const [selectedSkill, setSelectedSkill] = useState<SkillType>('forge');
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
+  // Restore last-used skill on mount
+  useEffect(() => {
+    AsyncStorage.getItem(STORAGE_KEY_SKILL).then((stored) => {
+      if (stored && SKILL_TYPES_LIST.includes(stored as SkillType)) {
+        setSelectedSkill(stored as SkillType);
+      }
+    }).catch(() => {/* ignore */});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Only snapshots that have skill data
   const skillSnapshots = useMemo(
     () => snapshots.filter((s) => s.skills != null),
@@ -998,6 +1023,7 @@ function SkillProgressChart({
               onPress={() => {
                 setSelectedSkill(sk);
                 setSelectedIdx(null);
+                AsyncStorage.setItem(STORAGE_KEY_SKILL, sk).catch(() => {/* ignore */});
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
               style={[
