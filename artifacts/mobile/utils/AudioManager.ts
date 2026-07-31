@@ -56,6 +56,12 @@ class AudioManagerClass {
   private muted = false;
   private volume = 0.35;
 
+  // Forge ambience nodes (fire crackle loop)
+  private ambienceSource: AudioBufferSourceNode | null = null;
+  private ambienceGainNode: GainNode | null = null;
+  private ambienceSource2: AudioBufferSourceNode | null = null; // low rumble
+  private ambienceRafId: number | null = null;
+
   /** Must be called after a user gesture (browser autoplay policy on web). */
   init(): void {
     if (Platform.OS !== 'web') {
@@ -285,6 +291,126 @@ class AudioManagerClass {
   playError(): void {
     if (Platform.OS !== 'web') { this._playNative('craft_fail'); return; }
     this.synth({ frequency: 160, type: 'sawtooth', duration: 200, gain: 0.3, decay: true });
+  }
+
+  // ── Forge ambience — fire crackle + low rumble loop ─────────────────────────
+
+  /**
+   * Starts a looping fire-crackle ambience using Web Audio noise synthesis.
+   * On native the method is a no-op (expo-av background audio not needed here).
+   * Safe to call multiple times — won't stack layers.
+   */
+  startForgeAmbience(): void {
+    if (Platform.OS !== 'web') return;
+    if (!this.ctx || !this.masterGain) this._initWebAudio();
+    if (!this.ctx || !this.masterGain || this.muted) return;
+    if (this.ambienceSource) return; // already running
+
+    try {
+      const ctx = this.ctx;
+
+      // ── Layer 1: brown-noise fire crackle ──────────────────────────────────
+      // 3-second noise buffer looped; filtered to low-mid (fire texture)
+      const sampleRate = ctx.sampleRate;
+      const bufLen = Math.floor(sampleRate * 3);
+      const buf = ctx.createBuffer(1, bufLen, sampleRate);
+      const data = buf.getChannelData(0);
+
+      // Generate brown noise (integrated white noise — warmer, deeper)
+      let lastOut = 0;
+      for (let i = 0; i < bufLen; i++) {
+        const white = Math.random() * 2 - 1;
+        lastOut = (lastOut + 0.02 * white) / 1.02;
+        data[i] = lastOut * 3.5; // amplify
+      }
+
+      const crackleSrc = ctx.createBufferSource();
+      crackleSrc.buffer = buf;
+      crackleSrc.loop = true;
+      crackleSrc.playbackRate.value = 1.0;
+
+      // Bandpass + lowpass chain to sculpt fire sound
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = 380;
+      bp.Q.value = 0.6;
+
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 900;
+      lp.Q.value = 0.5;
+
+      const crackleGain = ctx.createGain();
+      crackleGain.gain.value = 0.12;
+
+      crackleSrc.connect(bp);
+      bp.connect(lp);
+      lp.connect(crackleGain);
+      crackleGain.connect(this.masterGain);
+      crackleSrc.start();
+      this.ambienceSource = crackleSrc;
+
+      // ── Layer 2: deep sub-rumble (forge bellows / structural low end) ──────
+      const rumbleBuf = ctx.createBuffer(1, Math.floor(sampleRate * 5), sampleRate);
+      const rumbleData = rumbleBuf.getChannelData(0);
+      let rv = 0;
+      for (let i = 0; i < rumbleData.length; i++) {
+        rv = (rv + 0.005 * (Math.random() * 2 - 1)) / 1.005;
+        rumbleData[i] = rv * 8;
+      }
+
+      const rumbleSrc = ctx.createBufferSource();
+      rumbleSrc.buffer = rumbleBuf;
+      rumbleSrc.loop = true;
+      rumbleSrc.playbackRate.value = 0.7;
+
+      const rumbleLp = ctx.createBiquadFilter();
+      rumbleLp.type = 'lowpass';
+      rumbleLp.frequency.value = 120;
+      rumbleLp.Q.value = 0.4;
+
+      const rumbleGain = ctx.createGain();
+      rumbleGain.gain.value = 0.18;
+
+      rumbleSrc.connect(rumbleLp);
+      rumbleLp.connect(rumbleGain);
+      rumbleGain.connect(this.masterGain);
+      rumbleSrc.start();
+      this.ambienceSource2 = rumbleSrc;
+      this.ambienceGainNode = crackleGain;
+
+      // ── Slow gain modulation — makes the fire feel alive (breathing) ───────
+      let ambiT = 0;
+      const modulateAmbience = () => {
+        if (!this.ambienceSource) return; // stopped
+        ambiT += 0.016;
+        const mod = 1.0 + Math.sin(ambiT * 0.8) * 0.18 + Math.sin(ambiT * 1.9) * 0.10;
+        crackleGain.gain.value = 0.12 * mod;
+        rumbleGain.gain.value  = 0.18 * (0.9 + Math.sin(ambiT * 0.5) * 0.12);
+        this.ambienceRafId = requestAnimationFrame(modulateAmbience);
+      };
+      this.ambienceRafId = requestAnimationFrame(modulateAmbience);
+
+    } catch {
+      // Silently degrade if Web Audio isn't available
+    }
+  }
+
+  /** Stops the forge ambience loop. */
+  stopForgeAmbience(): void {
+    if (this.ambienceRafId !== null) {
+      cancelAnimationFrame(this.ambienceRafId);
+      this.ambienceRafId = null;
+    }
+    if (this.ambienceSource) {
+      try { this.ambienceSource.stop(); } catch { /* ignore */ }
+      this.ambienceSource = null;
+    }
+    if (this.ambienceSource2) {
+      try { this.ambienceSource2.stop(); } catch { /* ignore */ }
+      this.ambienceSource2 = null;
+    }
+    this.ambienceGainNode = null;
   }
 
   // ── Volume control ──────────────────────────────────────────────────────────
