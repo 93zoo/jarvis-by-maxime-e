@@ -435,6 +435,7 @@ function LevelSparkline({
 }) {
   const [metric, setMetric] = useState<SparkMetric>('level');
   const [chartWidth, setChartWidth] = useState(0);
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const cfg = SPARK_METRICS.find((m) => m.key === metric)!;
   const dotColor = cfg.color(colors);
 
@@ -481,6 +482,7 @@ function LevelSparkline({
               activeOpacity={0.75}
               onPress={() => {
                 setMetric(m.key);
+                setSelectedIdx(null);
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
               style={[
@@ -566,27 +568,72 @@ function LevelSparkline({
           const dotBottom = frac * (SPARKLINE_H - SPARKLINE_DOT * 2) + SPARKLINE_DOT - SPARKLINE_DOT / 2;
           const leftPct = count === 1 ? 50 : (i / (count - 1)) * 100;
           const isLast = i === count - 1;
+          const isSelected = selectedIdx === i;
+          const dotSize = isSelected ? SPARKLINE_DOT + 5 : isLast ? SPARKLINE_DOT + 2 : SPARKLINE_DOT;
 
           return (
-            <View key={snap.timestamp} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: 0 }}>
+            <TouchableOpacity
+              key={snap.timestamp}
+              activeOpacity={0.7}
+              onPress={() => {
+                setSelectedIdx(selectedIdx === i ? null : i);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+              style={{
+                position: 'absolute',
+                left: `${leftPct}%` as `${number}%`,
+                bottom: dotBottom - 12,
+                width: 28,
+                height: 28,
+                marginLeft: -14,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
               <View
-                style={[
-                  sparkStyles.dot,
-                  {
-                    left: `${leftPct}%` as `${number}%`,
-                    bottom: dotBottom,
-                    backgroundColor: isLast ? dotColor : `${dotColor}99`,
-                    width: isLast ? SPARKLINE_DOT + 2 : SPARKLINE_DOT,
-                    height: isLast ? SPARKLINE_DOT + 2 : SPARKLINE_DOT,
-                    borderRadius: isLast ? (SPARKLINE_DOT + 2) / 2 : SPARKLINE_DOT / 2,
-                    marginLeft: isLast ? -(SPARKLINE_DOT + 2) / 2 : -SPARKLINE_DOT / 2,
-                  },
-                ]}
+                style={{
+                  width: dotSize,
+                  height: dotSize,
+                  borderRadius: dotSize / 2,
+                  backgroundColor: isSelected ? dotColor : isLast ? dotColor : `${dotColor}99`,
+                  borderWidth: isSelected ? 2 : 0,
+                  borderColor: '#fff',
+                }}
               />
-            </View>
+            </TouchableOpacity>
           );
         })}
       </View>
+
+      {/* Selected dot detail card */}
+      {selectedIdx !== null && snapshots[selectedIdx] && (() => {
+        const snap = snapshots[selectedIdx];
+        const date = new Date(snap.timestamp).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+        return (
+          <View style={[sparkStyles.dotDetail, { backgroundColor: colors.secondary, borderColor: dotColor }]}>
+            <View style={sparkStyles.dotDetailHeader}>
+              <Feather name="calendar" size={11} color={colors.mutedForeground} />
+              <Text style={[sparkStyles.dotDetailDate, { color: colors.mutedForeground }]}>{date}</Text>
+              <TouchableOpacity onPress={() => setSelectedIdx(null)} style={sparkStyles.dotDetailClose}>
+                <Feather name="x" size={12} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            </View>
+            <View style={sparkStyles.dotDetailMetrics}>
+              {SPARK_METRICS.map((m) => {
+                const v = m.getValue(snap);
+                const mColor = m.color(colors);
+                return (
+                  <View key={m.key} style={sparkStyles.dotDetailMetric}>
+                    <Feather name={m.icon as 'tool'} size={11} color={mColor} />
+                    <Text style={[sparkStyles.dotDetailMetricLabel, { color: colors.mutedForeground }]}>{m.label}</Text>
+                    <Text style={[sparkStyles.dotDetailMetricValue, { color: mColor }]}>{m.formatValue(v)}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        );
+      })()}
 
       {/* X-axis labels: first and last date */}
       <View style={sparkStyles.xLabels}>
@@ -652,6 +699,14 @@ const sparkStyles = StyleSheet.create({
   summaryDivider: { width: 1, marginVertical: 4 },
   summaryLabel: { fontSize: 9, fontWeight: '600', letterSpacing: 0.5 },
   summaryValue: { fontSize: 14, fontWeight: '800' },
+  dotDetail: { marginHorizontal: 14, marginBottom: 8, borderRadius: 10, borderWidth: 1, padding: 10 },
+  dotDetailHeader: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 8 },
+  dotDetailDate: { flex: 1, fontSize: 10, fontWeight: '600' },
+  dotDetailClose: { padding: 2 },
+  dotDetailMetrics: { flexDirection: 'row', justifyContent: 'space-around' },
+  dotDetailMetric: { alignItems: 'center', gap: 3 },
+  dotDetailMetricLabel: { fontSize: 9, fontWeight: '600' },
+  dotDetailMetricValue: { fontSize: 13, fontWeight: '800' },
 });
 
 // ─── Skill Progress Chart ────────────────────────────────────────────────────
@@ -680,6 +735,7 @@ function SkillProgressChart({
   colors: ReturnType<typeof useColors>;
 }) {
   const [selectedSkill, setSelectedSkill] = useState<SkillType>('forge');
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   // Only snapshots that have skill data
   const skillSnapshots = useMemo(
@@ -737,6 +793,7 @@ function SkillProgressChart({
               activeOpacity={0.75}
               onPress={() => {
                 setSelectedSkill(sk);
+                setSelectedIdx(null);
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
               style={[
@@ -784,26 +841,80 @@ function SkillProgressChart({
           const dotBottom = frac * (SPARKLINE_H - SPARKLINE_DOT * 2) + SPARKLINE_DOT - SPARKLINE_DOT / 2;
           const leftPct = count === 1 ? 50 : (i / (count - 1)) * 100;
           const isLast = i === count - 1;
+          const isSelected = selectedIdx === i;
+          const dotSize = isSelected ? SPARKLINE_DOT + 5 : isLast ? SPARKLINE_DOT + 2 : SPARKLINE_DOT;
           return (
-            <View key={snap.timestamp} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: 0 }}>
+            <TouchableOpacity
+              key={snap.timestamp}
+              activeOpacity={0.7}
+              onPress={() => {
+                setSelectedIdx(selectedIdx === i ? null : i);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+              style={{
+                position: 'absolute',
+                left: `${leftPct}%` as `${number}%`,
+                bottom: dotBottom - 12,
+                width: 28,
+                height: 28,
+                marginLeft: -14,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
               <View
-                style={[
-                  scStyles.dot,
-                  {
-                    left: `${leftPct}%` as `${number}%`,
-                    bottom: dotBottom,
-                    backgroundColor: isLast ? dotColor : `${dotColor}99`,
-                    width: isLast ? SPARKLINE_DOT + 2 : SPARKLINE_DOT,
-                    height: isLast ? SPARKLINE_DOT + 2 : SPARKLINE_DOT,
-                    borderRadius: isLast ? (SPARKLINE_DOT + 2) / 2 : SPARKLINE_DOT / 2,
-                    marginLeft: isLast ? -(SPARKLINE_DOT + 2) / 2 : -SPARKLINE_DOT / 2,
-                  },
-                ]}
+                style={{
+                  width: dotSize,
+                  height: dotSize,
+                  borderRadius: dotSize / 2,
+                  backgroundColor: isSelected ? dotColor : isLast ? dotColor : `${dotColor}99`,
+                  borderWidth: isSelected ? 2 : 0,
+                  borderColor: '#fff',
+                }}
               />
-            </View>
+            </TouchableOpacity>
           );
         })}
       </View>
+
+      {/* Selected dot detail card */}
+      {selectedIdx !== null && skillSnapshots[selectedIdx] && (() => {
+        const snap = skillSnapshots[selectedIdx];
+        const date = new Date(snap.timestamp).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+        const skillVal = snap.skills?.[selectedSkill] ?? 1;
+        return (
+          <View style={[scStyles.dotDetail, { backgroundColor: colors.secondary, borderColor: dotColor }]}>
+            <View style={scStyles.dotDetailHeader}>
+              <Feather name="calendar" size={11} color={colors.mutedForeground} />
+              <Text style={[scStyles.dotDetailDate, { color: colors.mutedForeground }]}>{date}</Text>
+              <TouchableOpacity onPress={() => setSelectedIdx(null)} style={scStyles.dotDetailClose}>
+                <Feather name="x" size={12} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            </View>
+            <View style={scStyles.dotDetailBody}>
+              <Text style={[scStyles.dotDetailSkill, { color: dotColor }]}>
+                {SKILL_CHART_LABELS[selectedSkill]}
+              </Text>
+              <Text style={[scStyles.dotDetailValue, { color: dotColor }]}>Niv.{skillVal}</Text>
+            </View>
+            {snap.skills && (
+              <View style={scStyles.dotDetailAllSkills}>
+                {SKILL_TYPES_LIST.filter((sk) => sk !== selectedSkill).map((sk) => {
+                  const v = snap.skills?.[sk] ?? 1;
+                  const c = SKILL_CHART_COLORS[sk];
+                  return (
+                    <View key={sk} style={scStyles.dotDetailSkillChip}>
+                      <Feather name={(SKILL_ICONS[sk] ?? 'star') as 'tool'} size={9} color={c} />
+                      <Text style={[scStyles.dotDetailChipText, { color: colors.mutedForeground }]}>{SKILL_CHART_LABELS[sk]}</Text>
+                      <Text style={[scStyles.dotDetailChipVal, { color: c }]}>{v}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        );
+      })()}
 
       {/* X-axis labels */}
       <View style={scStyles.xLabels}>
@@ -870,6 +981,17 @@ const scStyles = StyleSheet.create({
   summaryDivider: { width: 1, marginVertical: 4 },
   summaryLabel: { fontSize: 9, fontWeight: '600', letterSpacing: 0.5 },
   summaryValue: { fontSize: 14, fontWeight: '800' },
+  dotDetail: { marginHorizontal: 14, marginBottom: 8, borderRadius: 10, borderWidth: 1, padding: 10 },
+  dotDetailHeader: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 6 },
+  dotDetailDate: { flex: 1, fontSize: 10, fontWeight: '600' },
+  dotDetailClose: { padding: 2 },
+  dotDetailBody: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  dotDetailSkill: { fontSize: 13, fontWeight: '800' },
+  dotDetailValue: { fontSize: 18, fontWeight: '800' },
+  dotDetailAllSkills: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
+  dotDetailSkillChip: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.05)' },
+  dotDetailChipText: { fontSize: 9, fontWeight: '600' },
+  dotDetailChipVal: { fontSize: 10, fontWeight: '800' },
 });
 
 // ─── Stats tab content ────────────────────────────────────────────────────────
