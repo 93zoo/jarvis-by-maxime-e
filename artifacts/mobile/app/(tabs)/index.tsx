@@ -416,6 +416,42 @@ function ForgeUpgradesModal({
   );
 }
 
+// ─── Avatar Circle ───────────────────────────────────────────────────────────
+function AvatarCircle({
+  color,
+  icon,
+  name,
+  size = 32,
+}: {
+  color?: string;
+  icon?: string | null;
+  name: string;
+  size?: number;
+}) {
+  const bgColor = color ?? '#F59E0B';
+  const initial = name.trim().charAt(0).toUpperCase() || '?';
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: bgColor,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {icon ? (
+        <Feather name={icon as React.ComponentProps<typeof Feather>['name']} size={Math.round(size * 0.5)} color="#fff" />
+      ) : (
+        <Text style={{ color: '#fff', fontSize: Math.round(size * 0.45), fontWeight: '800', lineHeight: Math.round(size * 0.55) }}>
+          {initial}
+        </Text>
+      )}
+    </View>
+  );
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function ForgeScreen() {
   const colors = useColors();
@@ -558,7 +594,7 @@ export default function ForgeScreen() {
         style={[styles.header, { paddingTop: headerTopPad + 12 }]}
       >
         <View style={styles.headerLeft}>
-          <Feather name="tool" size={20} color={colors.primary} />
+          <AvatarCircle color={player.avatarColor} icon={player.avatarIcon} name={player.name} size={34} />
           <View>
             <Text style={[styles.headerTitle, { color: colors.foreground }]}>LA FORGE</Text>
             {player.forgeName ? (
@@ -930,6 +966,14 @@ export default function ForgeScreen() {
                 +{selectedRecipe?.xpReward ?? 0} XP Forge  ·  +{selectedRecipe?.xpReward ?? 0} XP Joueur
               </Text>
 
+              {/* Forgeron attribution */}
+              <View style={[styles.resultAttribution, { backgroundColor: colors.secondary }]}>
+                <AvatarCircle color={player.avatarColor} icon={player.avatarIcon} name={player.name} size={24} />
+                <Text style={[styles.resultAttributionText, { color: colors.mutedForeground }]}>
+                  Forgé par <Text style={{ color: colors.foreground, fontWeight: '700' }}>{player.name}</Text>
+                </Text>
+              </View>
+
               <TouchableOpacity
                 style={[styles.collectBtn, { backgroundColor: qualityColor(craftedItem.quality, colors) }]}
                 onPress={() => {
@@ -1163,6 +1207,16 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 18, fontWeight: '800' },
   resultValue: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
   resultXP: { fontSize: 13, marginBottom: 20 },
+  resultAttribution: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 16,
+  },
+  resultAttributionText: { fontSize: 12 },
   collectBtn: {
     flexDirection: 'row',
     alignItems: 'center',
