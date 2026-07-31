@@ -1424,9 +1424,43 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const cost = recipeUnlockCost(recipe);
       if (skillLevel < recipe.levelRequired || state.player.gold < cost) return false;
       dispatch({ type: 'UNLOCK_RECIPE', recipeId, goldCost: cost });
+      // Immediately persist so the unlock and gold deduction survive an app crash
+      // between the dispatch and the next 30-second auto-save.
+      const updatedPlayer: Player = {
+        ...state.player,
+        gold: state.player.gold - cost,
+        unlockedRecipeIds: Array.from(new Set([
+          ...STARTER_RECIPE_IDS,
+          ...state.player.unlockedRecipeIds,
+          recipeId,
+        ])),
+      };
+      const immediteSave: SaveData = {
+        version: SAVE_VERSION,
+        player: updatedPlayer,
+        inventory: state.inventory,
+        craftedItems: state.craftedItems,
+        activeOrders: state.activeOrders,
+        completedQuestIds: state.completedQuestIds,
+        activeQuestIds: state.activeQuestIds,
+        questProgress: state.questProgress,
+        unlockedRegions: state.unlockedRegions,
+        regionExploration: state.regionExploration,
+        npcReputation: state.npcReputation,
+        marketPrices: state.marketPrices,
+        lastOrderGeneratedAt: state.lastOrderGeneratedAt,
+        forgeUpgrades: state.forgeUpgrades,
+        forgeHistory: state.forgeHistory,
+        sessionSnapshots: state.sessionSnapshots,
+        apprentice: state.apprentice,
+        lastSaved: Date.now(),
+      };
+      AsyncStorage.setItem(SAVE_KEY, JSON.stringify(immediteSave)).catch(() => {
+        // Silently ignored — the 30-second auto-save will catch it next cycle.
+      });
       return true;
     },
-    [state.player.gold, state.player.skills, state.player.unlockedRecipeIds],
+    [state],
   );
 
   // -------------------------------------------------------------------------
