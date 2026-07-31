@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  PanResponder,
   Platform,
   ScrollView,
   StyleSheet,
@@ -588,6 +589,28 @@ function LevelSparkline({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chartWidth]);
 
+  // ── Swipe navigation ────────────────────────────────────────────────────
+  const sparkCountRef = useRef(snapshots.length);
+  sparkCountRef.current = snapshots.length;
+  const sparkPanResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gs) =>
+        Math.abs(gs.dx) > Math.abs(gs.dy) && Math.abs(gs.dx) > 5,
+      onPanResponderRelease: (_, gs) => {
+        const c = sparkCountRef.current;
+        if (c <= 1 || Math.abs(gs.dx) < 20) return;
+        setSelectedIdx((prev) => {
+          // If nothing selected: left-swipe starts at index 0, right-swipe starts at last
+          const current = prev ?? (gs.dx < 0 ? -1 : c);
+          return gs.dx < 0
+            ? Math.min(current + 1, c - 1)
+            : Math.max(current - 1, 0);
+        });
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      },
+    })
+  ).current;
+
   if (snapshots.length === 0) {
     return (
       <View style={[sparkStyles.empty, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -651,10 +674,11 @@ function LevelSparkline({
         })}
       </View>
 
-      {/* Chart area */}
+      {/* Chart area — swipe left/right to step through sessions */}
       <View
         style={[sparkStyles.chart, { height: SPARKLINE_H }]}
         onLayout={(e) => setChartWidth(e.nativeEvent.layout.width)}
+        {...sparkPanResponder.panHandlers}
       >
         {/* Horizontal gridlines */}
         {[0, 0.5, 1].map((frac) => (
@@ -902,6 +926,27 @@ function SkillProgressChart({
 
   const dotColor = SKILL_CHART_COLORS[selectedSkill];
 
+  // ── Swipe navigation ────────────────────────────────────────────────────
+  const scCountRef = useRef(0);
+  scCountRef.current = skillSnapshots.length;
+  const scPanResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gs) =>
+        Math.abs(gs.dx) > Math.abs(gs.dy) && Math.abs(gs.dx) > 5,
+      onPanResponderRelease: (_, gs) => {
+        const c = scCountRef.current;
+        if (c <= 1 || Math.abs(gs.dx) < 20) return;
+        setSelectedIdx((prev) => {
+          const current = prev ?? (gs.dx < 0 ? -1 : c);
+          return gs.dx < 0
+            ? Math.min(current + 1, c - 1)
+            : Math.max(current - 1, 0);
+        });
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      },
+    })
+  ).current;
+
   if (skillSnapshots.length === 0) {
     return (
       <View style={[scStyles.empty, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -974,8 +1019,8 @@ function SkillProgressChart({
         })}
       </ScrollView>
 
-      {/* Chart area */}
-      <View style={[scStyles.chart, { height: SPARKLINE_H }]}>
+      {/* Chart area — swipe left/right to step through sessions */}
+      <View style={[scStyles.chart, { height: SPARKLINE_H }]} {...scPanResponder.panHandlers}>
         {/* Gridlines */}
         {[0, 0.5, 1].map((frac) => (
           <View
