@@ -51,6 +51,52 @@ function qualityLabel(q: Quality): string {
   }
 }
 
+/** Score threshold needed to reliably achieve each quality (mirrors qualityFromScore). */
+const QUALITY_SCORE_THRESHOLD: Record<Quality, number> = {
+  poor: 0, normal: 40, good: 60, excellent: 80, legendary: 95,
+};
+
+/**
+ * How achievable is the required quality given the player's current forge skill?
+ * Uses the same base-score formula as the crafting engine:
+ *   typicalScore = 30 + floor(forgeSkill × 0.7)
+ * Returns:
+ *   'reachable'   – typical score already meets the threshold (green)
+ *   'stretch'     – a good roll (≤20 pts above typical) could meet it (orange)
+ *   'unreachable' – very unlikely without significant skill gains (red)
+ */
+function qualityReachability(minQuality: Quality, forgeSkill: number): 'reachable' | 'stretch' | 'unreachable' {
+  const typicalScore = 30 + Math.floor(forgeSkill * 0.7);
+  const threshold = QUALITY_SCORE_THRESHOLD[minQuality] ?? 0;
+  if (typicalScore >= threshold) return 'reachable';
+  if (typicalScore + 20 >= threshold) return 'stretch';
+  return 'unreachable';
+}
+
+function reachabilityColor(r: 'reachable' | 'stretch' | 'unreachable'): string {
+  switch (r) {
+    case 'reachable': return '#2E7D32';   // dark green
+    case 'stretch': return '#E65100';     // dark orange
+    case 'unreachable': return '#B71C1C'; // dark red
+  }
+}
+
+function reachabilityBgColor(r: 'reachable' | 'stretch' | 'unreachable'): string {
+  switch (r) {
+    case 'reachable': return '#E8F5E9';
+    case 'stretch': return '#FFF3E0';
+    case 'unreachable': return '#FFEBEE';
+  }
+}
+
+function reachabilityLabel(r: 'reachable' | 'stretch' | 'unreachable'): string {
+  switch (r) {
+    case 'reachable': return '✓ Réalisable';
+    case 'stretch': return '~ Difficile';
+    case 'unreachable': return '✗ Hors portée';
+  }
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface CraftSession {
   recipeId: string;
@@ -99,7 +145,11 @@ const oStyles = StyleSheet.create({
   rewardBadge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
   rewardText: { fontSize: 14, fontWeight: '700' },
   orderRequest: { fontSize: 13, fontWeight: '600', marginBottom: 3 },
-  orderMeta: { fontSize: 11, marginBottom: 10 },
+  orderMeta: { fontSize: 11, marginBottom: 6 },
+  orderMetaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
+  qualityBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, gap: 3 },
+  qualityBadgeText: { fontSize: 10, fontWeight: '700' },
+  qualityBadgeLabel: { fontSize: 10, fontWeight: '600' },
   orderBtns: { flexDirection: 'row', gap: 10 },
   btnAccept: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 },
   btnRefuse: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center', borderWidth: 1 },
@@ -246,8 +296,30 @@ function OrdersModal({
                     </View>
                     <Text style={[oStyles.orderRequest, { color: colors.foreground }]}>Commande : {order.requestedName}</Text>
                     <Text style={[oStyles.orderMeta, { color: colors.mutedForeground }]}>
-                      Catégorie : {order.requestedCategory} · Qualité min. : {order.minQuality} · +{order.xpReward} XP
+                      {order.requestedCategory} · +{order.xpReward} XP
                     </Text>
+                    {(() => {
+                      const reach = qualityReachability(order.minQuality, game.player.skills.forge ?? 1);
+                      const bgColor = reachabilityBgColor(reach);
+                      const fgColor = reachabilityColor(reach);
+                      return (
+                        <View style={oStyles.orderMetaRow}>
+                          <Text style={[oStyles.orderMeta, { color: colors.mutedForeground, marginBottom: 0 }]}>
+                            Qualité min. :
+                          </Text>
+                          <View style={[oStyles.qualityBadge, { backgroundColor: bgColor }]}>
+                            <Text style={[oStyles.qualityBadgeText, { color: fgColor }]}>
+                              {qualityLabel(order.minQuality)}
+                            </Text>
+                          </View>
+                          <View style={[oStyles.qualityBadge, { backgroundColor: bgColor + 'CC' }]}>
+                            <Text style={[oStyles.qualityBadgeLabel, { color: fgColor }]}>
+                              {reachabilityLabel(reach)}
+                            </Text>
+                          </View>
+                        </View>
+                      );
+                    })()}
                     {!expired && (
                       <View style={oStyles.orderBtns}>
                         {!order.accepted ? (
