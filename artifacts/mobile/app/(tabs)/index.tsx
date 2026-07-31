@@ -28,6 +28,7 @@ import ForgeScene3D, { CraftPhase, ForgeScene3DRef } from '@/components/ForgeSce
 import HammeringMiniGame, { HitLabel } from '@/components/HammeringMiniGame';
 import WeatherEffect, { WeatherType } from '@/components/WeatherEffect';
 import AudioManager from '@/utils/AudioManager';
+import { applyStoredAudioSettings } from '@/utils/audioSettings';
 
 // ─── Quality helpers ─────────────────────────────────────────────────────────
 function qualityColor(q: Quality, colors: ReturnType<typeof useColors>): string {
@@ -492,6 +493,8 @@ export default function ForgeScreen() {
   // Init audio on mount + weather cycle + forge ambience
   useEffect(() => {
     AudioManager.init();
+    // Restore saved mute/volume before starting ambience
+    applyStoredAudioSettings();
     // Start the looping fire-crackle ambience when the forge tab is entered
     AudioManager.startForgeAmbience();
 

@@ -55,6 +55,8 @@ class AudioManagerClass {
 
   private muted = false;
   private volume = 0.35;
+  /** User-facing volume level 0–1 (before the internal 0.35 ceiling). */
+  private volumeLevel = 1.0;
 
   // Forge ambience nodes (fire crackle loop)
   private ambienceSource: AudioBufferSourceNode | null = null;
@@ -411,10 +413,21 @@ class AudioManagerClass {
   }
 
   setVolume(vol: number): void {
-    this.volume = Math.max(0, Math.min(1, vol)) * 0.35;
+    this.volumeLevel = Math.max(0, Math.min(1, vol));
+    this.volume = this.volumeLevel * 0.35;
     if (this.masterGain) {
       this.masterGain.gain.value = this.muted ? 0 : this.volume;
     }
+    if (Platform.OS !== 'web') {
+      Object.values(this.avSounds).forEach((sound) => {
+        try { sound?.setVolumeAsync(this.muted ? 0 : this.volume); } catch { /* ignore */ }
+      });
+    }
+  }
+
+  /** Returns the user-facing volume level 0–1. */
+  getVolume(): number {
+    return this.volumeLevel;
   }
 }
 

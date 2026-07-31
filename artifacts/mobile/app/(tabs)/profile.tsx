@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -27,6 +27,8 @@ import * as Haptics from 'expo-haptics';
 import { useGame } from '@/context/GameContext';
 import { useAchievements } from '@/context/AchievementContext';
 import { useColors } from '@/hooks/useColors';
+import AudioManager from '@/utils/AudioManager';
+import { saveAudioSettings } from '@/utils/audioSettings';
 import type { Achievement, ForgeHistoryEntry, SessionSnapshot, SkillData, SkillType, TalentData } from '@/types/game';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -1196,6 +1198,135 @@ const scStyles = StyleSheet.create({
   dotDetailChipVal: { fontSize: 10, fontWeight: '800' },
 });
 
+// ─── Audio Settings Card ──────────────────────────────────────────────────────
+function AudioSettingsCard({ colors }: { colors: ReturnType<typeof useColors> }) {
+  const [muted, setMuted] = useState(() => AudioManager.isMuted());
+  const [volume, setVolume] = useState(() => AudioManager.getVolume());
+  // Use refs so the PanResponder closure always reads the latest values
+  const trackWidthRef = useRef(0);
+  const volumeRef = useRef(volume);
+  volumeRef.current = volume;
+
+  // Persist to AsyncStorage whenever settings change
+  const persist = useCallback((newMuted: boolean, newVolume: number) => {
+    saveAudioSettings({ muted: newMuted, volume: newVolume });
+  }, []);
+
+  const handleToggleMute = () => {
+    const next = !muted;
+    setMuted(next);
+    AudioManager.setMuted(next);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    persist(next, volumeRef.current);
+  };
+
+  const applyVolumeFromX = (x: number) => {
+    const w = trackWidthRef.current;
+    if (w <= 0) return;
+    const newVol = Math.max(0, Math.min(1, x / w));
+    setVolume(newVol);
+    volumeRef.current = newVol;
+    AudioManager.setVolume(newVol);
+    if (AudioManager.isMuted()) {
+      setMuted(false);
+      AudioManager.setMuted(false);
+    }
+  };
+
+  // Volume slider via PanResponder on the track
+  const sliderPan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (evt) => applyVolumeFromX(evt.nativeEvent.locationX),
+      onPanResponderMove: (evt) => applyVolumeFromX(evt.nativeEvent.locationX),
+      onPanResponderRelease: () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        persist(AudioManager.isMuted(), volumeRef.current);
+      },
+    })
+  ).current;
+
+  const effectiveVolume = muted ? 0 : volume;
+  const volumeIcon: 'volume-x' | 'volume-1' | 'volume-2' =
+    muted || volume === 0 ? 'volume-x' : volume < 0.5 ? 'volume-1' : 'volume-2';
+
+  return (
+    <View style={[audioStyles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      {/* Mute toggle row */}
+      <View style={audioStyles.row}>
+        <View style={[audioStyles.iconWrap, { backgroundColor: colors.primary + '22' }]}>
+          <Feather name={volumeIcon} size={18} color={colors.primary} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[audioStyles.label, { color: colors.foreground }]}>Son du jeu</Text>
+          <Text style={[audioStyles.sublabel, { color: colors.mutedForeground }]}>
+            {muted ? 'Son désactivé' : `Volume : ${Math.round(volume * 100)}%`}
+          </Text>
+        </View>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={handleToggleMute}
+          style={[
+            audioStyles.muteBtn,
+            { backgroundColor: muted ? '#EF535022' : colors.primary + '22', borderColor: muted ? '#EF5350' : colors.primary },
+          ]}
+        >
+          <Text style={[audioStyles.muteBtnText, { color: muted ? '#EF5350' : colors.primary }]}>
+            {muted ? 'Activer' : 'Couper'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Volume slider */}
+      <View style={audioStyles.sliderRow}>
+        <Feather name="volume" size={12} color={colors.mutedForeground} />
+        <View
+          style={[audioStyles.track, { backgroundColor: colors.muted }]}
+          onLayout={(e) => { trackWidthRef.current = e.nativeEvent.layout.width; }}
+          {...sliderPan.panHandlers}
+        >
+          <View
+            style={[
+              audioStyles.fill,
+              {
+                width: `${Math.round(effectiveVolume * 100)}%` as `${number}%`,
+                backgroundColor: muted ? colors.mutedForeground : colors.primary,
+              },
+            ]}
+          />
+          {/* Thumb */}
+          <View
+            pointerEvents="none"
+            style={[
+              audioStyles.thumb,
+              {
+                left: `${Math.round(effectiveVolume * 100)}%` as `${number}%`,
+                backgroundColor: muted ? colors.mutedForeground : colors.primary,
+              },
+            ]}
+          />
+        </View>
+        <Feather name="volume-2" size={12} color={colors.mutedForeground} />
+      </View>
+    </View>
+  );
+}
+
+const audioStyles = StyleSheet.create({
+  card: { borderRadius: 14, borderWidth: 1, marginBottom: 16, padding: 14, gap: 14 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  iconWrap: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  label: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
+  sublabel: { fontSize: 11 },
+  muteBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
+  muteBtnText: { fontSize: 12, fontWeight: '700' },
+  sliderRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  track: { flex: 1, height: 10, borderRadius: 5, overflow: 'visible', position: 'relative', justifyContent: 'center' },
+  fill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 5, minWidth: 4 },
+  thumb: { position: 'absolute', width: 18, height: 18, borderRadius: 9, marginLeft: -9, top: -4, borderWidth: 2, borderColor: '#fff' },
+});
+
 // ─── Stats tab content ────────────────────────────────────────────────────────
 const SKILL_COLORS: Record<SkillType, string> = {
   forge: '#D4851A', extraction: '#7A7A8C', commerce: '#D4AF37',
@@ -2252,6 +2383,8 @@ export default function ProfileScreen() {
         {/* ── Stats tab ── */}
         {activeTab === 'stats' && (
           <>
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>AUDIO</Text>
+            <AudioSettingsCard colors={colors} />
             <StatsTabContent colors={colors} game={game} />
             <TouchableOpacity style={[styles.resetBtn, { borderColor: '#C0392B' }]} onPress={handleReset}>
               <Feather name="refresh-cw" size={15} color="#C0392B" />
