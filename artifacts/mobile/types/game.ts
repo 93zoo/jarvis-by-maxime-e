@@ -69,6 +69,8 @@ export interface Player {
   avatarColor?: string;
   /** Feather icon name shown in the avatar circle. Null/absent = show initials. */
   avatarIcon?: string | null;
+  /** Preset avatar illustration key (e.g. 'knight', 'mage'). When set, overrides color+icon display. */
+  avatarImage?: string | null;
 }
 
 // ── Achievement system ────────────────────────────────────────────────────────

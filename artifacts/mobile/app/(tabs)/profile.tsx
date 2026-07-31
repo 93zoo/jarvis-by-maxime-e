@@ -1227,6 +1227,70 @@ const AVATAR_ICONS: { icon: string | null; label: string }[] = [
   { icon: 'anchor',   label: 'Ancre' },
 ];
 
+// ─── Avatar Illustrations ─────────────────────────────────────────────────────
+export interface AvatarPreset {
+  id: string;
+  label: string;
+  emoji: string;
+  bg: string;
+  accent: string;
+}
+
+export const AVATAR_PRESETS: AvatarPreset[] = [
+  { id: 'dwarf',    label: 'Nain',      emoji: '⚒️', bg: '#5C3317', accent: '#D4851A' },
+  { id: 'elf',      label: 'Elfe',      emoji: '🏹', bg: '#1B4332', accent: '#52B788' },
+  { id: 'knight',   label: 'Chevalier', emoji: '⚔️', bg: '#1A2744', accent: '#6EA8FE' },
+  { id: 'merchant', label: 'Marchand',  emoji: '🪙', bg: '#4A3200', accent: '#D4AF37' },
+  { id: 'mage',     label: 'Mage',      emoji: '🔮', bg: '#2D1B4E', accent: '#C084FC' },
+  { id: 'warrior',  label: 'Guerrier',  emoji: '🛡️', bg: '#3B0A0A', accent: '#F87171' },
+  { id: 'rogue',    label: 'Rôdeur',    emoji: '🗡️', bg: '#141A2E', accent: '#94A3B8' },
+  { id: 'paladin',  label: 'Paladin',   emoji: '✨', bg: '#0C2340', accent: '#7DD3FC' },
+];
+
+// ─── AvatarDisplay ────────────────────────────────────────────────────────────
+// Renders either a preset illustration or the legacy color+icon/initials avatar.
+function AvatarDisplay({
+  avatarImage,
+  avatarColor,
+  avatarIcon,
+  initials,
+  size,
+}: {
+  avatarImage?: string | null;
+  avatarColor?: string;
+  avatarIcon?: string | null;
+  initials: string;
+  size: number;
+}) {
+  const preset = avatarImage ? AVATAR_PRESETS.find((p) => p.id === avatarImage) : null;
+  const radius = size / 2;
+  if (preset) {
+    return (
+      <View style={{
+        width: size, height: size, borderRadius: radius,
+        backgroundColor: preset.bg,
+        justifyContent: 'center', alignItems: 'center',
+        borderWidth: 2, borderColor: preset.accent + '88',
+      }}>
+        <Text style={{ fontSize: size * 0.46, lineHeight: size * 0.56 }}>{preset.emoji}</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={{
+      width: size, height: size, borderRadius: radius,
+      backgroundColor: avatarColor ?? '#D4851A',
+      justifyContent: 'center', alignItems: 'center',
+    }}>
+      {avatarIcon ? (
+        <Feather name={avatarIcon as 'tool'} size={size * 0.46} color="#fff" />
+      ) : (
+        <Text style={{ fontSize: size * 0.38, fontWeight: '800', color: '#fff' }}>{initials}</Text>
+      )}
+    </View>
+  );
+}
+
 // ─── Forge name suggestion pool ──────────────────────────────────────────────
 const FORGE_NAME_POOL: string[] = [
   "Forge de l'Aigle", "L'Enclume d'Or", "Atelier du Coucou",
@@ -1256,6 +1320,7 @@ function CustomizeModal({
   initialForgeName,
   initialAvatarColor,
   initialAvatarIcon,
+  initialAvatarImage,
   onSave,
   onClose,
   colors,
@@ -1265,7 +1330,8 @@ function CustomizeModal({
   initialForgeName: string;
   initialAvatarColor?: string;
   initialAvatarIcon?: string | null;
-  onSave: (name: string, forgeName: string, avatarColor: string, avatarIcon: string | null) => void;
+  initialAvatarImage?: string | null;
+  onSave: (name: string, forgeName: string, avatarColor: string, avatarIcon: string | null, avatarImage: string | null) => void;
   onClose: () => void;
   colors: ReturnType<typeof useColors>;
 }) {
@@ -1273,6 +1339,7 @@ function CustomizeModal({
   const [forgeName, setForgeName] = useState(initialForgeName);
   const [avatarColor, setAvatarColor] = useState(initialAvatarColor ?? AVATAR_COLORS[0].color);
   const [avatarIcon, setAvatarIcon] = useState<string | null>(initialAvatarIcon ?? null);
+  const [avatarImage, setAvatarImage] = useState<string | null>(initialAvatarImage ?? null);
   const nameRef = useRef(initialName);
   const forgeNameRef = useRef(initialForgeName);
   const [suggestions, setSuggestions] = useState<string[]>(() => pickSuggestions(4));
@@ -1284,11 +1351,12 @@ function CustomizeModal({
       setForgeName(initialForgeName);
       setAvatarColor(initialAvatarColor ?? AVATAR_COLORS[0].color);
       setAvatarIcon(initialAvatarIcon ?? null);
+      setAvatarImage(initialAvatarImage ?? null);
       nameRef.current = initialName;
       forgeNameRef.current = initialForgeName;
       setSuggestions(pickSuggestions(4));
     }
-  }, [visible, initialName, initialForgeName, initialAvatarColor, initialAvatarIcon]);
+  }, [visible, initialName, initialForgeName, initialAvatarColor, initialAvatarIcon, initialAvatarImage]);
 
   const nameValid = name.trim().length >= 2 && name.trim().length <= 24;
   const forgeNameValid = forgeName.trim().length >= 2 && forgeName.trim().length <= 32;
@@ -1297,7 +1365,7 @@ function CustomizeModal({
   const handleSave = () => {
     if (!canSave) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    onSave(name.trim(), forgeName.trim(), avatarColor, avatarIcon);
+    onSave(name.trim(), forgeName.trim(), avatarColor, avatarIcon, avatarImage);
     onClose();
   };
 
@@ -1329,13 +1397,13 @@ function CustomizeModal({
 
             {/* ── Avatar preview ── */}
             <View style={cmStyles.avatarPreviewRow}>
-              <View style={[cmStyles.avatarPreviewCircle, { backgroundColor: avatarColor }]}>
-                {avatarIcon ? (
-                  <Feather name={avatarIcon as 'tool'} size={26} color="#fff" />
-                ) : (
-                  <Text style={cmStyles.avatarPreviewInitials}>{initials}</Text>
-                )}
-              </View>
+              <AvatarDisplay
+                avatarImage={avatarImage}
+                avatarColor={avatarColor}
+                avatarIcon={avatarIcon}
+                initials={initials}
+                size={56}
+              />
               <View style={{ flex: 1 }}>
                 <Text style={[cmStyles.avatarPreviewName, { color: colors.foreground }]} numberOfLines={1}>
                   {name.trim() || '—'}
@@ -1346,8 +1414,56 @@ function CustomizeModal({
               </View>
             </View>
 
-            {/* ── Avatar color picker ── */}
-            <Text style={[cmStyles.fieldLabel, { color: colors.foreground, marginBottom: 8 }]}>Couleur de l'avatar</Text>
+            {/* ── Avatar illustration picker ── */}
+            <Text style={[cmStyles.fieldLabel, { color: colors.foreground, marginBottom: 8 }]}>Illustration</Text>
+            <View style={cmStyles.illustrationGrid}>
+              {/* "None" option — use color + icon instead */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => { setAvatarImage(null); Haptics.selectionAsync(); }}
+                style={[
+                  cmStyles.illustrationSwatch,
+                  {
+                    backgroundColor: colors.secondary,
+                    borderColor: avatarImage === null ? colors.primary : colors.border,
+                    borderWidth: avatarImage === null ? 2.5 : 1.5,
+                  },
+                ]}
+              >
+                <Feather name="x" size={14} color={avatarImage === null ? colors.primary : colors.mutedForeground} />
+                <Text style={[cmStyles.illustrationLabel, { color: avatarImage === null ? colors.primary : colors.mutedForeground }]}>
+                  Aucune
+                </Text>
+              </TouchableOpacity>
+              {AVATAR_PRESETS.map((preset) => {
+                const selected = avatarImage === preset.id;
+                return (
+                  <TouchableOpacity
+                    key={preset.id}
+                    activeOpacity={0.8}
+                    onPress={() => { setAvatarImage(preset.id); Haptics.selectionAsync(); }}
+                    style={[
+                      cmStyles.illustrationSwatch,
+                      {
+                        backgroundColor: preset.bg,
+                        borderColor: selected ? preset.accent : 'transparent',
+                        borderWidth: selected ? 2.5 : 1.5,
+                      },
+                    ]}
+                  >
+                    <Text style={{ fontSize: 22, lineHeight: 28 }}>{preset.emoji}</Text>
+                    <Text style={[cmStyles.illustrationLabel, { color: selected ? preset.accent : '#ffffff99' }]}>
+                      {preset.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* ── Avatar color picker (shown only when no illustration selected) ── */}
+            <Text style={[cmStyles.fieldLabel, { color: avatarImage ? colors.mutedForeground : colors.foreground, marginBottom: 8, marginTop: 14 }]}>
+              Couleur de l'avatar {avatarImage ? '(désactivé)' : ''}
+            </Text>
             <View style={cmStyles.colorGrid}>
               {AVATAR_COLORS.map(({ color, label }) => (
                 <TouchableOpacity
@@ -1367,9 +1483,11 @@ function CustomizeModal({
               ))}
             </View>
 
-            {/* ── Avatar icon picker ── */}
-            <Text style={[cmStyles.fieldLabel, { color: colors.foreground, marginTop: 14, marginBottom: 8 }]}>Icône de l'avatar</Text>
-            <View style={cmStyles.iconGrid}>
+            {/* ── Avatar icon picker (shown only when no illustration) ── */}
+            <Text style={[cmStyles.fieldLabel, { color: avatarImage ? colors.mutedForeground : colors.foreground, marginTop: 14, marginBottom: 8 }]}>
+              Icône de l'avatar {avatarImage ? '(désactivé)' : ''}
+            </Text>
+            <View style={[cmStyles.iconGrid, { opacity: avatarImage ? 0.35 : 1 }]}>
               {AVATAR_ICONS.map(({ icon, label }) => {
                 const selected = avatarIcon === icon;
                 return (
@@ -1496,6 +1614,10 @@ const cmStyles = StyleSheet.create({
   avatarPreviewInitials: { fontSize: 22, fontWeight: '800', color: '#fff' },
   avatarPreviewName: { fontSize: 16, fontWeight: '700', marginBottom: 2 },
   avatarPreviewForge: { fontSize: 11 },
+  // Illustration picker
+  illustrationGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  illustrationSwatch: { width: 72, height: 62, borderRadius: 12, justifyContent: 'center', alignItems: 'center', gap: 2 },
+  illustrationLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 0.3 },
   // Color picker
   colorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   colorSwatch: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
@@ -1608,13 +1730,13 @@ export default function ProfileScreen() {
         style={[styles.playerCard, { borderColor: colors.border }]}
       >
         <View style={styles.playerCardTop}>
-          <View style={[styles.avatar, { backgroundColor: player.avatarColor ?? colors.primary }]}>
-            {player.avatarIcon ? (
-              <Feather name={player.avatarIcon as 'tool'} size={24} color="#fff" />
-            ) : (
-              <Text style={[styles.avatarText, { color: '#fff' }]}>{initials}</Text>
-            )}
-          </View>
+          <AvatarDisplay
+            avatarImage={player.avatarImage}
+            avatarColor={player.avatarColor ?? colors.primary}
+            avatarIcon={player.avatarIcon}
+            initials={initials}
+            size={52}
+          />
           <View style={styles.playerInfo}>
             <Text style={[styles.playerName, { color: colors.foreground }]}>{player.name}</Text>
             <Text style={[styles.playerTitle, { color: colors.primary }]}>
@@ -1788,7 +1910,8 @@ export default function ProfileScreen() {
         initialForgeName={player.forgeName ?? 'La Forge du Débutant'}
         initialAvatarColor={player.avatarColor}
         initialAvatarIcon={player.avatarIcon}
-        onSave={(name, forgeName, avatarColor, avatarIcon) => game.customizePlayer(name, forgeName, avatarColor, avatarIcon)}
+        initialAvatarImage={player.avatarImage}
+        onSave={(name, forgeName, avatarColor, avatarIcon, avatarImage) => game.customizePlayer(name, forgeName, avatarColor, avatarIcon, avatarImage)}
         onClose={() => setShowCustomize(false)}
         colors={colors}
       />
