@@ -611,6 +611,224 @@ const sparkStyles = StyleSheet.create({
   summaryValue: { fontSize: 14, fontWeight: '800' },
 });
 
+// ─── Skill Progress Chart ────────────────────────────────────────────────────
+const SKILL_CHART_COLORS: Record<SkillType, string> = {
+  forge: '#D4851A', extraction: '#7A7A8C', commerce: '#D4AF37',
+  construction: '#8B6B3D', enchantment: '#9966CC', cooking: '#E67E22',
+  harvest: '#4CAF50', combat: '#EF5350',
+};
+
+const SKILL_CHART_LABELS: Record<SkillType, string> = {
+  forge: 'Forge', extraction: 'Extrac.', commerce: 'Commerce',
+  construction: 'Constr.', enchantment: 'Enchant.', cooking: 'Cuisine',
+  harvest: 'Récolte', combat: 'Combat',
+};
+
+const SKILL_TYPES_LIST: SkillType[] = [
+  'forge', 'extraction', 'commerce', 'construction',
+  'enchantment', 'cooking', 'harvest', 'combat',
+];
+
+function SkillProgressChart({
+  snapshots,
+  colors,
+}: {
+  snapshots: SessionSnapshot[];
+  colors: ReturnType<typeof useColors>;
+}) {
+  const [selectedSkill, setSelectedSkill] = useState<SkillType>('forge');
+
+  // Only snapshots that have skill data
+  const skillSnapshots = useMemo(
+    () => snapshots.filter((s) => s.skills != null),
+    [snapshots],
+  );
+
+  const dotColor = SKILL_CHART_COLORS[selectedSkill];
+
+  if (skillSnapshots.length === 0) {
+    return (
+      <View style={[scStyles.empty, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Feather name="bar-chart-2" size={20} color={colors.mutedForeground} />
+        <Text style={[scStyles.emptyText, { color: colors.mutedForeground }]}>
+          Sauvegardez votre partie pour commencer à tracer la progression des compétences
+        </Text>
+      </View>
+    );
+  }
+
+  const values = skillSnapshots.map((s) => (s.skills?.[selectedSkill] ?? 1));
+  const minVal = Math.min(...values);
+  const maxVal = Math.max(...values);
+  const padding = Math.max(1, Math.round((maxVal - minVal) * 0.1));
+  const lo = Math.max(0, minVal - padding);
+  const hi = maxVal + padding;
+  const range = hi - lo || 1;
+  const count = skillSnapshots.length;
+
+  return (
+    <View style={[scStyles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      {/* Title row */}
+      <View style={scStyles.titleRow}>
+        <Text style={[scStyles.title, { color: colors.foreground }]}>PAR COMPÉTENCE</Text>
+        <View style={[scStyles.badge, { backgroundColor: `${dotColor}22` }]}>
+          <Text style={[scStyles.badgeText, { color: dotColor }]}>
+            {count} session{count !== 1 ? 's' : ''}
+          </Text>
+        </View>
+      </View>
+
+      {/* Skill selector */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={scStyles.selectorScroll}
+        contentContainerStyle={scStyles.selectorContent}
+      >
+        {SKILL_TYPES_LIST.map((sk) => {
+          const active = sk === selectedSkill;
+          const skColor = SKILL_CHART_COLORS[sk];
+          return (
+            <TouchableOpacity
+              key={sk}
+              activeOpacity={0.75}
+              onPress={() => {
+                setSelectedSkill(sk);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+              style={[
+                scStyles.skillBtn,
+                {
+                  backgroundColor: active ? `${skColor}22` : 'transparent',
+                  borderColor: active ? skColor : colors.border,
+                },
+              ]}
+            >
+              <Feather
+                name={(SKILL_ICONS[sk] ?? 'star') as 'tool'}
+                size={10}
+                color={active ? skColor : colors.mutedForeground}
+              />
+              <Text style={[scStyles.skillBtnText, { color: active ? skColor : colors.mutedForeground }]}>
+                {SKILL_CHART_LABELS[sk]}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* Chart area */}
+      <View style={[scStyles.chart, { height: SPARKLINE_H }]}>
+        {/* Gridlines */}
+        {[0, 0.5, 1].map((frac) => (
+          <View
+            key={frac}
+            pointerEvents="none"
+            style={[
+              scStyles.gridLine,
+              {
+                bottom: frac * (SPARKLINE_H - SPARKLINE_DOT * 2) + SPARKLINE_DOT - 1,
+                backgroundColor: colors.border,
+              },
+            ]}
+          />
+        ))}
+
+        {/* Dots */}
+        {skillSnapshots.map((snap, i) => {
+          const val = snap.skills?.[selectedSkill] ?? 1;
+          const frac = (val - lo) / range;
+          const dotBottom = frac * (SPARKLINE_H - SPARKLINE_DOT * 2) + SPARKLINE_DOT - SPARKLINE_DOT / 2;
+          const leftPct = count === 1 ? 50 : (i / (count - 1)) * 100;
+          const isLast = i === count - 1;
+          return (
+            <View key={snap.timestamp} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: 0 }}>
+              <View
+                style={[
+                  scStyles.dot,
+                  {
+                    left: `${leftPct}%` as `${number}%`,
+                    bottom: dotBottom,
+                    backgroundColor: isLast ? dotColor : `${dotColor}99`,
+                    width: isLast ? SPARKLINE_DOT + 2 : SPARKLINE_DOT,
+                    height: isLast ? SPARKLINE_DOT + 2 : SPARKLINE_DOT,
+                    borderRadius: isLast ? (SPARKLINE_DOT + 2) / 2 : SPARKLINE_DOT / 2,
+                    marginLeft: isLast ? -(SPARKLINE_DOT + 2) / 2 : -SPARKLINE_DOT / 2,
+                  },
+                ]}
+              />
+            </View>
+          );
+        })}
+      </View>
+
+      {/* X-axis labels */}
+      <View style={scStyles.xLabels}>
+        <Text style={[scStyles.xLabel, { color: colors.mutedForeground }]}>
+          {new Date(skillSnapshots[0].timestamp).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+        </Text>
+        {skillSnapshots.length > 1 && (
+          <Text style={[scStyles.xLabel, { color: colors.mutedForeground }]}>
+            {new Date(skillSnapshots[skillSnapshots.length - 1].timestamp).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+          </Text>
+        )}
+      </View>
+
+      {/* Y-axis labels */}
+      <View style={scStyles.yLabels}>
+        <Text style={[scStyles.yLabel, { color: colors.mutedForeground }]}>Niv.{maxVal}</Text>
+        <Text style={[scStyles.yLabel, { color: colors.mutedForeground }]}>Niv.{minVal}</Text>
+      </View>
+
+      {/* Summary */}
+      <View style={[scStyles.summaryRow, { borderTopColor: colors.border }]}>
+        <View style={scStyles.summaryItem}>
+          <Text style={[scStyles.summaryLabel, { color: colors.mutedForeground }]}>Départ</Text>
+          <Text style={[scStyles.summaryValue, { color: colors.foreground }]}>Niv.{values[0]}</Text>
+        </View>
+        <View style={[scStyles.summaryDivider, { backgroundColor: colors.border }]} />
+        <View style={scStyles.summaryItem}>
+          <Text style={[scStyles.summaryLabel, { color: colors.mutedForeground }]}>Actuel</Text>
+          <Text style={[scStyles.summaryValue, { color: dotColor }]}>Niv.{values[count - 1]}</Text>
+        </View>
+        <View style={[scStyles.summaryDivider, { backgroundColor: colors.border }]} />
+        <View style={scStyles.summaryItem}>
+          <Text style={[scStyles.summaryLabel, { color: colors.mutedForeground }]}>Progression</Text>
+          <Text style={[scStyles.summaryValue, { color: values[count - 1] > values[0] ? '#4CAF50' : colors.foreground }]}>
+            {values[count - 1] - values[0] >= 0 ? '+' : ''}{values[count - 1] - values[0]} niv.
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const scStyles = StyleSheet.create({
+  empty: { borderRadius: 14, borderWidth: 1, padding: 20, alignItems: 'center', gap: 8, marginBottom: 16 },
+  emptyText: { fontSize: 12, textAlign: 'center', lineHeight: 17 },
+  container: { borderRadius: 14, borderWidth: 1, marginBottom: 16, overflow: 'hidden' },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 12, marginBottom: 6 },
+  title: { fontSize: 11, fontWeight: '800', letterSpacing: 1.5 },
+  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  badgeText: { fontSize: 10, fontWeight: '700' },
+  selectorScroll: { marginBottom: 8 },
+  selectorContent: { flexDirection: 'row', gap: 6, paddingHorizontal: 14 },
+  skillBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
+  skillBtnText: { fontSize: 10, fontWeight: '700' },
+  chart: { marginHorizontal: 14, marginBottom: 4, position: 'relative' },
+  gridLine: { position: 'absolute', left: 0, right: 0, height: 1, opacity: 0.4 },
+  dot: { position: 'absolute' },
+  xLabels: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 14, marginBottom: 4 },
+  xLabel: { fontSize: 9, fontWeight: '600' },
+  yLabels: { position: 'absolute', right: 14, top: 56, justifyContent: 'space-between', height: SPARKLINE_H, gap: 0, flexDirection: 'column' },
+  yLabel: { fontSize: 9, fontWeight: '600', lineHeight: 12 },
+  summaryRow: { flexDirection: 'row', borderTopWidth: 1, paddingVertical: 10 },
+  summaryItem: { flex: 1, alignItems: 'center', gap: 2 },
+  summaryDivider: { width: 1, marginVertical: 4 },
+  summaryLabel: { fontSize: 9, fontWeight: '600', letterSpacing: 0.5 },
+  summaryValue: { fontSize: 14, fontWeight: '800' },
+});
+
 // ─── Stats tab content ────────────────────────────────────────────────────────
 const SKILL_COLORS: Record<SkillType, string> = {
   forge: '#D4851A', extraction: '#7A7A8C', commerce: '#D4AF37',
@@ -716,6 +934,10 @@ function StatsTabContent({ colors, game }: { colors: ReturnType<typeof useColors
       {/* ── Level progression sparkline ── */}
       <Text style={[stStyles.sectionHeader, { color: colors.foreground }]}>ÉVOLUTION DU NIVEAU</Text>
       <LevelSparkline snapshots={sessionSnapshots} colors={colors} />
+
+      {/* ── Skill progression chart ── */}
+      <Text style={[stStyles.sectionHeader, { color: colors.foreground }]}>PAR COMPÉTENCE</Text>
+      <SkillProgressChart snapshots={sessionSnapshots} colors={colors} />
 
       {/* ── Key records ── */}
       <Text style={[stStyles.sectionHeader, { color: colors.foreground }]}>RECORDS PERSONNELS</Text>

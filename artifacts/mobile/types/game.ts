@@ -344,6 +344,8 @@ export interface SessionSnapshot {
   gold: number;
   totalItemsCrafted: number;
   forgeLevel: number;
+  /** Per-skill levels at the time of the snapshot. Optional for backward compat — absent on old saves. */
+  skills?: Record<SkillType, number>;
 }
 
 // ---------------------------------------------------------------------------

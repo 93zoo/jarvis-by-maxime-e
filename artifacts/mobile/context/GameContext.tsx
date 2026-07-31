@@ -1012,6 +1012,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           gold: state.player.gold,
           totalItemsCrafted: state.player.totalItemsCrafted,
           forgeLevel: state.player.forgeLevel,
+          skills: { ...state.player.skills },
         };
         dispatch({ type: 'ADD_SESSION_SNAPSHOT', snapshot });
         const prevSnaps = state.sessionSnapshots;
