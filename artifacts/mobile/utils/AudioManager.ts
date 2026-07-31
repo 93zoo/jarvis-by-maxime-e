@@ -74,33 +74,11 @@ class AudioManagerClass {
   // ── Native (expo-av) ────────────────────────────────────────────────────────
 
   private async _loadNativeSounds(): Promise<void> {
-    if (this.avLoaded) return;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { Audio } = require('expo-av');
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-      });
-
-      const entries = Object.entries(SOUND_FILES);
-      const loaded = await Promise.all(
-        entries.map(async ([key, module]) => {
-          const { sound } = await Audio.Sound.createAsync(module, {
-            shouldPlay: false,
-            volume: this.volume,
-          });
-          return [key, sound] as const;
-        }),
-      );
-
-      for (const [key, sound] of loaded) {
-        this.avSounds[key] = sound;
-      }
-      this.avLoaded = true;
-    } catch {
-      // expo-av unavailable — silently degrade
-    }
+    // expo-av is deprecated in Expo SDK 54 and its native modules are not
+    // registered in Expo Go for SDK 54 → crashes with "Requiring unknown module".
+    // Disable entirely until migrated to expo-audio.
+    // Native sounds are silent; web synthesis still works via Web Audio API.
+    this.avLoaded = false;
   }
 
   private async _playNative(key: string): Promise<void> {
