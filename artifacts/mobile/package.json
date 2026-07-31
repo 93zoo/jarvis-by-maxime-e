@@ -57,6 +57,7 @@
   },
   "dependencies": {
     "@types/three": "^0.168.0",
+    "expo-av": "^16.0.8",
     "expo-gl": "~15.0.5",
     "three": "^0.168.0"
   }

@@ -116,6 +116,7 @@ function OrdersModal({
     if (result.success) {
       setDeliverOrderId(null);
       setTimeout(() => setDeliverMsg(null), 2000);
+      AudioManager.playQuestComplete();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
       setTimeout(() => setDeliverMsg(null), 2500);
@@ -483,6 +484,7 @@ export default function ForgeScreen() {
       const item = game.craftItemWithScore(recipeId, qualityScore);
       if (item) {
         setCraftedItem(item);
+        AudioManager.playCraftComplete();
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
       setCraftPhase('RESULT');

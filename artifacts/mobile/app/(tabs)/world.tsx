@@ -28,6 +28,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useGame } from '@/context/GameContext';
 import { useColors } from '@/hooks/useColors';
+import AudioManager from '@/utils/AudioManager';
 import type { CraftOrder, RegionData, RegionResourceNode } from '@/types/game';
 
 // ─── Region metadata ──────────────────────────────────────────────────────────
@@ -575,6 +576,7 @@ function MarketSection({ game, colors }: { game: ReturnType<typeof useGame>; col
     if (earned > 0) {
       setLastSellMsg(`+${earned} 🪙`);
       setTimeout(() => setLastSellMsg(null), 1800);
+      AudioManager.playCoin();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   };
@@ -584,6 +586,7 @@ function MarketSection({ game, colors }: { game: ReturnType<typeof useGame>; col
     if (earned > 0) {
       setLastSellMsg(`+${earned} 🪙`);
       setTimeout(() => setLastSellMsg(null), 1800);
+      AudioManager.playCoin();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   };
@@ -729,6 +732,7 @@ export default function WorldScreen() {
 
   const handleQuickCollect = useCallback(() => {
     if (!selectedRegion) return;
+    AudioManager.playCollect();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const drops = game.collectFromRegion(selectedRegion.id);
     setShowDetail(false);

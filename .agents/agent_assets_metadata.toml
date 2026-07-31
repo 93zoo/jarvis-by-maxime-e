@@ -1,0 +1,110 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "ysVX-QSwtzrdianqwg-3V"
+uri = "file://artifacts/mobile/assets/sounds/perfect_strike.mp3"
+type = "audio"
+title = "perfect_strike"
+
+[[outputs]]
+id = "qEhT6xHyoezcBdygDUYtg"
+uri = "file://artifacts/mobile/assets/sounds/craft_complete.mp3"
+type = "audio"
+title = "craft_complete"
+
+[[outputs]]
+id = "AQ63NcBKrw_qAPsL_CwkF"
+uri = "file://artifacts/mobile/assets/sounds/quest_complete.mp3"
+type = "audio"
+title = "quest_complete"
+
+[[outputs]]
+id = "0L-25e_iHZ9srohSGIttb"
+uri = "file://artifacts/mobile/assets/sounds/coin.mp3"
+type = "audio"
+title = "coin"
+
+[[outputs]]
+id = "uIFnAAasV7C-McoLpaBc9"
+uri = "file://artifacts/mobile/assets/sounds/craft_fail.mp3"
+type = "audio"
+title = "craft_fail"
+
+[[outputs]]
+id = "MQ4PQzbkDi2m_rZ4vhDpj"
+uri = "file://artifacts/mobile/assets/sounds/collect.mp3"
+type = "audio"
+title = "collect"
+
+[[outputs]]
+id = "xnQl6_X6r9YS5cSZHy0Am"
+uri = "file://artifacts/mobile/assets/sounds/achievement.mp3"
+type = "audio"
+title = "achievement"
+
+[[outputs]]
+id = "Esplgqi3uXVl46QFRsI8C"
+uri = "file://artifacts/mobile/assets/sounds/talent_unlock.mp3"
+type = "audio"
+title = "talent_unlock"
+
+[[outputs]]
+id = "C_45Vk-kEfkOYBD9jX4N8"
+uri = "file://artifacts/mobile/assets/sounds/hammer_strike.mp3"
+type = "audio"
+title = "hammer_strike"
+
+[[outputs]]
+id = "TN6IEhSZv0Joh5pDLeb2V"
+uri = "file://artifacts/mobile/assets/sounds/perfect_strike_2.mp3"
+type = "audio"
+title = "perfect_strike"
+
+[[outputs]]
+id = "QJ4d25tnvzkga7zzIKBOJ"
+uri = "file://artifacts/mobile/assets/sounds/collect_2.mp3"
+type = "audio"
+title = "collect"
+
+[[outputs]]
+id = "vTjxwmUGQEkh2iJSZAR_t"
+uri = "file://artifacts/mobile/assets/sounds/hammer_strike_2.mp3"
+type = "audio"
+title = "hammer_strike"
+
+[[outputs]]
+id = "nnpB4Pfr9qfemVaC7-ijT"
+uri = "file://artifacts/mobile/assets/sounds/achievement_2.mp3"
+type = "audio"
+title = "achievement"
+
+[[outputs]]
+id = "aEx-ez4GYoKVw9JA4tSkd"
+uri = "file://artifacts/mobile/assets/sounds/click.mp3"
+type = "audio"
+title = "click"
+
+[[outputs]]
+id = "b0vQpguiYE0OxmaNFh9mT"
+uri = "file://artifacts/mobile/assets/sounds/quest_complete_2.mp3"
+type = "audio"
+title = "quest_complete"
+
+[[outputs]]
+id = "8KnlX8ixEbwM9cqfdD7ad"
+uri = "file://artifacts/mobile/assets/sounds/coin_2.mp3"
+type = "audio"
+title = "coin"
+
+[[outputs]]
+id = "RV_dO7btgnAx1dPzYDLUY"
+uri = "file://artifacts/mobile/assets/sounds/talent_unlock_2.mp3"
+type = "audio"
+title = "talent_unlock"
+
+[[outputs]]
+id = "ZRFl0C4F0qlS91-dSKhDc"
+uri = "file://artifacts/mobile/assets/sounds/craft_fail_2.mp3"
+type = "audio"
+title = "craft_fail"
