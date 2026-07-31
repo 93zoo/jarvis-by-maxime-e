@@ -716,20 +716,32 @@ function MarketModal({ visible, onClose, game, colors, bottomPad }: {
   const inventoryResources = game.inventory.filter((i) => i.quantity > 0);
   const sellableItems = game.craftedItems;
 
-  // Resources available to buy: all resources the player hasn't discovered yet
-  // or that are useful for crafting, sorted by level
-  const buyableResources = game.allResources
-    .filter((r) => r.level <= game.player.forgeLevel * 3 + 3)
-    .sort((a, b) => a.level - b.level);
+  // Minimum forge level required to purchase a resource
+  const requiredForgeLevel = (resourceLevel: number) => Math.max(1, Math.ceil((resourceLevel - 3) / 3));
+  // Whether the player's current forge level unlocks a resource for purchase
+  const isBuyUnlocked = (resourceLevel: number) => resourceLevel <= game.player.forgeLevel * 3 + 3;
+
+  // All resources sorted by level; level-15+ rare ones show even when locked (so players see what to aim for)
+  const RARE_BUY_THRESHOLD = 15;
+  const buyableResources = game.allResources.slice().sort((a, b) => a.level - b.level);
 
   const getSellQty = (id: string) => sellQtys[id] ?? 1;
   const setSellQty = (id: string, qty: number) => setSellQtys((prev) => ({ ...prev, [id]: qty }));
   const getBuyQty = (id: string) => buyQtys[id] ?? 1;
   const setBuyQty = (id: string, qty: number) => setBuyQtys((prev) => ({ ...prev, [id]: qty }));
 
+  // Price multiplier scales with rarity for level-15+ resources
+  const rarePriceMultiplier = (resourceLevel: number): number => {
+    if (resourceLevel >= 26) return 5;
+    if (resourceLevel >= 21) return 4;
+    if (resourceLevel >= RARE_BUY_THRESHOLD) return 3;
+    return 1.35;
+  };
+
   const getBuyPrice = (resourceId: string) => {
     const res = game.getResourceById(resourceId);
-    return res ? Math.round(res.baseValue * 1.35) : 0;
+    if (!res) return 0;
+    return Math.round(res.baseValue * rarePriceMultiplier(res.level));
   };
 
   const confirmSale = () => {
@@ -890,19 +902,57 @@ function MarketModal({ visible, onClose, game, colors, bottomPad }: {
 
             {tab === 'buy' && (
               <>
-                <Text style={[mStyles.subtitle, { color: colors.mutedForeground }]}>Achetez des matériaux directement — prix marchand (+35%).</Text>
+                <Text style={[mStyles.subtitle, { color: colors.mutedForeground }]}>
+                  Achetez des matériaux directement. Les ressources rares (Niv.15+) sont disponibles à prix élevé selon votre niveau de forge.
+                </Text>
                 {buyableResources.map((res) => {
+                  const unlocked = isBuyUnlocked(res.level);
+                  const isRare = res.level >= RARE_BUY_THRESHOLD;
+                  // Hide common resources that haven't been unlocked yet (only rare ones stay visible as locked)
+                  if (!unlocked && !isRare) return null;
                   const unitPrice = getBuyPrice(res.id);
                   const qty = getBuyQty(res.id);
                   const total = unitPrice * qty;
                   const canAfford = game.player.gold >= total;
+                  const reqForge = requiredForgeLevel(res.level);
+                  const mult = rarePriceMultiplier(res.level);
+
+                  if (!unlocked) {
+                    // Locked rare resource — visible but grayed out
+                    return (
+                      <View
+                        key={res.id}
+                        style={[mStyles.marketRow, { backgroundColor: colors.secondary, borderColor: colors.muted, opacity: 0.65 }]}
+                      >
+                        <View style={[mStyles.resDot, { backgroundColor: res.color, opacity: 0.5 }]} />
+                        <View style={mStyles.resInfo}>
+                          <Text style={[mStyles.resName, { color: colors.mutedForeground }]}>{res.name}</Text>
+                          <Text style={[mStyles.resStock, { color: colors.mutedForeground }]}>
+                            ~{unitPrice}g/u · Niv.{res.level}
+                          </Text>
+                        </View>
+                        <View style={[mStyles.sellBtn, { backgroundColor: colors.muted, flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+                          <Feather name="lock" size={11} color={colors.mutedForeground} />
+                          <Text style={[mStyles.sellBtnText, { color: colors.mutedForeground }]}>
+                            Forge niv.{reqForge}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  }
+
                   return (
-                    <View key={res.id} style={[mStyles.marketRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                    <View key={res.id} style={[mStyles.marketRow, {
+                      backgroundColor: colors.card,
+                      borderColor: isRare ? res.color + '60' : colors.border,
+                      borderWidth: isRare ? 1.5 : 1,
+                    }]}>
                       <View style={[mStyles.resDot, { backgroundColor: res.color }]} />
                       <View style={mStyles.resInfo}>
-                        <Text style={[mStyles.resName, { color: colors.foreground }]}>{res.name}</Text>
+                        <Text style={[mStyles.resName, { color: isRare ? res.color : colors.foreground }]}>{res.name}</Text>
                         <Text style={[mStyles.resStock, { color: colors.mutedForeground }]}>
                           {unitPrice}g/u · Niv.{res.level}
+                          {isRare ? <Text style={{ color: '#F9A825' }}>  ×{mult} (rare)</Text> : null}
                         </Text>
                       </View>
                       <View style={mStyles.sellControls}>
@@ -914,7 +964,7 @@ function MarketModal({ visible, onClose, game, colors, bottomPad }: {
                           <Feather name="plus" size={11} color={colors.foreground} />
                         </TouchableOpacity>
                         <TouchableOpacity
-                          style={[mStyles.sellBtn, { backgroundColor: canAfford ? '#2196F3' : colors.muted }]}
+                          style={[mStyles.sellBtn, { backgroundColor: canAfford ? (isRare ? '#9C27B0' : '#2196F3') : colors.muted }]}
                           onPress={() => canAfford && handleBuy(res.id)}
                           activeOpacity={canAfford ? 0.8 : 1}
                         >
