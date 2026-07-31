@@ -376,6 +376,56 @@ const sdStyles = StyleSheet.create({
 const SPARKLINE_H = 60;
 const SPARKLINE_DOT = 5;
 
+type SparkMetric = 'level' | 'gold' | 'items';
+
+interface MetricConfig {
+  key: SparkMetric;
+  label: string;
+  title: string;
+  icon: string;
+  color: (colors: ReturnType<typeof useColors>) => string;
+  getValue: (s: SessionSnapshot) => number;
+  formatValue: (v: number) => string;
+  formatDelta: (delta: number) => string;
+  yLabel: (v: number) => string;
+}
+
+const SPARK_METRICS: MetricConfig[] = [
+  {
+    key: 'level',
+    label: 'Niveau',
+    title: 'NIVEAU FORGERON',
+    icon: 'trending-up',
+    color: (c) => c.primary,
+    getValue: (s) => s.playerLevel,
+    formatValue: (v) => `Niv.${v}`,
+    formatDelta: (d) => `${d >= 0 ? '+' : ''}${d} niv.`,
+    yLabel: (v) => `Niv.${v}`,
+  },
+  {
+    key: 'gold',
+    label: 'Or',
+    title: 'OR EN CAISSE',
+    icon: 'dollar-sign',
+    color: () => '#D4AF37',
+    getValue: (s) => s.gold,
+    formatValue: (v) => `${v.toLocaleString()}g`,
+    formatDelta: (d) => `${d >= 0 ? '+' : ''}${d.toLocaleString()}g`,
+    yLabel: (v) => `${v >= 1000 ? `${Math.round(v / 100) / 10}k` : v}g`,
+  },
+  {
+    key: 'items',
+    label: 'Objets',
+    title: 'OBJETS FORGÉS',
+    icon: 'package',
+    color: (c) => c.accent,
+    getValue: (s) => s.totalItemsCrafted,
+    formatValue: (v) => `${v}`,
+    formatDelta: (d) => `${d >= 0 ? '+' : ''}${d}`,
+    yLabel: (v) => `${v}`,
+  },
+];
+
 function LevelSparkline({
   snapshots,
   colors,
@@ -383,6 +433,10 @@ function LevelSparkline({
   snapshots: SessionSnapshot[];
   colors: ReturnType<typeof useColors>;
 }) {
+  const [metric, setMetric] = useState<SparkMetric>('level');
+  const cfg = SPARK_METRICS.find((m) => m.key === metric)!;
+  const dotColor = cfg.color(colors);
+
   if (snapshots.length === 0) {
     return (
       <View style={[sparkStyles.empty, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -394,24 +448,55 @@ function LevelSparkline({
     );
   }
 
-  const levels = snapshots.map((s) => s.playerLevel);
-  const minLevel = Math.max(1, Math.min(...levels) - 1);
-  const maxLevel = Math.max(...levels) + 1;
-  const range = maxLevel - minLevel || 1;
-
-  // Compute dot positions in a fixed-width container; we render them via flex
+  const values = snapshots.map(cfg.getValue);
+  const minVal = Math.min(...values);
+  const maxVal = Math.max(...values);
+  const padding = Math.max(1, Math.round((maxVal - minVal) * 0.1));
+  const lo = Math.max(0, minVal - padding);
+  const hi = maxVal + padding;
+  const range = hi - lo || 1;
   const count = snapshots.length;
 
   return (
     <View style={[sparkStyles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
       {/* Title row */}
       <View style={sparkStyles.titleRow}>
-        <Text style={[sparkStyles.title, { color: colors.foreground }]}>NIVEAU FORGERON</Text>
-        <View style={[sparkStyles.badge, { backgroundColor: `${colors.primary}22` }]}>
-          <Text style={[sparkStyles.badgeText, { color: colors.primary }]}>
+        <Text style={[sparkStyles.title, { color: colors.foreground }]}>{cfg.title}</Text>
+        <View style={[sparkStyles.badge, { backgroundColor: `${dotColor}22` }]}>
+          <Text style={[sparkStyles.badgeText, { color: dotColor }]}>
             {count} session{count !== 1 ? 's' : ''}
           </Text>
         </View>
+      </View>
+
+      {/* Metric selector */}
+      <View style={sparkStyles.metricSelector}>
+        {SPARK_METRICS.map((m) => {
+          const active = m.key === metric;
+          const mColor = m.color(colors);
+          return (
+            <TouchableOpacity
+              key={m.key}
+              activeOpacity={0.75}
+              onPress={() => {
+                setMetric(m.key);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+              style={[
+                sparkStyles.metricBtn,
+                {
+                  backgroundColor: active ? `${mColor}22` : 'transparent',
+                  borderColor: active ? mColor : colors.border,
+                },
+              ]}
+            >
+              <Feather name={m.icon as 'tool'} size={10} color={active ? mColor : colors.mutedForeground} />
+              <Text style={[sparkStyles.metricBtnText, { color: active ? mColor : colors.mutedForeground }]}>
+                {m.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Chart area */}
@@ -431,26 +516,27 @@ function LevelSparkline({
           />
         ))}
 
-        {/* Dots and connecting segments */}
+        {/* Dots */}
         {snapshots.map((snap, i) => {
-          const frac = (snap.playerLevel - minLevel) / range;
+          const val = cfg.getValue(snap);
+          const frac = (val - lo) / range;
           const dotBottom = frac * (SPARKLINE_H - SPARKLINE_DOT * 2) + SPARKLINE_DOT - SPARKLINE_DOT / 2;
           const leftPct = count === 1 ? 50 : (i / (count - 1)) * 100;
+          const isLast = i === count - 1;
 
           return (
             <View key={snap.timestamp} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: 0 }}>
-              {/* Dot */}
               <View
                 style={[
                   sparkStyles.dot,
                   {
                     left: `${leftPct}%` as `${number}%`,
                     bottom: dotBottom,
-                    backgroundColor: i === count - 1 ? colors.primary : colors.accent,
-                    width: i === count - 1 ? SPARKLINE_DOT + 2 : SPARKLINE_DOT,
-                    height: i === count - 1 ? SPARKLINE_DOT + 2 : SPARKLINE_DOT,
-                    borderRadius: i === count - 1 ? (SPARKLINE_DOT + 2) / 2 : SPARKLINE_DOT / 2,
-                    marginLeft: i === count - 1 ? -(SPARKLINE_DOT + 2) / 2 : -SPARKLINE_DOT / 2,
+                    backgroundColor: isLast ? dotColor : `${dotColor}99`,
+                    width: isLast ? SPARKLINE_DOT + 2 : SPARKLINE_DOT,
+                    height: isLast ? SPARKLINE_DOT + 2 : SPARKLINE_DOT,
+                    borderRadius: isLast ? (SPARKLINE_DOT + 2) / 2 : SPARKLINE_DOT / 2,
+                    marginLeft: isLast ? -(SPARKLINE_DOT + 2) / 2 : -SPARKLINE_DOT / 2,
                   },
                 ]}
               />
@@ -473,26 +559,26 @@ function LevelSparkline({
 
       {/* Y-axis labels */}
       <View style={sparkStyles.yLabels}>
-        <Text style={[sparkStyles.yLabel, { color: colors.mutedForeground }]}>Niv.{maxLevel}</Text>
-        <Text style={[sparkStyles.yLabel, { color: colors.mutedForeground }]}>Niv.{minLevel}</Text>
+        <Text style={[sparkStyles.yLabel, { color: colors.mutedForeground }]}>{cfg.yLabel(maxVal)}</Text>
+        <Text style={[sparkStyles.yLabel, { color: colors.mutedForeground }]}>{cfg.yLabel(minVal)}</Text>
       </View>
 
       {/* Summary row */}
       <View style={[sparkStyles.summaryRow, { borderTopColor: colors.border }]}>
         <View style={sparkStyles.summaryItem}>
           <Text style={[sparkStyles.summaryLabel, { color: colors.mutedForeground }]}>Départ</Text>
-          <Text style={[sparkStyles.summaryValue, { color: colors.foreground }]}>Niv.{levels[0]}</Text>
+          <Text style={[sparkStyles.summaryValue, { color: colors.foreground }]}>{cfg.formatValue(values[0])}</Text>
         </View>
         <View style={[sparkStyles.summaryDivider, { backgroundColor: colors.border }]} />
         <View style={sparkStyles.summaryItem}>
           <Text style={[sparkStyles.summaryLabel, { color: colors.mutedForeground }]}>Actuel</Text>
-          <Text style={[sparkStyles.summaryValue, { color: colors.primary }]}>Niv.{levels[count - 1]}</Text>
+          <Text style={[sparkStyles.summaryValue, { color: dotColor }]}>{cfg.formatValue(values[count - 1])}</Text>
         </View>
         <View style={[sparkStyles.summaryDivider, { backgroundColor: colors.border }]} />
         <View style={sparkStyles.summaryItem}>
           <Text style={[sparkStyles.summaryLabel, { color: colors.mutedForeground }]}>Progression</Text>
-          <Text style={[sparkStyles.summaryValue, { color: levels[count - 1] > levels[0] ? '#4CAF50' : colors.foreground }]}>
-            {levels[count - 1] >= levels[0] ? '+' : ''}{levels[count - 1] - levels[0]}
+          <Text style={[sparkStyles.summaryValue, { color: values[count - 1] > values[0] ? '#4CAF50' : colors.foreground }]}>
+            {cfg.formatDelta(values[count - 1] - values[0])}
           </Text>
         </View>
       </View>
@@ -504,16 +590,19 @@ const sparkStyles = StyleSheet.create({
   empty: { borderRadius: 14, borderWidth: 1, padding: 20, alignItems: 'center', gap: 8, marginBottom: 16 },
   emptyText: { fontSize: 12, textAlign: 'center', lineHeight: 17 },
   container: { borderRadius: 14, borderWidth: 1, marginBottom: 16, overflow: 'hidden' },
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 12, marginBottom: 8 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 12, marginBottom: 6 },
   title: { fontSize: 11, fontWeight: '800', letterSpacing: 1.5 },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   badgeText: { fontSize: 10, fontWeight: '700' },
+  metricSelector: { flexDirection: 'row', gap: 6, paddingHorizontal: 14, marginBottom: 8 },
+  metricBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
+  metricBtnText: { fontSize: 10, fontWeight: '700' },
   chart: { marginHorizontal: 14, marginBottom: 4, position: 'relative' },
   gridLine: { position: 'absolute', left: 0, right: 0, height: 1, opacity: 0.4 },
   dot: { position: 'absolute' },
   xLabels: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 14, marginBottom: 4 },
   xLabel: { fontSize: 9, fontWeight: '600' },
-  yLabels: { position: 'absolute', right: 14, top: 40, justifyContent: 'space-between', height: SPARKLINE_H, gap: 0, flexDirection: 'column' },
+  yLabels: { position: 'absolute', right: 14, top: 56, justifyContent: 'space-between', height: SPARKLINE_H, gap: 0, flexDirection: 'column' },
   yLabel: { fontSize: 9, fontWeight: '600', lineHeight: 12 },
   summaryRow: { flexDirection: 'row', borderTopWidth: 1, paddingVertical: 10 },
   summaryItem: { flex: 1, alignItems: 'center', gap: 2 },
