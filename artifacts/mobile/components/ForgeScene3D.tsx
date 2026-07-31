@@ -119,54 +119,61 @@ const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(({ craftPhase, upgradeLe
     renderer.setPixelRatio(1);
     renderer.setSize(W, H);
     renderer.shadowMap.enabled = false;
-    renderer.setClearColor(0x080610);
+    renderer.setClearColor(0x100A18);
 
     // ── Scene & camera ────────────────────────────────────────────────────────
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x080610);
-    scene.fog = new THREE.FogExp2(0x0A0810, 0.055);
+    scene.background = new THREE.Color(0x100A18);
+    // Light linear fog — dark colour matches background, low density so objects stay visible
+    scene.fog = new THREE.Fog(0x100A18, 14, 26);
 
-    const camera = new THREE.PerspectiveCamera(52, W / H, 0.1, 50);
-    // Camera inside the workshop, slightly elevated, looking at anvil + furnace
-    camera.position.set(0, 2.6, 5.2);
-    camera.lookAt(0, 1.05, 0);
+    const camera = new THREE.PerspectiveCamera(62, W / H, 0.1, 50);
+    // Pull camera closer and lower so the forge fills the frame
+    camera.position.set(0, 2.2, 4.4);
+    camera.lookAt(0, 0.9, 0);
 
-    // ── Materials ─────────────────────────────────────────────────────────────
-    const stoneMat    = new THREE.MeshStandardMaterial({ color: 0x3A3028, roughness: 0.97, metalness: 0.0 });
-    const stoneDarkMat= new THREE.MeshStandardMaterial({ color: 0x28201A, roughness: 0.99, metalness: 0.0 });
-    const mortarMat   = new THREE.MeshStandardMaterial({ color: 0x4A3E30, roughness: 0.96 });
-    const ironMat     = new THREE.MeshStandardMaterial({ color: 0x252525, roughness: 0.20, metalness: 0.96 });
-    const ironDullMat = new THREE.MeshStandardMaterial({ color: 0x303030, roughness: 0.48, metalness: 0.85 });
-    const steelMat    = new THREE.MeshStandardMaterial({ color: 0x3E3E3E, roughness: 0.12, metalness: 0.98 });
-    const woodMat     = new THREE.MeshStandardMaterial({ color: 0x4A2E14, roughness: 0.88 });
-    const woodLightMat= new THREE.MeshStandardMaterial({ color: 0x6B4422, roughness: 0.82 });
-    const leatherMat  = new THREE.MeshStandardMaterial({ color: 0x5C3A1E, roughness: 0.90 });
+    // ── Materials — brighter base colours so forge light can illuminate them ──
+    const stoneMat    = new THREE.MeshStandardMaterial({ color: 0x6A5848, roughness: 0.92, metalness: 0.0 });
+    const stoneDarkMat= new THREE.MeshStandardMaterial({ color: 0x4A3A2C, roughness: 0.95, metalness: 0.0 });
+    const mortarMat   = new THREE.MeshStandardMaterial({ color: 0x7A6A54, roughness: 0.90 });
+    const ironMat     = new THREE.MeshStandardMaterial({ color: 0x484848, roughness: 0.20, metalness: 0.96 });
+    const ironDullMat = new THREE.MeshStandardMaterial({ color: 0x585858, roughness: 0.48, metalness: 0.85 });
+    const steelMat    = new THREE.MeshStandardMaterial({ color: 0x707070, roughness: 0.12, metalness: 0.98 });
+    const woodMat     = new THREE.MeshStandardMaterial({ color: 0x6A4020, roughness: 0.88 });
+    const woodLightMat= new THREE.MeshStandardMaterial({ color: 0x8B5A2E, roughness: 0.82 });
+    const leatherMat  = new THREE.MeshStandardMaterial({ color: 0x7C5030, roughness: 0.90 });
     const emberMat    = new THREE.MeshStandardMaterial({
-      color: 0xFF3300, emissive: new THREE.Color(0xFF3300), emissiveIntensity: 3.0,
+      color: 0xFF4400, emissive: new THREE.Color(0xFF4400), emissiveIntensity: 4.0,
     });
-    const coalMat     = new THREE.MeshStandardMaterial({ color: 0x1A1410, roughness: 0.99 });
+    const coalMat     = new THREE.MeshStandardMaterial({ color: 0x2A2018, roughness: 0.99 });
 
     // ── Lighting ──────────────────────────────────────────────────────────────
-    scene.add(new THREE.AmbientLight(0x0E0A18, 0.4));
+    // Warm ambient fills the whole room so no surface goes completely black
+    scene.add(new THREE.AmbientLight(0x4A2810, 1.8));
 
-    // Primary fire light from furnace
-    const fireLight = new THREE.PointLight(0xFF5500, 3.5, 9);
+    // Primary fire light from furnace — high intensity, large range
+    const fireLight = new THREE.PointLight(0xFF6600, 8.0, 18);
     fireLight.position.set(-2.4, 1.6, -0.2);
     scene.add(fireLight);
 
-    // Secondary ember glow — deep orange
-    const emberLight = new THREE.PointLight(0xFF2200, 1.8, 5);
-    emberLight.position.set(-2.4, 0.6, 0.1);
+    // Secondary ember glow — deep orange close to grate
+    const emberLight = new THREE.PointLight(0xFF3300, 5.0, 10);
+    emberLight.position.set(-2.4, 0.5, 0.0);
     scene.add(emberLight);
 
-    // Cool fill from the back wall (moonlight through a gap)
-    const moonLight = new THREE.DirectionalLight(0x4466AA, 0.28);
-    moonLight.position.set(4, 8, 6);
+    // Overhead torch near centre — warm white, fills the middle of the room
+    const torchLight = new THREE.PointLight(0xFFCC88, 4.0, 14);
+    torchLight.position.set(0, 3.8, 1.5);
+    scene.add(torchLight);
+
+    // Cool blue-white moonlight from upper-right (window gap) — rim light
+    const moonLight = new THREE.DirectionalLight(0x6688CC, 0.7);
+    moonLight.position.set(5, 10, 6);
     scene.add(moonLight);
 
-    // Anvil highlight — faint white bounce
-    const anvilFill = new THREE.PointLight(0xFFEECC, 0.6, 4);
-    anvilFill.position.set(0.8, 2.2, 1.0);
+    // Anvil bounce — warm light just above the working surface
+    const anvilFill = new THREE.PointLight(0xFFDD99, 2.5, 5);
+    anvilFill.position.set(0.8, 2.0, 1.2);
     scene.add(anvilFill);
 
     // ── Floor — cobblestone plane ─────────────────────────────────────────────
@@ -516,14 +523,14 @@ const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(({ craftPhase, upgradeLe
       const upgradeBoost = upgradeLevelRef.current * 0.15;
 
       // Fire flicker
-      const flicker = Math.sin(t * 7.1) * 0.6 + Math.sin(t * 13.3) * 0.38 + Math.sin(t * 2.7) * 0.2;
-      fireLight.intensity  = (3.0 + upgradeBoost) + flicker;
-      emberLight.intensity = (1.5 + upgradeBoost * 0.5) + flicker * 0.4;
+      const flicker = Math.sin(t * 7.1) * 0.8 + Math.sin(t * 13.3) * 0.5 + Math.sin(t * 2.7) * 0.3;
+      fireLight.intensity  = (8.0 + upgradeBoost) + flicker;
+      emberLight.intensity = (5.0 + upgradeBoost * 0.5) + flicker * 0.5;
 
       // Camera subtle breathing
-      camera.position.y = 2.6 + Math.sin(t * 0.32) * 0.04;
+      camera.position.y = 2.2 + Math.sin(t * 0.32) * 0.04;
       camera.position.x = Math.sin(t * 0.08) * 0.08;
-      camera.lookAt(0, 1.05, 0);
+      camera.lookAt(0, 0.9, 0);
 
       // Phase transitions
       if (phase !== lastPhase) {
@@ -553,8 +560,8 @@ const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(({ craftPhase, upgradeLe
         metalMat.emissive.setHex(0xFF4400);
         (emberPlane1.material as THREE.MeshStandardMaterial).emissiveIntensity = 3.0 + Math.sin(t * 5) * 1.2;
         (emberPlane2.material as THREE.MeshStandardMaterial).emissiveIntensity = 2.5 + Math.sin(t * 8) * 1.0;
-        fireLight.intensity = (4.8 + upgradeBoost) + Math.sin(t * 6) * 1.2;
-        emberLight.intensity = (3.0 + upgradeBoost * 0.5) + Math.sin(t * 9) * 0.8;
+        fireLight.intensity = (11.0 + upgradeBoost) + Math.sin(t * 6) * 1.5;
+        emberLight.intensity = (7.0 + upgradeBoost * 0.5) + Math.sin(t * 9) * 1.2;
 
         // Ambient sparks from furnace
         for (let i = 0; i < AMBIENT_SPARK; i++) {
