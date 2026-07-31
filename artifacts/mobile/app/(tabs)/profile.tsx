@@ -434,6 +434,7 @@ function LevelSparkline({
   colors: ReturnType<typeof useColors>;
 }) {
   const [metric, setMetric] = useState<SparkMetric>('level');
+  const [chartWidth, setChartWidth] = useState(0);
   const cfg = SPARK_METRICS.find((m) => m.key === metric)!;
   const dotColor = cfg.color(colors);
 
@@ -500,7 +501,10 @@ function LevelSparkline({
       </View>
 
       {/* Chart area */}
-      <View style={[sparkStyles.chart, { height: SPARKLINE_H }]}>
+      <View
+        style={[sparkStyles.chart, { height: SPARKLINE_H }]}
+        onLayout={(e) => setChartWidth(e.nativeEvent.layout.width)}
+      >
         {/* Horizontal gridlines */}
         {[0, 0.5, 1].map((frac) => (
           <View
@@ -515,6 +519,45 @@ function LevelSparkline({
             ]}
           />
         ))}
+
+        {/* Connecting lines between adjacent dots */}
+        {chartWidth > 0 && count > 1 && snapshots.map((snap, i) => {
+          if (i === 0) return null;
+          const prevSnap = snapshots[i - 1];
+          const prevVal = cfg.getValue(prevSnap);
+          const currVal = cfg.getValue(snap);
+          const prevFrac = (prevVal - lo) / range;
+          const currFrac = (currVal - lo) / range;
+          const prevBottom = prevFrac * (SPARKLINE_H - SPARKLINE_DOT * 2) + SPARKLINE_DOT - SPARKLINE_DOT / 2;
+          const currBottom = currFrac * (SPARKLINE_H - SPARKLINE_DOT * 2) + SPARKLINE_DOT - SPARKLINE_DOT / 2;
+          const prevLeftPct = (i - 1) / (count - 1);
+          const currLeftPct = i / (count - 1);
+          // Convert to pixel coords (y measured from top)
+          const x1 = prevLeftPct * chartWidth;
+          const y1 = SPARKLINE_H - prevBottom - SPARKLINE_DOT / 2;
+          const x2 = currLeftPct * chartWidth;
+          const y2 = SPARKLINE_H - currBottom - SPARKLINE_DOT / 2;
+          const dx = x2 - x1;
+          const dy = y2 - y1;
+          const length = Math.sqrt(dx * dx + dy * dy);
+          const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+          return (
+            <View
+              key={`line-${snap.timestamp}`}
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                left: (x1 + x2) / 2 - length / 2,
+                top: (y1 + y2) / 2 - 1,
+                width: length,
+                height: 2,
+                backgroundColor: dotColor,
+                opacity: 0.55,
+                transform: [{ rotate: `${angle}deg` }],
+              }}
+            />
+          );
+        })}
 
         {/* Dots */}
         {snapshots.map((snap, i) => {
