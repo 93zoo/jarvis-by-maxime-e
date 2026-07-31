@@ -106,6 +106,84 @@ interface CraftSession {
 
 const EMPTY_SESSION: CraftSession = { recipeId: '', strikesCompleted: 0, strikeScores: [] };
 
+// ─── Forge Events ─────────────────────────────────────────────────────────────
+interface ForgeEvent {
+  id: string;
+  emoji: string;
+  name: string;
+  description: string;
+  effect: 'bonus_score' | 'min_score' | 'strike_multiplier';
+  value: number;
+  color: string;
+  weight: number;
+}
+
+const FORGE_EVENTS: ForgeEvent[] = [
+  {
+    id: 'metal_en_fusion',
+    emoji: '🔥',
+    name: 'Métal en fusion',
+    description: '+12 au score de qualité final',
+    effect: 'bonus_score',
+    value: 12,
+    color: '#FF7043',
+    weight: 35,
+  },
+  {
+    id: 'inspiration',
+    emoji: '⚡',
+    name: 'Inspiration !',
+    description: 'Les frappes comptent ×1.5',
+    effect: 'strike_multiplier',
+    value: 1.5,
+    color: '#FFD54F',
+    weight: 28,
+  },
+  {
+    id: 'metal_elu',
+    emoji: '🌟',
+    name: 'Métal élu',
+    description: 'Score de qualité minimum 65',
+    effect: 'min_score',
+    value: 65,
+    color: '#81D4FA',
+    weight: 22,
+  },
+  {
+    id: 'grace_divine',
+    emoji: '💎',
+    name: 'Grâce divine',
+    description: 'Score de qualité minimum 82 (Excellent garanti)',
+    effect: 'min_score',
+    value: 82,
+    color: '#CE93D8',
+    weight: 10,
+  },
+  {
+    id: 'fievre',
+    emoji: '🌪',
+    name: 'Fièvre du forgeron',
+    description: '+28 au score de qualité final',
+    effect: 'bonus_score',
+    value: 28,
+    color: '#EF5350',
+    weight: 5,
+  },
+];
+
+const EVENT_CHANCE = 0.42; // 42 % de chance par craft
+
+function rollForgeEvent(): ForgeEvent | null {
+  if (Math.random() > EVENT_CHANCE) return null;
+  const totalWeight = FORGE_EVENTS.reduce((s, e) => s + e.weight, 0);
+  let r = Math.random() * totalWeight;
+  for (const e of FORGE_EVENTS) {
+    r -= e.weight;
+    if (r <= 0) return e;
+  }
+  return FORGE_EVENTS[0];
+}
+
 // ─── Orders Modal ─────────────────────────────────────────────────────────────
 const QUALITY_ORDER_UI: Record<string, number> = { poor: 0, normal: 1, good: 2, excellent: 3, legendary: 4 };
 
@@ -571,6 +649,8 @@ export default function ForgeScreen() {
   const [deliverOrderId, setDeliverOrderId] = useState<string | null>(null);
   const [showUpgradesModal, setShowUpgradesModal] = useState(false);
   const [weather, setWeather] = useState<WeatherType>('none');
+  const [activeForgeEvent, setActiveForgeEvent] = useState<ForgeEvent | null>(null);
+  const [showEventBanner, setShowEventBanner] = useState(false);
 
   const sceneRef = useRef<ForgeScene3DRef>(null);
   const hitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -639,6 +719,7 @@ export default function ForgeScreen() {
       if (clamped >= 1) {
         clearInterval(interval);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        setShowEventBanner(true); // reveal event banner when hammering starts
         setCraftPhase('HAMMERING');
       }
     }, 40);
@@ -652,9 +733,15 @@ export default function ForgeScreen() {
       const { strikeScores, strikesCompleted, recipeId } = session;
       const totalStrikeScore = strikeScores.reduce((a, b) => a + b, 0);
       const maxScore = strikesCompleted * 25;
-      const miniGameBonus = maxScore > 0 ? (totalStrikeScore / maxScore) * 50 : 25;
+      // Apply strike_multiplier event before ratio
+      const strikeMultiplier = activeForgeEvent?.effect === 'strike_multiplier' ? activeForgeEvent.value : 1;
+      const effectiveStrikeScore = Math.min(maxScore, totalStrikeScore * strikeMultiplier);
+      const miniGameBonus = maxScore > 0 ? (effectiveStrikeScore / maxScore) * 50 : 25;
       const forgeBonus = Math.min(40, (game.player.skills['forge'] ?? 1) * 4);
-      const qualityScore = Math.min(100, Math.round(10 + forgeBonus + miniGameBonus));
+      let qualityScore = Math.min(100, Math.round(10 + forgeBonus + miniGameBonus));
+      // Apply event modifiers
+      if (activeForgeEvent?.effect === 'bonus_score') qualityScore = Math.min(100, qualityScore + activeForgeEvent.value);
+      if (activeForgeEvent?.effect === 'min_score')   qualityScore = Math.max(qualityScore, activeForgeEvent.value);
 
       const item = game.craftItemWithScore(recipeId, qualityScore);
       if (item) {
@@ -675,8 +762,11 @@ export default function ForgeScreen() {
     setSession({ recipeId: recipe.id, strikesCompleted: 0, strikeScores: [] });
     setHeatingProgress(0);
     setCraftedItem(null);
+    // Roll for a random forge event
+    const evt = rollForgeEvent();
+    setActiveForgeEvent(evt);
+    setShowEventBanner(false);
     setCraftPhase('HEATING');
-    // Ambience is already running (started on mount); just ensure it's live
     AudioManager.startForgeAmbience();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   };
@@ -883,6 +973,15 @@ export default function ForgeScreen() {
 
         {craftPhase === 'HAMMERING' && (
           <View style={{ paddingBottom: bottomPad }}>
+            {showEventBanner && activeForgeEvent && (
+              <View style={[styles.eventBanner, { borderColor: activeForgeEvent.color + '80', backgroundColor: activeForgeEvent.color + '18' }]}>
+                <Text style={styles.eventEmoji}>{activeForgeEvent.emoji}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.eventName, { color: activeForgeEvent.color }]}>{activeForgeEvent.name}</Text>
+                  <Text style={[styles.eventDesc, { color: colors.mutedForeground }]}>{activeForgeEvent.description}</Text>
+                </View>
+              </View>
+            )}
             <HammeringMiniGame
               strikesCompleted={session.strikesCompleted}
               strikeScores={session.strikeScores}
@@ -1058,6 +1157,16 @@ export default function ForgeScreen() {
               <Text style={[styles.resultScore, { color: colors.mutedForeground }]}>
                 Score de qualité: {craftedItem.qualityScore}/100
               </Text>
+
+              {/* Active forge event */}
+              {activeForgeEvent && (
+                <View style={[styles.resultEventRow, { backgroundColor: activeForgeEvent.color + '22', borderColor: activeForgeEvent.color + '66' }]}>
+                  <Text style={{ fontSize: 16 }}>{activeForgeEvent.emoji}</Text>
+                  <Text style={[styles.resultEventText, { color: activeForgeEvent.color }]}>
+                    {activeForgeEvent.name} — {activeForgeEvent.description}
+                  </Text>
+                </View>
+              )}
 
               {/* Mini-game breakdown */}
               <View style={[styles.resultBreakdown, { backgroundColor: colors.secondary }]}>
@@ -1517,6 +1626,31 @@ const styles = StyleSheet.create({
   forgeStatValue: { fontSize: 17, fontWeight: '800', marginBottom: 4 },
   miniTrack: { height: 4, borderRadius: 2, overflow: 'hidden' },
   miniFill: { height: '100%', borderRadius: 2, minWidth: 3 },
+  eventBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginHorizontal: 16,
+    marginBottom: 10,
+  },
+  eventEmoji: { fontSize: 22 },
+  eventName: { fontSize: 13, fontWeight: '800' },
+  eventDesc: { fontSize: 11, marginTop: 1 },
+  resultEventRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    marginTop: 6,
+  },
+  resultEventText: { flex: 1, fontSize: 12, fontWeight: '600' },
   startCraftBtn: {
     flexDirection: 'row',
     alignItems: 'center',
