@@ -178,55 +178,55 @@ const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(
       camera.lookAt(0.0, 0.0, 0.5);
 
       // ── Materials ───────────────────────────────────────────────────────────
-      const floorMat   = new THREE.MeshStandardMaterial({ color: 0x2A2018, roughness: 0.97 });
-      const floorDark  = new THREE.MeshStandardMaterial({ color: 0x1C1610, roughness: 1.00 });
-      const stoneMat   = new THREE.MeshStandardMaterial({ color: 0x3C3028, roughness: 0.95 });
-      const stoneDark  = new THREE.MeshStandardMaterial({ color: 0x28221A, roughness: 0.98 });
-      const brickMat   = new THREE.MeshStandardMaterial({ color: 0x4A3828, roughness: 0.94 });
-      const woodMat    = new THREE.MeshStandardMaterial({ color: 0x3C2008, roughness: 0.90 });
-      const woodLight  = new THREE.MeshStandardMaterial({ color: 0x5C3818, roughness: 0.82 });
-      const beamMat    = new THREE.MeshStandardMaterial({ color: 0x241408, roughness: 0.93 });
-      const ironMat    = new THREE.MeshStandardMaterial({ color: 0x383838, roughness: 0.22, metalness: 0.95 });
-      const steelMat   = new THREE.MeshStandardMaterial({ color: 0x606060, roughness: 0.08, metalness: 0.99 });
-      const ironDark   = new THREE.MeshStandardMaterial({ color: 0x202020, roughness: 0.50, metalness: 0.88 });
-      const ironRust   = new THREE.MeshStandardMaterial({ color: 0x4A3020, roughness: 0.85, metalness: 0.55 });
-      const coalMat    = new THREE.MeshStandardMaterial({ color: 0x141010, roughness: 1.00 });
-      const sootMat    = new THREE.MeshStandardMaterial({ color: 0x080606, roughness: 1.00 });
-      const ropeMatM   = new THREE.MeshStandardMaterial({ color: 0x6A5030, roughness: 0.95 });
-      const barrelMat  = new THREE.MeshStandardMaterial({ color: 0x3A2210, roughness: 0.88 });
-      const hoopMat    = new THREE.MeshStandardMaterial({ color: 0x282020, roughness: 0.55, metalness: 0.80 });
-      const metalMat   = new THREE.MeshStandardMaterial({
-        color: 0x5A5A5A, roughness: 0.22, metalness: 0.95,
-        emissive: new THREE.Color(0x000000), emissiveIntensity: 0,
+      // MeshPhongMaterial — compatible with expo-gl WebGL1/2 on all devices.
+      // MeshStandardMaterial (PBR) fails silently in some expo-gl builds.
+      const floorMat   = new THREE.MeshPhongMaterial({ color: 0x2A2018, shininess: 2 });
+      const floorDark  = new THREE.MeshPhongMaterial({ color: 0x1C1610, shininess: 1 });
+      const stoneMat   = new THREE.MeshPhongMaterial({ color: 0x3C3028, shininess: 3 });
+      const stoneDark  = new THREE.MeshPhongMaterial({ color: 0x28221A, shininess: 2 });
+      const brickMat   = new THREE.MeshPhongMaterial({ color: 0x4A3828, shininess: 3 });
+      const woodMat    = new THREE.MeshPhongMaterial({ color: 0x3C2008, shininess: 5 });
+      const woodLight  = new THREE.MeshPhongMaterial({ color: 0x5C3818, shininess: 8 });
+      const beamMat    = new THREE.MeshPhongMaterial({ color: 0x241408, shininess: 2 });
+      const ironMat    = new THREE.MeshPhongMaterial({ color: 0x383838, shininess: 60 });
+      const steelMat   = new THREE.MeshPhongMaterial({ color: 0x606060, shininess: 120 });
+      const ironDark   = new THREE.MeshPhongMaterial({ color: 0x202020, shininess: 30 });
+      const ironRust   = new THREE.MeshPhongMaterial({ color: 0x4A3020, shininess: 10 });
+      const coalMat    = new THREE.MeshPhongMaterial({ color: 0x141010, shininess: 1 });
+      const sootMat    = new THREE.MeshPhongMaterial({ color: 0x080606, shininess: 1 });
+      const ropeMatM   = new THREE.MeshPhongMaterial({ color: 0x6A5030, shininess: 3 });
+      const barrelMat  = new THREE.MeshPhongMaterial({ color: 0x3A2210, shininess: 5 });
+      const hoopMat    = new THREE.MeshPhongMaterial({ color: 0x282020, shininess: 50 });
+      const metalMat   = new THREE.MeshPhongMaterial({
+        color: 0x5A5A5A, shininess: 80,
+        emissive: new THREE.Color(0x000000),
       });
 
-      // Fire glow planes
-      const fireMat1 = new THREE.MeshStandardMaterial({
-        color: 0xFF3300, emissive: new THREE.Color(0xFF2200), emissiveIntensity: 9.0,
-        transparent: true, opacity: 0.90, side: THREE.DoubleSide,
+      // Fire glow planes — MeshBasicMaterial: self-illuminated, no lighting needed
+      const fireMat1 = new THREE.MeshBasicMaterial({
+        color: 0xFF3300, transparent: true, opacity: 0.90, side: THREE.DoubleSide,
       });
-      const fireMat2 = new THREE.MeshStandardMaterial({
-        color: 0xFF8800, emissive: new THREE.Color(0xFF6600), emissiveIntensity: 7.0,
-        transparent: true, opacity: 0.75, side: THREE.DoubleSide,
+      const fireMat2 = new THREE.MeshBasicMaterial({
+        color: 0xFF6600, transparent: true, opacity: 0.75, side: THREE.DoubleSide,
       });
-      const fireMat3 = new THREE.MeshStandardMaterial({
-        color: 0xFFCC44, emissive: new THREE.Color(0xFFAA22), emissiveIntensity: 11.0,
-        transparent: true, opacity: 0.60, side: THREE.DoubleSide,
+      const fireMat3 = new THREE.MeshBasicMaterial({
+        color: 0xFFAA22, transparent: true, opacity: 0.60, side: THREE.DoubleSide,
       });
-      const glowCoreMat = new THREE.MeshStandardMaterial({
-        color: 0xFFFFBB, emissive: new THREE.Color(0xFFFFBB), emissiveIntensity: 16.0,
-        transparent: true, opacity: 0.85,
+      const glowCoreMat = new THREE.MeshBasicMaterial({
+        color: 0xFFFFBB, transparent: true, opacity: 0.85,
       });
 
       // Lantern
-      const lanternMat = new THREE.MeshStandardMaterial({
-        color: 0xFFCC66, emissive: new THREE.Color(0xFFCC66), emissiveIntensity: 6.0,
-        transparent: true, opacity: 0.80,
+      const lanternMat = new THREE.MeshBasicMaterial({
+        color: 0xFFCC66, transparent: true, opacity: 0.80,
       });
 
       // ── Lighting ─────────────────────────────────────────────────────────────
-      // Almost no ambient — fire does all the work → dramatic shadows
-      scene.add(new THREE.AmbientLight(0x1A1008, 0.5));
+      // Warm forge-orange ambient — ensures geometry is always visible even if
+      // PointLights don't reach. PointLights add contrast and flicker on top.
+      scene.add(new THREE.AmbientLight(0xFF6622, 1.8));
+      // Cool top-down fill so the bird's-eye camera always sees surfaces
+      scene.add(new THREE.HemisphereLight(0xFF4400, 0x1A0A00, 1.2));
 
       // Main furnace fire — powerful central orange light
       // decay=1: Three.js r155+ defaults to decay=2 (physical); use 1 for broader reach
@@ -697,11 +697,12 @@ const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(
         fp1.scale.set(1 + n1 * 0.06, 1 + n1 * 0.07, 1);
         fp2.scale.set(1 + n2 * 0.07, 1 + n2 * 0.09, 1);
         fp3.scale.set(1 + n3 * 0.08, 1 + n3 * 0.11, 1);
-        (fireMat1 as THREE.MeshStandardMaterial).emissiveIntensity  = 9.0  + n1 * 2.8;
-        (fireMat2 as THREE.MeshStandardMaterial).emissiveIntensity  = 7.0  + n2 * 2.4;
-        (fireMat3 as THREE.MeshStandardMaterial).emissiveIntensity  = 11.0 + n3 * 3.2;
-        (glowCoreMat as THREE.MeshStandardMaterial).emissiveIntensity = 16.0 + n1 * 3.5;
-        (lanternMat as THREE.MeshStandardMaterial).emissiveIntensity  = 6.0  + nL * 1.2;
+        // MeshBasicMaterial: flicker via opacity (no emissiveIntensity on Basic)
+        fireMat1.opacity = Math.max(0.55, Math.min(0.98, 0.90 + n1 * 0.07));
+        fireMat2.opacity = Math.max(0.45, Math.min(0.90, 0.75 + n2 * 0.08));
+        fireMat3.opacity = Math.max(0.35, Math.min(0.80, 0.60 + n3 * 0.10));
+        glowCoreMat.opacity = Math.max(0.60, Math.min(1.00, 0.85 + n1 * 0.10));
+        lanternMat.opacity  = Math.max(0.55, Math.min(0.95, 0.80 + nL * 0.08));
 
         // ── Camera gentle sway (breathing feel) ─────────────────────────────
         camera.position.y = 11.5 + Math.sin(t * 0.22) * 0.12;
