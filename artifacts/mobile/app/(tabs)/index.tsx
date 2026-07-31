@@ -586,12 +586,30 @@ export default function ForgeScreen() {
     // Start the looping fire-crackle ambience when the forge tab is entered
     AudioManager.startForgeAmbience();
 
-    // Pause ambience when the app goes to the background; resume on foreground
+    // Web: use the Page Visibility API to suspend/resume the AudioContext so
+    // the oscillator graph stays alive and there is no audible gap on return.
+    let removeVisibility: (() => void) | undefined;
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const handleVisibilityChange = () => {
+        if (document.hidden) {
+          AudioManager.suspendForgeAmbience();
+        } else {
+          AudioManager.resumeForgeAmbience();
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      removeVisibility = () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }
+
+    // Native: pause/resume ambience when the app goes to the background.
+    // (On web AppState doesn't fire for tab switches — visibilitychange handles that above.)
     const appStateSub = AppState.addEventListener('change', (nextState) => {
-      if (nextState === 'active') {
-        AudioManager.startForgeAmbience();
-      } else {
-        AudioManager.stopForgeAmbience();
+      if (Platform.OS !== 'web') {
+        if (nextState === 'active') {
+          AudioManager.startForgeAmbience();
+        } else {
+          AudioManager.stopForgeAmbience();
+        }
       }
     });
 
@@ -599,10 +617,11 @@ export default function ForgeScreen() {
     const WEATHER_TYPES: WeatherType[] = ['none', 'none', 'none', 'rain', 'fog', 'rain', 'snow'];
     const pick = () => WEATHER_TYPES[Math.floor(Math.random() * WEATHER_TYPES.length)];
     setWeather(pick());
-    const t = setInterval(() => setWeather(pick()), 7 * 60 * 1000); // 7 min
+    const weatherTimer = setInterval(() => setWeather(pick()), 7 * 60 * 1000); // 7 min
     return () => {
+      removeVisibility?.();
       appStateSub.remove();
-      clearInterval(t);
+      clearInterval(weatherTimer);
       AudioManager.stopForgeAmbience();
     };
   }, []);

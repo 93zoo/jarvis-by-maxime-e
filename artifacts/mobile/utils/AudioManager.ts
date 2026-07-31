@@ -79,6 +79,8 @@ class AudioManagerClass {
   private ambienceGainNode: GainNode | null = null;
   private ambienceSource2: AudioBufferSourceNode | null = null; // low rumble
   private ambienceRafId: number | null = null;
+  /** Accumulated phase for the breath modulation — preserved across suspend/resume. */
+  private ambiencePhase = 0;
 
   /** Must be called after a user gesture (browser autoplay policy on web). */
   init(): void {
@@ -371,12 +373,11 @@ class AudioManagerClass {
       // (osc3 / osc4 are stopped in stopForgeAmbience via the gain disconnect)
 
       // ── Slow breath: gentle amplitude swell every ~6 s ────────────────────
-      let t = 0;
       const breathe = () => {
         if (!this.ambienceSource) return;
-        t += 0.016;
+        this.ambiencePhase += 0.016;
         // Two overlapping sine waves give an organic, uneven breath
-        const breath = 0.13 + Math.sin(t * 0.55) * 0.035 + Math.sin(t * 1.1) * 0.018;
+        const breath = 0.13 + Math.sin(this.ambiencePhase * 0.55) * 0.035 + Math.sin(this.ambiencePhase * 1.1) * 0.018;
         ambiGain.gain.value = breath;
         this.ambienceRafId = requestAnimationFrame(breathe);
       };
@@ -414,6 +415,50 @@ class AudioManagerClass {
       if (node) { try { node.stop?.(); } catch { /* ignore */ } self[key] = null; }
     }
     this.ambienceGainNode = null;
+    // Reset phase so next startForgeAmbience begins cleanly
+    this.ambiencePhase = 0;
+  }
+
+  /**
+   * Suspends the forge ambience without tearing down the oscillator graph.
+   * Web only — pauses the AudioContext and cancels the RAF loop while
+   * keeping the phase offset so resumeForgeAmbience can pick up seamlessly.
+   */
+  suspendForgeAmbience(): void {
+    if (Platform.OS !== 'web') return;
+    if (!this.ctx || !this.ambienceSource) return;
+    // Stop the breath RAF (phase is already saved in this.ambiencePhase)
+    if (this.ambienceRafId !== null) {
+      cancelAnimationFrame(this.ambienceRafId);
+      this.ambienceRafId = null;
+    }
+    // Suspend the AudioContext — all oscillator nodes stay alive
+    try { this.ctx.suspend(); } catch { /* ignore */ }
+  }
+
+  /**
+   * Resumes the forge ambience after a suspend.
+   * Web only — un-suspends the AudioContext and restarts the breath RAF
+   * from the saved phase, giving a seamless continuation.
+   */
+  resumeForgeAmbience(): void {
+    if (Platform.OS !== 'web') return;
+    if (!this.ctx || !this.ambienceSource) return;
+    if (this.muted) return;
+    // Un-suspend the AudioContext so oscillators produce sound again
+    try { this.ctx.resume(); } catch { /* ignore */ }
+    // Restart the breath modulation RAF if it isn't already running
+    if (this.ambienceRafId !== null) return;
+    const ambiGain = this.ambienceGainNode;
+    if (!ambiGain) return;
+    const breathe = () => {
+      if (!this.ambienceSource) return;
+      this.ambiencePhase += 0.016;
+      const breath = 0.13 + Math.sin(this.ambiencePhase * 0.55) * 0.035 + Math.sin(this.ambiencePhase * 1.1) * 0.018;
+      ambiGain.gain.value = breath;
+      this.ambienceRafId = requestAnimationFrame(breathe);
+    };
+    this.ambienceRafId = requestAnimationFrame(breathe);
   }
 
   // ── Volume control ──────────────────────────────────────────────────────────
