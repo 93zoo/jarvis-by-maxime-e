@@ -1222,14 +1222,24 @@ function ApprenticeCard({
         <TouchableOpacity
           style={[apStyles.readyRow, { backgroundColor: '#1B5E2088' }]}
           onPress={() => {
-            const item = game.collectApprenticeItem();
-            if (item) { showMsg(`${item.name} (${item.quality}) récupéré !`); AudioManager.playCollect(); }
+            const result = game.collectApprenticeItem();
+            if (result.success && result.item) {
+              showMsg(`${result.item.name} (${result.item.quality}) récupéré !`);
+              AudioManager.playCollect();
+            } else {
+              showMsg(result.message ?? 'Erreur.');
+            }
           }}
           activeOpacity={0.8}
         >
-          <Text style={{ color: '#A5D6A7', fontWeight: '700' }}>
-            ✓ {ap.readyItem.name} prêt — Appuyer pour récupérer
-          </Text>
+          <View style={{ alignItems: 'center', gap: 2 }}>
+            <Text style={{ color: '#A5D6A7', fontWeight: '700' }}>
+              ✓ {ap.readyItem.name} ({ap.readyItem.quality}) prêt
+            </Text>
+            <Text style={{ color: '#A5D6A7', fontSize: 11, opacity: 0.85 }}>
+              Salaire : {25 * ap.level}g — Appuyer pour payer et récupérer
+            </Text>
+          </View>
         </TouchableOpacity>
       )}
 

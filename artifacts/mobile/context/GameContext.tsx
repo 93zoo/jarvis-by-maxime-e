@@ -208,7 +208,7 @@ type GameAction =
   | { type: 'DISMISS_APPRENTICE' }
   | { type: 'ASSIGN_APPRENTICE_RECIPE'; recipeId: string; durationMs: number }
   | { type: 'APPRENTICE_FINISH_CRAFT'; item: Item }
-  | { type: 'COLLECT_APPRENTICE_ITEM' }
+  | { type: 'COLLECT_APPRENTICE_ITEM'; salaryCost: number }
   | { type: 'TRAIN_APPRENTICE'; goldCost: number };
 
 function buildInitialPlayer(): Player {
@@ -1012,6 +1012,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'COLLECT_APPRENTICE_ITEM': {
       if (!state.apprentice?.readyItem) return state;
+      if (state.player.gold < action.salaryCost) return state; // can't pay — block
       const item = state.apprentice.readyItem;
       // Give apprentice XP on collection
       let newXp = state.apprentice.xp + Math.round(20 * state.apprentice.level);
@@ -1030,6 +1031,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const newDuration = recipe ? apprenticeCraftDuration(recipe, newLevel) : 0;
       return {
         ...state,
+        player: { ...state.player, gold: state.player.gold - action.salaryCost },
         craftedItems: [...state.craftedItems, item],
         apprentice: {
           ...state.apprentice,
@@ -1151,7 +1153,7 @@ interface GameContextType {
   hireApprentice: () => boolean;
   dismissApprentice: () => void;
   assignApprenticeRecipe: (recipeId: string) => boolean;
-  collectApprenticeItem: () => Item | null;
+  collectApprenticeItem: () => { success: boolean; item?: Item; message?: string };
   trainApprentice: () => { success: boolean; cost: number; message: string };
 }
 
@@ -2081,12 +2083,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return true;
   }, [state.apprentice]);
 
-  const collectApprenticeItem = useCallback((): Item | null => {
-    const item = state.apprentice?.readyItem ?? null;
-    if (!item) return null;
-    dispatch({ type: 'COLLECT_APPRENTICE_ITEM' });
-    return item;
-  }, [state.apprentice]);
+  const collectApprenticeItem = useCallback((): { success: boolean; item?: Item; message?: string } => {
+    const ap = state.apprentice;
+    if (!ap?.readyItem) return { success: false, message: 'Rien à récupérer.' };
+    const salaryCost = 25 * ap.level;
+    if (state.player.gold < salaryCost) {
+      return { success: false, message: `Salaire impayé — ${salaryCost}g requis.` };
+    }
+    const item = ap.readyItem;
+    dispatch({ type: 'COLLECT_APPRENTICE_ITEM', salaryCost });
+    return { success: true, item };
+  }, [state.apprentice, state.player.gold]);
 
   const trainApprentice = useCallback((): { success: boolean; cost: number; message: string } => {
     if (!state.apprentice) return { success: false, cost: 0, message: 'Pas d\'apprenti.' };
