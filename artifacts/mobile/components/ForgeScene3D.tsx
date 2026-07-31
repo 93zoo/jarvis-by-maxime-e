@@ -360,12 +360,9 @@ const styles = StyleSheet.create({
   gridV:        { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: 'rgba(255,160,60,0.04)' },
 
   groundGlow: {
-    position: 'absolute', bottom: -40, left: -40, right: -40, height: 340,
-    backgroundColor: 'transparent',
-    borderRadius: 300,
-    shadowColor: '#FF5500', shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9, shadowRadius: 80,
-    elevation: 0,
+    position: 'absolute', bottom: 0, left: 0, right: 0, height: 300,
+    backgroundColor: 'rgba(255,60,0,0.06)',
+    borderRadius: 200,
   },
 
   // Furnace

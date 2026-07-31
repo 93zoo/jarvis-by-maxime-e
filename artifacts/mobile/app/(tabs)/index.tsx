@@ -1101,7 +1101,7 @@ const styles = StyleSheet.create({
   pillText: { fontSize: 13, fontWeight: '700' },
 
   // 3D scene
-  sceneContainer: { flex: 1 },
+  sceneContainer: { flex: 1, overflow: 'hidden' },
 
   // Phase overlays (on top of scene)
   phaseOverlay: {
