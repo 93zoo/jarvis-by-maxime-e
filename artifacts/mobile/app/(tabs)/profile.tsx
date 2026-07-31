@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -735,6 +736,163 @@ function AchievementsTabContent({ colors }: { colors: ReturnType<typeof useColor
   );
 }
 
+// ─── Customize Modal ─────────────────────────────────────────────────────────
+function CustomizeModal({
+  visible,
+  initialName,
+  initialForgeName,
+  onSave,
+  onClose,
+  colors,
+}: {
+  visible: boolean;
+  initialName: string;
+  initialForgeName: string;
+  onSave: (name: string, forgeName: string) => void;
+  onClose: () => void;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const [name, setName] = useState(initialName);
+  const [forgeName, setForgeName] = useState(initialForgeName);
+  const nameRef = useRef(initialName);
+  const forgeNameRef = useRef(initialForgeName);
+
+  // Sync when modal opens with fresh values
+  useEffect(() => {
+    if (visible) {
+      setName(initialName);
+      setForgeName(initialForgeName);
+      nameRef.current = initialName;
+      forgeNameRef.current = initialForgeName;
+    }
+  }, [visible, initialName, initialForgeName]);
+
+  const nameValid = name.trim().length >= 2 && name.trim().length <= 24;
+  const forgeNameValid = forgeName.trim().length >= 2 && forgeName.trim().length <= 32;
+  const canSave = nameValid && forgeNameValid;
+
+  const handleSave = () => {
+    if (!canSave) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    onSave(name.trim(), forgeName.trim());
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+      <View style={cmStyles.overlay}>
+        <View style={[cmStyles.sheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={[cmStyles.handle, { backgroundColor: colors.muted }]} />
+          {/* Header */}
+          <View style={cmStyles.header}>
+            <View style={[cmStyles.headerIcon, { backgroundColor: `${colors.primary}22` }]}>
+              <Feather name="edit-2" size={20} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[cmStyles.title, { color: colors.foreground }]}>Personnaliser</Text>
+              <Text style={[cmStyles.subtitle, { color: colors.mutedForeground }]}>Votre identité de forgeron</Text>
+            </View>
+            <TouchableOpacity onPress={onClose} style={[cmStyles.closeIcon, { backgroundColor: colors.secondary }]}>
+              <Feather name="x" size={18} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Nom du joueur */}
+          <Text style={[cmStyles.fieldLabel, { color: colors.foreground }]}>Nom du forgeron</Text>
+          <Text style={[cmStyles.fieldHint, { color: colors.mutedForeground }]}>2 à 24 caractères</Text>
+          <View style={[cmStyles.inputWrap, { borderColor: nameValid ? colors.primary : name.trim().length > 0 ? '#EF5350' : colors.border, backgroundColor: colors.secondary }]}>
+            <Feather name="user" size={16} color={nameValid ? colors.primary : colors.mutedForeground} style={{ marginRight: 8 }} />
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              maxLength={24}
+              placeholder="Votre nom…"
+              placeholderTextColor={colors.mutedForeground}
+              style={[cmStyles.input, { color: colors.foreground }]}
+              autoCapitalize="words"
+              returnKeyType="next"
+            />
+            <Text style={[cmStyles.charCount, { color: name.trim().length > 24 ? '#EF5350' : colors.mutedForeground }]}>
+              {name.trim().length}/24
+            </Text>
+          </View>
+
+          {/* Nom de la forge */}
+          <Text style={[cmStyles.fieldLabel, { color: colors.foreground, marginTop: 14 }]}>Nom de la forge</Text>
+          <Text style={[cmStyles.fieldHint, { color: colors.mutedForeground }]}>2 à 32 caractères</Text>
+          <View style={[cmStyles.inputWrap, { borderColor: forgeNameValid ? colors.primary : forgeName.trim().length > 0 ? '#EF5350' : colors.border, backgroundColor: colors.secondary }]}>
+            <Feather name="tool" size={16} color={forgeNameValid ? colors.primary : colors.mutedForeground} style={{ marginRight: 8 }} />
+            <TextInput
+              value={forgeName}
+              onChangeText={setForgeName}
+              maxLength={32}
+              placeholder="Le nom de votre forge…"
+              placeholderTextColor={colors.mutedForeground}
+              style={[cmStyles.input, { color: colors.foreground }]}
+              autoCapitalize="words"
+              returnKeyType="done"
+              onSubmitEditing={handleSave}
+            />
+            <Text style={[cmStyles.charCount, { color: forgeName.trim().length > 32 ? '#EF5350' : colors.mutedForeground }]}>
+              {forgeName.trim().length}/32
+            </Text>
+          </View>
+
+          {/* Preview */}
+          {canSave && (
+            <View style={[cmStyles.preview, { backgroundColor: `${colors.primary}11`, borderColor: `${colors.primary}33` }]}>
+              <Text style={[cmStyles.previewName, { color: colors.foreground }]}>{name.trim()}</Text>
+              <Text style={[cmStyles.previewForge, { color: colors.primary }]}>— {forgeName.trim()}</Text>
+            </View>
+          )}
+
+          {/* Actions */}
+          <View style={cmStyles.actions}>
+            <TouchableOpacity
+              style={[cmStyles.cancelBtn, { backgroundColor: colors.secondary, borderColor: colors.border }]}
+              onPress={onClose}
+            >
+              <Text style={[cmStyles.cancelText, { color: colors.mutedForeground }]}>Annuler</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[cmStyles.saveBtn, { backgroundColor: canSave ? colors.primary : colors.muted, opacity: canSave ? 1 : 0.5 }]}
+              onPress={handleSave}
+              disabled={!canSave}
+            >
+              <Feather name="check" size={16} color={canSave ? '#fff' : colors.mutedForeground} />
+              <Text style={[cmStyles.saveText, { color: canSave ? '#fff' : colors.mutedForeground }]}>Enregistrer</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const cmStyles = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
+  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 32, borderWidth: 1, borderBottomWidth: 0 },
+  handle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
+  headerIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  title: { fontSize: 18, fontWeight: '800' },
+  subtitle: { fontSize: 12, marginTop: 2 },
+  closeIcon: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
+  fieldLabel: { fontSize: 13, fontWeight: '700', marginBottom: 2 },
+  fieldHint: { fontSize: 10, marginBottom: 8 },
+  inputWrap: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1.5, paddingHorizontal: 12, paddingVertical: 12 },
+  input: { flex: 1, fontSize: 15, fontWeight: '500' },
+  charCount: { fontSize: 10, fontWeight: '600', marginLeft: 6 },
+  preview: { borderRadius: 12, borderWidth: 1, padding: 14, marginTop: 16, alignItems: 'center', gap: 4 },
+  previewName: { fontSize: 16, fontWeight: '800' },
+  previewForge: { fontSize: 13, fontWeight: '600' },
+  actions: { flexDirection: 'row', gap: 10, marginTop: 20 },
+  cancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center', borderWidth: 1 },
+  cancelText: { fontSize: 14, fontWeight: '600' },
+  saveBtn: { flex: 2, flexDirection: 'row', paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  saveText: { fontSize: 14, fontWeight: '700' },
+});
+
 // ─── Main Profile Screen ──────────────────────────────────────────────────────
 export default function ProfileScreen() {
   const colors = useColors();
@@ -744,6 +902,18 @@ export default function ProfileScreen() {
   const [activeTab, setActiveTab] = useState<'skills' | 'talents' | 'stats' | 'achievements'>('skills');
   const [selectedSkillId, setSelectedSkillId] = useState<SkillType | null>(null);
   const [selectedTree, setSelectedTree] = useState<TreeKey>('forge');
+  const [showCustomize, setShowCustomize] = useState(false);
+  const hasPromptedRef = useRef(false);
+
+  // Auto-prompt customization on first session (name still at default)
+  useEffect(() => {
+    if (!game.isLoaded) return;
+    if (hasPromptedRef.current) return;
+    if (game.player.name === 'Apprenti Forgeron') {
+      hasPromptedRef.current = true;
+      setShowCustomize(true);
+    }
+  }, [game.isLoaded, game.player.name]);
 
   if (!game.isLoaded) {
     return (
@@ -818,11 +988,22 @@ export default function ProfileScreen() {
             <Text style={[styles.playerTitle, { color: colors.primary }]}>
               {player.forgeLevel >= 8 ? 'Maître Forgeron' : player.forgeLevel >= 5 ? 'Forgeron Confirmé' : player.forgeLevel >= 3 ? 'Forgeron' : 'Apprenti Forgeron'}
             </Text>
-            <Text style={[styles.playerSub, { color: colors.mutedForeground }]}>Forge Niveau {player.forgeLevel} · {player.talentPoints} pt talents</Text>
+            <Text style={[styles.playerSub, { color: colors.mutedForeground }]}>
+              {player.forgeName ?? 'La Forge du Débutant'} · Niv.{player.forgeLevel}
+            </Text>
           </View>
-          <View style={[styles.levelCircle, { borderColor: colors.primary }]}>
-            <Text style={[styles.levelNumber, { color: colors.accent }]}>{player.level}</Text>
-            <Text style={[styles.levelLabel, { color: colors.mutedForeground }]}>NIV</Text>
+          <View style={{ alignItems: 'center', gap: 6 }}>
+            <View style={[styles.levelCircle, { borderColor: colors.primary }]}>
+              <Text style={[styles.levelNumber, { color: colors.accent }]}>{player.level}</Text>
+              <Text style={[styles.levelLabel, { color: colors.mutedForeground }]}>NIV</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.customizeBtn, { backgroundColor: `${colors.primary}22`, borderColor: `${colors.primary}44` }]}
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowCustomize(true); }}
+            >
+              <Feather name="edit-2" size={11} color={colors.primary} />
+              <Text style={[styles.customizeBtnText, { color: colors.primary }]}>Modifier</Text>
+            </TouchableOpacity>
           </View>
         </View>
         <View style={styles.xpSection}>
@@ -967,6 +1148,16 @@ export default function ProfileScreen() {
         onClose={() => setSelectedSkillId(null)}
         colors={colors}
       />
+
+      {/* Customize modal */}
+      <CustomizeModal
+        visible={showCustomize}
+        initialName={player.name}
+        initialForgeName={player.forgeName ?? 'La Forge du Débutant'}
+        onSave={(name, forgeName) => game.customizePlayer(name, forgeName)}
+        onClose={() => setShowCustomize(false)}
+        colors={colors}
+      />
     </View>
   );
 }
@@ -992,6 +1183,8 @@ const styles = StyleSheet.create({
   levelCircle: { width: 50, height: 50, borderRadius: 25, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
   levelNumber: { fontSize: 18, fontWeight: '800' },
   levelLabel: { fontSize: 8, fontWeight: '600', letterSpacing: 1 },
+  customizeBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, borderWidth: 1 },
+  customizeBtnText: { fontSize: 10, fontWeight: '700' },
   xpSection: {},
   xpLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   xpLabel: { fontSize: 10 },

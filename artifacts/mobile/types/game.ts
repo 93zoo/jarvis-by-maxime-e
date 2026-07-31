@@ -42,6 +42,7 @@ export type GemType =
 export interface Player {
   id: string;
   name: string;
+  forgeName: string;
   level: number;
   xp: number;
   xpToNextLevel: number;

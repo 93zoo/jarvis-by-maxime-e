@@ -178,7 +178,9 @@ type GameAction =
   // Forge upgrades
   | { type: 'UPGRADE_FORGE_ELEMENT'; element: string; goldCost: number; resourceCosts: { resourceId: string; qty: number }[] }
   // Talents
-  | { type: 'UNLOCK_TALENT'; talentId: string; cost: number };
+  | { type: 'UNLOCK_TALENT'; talentId: string; cost: number }
+  // Customization
+  | { type: 'CUSTOMIZE_PLAYER'; name: string; forgeName: string };
 
 function buildInitialPlayer(): Player {
   const skills = SKILL_TYPES.reduce(
@@ -192,6 +194,7 @@ function buildInitialPlayer(): Player {
   return {
     id: makeId(),
     name: 'Apprenti Forgeron',
+    forgeName: 'La Forge du Débutant',
     level: 1,
     xp: 0,
     xpToNextLevel: 100,
@@ -329,6 +332,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       // must be defaulted here so legacy saves don't produce undefined/NaN.
       let player: Player = {
         ...s.player,
+        forgeName: s.player.forgeName ?? 'La Forge du Débutant',
         talentPoints: s.player.talentPoints ?? 0,
         talentsUnlocked: s.player.talentsUnlocked ?? [],
         totalGoldEarned: s.player.totalGoldEarned ?? 0,
@@ -730,6 +734,15 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, player };
     }
 
+    case 'CUSTOMIZE_PLAYER': {
+      const player = {
+        ...state.player,
+        name: action.name.trim(),
+        forgeName: action.forgeName.trim(),
+      };
+      return { ...state, player };
+    }
+
     default:
       return state;
   }
@@ -806,6 +819,8 @@ interface GameContextType {
   cloudSyncStatus: CloudSyncStatus;
   lastCloudSync: number | null;
   syncToCloud: () => Promise<void>;
+  // Customization
+  customizePlayer: (name: string, forgeName: string) => void;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -1434,6 +1449,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [state.forgeUpgrades, state.player.gold, state.player.talentsUnlocked, state.inventory],
   );
 
+  const customizePlayer = useCallback(
+    (name: string, forgeName: string): void => {
+      const trimmedName = name.trim();
+      const trimmedForgeName = forgeName.trim();
+      if (trimmedName.length < 2 || trimmedName.length > 24) return;
+      if (trimmedForgeName.length < 2 || trimmedForgeName.length > 32) return;
+      dispatch({ type: 'CUSTOMIZE_PLAYER', name: trimmedName, forgeName: trimmedForgeName });
+    },
+    [],
+  );
+
   const unlockTalent = useCallback(
     (talentId: string): boolean => {
       const talent = ALL_TALENTS.find((t) => t.id === talentId);
@@ -1522,6 +1548,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       cloudSyncStatus,
       lastCloudSync,
       syncToCloud,
+      // Customization
+      customizePlayer,
     }),
     // Include cloud sync reactive state so status transitions propagate to consumers
     // eslint-disable-next-line react-hooks/exhaustive-deps
