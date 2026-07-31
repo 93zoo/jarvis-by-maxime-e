@@ -1,14 +1,19 @@
 /**
- * IntroCinematic — shown on first launch.
+ * IntroCinematic — Forge-themed title screen shown on first launch.
  *
- * A cinematic sequence of animated text panels with parallax rain, leading
- * to a logo reveal.  Uses only Reanimated + React Native Animated (no 3rd
- * party deps beyond what is already installed).
+ * Single full-screen composition:
+ *   · Warm amber fire glow rising from the bottom
+ *   · Floating ember/spark particles drifting upward
+ *   · Anvil + hammer icon reveal
+ *   · "FORGE & KINGDOMS" title with gold shimmer
+ *   · "Jeux éducatif crée par Maxime-E" credit
+ *   · Pulsing tap-to-start hint
+ *
+ * Uses only Reanimated v4 + React Native Animated — no extra deps.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect } from 'react';
 import {
   Dimensions,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -28,242 +33,292 @@ import { StatusBar } from 'expo-status-bar';
 
 const { width: W, height: H } = Dimensions.get('window');
 
-// ─── Scene definitions ────────────────────────────────────────────────────────
-const SCENES = [
-  {
-    id: 'heritage',
-    text: 'Il y a bien longtemps…',
-    sub: 'votre père était le forgeron le plus réputé du royaume.',
-    delay: 400,
-  },
-  {
-    id: 'abandonne',
-    text: "Mais la forge est à l'abandon.",
-    sub: 'Les braises se sont éteintes. Les enclumes rouillent.',
-    delay: 400,
-  },
-  {
-    id: 'viellard',
-    text: "Un soir, un vieux forgeron frappe à votre porte\u2026",
-    sub: "\u00ab\u00a0Ce marteau appartenait à votre père. Il est temps de rallumer la flamme.\u00a0\u00bb",
-    delay: 400,
-  },
-  {
-    id: 'marteau',
-    text: '⚒',
-    sub: 'Il vous tend le marteau de votre père.',
-    delay: 400,
-    bigIcon: true,
-  },
-  {
-    id: 'logo',
-    text: 'FORGE & KINGDOMS',
-    sub: 'Votre légende commence maintenant.',
-    delay: 200,
-    isLogo: true,
-  },
-];
-
-const SCENE_DURATION = 2800; // ms per scene before auto-advance
-const TRANSITION_MS = 600;   // fade out duration
-
-// ─── Rain particle (static positions, animated via Y) ─────────────────────────
-const RAIN_COUNT = 30;
-const rainDrops = Array.from({ length: RAIN_COUNT }, (_, i) => ({
-  x: Math.random() * W,
-  delay: Math.random() * 1500,
-  speed: 1200 + Math.random() * 600,
-  opacity: 0.04 + Math.random() * 0.1,
-  height: 14 + Math.random() * 20,
+// ─── Ember / spark particles ──────────────────────────────────────────────────
+// Each particle rises from a fire zone at the bottom center of the screen.
+const EMBER_COUNT = 44;
+const embers = Array.from({ length: EMBER_COUNT }, (_, i) => ({
+  id: i,
+  // Spread across ~60 % of screen width, centred
+  startX: W * 0.2 + Math.random() * W * 0.6,
+  // Horizontal drift during rise
+  driftX: (Math.random() - 0.5) * 90,
+  // Rise distance (px)
+  riseH: H * 0.45 + Math.random() * H * 0.3,
+  // Timing
+  delay: Math.random() * 2400,
+  duration: 1800 + Math.random() * 1800,
+  // Visual
+  size: 1.5 + Math.random() * 3.5,
+  opacity: 0.3 + Math.random() * 0.65,
+  color: Math.random() > 0.5 ? '#FF8800' : '#FFCC44',
 }));
 
-function RainDrop({ x, delay, speed, opacity: op, height }: (typeof rainDrops)[0]) {
-  const y = useSharedValue(-50);
+// Sub-component — must be defined BEFORE the screen component (Hermes hoisting rule)
+function EmberParticle({
+  startX, driftX, riseH, delay, duration, size, opacity, color,
+}: (typeof embers)[0]) {
+  const y    = useSharedValue(0);
+  const x    = useSharedValue(0);
+  const op   = useSharedValue(0);
 
   useEffect(() => {
-    y.value = withDelay(
-      delay,
+    const loop = withRepeat(
+      withSequence(
+        // Reset instantly, then rise while fading in then out
+        withTiming(0, { duration: 0 }),
+        withTiming(-riseH, { duration, easing: Easing.out(Easing.quad) }),
+      ),
+      -1,
+    );
+    const loopX = withRepeat(
+      withSequence(
+        withTiming(0, { duration: 0 }),
+        withTiming(driftX, { duration, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+    );
+    const loopOp = withRepeat(
+      withSequence(
+        withTiming(0, { duration: 0 }),
+        withTiming(opacity, { duration: duration * 0.25, easing: Easing.out(Easing.quad) }),
+        withTiming(opacity * 0.6, { duration: duration * 0.5 }),
+        withTiming(0, { duration: duration * 0.25 }),
+      ),
+      -1,
+    );
+    y.value  = withDelay(delay, loop);
+    x.value  = withDelay(delay, loopX);
+    op.value = withDelay(delay, loopOp);
+  }, []);
+
+  const style = useAnimatedStyle(() => ({
+    transform: [{ translateX: x.value }, { translateY: y.value }],
+    opacity: op.value,
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        styles.ember,
+        style,
+        { left: startX, width: size, height: size * 2.5, borderRadius: size, backgroundColor: color },
+      ]}
+    />
+  );
+}
+
+// ─── Fire glow (pulsing radial blob at the bottom) ───────────────────────────
+function FireGlow({ visible }: { visible: boolean }) {
+  const scale = useSharedValue(0.6);
+  const op    = useSharedValue(0);
+
+  useEffect(() => {
+    op.value = withDelay(200, withTiming(1, { duration: 900 }));
+    scale.value = withDelay(
+      200,
       withRepeat(
         withSequence(
-          withTiming(H + 50, { duration: speed, easing: Easing.linear }),
-          withTiming(-50, { duration: 0 }),
+          withTiming(1.05, { duration: 1100, easing: Easing.inOut(Easing.sin) }),
+          withTiming(0.92, { duration: 1100, easing: Easing.inOut(Easing.sin) }),
         ),
         -1,
       ),
     );
   }, []);
 
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: y.value }],
+  const style = useAnimatedStyle(() => ({
+    opacity: op.value,
+    transform: [{ scaleX: scale.value }, { scaleY: scale.value * 0.7 }],
   }));
 
+  if (!visible) return null;
   return (
-    <Animated.View
-      style={[
-        styles.rainDrop,
-        animStyle,
-        { left: x, height, opacity: op },
-      ]}
-    />
-  );
-}
-
-// ─── Main component ────────────────────────────────────────────────────────────
-interface Props {
-  onFinish: () => void;
-}
-
-function ScenePanel({
-  scene,
-  active,
-}: {
-  scene: (typeof SCENES)[0];
-  active: boolean;
-}) {
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(30);
-
-  useEffect(() => {
-    if (active) {
-      opacity.value = withDelay(
-        scene.delay,
-        withTiming(1, { duration: TRANSITION_MS, easing: Easing.out(Easing.cubic) }),
-      );
-      translateY.value = withDelay(
-        scene.delay,
-        withTiming(0, { duration: TRANSITION_MS, easing: Easing.out(Easing.cubic) }),
-      );
-    } else {
-      opacity.value = withTiming(0, { duration: TRANSITION_MS / 2 });
-      translateY.value = withTiming(-20, { duration: TRANSITION_MS / 2 });
-    }
-  }, [active]);
-
-  const animStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: translateY.value }],
-  }));
-
-  if (scene.isLogo) {
-    return (
-      <Animated.View style={[styles.sceneContent, animStyle]}>
-        <Text style={styles.logoTitle}>{scene.text}</Text>
-        <View style={styles.logoDivider} />
-        <Text style={styles.logoSub}>{scene.sub}</Text>
-      </Animated.View>
-    );
-  }
-
-  if (scene.bigIcon) {
-    return (
-      <Animated.View style={[styles.sceneContent, animStyle]}>
-        <Text style={styles.bigIcon}>{scene.text}</Text>
-        <Text style={styles.sceneSub}>{scene.sub}</Text>
-      </Animated.View>
-    );
-  }
-
-  return (
-    <Animated.View style={[styles.sceneContent, animStyle]}>
-      <Text style={styles.sceneText}>{scene.text}</Text>
-      <Text style={styles.sceneSub}>{scene.sub}</Text>
+    <Animated.View style={[styles.fireGlowWrap, style]}>
+      <View style={styles.fireGlowInner} />
+      <View style={styles.fireGlowOuter} />
     </Animated.View>
   );
 }
 
-export default function IntroCinematic({ onFinish }: Props) {
-  const [sceneIndex, setSceneIndex] = useState(0);
-  const [finishing, setFinishing] = useState(false);
-  const bgOpacity = useSharedValue(1);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+// ─── Animated divider line (scales in from centre) ───────────────────────────
+function GoldDivider({ delay }: { delay: number }) {
+  const scaleX = useSharedValue(0);
+  const op     = useSharedValue(0);
 
-  // Advance scene or finish
-  const advance = () => {
-    if (finishing) return;
-    const next = sceneIndex + 1;
-    if (next >= SCENES.length) {
-      doFinish();
-    } else {
-      setSceneIndex(next);
-    }
-  };
-
-  const doFinish = () => {
-    if (finishing) return;
-    setFinishing(true);
-    bgOpacity.value = withTiming(0, { duration: 700, easing: Easing.in(Easing.cubic) }, () => {
-      'worklet';
-    });
-    setTimeout(onFinish, 750);
-  };
-
-  // Auto-advance timer
   useEffect(() => {
-    if (finishing) return;
-    timerRef.current = setTimeout(() => {
-      advance();
-    }, SCENE_DURATION);
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [sceneIndex, finishing]);
+    op.value     = withDelay(delay, withTiming(1, { duration: 400 }));
+    scaleX.value = withDelay(delay, withTiming(1, { duration: 600, easing: Easing.out(Easing.back(1.5)) }));
+  }, []);
 
-  const bgStyle = useAnimatedStyle(() => ({ opacity: bgOpacity.value }));
+  const style = useAnimatedStyle(() => ({
+    opacity: op.value,
+    transform: [{ scaleX: scaleX.value }],
+  }));
 
-  // Pulsing "tap" indicator (last scene)
-  const tapOpacity = useSharedValue(0);
+  return <Animated.View style={[styles.divider, style]} />;
+}
+
+// ─── Fade + slide text block ──────────────────────────────────────────────────
+function FadeText({
+  delay, children, style: textStyle,
+}: { delay: number; children: React.ReactNode; style?: object }) {
+  const op  = useSharedValue(0);
+  const tY  = useSharedValue(18);
+
   useEffect(() => {
-    if (sceneIndex === SCENES.length - 1) {
-      tapOpacity.value = withDelay(
-        1200,
-        withRepeat(
-          withSequence(
-            withTiming(1, { duration: 700 }),
-            withTiming(0.3, { duration: 700 }),
-          ),
-          -1,
-        ),
-      );
-    } else {
-      tapOpacity.value = 0;
-    }
-  }, [sceneIndex]);
-  const tapStyle = useAnimatedStyle(() => ({ opacity: tapOpacity.value }));
+    op.value = withDelay(delay, withTiming(1, { duration: 650, easing: Easing.out(Easing.cubic) }));
+    tY.value = withDelay(delay, withTiming(0, { duration: 650, easing: Easing.out(Easing.cubic) }));
+  }, []);
+
+  const aStyle = useAnimatedStyle(() => ({
+    opacity: op.value,
+    transform: [{ translateY: tY.value }],
+  }));
 
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, styles.root, bgStyle]}>
+    <Animated.Text style={[aStyle, textStyle]}>
+      {children}
+    </Animated.Text>
+  );
+}
+
+// ─── Forge icon reveal — scale + glow bounce ─────────────────────────────────
+function ForgeIcon({ delay }: { delay: number }) {
+  const scale = useSharedValue(0.2);
+  const op    = useSharedValue(0);
+  const rot   = useSharedValue(-15);
+
+  useEffect(() => {
+    op.value    = withDelay(delay, withTiming(1, { duration: 400 }));
+    scale.value = withDelay(delay, withTiming(1, { duration: 700, easing: Easing.out(Easing.back(1.8)) }));
+    rot.value   = withDelay(delay, withTiming(0,  { duration: 700, easing: Easing.out(Easing.back(1.2)) }));
+    // Gentle idle float after reveal
+    setTimeout(() => {
+      scale.value = withRepeat(
+        withSequence(
+          withTiming(1.04, { duration: 1400, easing: Easing.inOut(Easing.sin) }),
+          withTiming(0.97, { duration: 1400, easing: Easing.inOut(Easing.sin) }),
+        ),
+        -1,
+      );
+    }, delay + 800);
+  }, []);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: op.value,
+    transform: [{ scale: scale.value }, { rotate: `${rot.value}deg` }],
+  }));
+
+  return (
+    <Animated.View style={[styles.iconWrap, style]}>
+      <Text style={styles.iconEmoji}>⚒</Text>
+      {/* Inner glow ring */}
+      <View style={styles.iconGlow} />
+    </Animated.View>
+  );
+}
+
+// ─── Pulsing CTA ─────────────────────────────────────────────────────────────
+function TapToContinue({ delay }: { delay: number }) {
+  const op = useSharedValue(0);
+
+  useEffect(() => {
+    op.value = withDelay(
+      delay,
+      withRepeat(
+        withSequence(
+          withTiming(1,   { duration: 700 }),
+          withTiming(0.3, { duration: 700 }),
+        ),
+        -1,
+      ),
+    );
+  }, []);
+
+  const style = useAnimatedStyle(() => ({ opacity: op.value }));
+
+  return (
+    <Animated.Text style={[styles.ctaText, style]}>
+      Appuyer pour commencer
+    </Animated.Text>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+interface Props { onFinish: () => void; }
+
+export default function IntroCinematic({ onFinish }: Props) {
+  const rootOp = useSharedValue(1);
+
+  const doFinish = () => {
+    rootOp.value = withTiming(0, { duration: 600, easing: Easing.in(Easing.cubic) });
+    setTimeout(onFinish, 640);
+  };
+
+  // Auto-advance after 7 s
+  useEffect(() => {
+    const t = setTimeout(doFinish, 7000);
+    return () => clearTimeout(t);
+  }, []);
+
+  const rootStyle = useAnimatedStyle(() => ({ opacity: rootOp.value }));
+
+  return (
+    <Animated.View style={[StyleSheet.absoluteFill, styles.root, rootStyle]}>
       <StatusBar style="light" />
 
-      {/* Gradient background */}
+      {/* ── Background gradient — dark at top, warm amber fire at bottom ── */}
       <LinearGradient
-        colors={['#0A0810', '#120C1C', '#0A0810']}
+        colors={['#040208', '#0D0608', '#1A0804', '#3A1400']}
+        locations={[0, 0.35, 0.72, 1]}
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Rain particles */}
-      {Platform.OS === 'web' && rainDrops.map((drop, i) => (
-        <RainDrop key={i} {...drop} />
-      ))}
-
-      {/* Scenes */}
-      <View style={styles.scenesWrap}>
-        {SCENES.map((scene, i) => (
-          <View key={scene.id} style={StyleSheet.absoluteFill} pointerEvents="none">
-            <ScenePanel scene={scene} active={i === sceneIndex} />
-          </View>
-        ))}
+      {/* Ember particles — always rendering */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        {embers.map((e) => <EmberParticle key={e.id} {...e} />)}
       </View>
 
-      {/* Tap hint on last scene */}
-      <Animated.View style={[styles.tapHint, tapStyle]} pointerEvents="none">
-        <Text style={styles.tapText}>Appuyez pour commencer</Text>
-      </Animated.View>
+      {/* Fire glow blob at bottom */}
+      <View style={styles.fireGlowContainer} pointerEvents="none">
+        <FireGlow visible />
+      </View>
 
-      {/* Tap to advance (full screen) */}
-      <Pressable
-        style={StyleSheet.absoluteFill}
-        onPress={advance}
-      />
+      {/* ── Central content ── */}
+      <View style={styles.centerContent} pointerEvents="none">
+
+        {/* Forge icon */}
+        <ForgeIcon delay={400} />
+
+        {/* Title */}
+        <FadeText delay={900} style={styles.title}>
+          FORGE &amp; KINGDOMS
+        </FadeText>
+
+        {/* Gold divider */}
+        <GoldDivider delay={1300} />
+
+        {/* Tagline */}
+        <FadeText delay={1500} style={styles.tagline}>
+          Rallumez la flamme. Forgez votre légende.
+        </FadeText>
+
+      </View>
+
+      {/* ── Credit line — bottom of screen ── */}
+      <View style={styles.creditWrap} pointerEvents="none">
+        <FadeText delay={2200} style={styles.creditText}>
+          Jeux éducatif crée par Maxime-E
+        </FadeText>
+      </View>
+
+      {/* ── CTA ── */}
+      <View style={styles.ctaWrap} pointerEvents="none">
+        <TapToContinue delay={2800} />
+      </View>
+
+      {/* Full-screen tap to start */}
+      <Pressable style={StyleSheet.absoluteFill} onPress={doFinish} />
 
       {/* Skip button */}
       <Pressable style={styles.skipBtn} onPress={doFinish}>
@@ -277,90 +332,145 @@ export default function IntroCinematic({ onFinish }: Props) {
 const styles = StyleSheet.create({
   root: {
     zIndex: 1000,
-    backgroundColor: '#0A0810',
+    backgroundColor: '#040208',
   },
-  rainDrop: {
+
+  // Embers
+  ember: {
     position: 'absolute',
-    width: 1.5,
-    backgroundColor: '#9BB8E8',
-    borderRadius: 1,
+    bottom: H * 0.12,
   },
-  scenesWrap: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  sceneContent: {
-    alignItems: 'center',
-    gap: 16,
-    paddingHorizontal: 24,
-  },
-  sceneText: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#F0E8FF',
-    textAlign: 'center',
-    lineHeight: 36,
-    letterSpacing: 0.5,
-  },
-  sceneSub: {
-    fontSize: 15,
-    color: '#8A7A9A',
-    textAlign: 'center',
-    lineHeight: 22,
-    fontStyle: 'italic',
-  },
-  bigIcon: {
-    fontSize: 72,
-    textAlign: 'center',
-  },
-  logoTitle: {
-    fontSize: 30,
-    fontWeight: '900',
-    color: '#E8A83A',
-    textAlign: 'center',
-    letterSpacing: 4,
-  },
-  logoDivider: {
-    width: 80,
-    height: 2,
-    backgroundColor: '#E8A83A',
-    borderRadius: 1,
-    opacity: 0.6,
-    marginVertical: 4,
-  },
-  logoSub: {
-    fontSize: 14,
-    color: '#B0A0C0',
-    textAlign: 'center',
-    letterSpacing: 1,
-    fontStyle: 'italic',
-  },
-  tapHint: {
+
+  // Fire glow
+  fireGlowContainer: {
     position: 'absolute',
-    bottom: 80,
+    bottom: -60,
     left: 0,
     right: 0,
     alignItems: 'center',
   },
-  tapText: {
-    fontSize: 13,
-    color: '#6A5A7A',
-    letterSpacing: 1.5,
+  fireGlowWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  fireGlowOuter: {
+    width: W * 0.95,
+    height: 220,
+    borderRadius: W * 0.475,
+    backgroundColor: '#FF440014',
+  },
+  fireGlowInner: {
+    position: 'absolute',
+    width: W * 0.55,
+    height: 140,
+    borderRadius: W * 0.275,
+    backgroundColor: '#FF660028',
+  },
+
+  // Center block
+  centerContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 14,
+    paddingHorizontal: 28,
+    paddingBottom: 40,
+  },
+
+  // Forge icon
+  iconWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  iconEmoji: {
+    fontSize: 80,
+    lineHeight: 90,
+    textAlign: 'center',
+  },
+  iconGlow: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#FF660018',
+  },
+
+  // Title
+  title: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#E8A83A',
+    textAlign: 'center',
+    letterSpacing: 4,
+    textShadowColor: '#FF880055',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 18,
+  },
+
+  // Divider
+  divider: {
+    width: 100,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: '#D4851A',
+    opacity: 0.7,
+    marginVertical: 2,
+  },
+
+  // Tagline
+  tagline: {
+    fontSize: 14,
+    color: '#B08A60',
+    textAlign: 'center',
+    lineHeight: 20,
+    letterSpacing: 0.8,
+    fontStyle: 'italic',
+  },
+
+  // Credit
+  creditWrap: {
+    position: 'absolute',
+    bottom: 90,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  creditText: {
+    fontSize: 11,
+    color: '#7A6A50',
+    letterSpacing: 1.2,
+    textAlign: 'center',
+  },
+
+  // CTA
+  ctaWrap: {
+    position: 'absolute',
+    bottom: 58,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  ctaText: {
+    fontSize: 12,
+    color: '#D4851A',
+    letterSpacing: 2,
+    textAlign: 'center',
+  },
+
+  // Skip
   skipBtn: {
     position: 'absolute',
     top: 52,
     right: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
   skipText: {
-    fontSize: 13,
-    color: '#8A7A9A',
+    fontSize: 12,
+    color: '#7A6A50',
     letterSpacing: 1,
   },
 });
