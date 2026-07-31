@@ -780,7 +780,14 @@ export default function WorldScreen() {
       >
         <View style={styles.headerLeft}>
           <Feather name="map" size={20} color={colors.primary} />
-          <Text style={[styles.headerTitle, { color: colors.foreground }]}>MONDE</Text>
+          <View>
+            <Text style={[styles.headerTitle, { color: colors.foreground }]}>MONDE</Text>
+            {game.player.forgeName ? (
+              <Text style={[styles.headerForgeName, { color: colors.mutedForeground }]} numberOfLines={1}>
+                {game.player.forgeName}
+              </Text>
+            ) : null}
+          </View>
         </View>
         <View style={styles.headerRight}>
           <View style={[styles.headerBadge, { backgroundColor: colors.secondary }]}>
@@ -1012,6 +1019,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 18, paddingBottom: 12 },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerTitle: { fontSize: 16, fontWeight: '800', letterSpacing: 3 },
+  headerForgeName: { fontSize: 11, fontWeight: '500', letterSpacing: 1, marginTop: 1 },
   headerRight: { flexDirection: 'row', gap: 6 },
   headerBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 16 },
   headerBadgeText: { fontSize: 11, fontWeight: '600' },

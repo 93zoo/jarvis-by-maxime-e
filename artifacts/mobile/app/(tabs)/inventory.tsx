@@ -341,7 +341,14 @@ export default function InventoryScreen() {
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
             <Feather name="archive" size={20} color={colors.primary} />
-            <Text style={[styles.headerTitle, { color: colors.foreground }]}>INVENTAIRE</Text>
+            <View>
+              <Text style={[styles.headerTitle, { color: colors.foreground }]}>INVENTAIRE</Text>
+              {game.player.forgeName ? (
+                <Text style={[styles.headerForgeName, { color: colors.mutedForeground }]} numberOfLines={1}>
+                  {game.player.forgeName}
+                </Text>
+              ) : null}
+            </View>
           </View>
           <WeightBar current={currentWeight} max={game.maxWeight} colors={colors} />
         </View>
@@ -532,6 +539,7 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerTitle: { fontSize: 16, fontWeight: '800', letterSpacing: 3 },
+  headerForgeName: { fontSize: 11, fontWeight: '500', letterSpacing: 1, marginTop: 1 },
   weightWarning: { fontSize: 11, fontWeight: '700', textAlign: 'right', marginTop: 3 },
 
   tabBar: { flexDirection: 'row', borderBottomWidth: 1 },
