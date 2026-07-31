@@ -893,6 +893,28 @@ function AchievementsTabContent({ colors }: { colors: ReturnType<typeof useColor
   );
 }
 
+// ─── Forge name suggestion pool ──────────────────────────────────────────────
+const FORGE_NAME_POOL: string[] = [
+  "Forge de l'Aigle", "L'Enclume d'Or", "Atelier du Coucou",
+  "La Flamme Ardente", "Forge des Brumes", "L'Antre du Fer",
+  "Marteau Céleste", "La Forge Royale", "Atelier de l'Ours",
+  "L'Enclume Noire", "Forge du Soleil", "La Tenaille d'Argent",
+  "Forge des Anciens", "L'Atelier Écarlate", "Marteau de Lune",
+  "La Forge du Nord", "Feu Sacré", "L'Enclume Dorée",
+  "Forge du Dragon", "Atelier des Braises", "La Forge Secrète",
+  "Marteau d'Étoile", "L'Antre du Maître", "Forge du Phénix",
+];
+
+function pickSuggestions(count = 4): string[] {
+  const pool = [...FORGE_NAME_POOL];
+  const result: string[] = [];
+  for (let i = 0; i < count && pool.length > 0; i++) {
+    const idx = Math.floor(Math.random() * pool.length);
+    result.push(pool.splice(idx, 1)[0]);
+  }
+  return result;
+}
+
 // ─── Customize Modal ─────────────────────────────────────────────────────────
 function CustomizeModal({
   visible,
@@ -913,6 +935,7 @@ function CustomizeModal({
   const [forgeName, setForgeName] = useState(initialForgeName);
   const nameRef = useRef(initialName);
   const forgeNameRef = useRef(initialForgeName);
+  const [suggestions, setSuggestions] = useState<string[]>(() => pickSuggestions(4));
 
   // Sync when modal opens with fresh values
   useEffect(() => {
@@ -921,6 +944,7 @@ function CustomizeModal({
       setForgeName(initialForgeName);
       nameRef.current = initialName;
       forgeNameRef.current = initialForgeName;
+      setSuggestions(pickSuggestions(4));
     }
   }, [visible, initialName, initialForgeName]);
 
@@ -995,6 +1019,23 @@ function CustomizeModal({
             </Text>
           </View>
 
+          {/* Forge name suggestions */}
+          <View style={cmStyles.suggestionsRow}>
+            {suggestions.map((s) => (
+              <TouchableOpacity
+                key={s}
+                style={[cmStyles.suggestionChip, { backgroundColor: colors.secondary, borderColor: colors.border }]}
+                onPress={() => {
+                  setForgeName(s);
+                  Haptics.selectionAsync();
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={[cmStyles.suggestionText, { color: colors.mutedForeground }]}>{s}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
           {/* Preview */}
           {canSave && (
             <View style={[cmStyles.preview, { backgroundColor: `${colors.primary}11`, borderColor: `${colors.primary}33` }]}>
@@ -1048,6 +1089,9 @@ const cmStyles = StyleSheet.create({
   cancelText: { fontSize: 14, fontWeight: '600' },
   saveBtn: { flex: 2, flexDirection: 'row', paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center', gap: 8 },
   saveText: { fontSize: 14, fontWeight: '700' },
+  suggestionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+  suggestionChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
+  suggestionText: { fontSize: 12, fontWeight: '600' },
 });
 
 // ─── Main Profile Screen ──────────────────────────────────────────────────────
