@@ -1474,7 +1474,7 @@ export default function ForgeScreen() {
         {craftPhase === 'IDLE' && (
           <>
             {/* FORGER — artwork button dead center on screen */}
-            <View style={[md.forgeOverAnvil, { bottom: winH / 2 - 59 }]} pointerEvents="box-none">
+            <View style={[md.forgeOverAnvil, { bottom: winH / 2 + 40 }]} pointerEvents="box-none">
               <TouchableOpacity
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -2014,16 +2014,11 @@ const md = StyleSheet.create({
     elevation: 5,
   },
   railBtnLabel: {
-    color: '#FFD9A0',
-    fontSize: 9,
+    color: MEDIEVAL.textDim,
+    fontSize: 8,
     fontWeight: '800',
-    letterSpacing: 1.5,
-    fontFamily: Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia' }),
-    textShadowColor: 'rgba(255,122,26,0.55)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 6,
+    letterSpacing: 1,
     marginTop: 4,
-    textAlign: 'center',
   },
   badge: {
     position: 'absolute',
