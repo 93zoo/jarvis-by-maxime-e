@@ -1341,11 +1341,12 @@ export default function ForgeScreen() {
       <View style={styles.sceneContainer}>
         {/* Cinematic living backdrop (artwork + embers, smoke, glow, dust) */}
         <ForgeBackdrop />
-        {/* Dark overlay during craft phases */}
-        {craftPhase !== 'IDLE' && (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(5,3,2,0.55)' }]} />
-        )}
-        <ForgeScene3D ref={sceneRef} craftPhase={craftPhase} upgradeLevel={upgradeLevel} />
+        {/* 3D hammering scene — only visible during craft phases; in IDLE the
+            animated artwork backdrop takes over (ForgeScene3D has an opaque
+            background and would otherwise cover it entirely). */}
+        <View style={[StyleSheet.absoluteFill, { opacity: craftPhase === 'IDLE' ? 0 : 1 }]} pointerEvents="none">
+          <ForgeScene3D ref={sceneRef} craftPhase={craftPhase} upgradeLevel={upgradeLevel} />
+        </View>
         <WeatherEffect type={weather} />
 
         {/* Heating overlay */}
