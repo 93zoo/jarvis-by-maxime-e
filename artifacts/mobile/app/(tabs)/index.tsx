@@ -1998,7 +1998,7 @@ const md = StyleSheet.create({
     position: 'absolute',
     left: 12,
     zIndex: 10,
-    gap: 14,
+    gap: 26,
   },
   railBtn: { alignItems: 'center', width: 64 },
   railBtnCircle: {
@@ -2091,7 +2091,7 @@ const md = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.30)',
   },
   ingotQty: { color: '#F5E6C8', fontSize: 10, fontWeight: '800' },
-  matPanel: { position: 'absolute', left: 10, gap: 8 },
+  matPanel: { position: 'absolute', right: 10, gap: 8 },
   matRow: {
     flexDirection: 'row',
     alignItems: 'center',
