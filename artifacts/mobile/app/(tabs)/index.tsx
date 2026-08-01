@@ -908,6 +908,13 @@ export default function ForgeScreen() {
   const sceneRef = useRef<ForgeScene3DRef>(null);
   const hitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const temperatureRef = useRef(0); // readable inside callbacks without stale closure
+  // ── Quench gauge ──
+  const [quenchProgress, setQuenchProgress] = useState(100); // 100=hot → 0=cold
+  const [quenchTapped, setQuenchTapped] = useState(false);
+  const [quenchLabel, setQuenchLabel] = useState<string | null>(null);
+  const quenchProgressRef = useRef(100);
+  const quenchDoneRef = useRef(false);
+  const runResultRef = useRef<((mod: number) => void) | null>(null);
 
   const headerTopPad = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPad = insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 80;
@@ -986,54 +993,80 @@ export default function ForgeScreen() {
   }, [craftPhase]);
 
   useEffect(() => {
-    if (craftPhase !== 'COOLING') return;
-    const timer = setTimeout(() => {
-      const { strikeScores, strikesCompleted, recipeId } = session;
-      const totalStrikeScore = strikeScores.reduce((a, b) => a + b, 0);
-      const maxScore = strikesCompleted * 25;
-      // ── Forge upgrade bonuses ─────────────────────────────────────────────
-      const anvilLevel      = game.forgeUpgrades['anvil']       ?? 0;
-      const forgeUpgLevel   = game.forgeUpgrades['forge']       ?? 0;
-      const quickQuenchLv   = game.forgeUpgrades['quick_quench'] ?? 0;
-      const masterGripLv    = game.forgeUpgrades['master_grip']  ?? 0;
+    if (craftPhase !== 'COOLING') {
+      setQuenchProgress(100);
+      setQuenchTapped(false);
+      setQuenchLabel(null);
+      quenchProgressRef.current = 100;
+      quenchDoneRef.current = false;
+      runResultRef.current = null;
+      return;
+    }
 
-      // Anvil: +12% strike score per level; master_grip: +8% per level
-      const anvilMult    = 1 + anvilLevel * 0.12 + masterGripLv * 0.08;
-      // Event strike multiplier stacks on top
-      const eventMult    = activeForgeEvent?.effect === 'strike_multiplier' ? activeForgeEvent.value : 1;
-      const totalMult    = anvilMult * eventMult;
-      const effectiveStrikeScore = Math.min(maxScore * totalMult, totalStrikeScore * totalMult);
-      const miniGameBonus = maxScore > 0 ? (effectiveStrikeScore / maxScore) * 50 : 25;
+    quenchProgressRef.current = 100;
+    quenchDoneRef.current = false;
+    setQuenchProgress(100);
+    setQuenchTapped(false);
+    setQuenchLabel(null);
 
-      const forgeSkillBonus = Math.min(40, (game.player.skills['forge'] ?? 1) * 4);
-      let qualityScore = Math.min(100, Math.round(10 + forgeSkillBonus + miniGameBonus));
+    // ── Inner result-calculation function ──────────────────────────────────
+    // Captures session/game/activeForgeEvent from closure (stable during COOLING)
+    const runResult = (quenchMod: number) => {
+      if (quenchDoneRef.current) return;
+      quenchDoneRef.current = true;
+      clearInterval(intervalId); // intervalId captured by ref-close below
 
-      // Forge upgrade: +5/10/15/22/30% quality
-      const FORGE_QUALITY_PCT = [0, 5, 10, 15, 22, 30];
-      const forgeQPct = FORGE_QUALITY_PCT[Math.min(forgeUpgLevel, 5)];
-      qualityScore = Math.min(100, Math.round(qualityScore * (1 + forgeQPct / 100)));
+      setTimeout(() => {
+        const { strikeScores, strikesCompleted, recipeId } = session;
+        const totalStrikeScore = strikeScores.reduce((a, b) => a + b, 0);
+        const maxScore = strikesCompleted * 25;
+        const anvilLevel    = game.forgeUpgrades['anvil']        ?? 0;
+        const forgeUpgLevel = game.forgeUpgrades['forge']        ?? 0;
+        const quickQuenchLv = game.forgeUpgrades['quick_quench'] ?? 0;
+        const masterGripLv  = game.forgeUpgrades['master_grip']  ?? 0;
+        const anvilMult     = 1 + anvilLevel * 0.12 + masterGripLv * 0.08;
+        const eventMult     = activeForgeEvent?.effect === 'strike_multiplier' ? activeForgeEvent.value : 1;
+        const totalMult     = anvilMult * eventMult;
+        const effectiveStrikeScore = Math.min(maxScore * totalMult, totalStrikeScore * totalMult);
+        const miniGameBonus = maxScore > 0 ? (effectiveStrikeScore / maxScore) * 50 : 25;
+        const forgeSkillBonus = Math.min(40, (game.player.skills['forge'] ?? 1) * 4);
+        let qualityScore = Math.min(100, Math.round(10 + forgeSkillBonus + miniGameBonus));
+        const FORGE_QUALITY_PCT = [0, 5, 10, 15, 22, 30];
+        qualityScore = Math.min(100, Math.round(qualityScore * (1 + FORGE_QUALITY_PCT[Math.min(forgeUpgLevel, 5)] / 100)));
+        const QUENCH_FLAT = [0, 4, 8, 12, 18, 25];
+        qualityScore = Math.min(100, qualityScore + (QUENCH_FLAT[Math.min(quickQuenchLv, 5)] ?? 0));
+        if (anvilLevel >= 5) qualityScore = Math.max(qualityScore, 60);
+        if (activeForgeEvent?.effect === 'bonus_score') qualityScore = Math.min(100, qualityScore + activeForgeEvent.value);
+        if (activeForgeEvent?.effect === 'min_score')   qualityScore = Math.max(qualityScore, activeForgeEvent.value);
+        // ── Apply quench bonus/penalty ──────────────────────────────────
+        qualityScore = Math.min(100, Math.max(1, qualityScore + quenchMod));
 
-      // Quick Quench: +4/8/12/18/25 flat bonus
-      const QUENCH_FLAT = [0, 4, 8, 12, 18, 25];
-      qualityScore = Math.min(100, qualityScore + (QUENCH_FLAT[Math.min(quickQuenchLv, 5)] ?? 0));
+        const item = game.craftItemWithScore(recipeId, qualityScore);
+        if (item) {
+          setCraftedItem(item);
+          AudioManager.playCraftComplete();
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+        setCraftPhase('RESULT');
+      }, 750);
+    };
 
-      // Anvil level 5: guaranteed minimum 60
-      if (anvilLevel >= 5) qualityScore = Math.max(qualityScore, 60);
+    runResultRef.current = runResult;
 
-      // Apply forge event modifiers
-      if (activeForgeEvent?.effect === 'bonus_score') qualityScore = Math.min(100, qualityScore + activeForgeEvent.value);
-      if (activeForgeEvent?.effect === 'min_score')   qualityScore = Math.max(qualityScore, activeForgeEvent.value);
-
-      const item = game.craftItemWithScore(recipeId, qualityScore);
-      if (item) {
-        setCraftedItem(item);
-        AudioManager.playCraftComplete();
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    // ── Progress bar: 100 → 0 in 2 800 ms (70 steps × 40 ms) ──────────────
+    const STEPS = 70;
+    const STEP_SIZE = 100 / STEPS;
+    // eslint-disable-next-line prefer-const
+    let intervalId = setInterval(() => {
+      quenchProgressRef.current = Math.max(0, quenchProgressRef.current - STEP_SIZE);
+      setQuenchProgress(quenchProgressRef.current);
+      if (quenchProgressRef.current <= 0 && !quenchDoneRef.current) {
+        // Auto-quench: metal too cold → small penalty
+        runResult(-4);
       }
-      setCraftPhase('RESULT');
-    }, 1800);
+    }, 40);
 
-    return () => clearTimeout(timer);
+    return () => { clearInterval(intervalId); runResultRef.current = null; };
   }, [craftPhase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Temperature: cool while hammering; reset on any other phase ──────────
@@ -1109,6 +1142,35 @@ export default function ForgeScreen() {
     });
   };
 
+  const handleQuench = () => {
+    if (craftPhase !== 'COOLING' || quenchDoneRef.current || quenchTapped) return;
+    const p = quenchProgressRef.current;
+
+    let mod = 0;
+    let label = '';
+    if (p >= 42 && p <= 58) {
+      mod = 10; label = '💎 PARFAIT! +10 qualité';
+      AudioManager.playPerfectStrike();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else if (p >= 30 && p <= 70) {
+      mod = 5; label = '💧 BIEN! +5 qualité';
+      AudioManager.playHammerStrike();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } else if (p > 70) {
+      mod = -8; label = '🔥 TROP TÔT! -8 qualité';
+      AudioManager.playError();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } else {
+      mod = -5; label = '❄️ TROP TARD! -5 qualité';
+      AudioManager.playError();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    }
+
+    setQuenchTapped(true);
+    setQuenchLabel(label);
+    runResultRef.current?.(mod);
+  };
+
   const resetCraft = () => {
     setCraftPhase('IDLE');
     setSession(EMPTY_SESSION);
@@ -1118,6 +1180,11 @@ export default function ForgeScreen() {
     setTemperature(0);
     setOverheated(false);
     temperatureRef.current = 0;
+    setQuenchProgress(100);
+    setQuenchTapped(false);
+    setQuenchLabel(null);
+    quenchProgressRef.current = 100;
+    quenchDoneRef.current = false;
   };
 
   if (!game.isLoaded) {
@@ -1476,18 +1543,123 @@ export default function ForgeScreen() {
           </View>
         )}
 
-        {(craftPhase === 'HEATING' || craftPhase === 'COOLING') && (
+        {craftPhase === 'HEATING' && (
           <View style={[styles.inProgressPanel, { paddingBottom: bottomPad + 16 }]}>
-            <Feather
-              name={craftPhase === 'HEATING' ? 'thermometer' : 'droplet'}
-              size={22}
-              color={craftPhase === 'HEATING' ? colors.primary : '#48A0D0'}
-            />
+            <Feather name="thermometer" size={22} color={colors.primary} />
             <Text style={[styles.inProgressText, { color: colors.mutedForeground }]}>
-              {craftPhase === 'HEATING'
-                ? 'Le métal chauffe dans le four…'
-                : 'Trempe dans l\'eau…'}
+              Le métal chauffe dans le four…
             </Text>
+          </View>
+        )}
+
+        {/* ── Quench gauge ── */}
+        {craftPhase === 'COOLING' && (
+          <View style={[styles.quenchPanel, { paddingBottom: bottomPad + 8 }]}>
+            <Text style={styles.quenchTitle}>💧 TREMPAGE</Text>
+            <Text style={styles.quenchSubtitle}>
+              Retire l'acier quand la barre passe dans la zone verte
+            </Text>
+
+            {/* Temperature bar */}
+            <View style={styles.quenchTrack}>
+              {/* Sweet-zone overlay: 30–70 % */}
+              <View
+                style={[
+                  StyleSheet.absoluteFill,
+                  {
+                    left: '30%',
+                    right: '30%',
+                    backgroundColor: 'rgba(0,210,190,0.18)',
+                    borderLeftWidth: 2,
+                    borderRightWidth: 2,
+                    borderColor: 'rgba(0,210,190,0.65)',
+                  },
+                ]}
+              />
+              {/* Perfect-zone overlay: 42–58 % */}
+              <View
+                style={[
+                  StyleSheet.absoluteFill,
+                  { left: '42%', right: '42%', backgroundColor: 'rgba(0,210,190,0.18)' },
+                ]}
+              />
+              {/* Shrinking heat fill */}
+              <View
+                style={[
+                  styles.quenchFill,
+                  {
+                    width: `${Math.max(0, quenchProgress)}%` as `${number}%`,
+                    backgroundColor:
+                      quenchProgress > 70 ? '#E53935'
+                      : quenchProgress > 45 ? '#FF8800'
+                      : '#00D2BE',
+                  },
+                ]}
+              />
+              {/* Zone labels row */}
+              <View style={[StyleSheet.absoluteFill, styles.quenchZoneLabels]}>
+                <Text style={styles.quenchZoneHot}>🔥</Text>
+                <Text style={styles.quenchZoneSweet}>✦ ZONE</Text>
+                <Text style={styles.quenchZoneCold}>❄️</Text>
+              </View>
+            </View>
+
+            {/* Feedback */}
+            {quenchLabel ? (
+              <Text
+                style={[
+                  styles.quenchFeedback,
+                  {
+                    color: quenchLabel.includes('PARFAIT') ? '#00D2BE'
+                      : quenchLabel.includes('BIEN') ? '#66BB6A'
+                      : '#EF5350',
+                  },
+                ]}
+              >
+                {quenchLabel}
+              </Text>
+            ) : (
+              <Text style={styles.quenchFeedback}> </Text>
+            )}
+
+            {/* Action button / waiting */}
+            {!quenchTapped ? (
+              <TouchableOpacity
+                style={[
+                  styles.quenchBtn,
+                  {
+                    borderColor:
+                      quenchProgress >= 30 && quenchProgress <= 70
+                        ? '#00D2BE'
+                        : 'rgba(255,255,255,0.18)',
+                    backgroundColor:
+                      quenchProgress >= 30 && quenchProgress <= 70
+                        ? 'rgba(0,210,190,0.18)'
+                        : 'rgba(255,255,255,0.06)',
+                  },
+                ]}
+                onPress={handleQuench}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.quenchBtnText,
+                    {
+                      color:
+                        quenchProgress >= 30 && quenchProgress <= 70
+                          ? '#00D2BE'
+                          : 'rgba(255,255,255,0.4)',
+                    },
+                  ]}
+                >
+                  💧 SORTIR DU BAIN
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.quenchWaiting}>
+                <Text style={styles.quenchWaitingText}>Finition en cours…</Text>
+              </View>
+            )}
           </View>
         )}
       </View>
@@ -2052,6 +2224,64 @@ const styles = StyleSheet.create({
   forgeStatValue: { fontSize: 17, fontWeight: '800', marginBottom: 4 },
   miniTrack: { height: 4, borderRadius: 2, overflow: 'hidden' },
   miniFill: { height: '100%', borderRadius: 2, minWidth: 3 },
+  // ── Quench gauge ─────────────────────────────────────────────────────────
+  quenchPanel: {
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    gap: 10,
+  },
+  quenchTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#00D2BE',
+    letterSpacing: 2,
+    textAlign: 'center',
+  },
+  quenchSubtitle: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.45)',
+    textAlign: 'center',
+  },
+  quenchTrack: {
+    height: 30,
+    borderRadius: 15,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    position: 'relative',
+  },
+  quenchFill: {
+    height: '100%',
+    borderRadius: 15,
+  },
+  quenchZoneLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+  },
+  quenchZoneHot:   { fontSize: 13 },
+  quenchZoneSweet: { fontSize: 9, fontWeight: '900', color: '#00D2BE', letterSpacing: 1 },
+  quenchZoneCold:  { fontSize: 13 },
+  quenchFeedback: {
+    fontSize: 13,
+    fontWeight: '900',
+    textAlign: 'center',
+    letterSpacing: 0.8,
+    minHeight: 18,
+  },
+  quenchBtn: {
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quenchBtnText: { fontSize: 15, fontWeight: '900', letterSpacing: 2 },
+  quenchWaiting: { paddingVertical: 14, alignItems: 'center' },
+  quenchWaitingText: { fontSize: 13, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic' },
+
   // ── Temperature gauge ────────────────────────────────────────────────────
   tempGauge: {
     flexDirection: 'row',
