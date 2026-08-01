@@ -1110,18 +1110,18 @@ export default function ForgeScreen() {
       {/* ── Photorealistic forge backdrop ── */}
       <ImageBackground source={FORGE_BG} resizeMode="cover" style={StyleSheet.absoluteFill}>
         {/* Readability veils: darker at top (header) and bottom (actions) */}
-        <LinearGradient
-          colors={['rgba(5,3,2,0.72)', 'rgba(5,3,2,0.18)', 'transparent']}
-          locations={[0, 0.22, 0.42]}
-          style={StyleSheet.absoluteFill}
-          pointerEvents="none"
-        />
-        <LinearGradient
-          colors={['transparent', 'rgba(5,3,2,0.55)', 'rgba(5,3,2,0.88)']}
-          locations={[0.5, 0.78, 1]}
-          style={StyleSheet.absoluteFill}
-          pointerEvents="none"
-        />
+        <View style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}>
+          <LinearGradient
+            colors={['rgba(5,3,2,0.72)', 'rgba(5,3,2,0.18)', 'transparent']}
+            locations={[0, 0.22, 0.42]}
+            style={StyleSheet.absoluteFill}
+          />
+          <LinearGradient
+            colors={['transparent', 'rgba(5,3,2,0.55)', 'rgba(5,3,2,0.88)']}
+            locations={[0.5, 0.78, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
       </ImageBackground>
 
       {/* ── Header ── */}
@@ -1218,19 +1218,18 @@ export default function ForgeScreen() {
         </View>
       )}
 
-      {/* ── 3D Scene (craft phases only) ── */}
-      <View style={styles.sceneContainer} pointerEvents={craftPhase === 'IDLE' ? 'none' : 'auto'}>
+      {/* ── 3D Scene (always rendered for audio/particles; hidden in IDLE by opacity) ── */}
+      <View style={styles.sceneContainer}>
+        {/* Dark overlay during craft phases */}
         {craftPhase !== 'IDLE' && (
-          <>
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(5,3,2,0.55)' }]} />
-            <ForgeScene3D ref={sceneRef} craftPhase={craftPhase} upgradeLevel={upgradeLevel} />
-            <WeatherEffect type={weather} />
-          </>
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(5,3,2,0.55)' }]} />
         )}
+        <ForgeScene3D ref={sceneRef} craftPhase={craftPhase} upgradeLevel={upgradeLevel} />
+        <WeatherEffect type={weather} />
 
         {/* Heating overlay */}
         {craftPhase === 'HEATING' && (
-          <View style={styles.phaseOverlay} pointerEvents="none">
+          <View style={[styles.phaseOverlay, { pointerEvents: 'none' }]}>
             <LinearGradient
               colors={['transparent', 'rgba(10,8,16,0.85)']}
               style={StyleSheet.absoluteFillObject}
@@ -1264,7 +1263,7 @@ export default function ForgeScreen() {
 
         {/* Cooling overlay */}
         {craftPhase === 'COOLING' && (
-          <View style={styles.phaseOverlay} pointerEvents="none">
+          <View style={[styles.phaseOverlay, { pointerEvents: 'none' }]}>
             <LinearGradient
               colors={['transparent', 'rgba(10,8,16,0.85)']}
               style={StyleSheet.absoluteFillObject}
@@ -1279,7 +1278,7 @@ export default function ForgeScreen() {
 
         {/* Hit label flash */}
         {lastHitLabel && (
-          <View style={styles.hitFlash} pointerEvents="none">
+          <View style={[styles.hitFlash, { pointerEvents: 'none' }]}>
             <Text
               style={[
                 styles.hitFlashText,
@@ -1294,11 +1293,7 @@ export default function ForgeScreen() {
 
       {/* ── Bottom action panel ── */}
       <View
-        style={[
-          styles.bottomPanel,
-          craftPhase !== 'IDLE' && { backgroundColor: 'rgba(10,7,5,0.85)' },
-        ]}
-        pointerEvents="box-none"
+        style={[styles.bottomPanel, craftPhase !== 'IDLE' && { backgroundColor: 'rgba(10,7,5,0.85)' }, { pointerEvents: 'box-none' }]}
       >
         {craftPhase === 'IDLE' && (
           <View style={[md.idlePanel, { paddingBottom: bottomPad + 4 }]}>
