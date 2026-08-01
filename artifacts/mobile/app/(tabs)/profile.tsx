@@ -2652,17 +2652,6 @@ export default function ProfileScreen({ tabs, title }: { tabs?: readonly Profile
           )}
         </View>
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity
-            style={[styles.saveBtn, { backgroundColor: colors.secondary }]}
-            onPress={async () => { await game.syncToCloud(); }}
-          >
-            <Feather
-              name={game.cloudSyncStatus === 'syncing' ? 'loader' : game.cloudSyncStatus === 'success' ? 'cloud' : game.cloudSyncStatus === 'error' ? 'cloud-off' : 'cloud'}
-              size={14}
-              color={game.cloudSyncStatus === 'success' ? '#4CAF50' : game.cloudSyncStatus === 'error' ? '#EF5350' : colors.accent}
-            />
-            <Text style={[styles.saveBtnText, { color: colors.accent }]}>Cloud</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={[styles.saveBtn, { backgroundColor: colors.secondary }]} onPress={handleSave}>
             <Feather name="save" size={14} color={colors.accent} />
             <Text style={[styles.saveBtnText, { color: colors.accent }]}>Sauvegarder</Text>
