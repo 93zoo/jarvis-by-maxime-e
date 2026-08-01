@@ -901,9 +901,13 @@ export default function ForgeScreen() {
   const [weather, setWeather] = useState<WeatherType>('none');
   const [activeForgeEvent, setActiveForgeEvent] = useState<ForgeEvent | null>(null);
   const [showEventBanner, setShowEventBanner] = useState(false);
+  // ── Temperature gauge ──
+  const [temperature, setTemperature] = useState(0);   // 0-100+
+  const [overheated, setOverheated] = useState(false); // flash state
 
   const sceneRef = useRef<ForgeScene3DRef>(null);
   const hitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const temperatureRef = useRef(0); // readable inside callbacks without stale closure
 
   const headerTopPad = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPad = insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 80;
@@ -1032,6 +1036,24 @@ export default function ForgeScreen() {
     return () => clearTimeout(timer);
   }, [craftPhase]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Temperature: cool while hammering; reset on any other phase ──────────
+  useEffect(() => {
+    if (craftPhase !== 'HAMMERING') {
+      setTemperature(0);
+      setOverheated(false);
+      temperatureRef.current = 0;
+      return;
+    }
+    const id = setInterval(() => {
+      setTemperature((prev) => {
+        const next = Math.max(0, prev - 6);
+        temperatureRef.current = next;
+        return next;
+      });
+    }, 300);
+    return () => clearInterval(id);
+  }, [craftPhase]);
+
   // ─── Actions ─────────────────────────────────────────────────────────────
   const startCraft = (recipe: RecipeData) => {
     if (!game.canCraftRecipe(recipe.id)) return;
@@ -1050,28 +1072,38 @@ export default function ForgeScreen() {
 
   const handleStrike = (score: number, label: HitLabel) => {
     sceneRef.current?.triggerHammerStrike();
-    setLastHitLabel(label);
+
+    // ── Temperature rise (+25 per tap; capped at 110) ──────────────────────
+    const newTemp = Math.min(110, temperatureRef.current + 25);
+    temperatureRef.current = newTemp;
+    setTemperature(newTemp);
+
+    // Overheat? Force RATÉ and give error feedback
+    let finalScore = score;
+    let finalLabel = label;
+    if (newTemp >= 100) {
+      finalScore = 0;
+      finalLabel = 'RATÉ';
+      setOverheated(true);
+      setTimeout(() => setOverheated(false), 1100);
+      AudioManager.playError();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } else {
+      // Normal sound feedback
+      if (score === 25) AudioManager.playPerfectStrike();
+      else if (score > 0)  AudioManager.playHammerStrike();
+      else                 AudioManager.playError();
+    }
+
+    setLastHitLabel(finalLabel);
     if (hitTimerRef.current) clearTimeout(hitTimerRef.current);
     hitTimerRef.current = setTimeout(() => setLastHitLabel(null), 900);
 
-    // Sound feedback based on strike quality
-    if (score === 25) {
-      AudioManager.playPerfectStrike();
-    } else if (score >= 14) {
-      AudioManager.playHammerStrike();
-    } else if (score > 0) {
-      AudioManager.playHammerStrike();
-    } else {
-      AudioManager.playError();
-    }
-
     setSession((prev) => {
       const newStrikes = prev.strikesCompleted + 1;
-      const newScores = [...prev.strikeScores, score];
+      const newScores = [...prev.strikeScores, finalScore];
       if (newStrikes >= 5) {
-        setTimeout(() => {
-          setCraftPhase('COOLING');
-        }, 400);
+        setTimeout(() => setCraftPhase('COOLING'), 400);
       }
       return { ...prev, strikesCompleted: newStrikes, strikeScores: newScores };
     });
@@ -1083,6 +1115,9 @@ export default function ForgeScreen() {
     setCraftedItem(null);
     setHeatingProgress(0);
     setLastHitLabel(null);
+    setTemperature(0);
+    setOverheated(false);
+    temperatureRef.current = 0;
   };
 
   if (!game.isLoaded) {
@@ -1392,6 +1427,46 @@ export default function ForgeScreen() {
                 </View>
               </View>
             )}
+
+            {/* ── Temperature gauge ── */}
+            <View style={styles.tempGauge}>
+              <Text style={styles.tempIcon}>🌡️</Text>
+              <View style={styles.tempTrackWrap}>
+                <View style={styles.tempTrack}>
+                  <View
+                    style={[
+                      styles.tempFill,
+                      {
+                        width: `${Math.min(100, temperature)}%` as `${number}%`,
+                        backgroundColor:
+                          temperature >= 90 ? '#FF2200'
+                          : temperature >= 70 ? '#FF5500'
+                          : temperature >= 45 ? '#FF8800'
+                          : '#FFAA00',
+                      },
+                    ]}
+                  />
+                </View>
+                {overheated ? (
+                  <Text style={styles.tempOverheatLabel}>💀 SURCHAUFFE — objet endommagé!</Text>
+                ) : temperature >= 80 ? (
+                  <Text style={[styles.tempWarning, { color: temperature >= 90 ? '#FF2200' : '#FF6600' }]}>
+                    ⚠️ Ralentis — métal trop chaud!
+                  </Text>
+                ) : (
+                  <Text style={styles.tempHint}>Frappe régulièrement pour maintenir la chaleur</Text>
+                )}
+              </View>
+              <Text
+                style={[
+                  styles.tempValue,
+                  { color: temperature >= 90 ? '#FF2200' : temperature >= 70 ? '#FF8800' : '#FFAA00' },
+                ]}
+              >
+                {Math.min(100, Math.round(temperature))}°
+              </Text>
+            </View>
+
             <HammeringMiniGame
               strikesCompleted={session.strikesCompleted}
               strikeScores={session.strikeScores}
@@ -1977,6 +2052,35 @@ const styles = StyleSheet.create({
   forgeStatValue: { fontSize: 17, fontWeight: '800', marginBottom: 4 },
   miniTrack: { height: 4, borderRadius: 2, overflow: 'hidden' },
   miniFill: { height: '100%', borderRadius: 2, minWidth: 3 },
+  // ── Temperature gauge ────────────────────────────────────────────────────
+  tempGauge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    marginBottom: 4,
+  },
+  tempIcon: { fontSize: 20 },
+  tempTrackWrap: { flex: 1, gap: 4 },
+  tempTrack: {
+    height: 12,
+    borderRadius: 6,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  tempFill: {
+    height: '100%',
+    borderRadius: 6,
+    minWidth: 3,
+  },
+  tempHint: { fontSize: 10, color: 'rgba(255,255,255,0.35)', letterSpacing: 0.3 },
+  tempWarning: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  tempOverheatLabel: { fontSize: 11, fontWeight: '900', color: '#FF2200', letterSpacing: 1 },
+  tempValue: { fontSize: 15, fontWeight: '900', minWidth: 34, textAlign: 'right' },
+
   eventBanner: {
     flexDirection: 'row',
     alignItems: 'center',
