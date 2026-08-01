@@ -143,3 +143,10 @@ uri = "file://screenshots/forge-screen-v2.jpg"
 type = "image"
 title = "Forge — rendu corrigé"
 description = "L'artwork de la forge est maintenant visible en fond (la scène 3D opaque ne le masque plus en mode IDLE), avec braises, fumée et lueur animées."
+
+[[outputs]]
+id = "geQvwpSI-V3hOfmBfutLL"
+uri = "file://screenshots/forge-screen-v3.jpg"
+type = "image"
+title = "Forge — v3 (Profil déplacé, skills sur la forge)"
+description = "Lueur du foyer adoucie (plus de rond orange), braises et fumée renforcées, carte Compétences du forgeron visible sur la page Forge."
