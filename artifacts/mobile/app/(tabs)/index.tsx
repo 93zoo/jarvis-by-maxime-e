@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   AppState,
+  Easing,
   FlatList,
-  Image,
   ImageBackground,
   Modal,
   Platform,
@@ -909,6 +910,7 @@ export default function ForgeScreen() {
   const [overheated, setOverheated] = useState(false); // flash state
 
   const sceneRef = useRef<ForgeScene3DRef>(null);
+  const forgeSpinRef = useRef(new Animated.Value(0));
   const hitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const temperatureRef = useRef(0); // readable inside callbacks without stale closure
   // ── Quench gauge ──
@@ -921,6 +923,24 @@ export default function ForgeScreen() {
 
   const headerTopPad = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPad = insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 80;
+
+  // Slow continuous spin of the FORGER artwork button above the anvil
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.timing(forgeSpinRef.current, {
+        toValue: 1,
+        duration: 9000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+    loop.start();
+    return () => loop.stop();
+  }, []);
+  const forgeSpin = forgeSpinRef.current.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
 
   // Init audio on mount + weather cycle + forge ambience
   useEffect(() => {
@@ -1424,9 +1444,9 @@ export default function ForgeScreen() {
                 onPress={() => setShowRecipeSheet(true)}
                 activeOpacity={0.82}
               >
-                <Image
+                <Animated.Image
                   source={require('@/assets/images/forge-btn.png')}
-                  style={md.forgeBtnArt}
+                  style={[md.forgeBtnArt, { transform: [{ rotate: forgeSpin }] }]}
                   resizeMode="contain"
                 />
               </TouchableOpacity>
