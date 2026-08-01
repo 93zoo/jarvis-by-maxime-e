@@ -154,7 +154,6 @@ function FallbackSplash({ onDone }: { onDone: () => void }) {
   const flashOp2   = useRef(new Animated.Value(0)).current;
   const sparks1    = useRef(new Animated.Value(0)).current;
   const sparks2    = useRef(new Animated.Value(0)).current;
-  const metalColor = useRef(new Animated.Value(0)).current;
   const doneRef    = useRef(false);
 
   const finish = useCallback(() => {
@@ -203,13 +202,10 @@ function FallbackSplash({ onDone }: { onDone: () => void }) {
       ]),
       Animated.delay(350),
       Animated.timing(taglineOp,  { toValue: 1, duration: 500, useNativeDriver: true }),
-      Animated.timing(metalColor, { toValue: 1, duration: 1200, useNativeDriver: false }),
-      Animated.delay(1200),
+      Animated.delay(1800),
     ]);
     seq.start(() => finish());
   }, []);
-
-  const metalInterp = metalColor.interpolate({ inputRange: [0, 1], outputRange: [HOT_WHITE, GOLD] });
 
   return (
     <Pressable style={[styles.root, { width, height, backgroundColor: BG }]} onPress={finish}>
@@ -263,7 +259,7 @@ function FallbackSplash({ onDone }: { onDone: () => void }) {
         <View style={styles.sparksTop} pointerEvents="none">
           <SparkBurst progress={sparks1} seed={0} />
         </View>
-        <Animated.Text style={[styles.mainTitle, { opacity: forgeOp, transform: [{ translateY: forgeY }], color: metalInterp as any }]}>
+        <Animated.Text style={[styles.mainTitle, { opacity: forgeOp, transform: [{ translateY: forgeY }], color: GOLD }]}>
           FORGE
         </Animated.Text>
 
@@ -277,7 +273,7 @@ function FallbackSplash({ onDone }: { onDone: () => void }) {
         <View style={styles.sparksBot} pointerEvents="none">
           <SparkBurst progress={sparks2} seed={1} />
         </View>
-        <Animated.Text style={[styles.mainTitle, { opacity: kingdomsOp, transform: [{ translateY: kingdomsY }], color: metalInterp as any }]}>
+        <Animated.Text style={[styles.mainTitle, { opacity: kingdomsOp, transform: [{ translateY: kingdomsY }], color: GOLD }]}>
           KINGDOMS
         </Animated.Text>
 
