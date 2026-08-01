@@ -908,6 +908,7 @@ export default function ForgeScreen() {
 
   const sceneRef = useRef<ForgeScene3DRef>(null);
   const hitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleScrollRef = useRef<ScrollView>(null);
   const temperatureRef = useRef(0); // readable inside callbacks without stale closure
   // ── Quench gauge ──
   const [quenchProgress, setQuenchProgress] = useState(100); // 100=hot → 0=cold
@@ -1222,7 +1223,6 @@ export default function ForgeScreen() {
   const selectedRecipe = session.recipeId ? game.getRecipeById(session.recipeId) : null;
   const pendingOrders = game.activeOrders.filter((o) => !o.completed);
   const pendingCount = pendingOrders.length;
-  const idleScrollRef = useRef<ScrollView>(null);
   const upgradeLevel = Object.values(game.forgeUpgrades).reduce((a, b) => a + b, 0);
 
   return (
