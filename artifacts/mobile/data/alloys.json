@@ -1,0 +1,354 @@
+[
+  {
+    "id": "fuse_bronze",
+    "name": "Bronze",
+    "description": "L'alliage classique du forgeron — cuivre fondu dans le feu de charbon.",
+    "outputResourceId": "bronze",
+    "outputQuantity": 2,
+    "ingredients": [
+      { "resourceId": "copper", "quantity": 3 },
+      { "resourceId": "coal", "quantity": 2 }
+    ],
+    "fusionTimeSec": 6,
+    "levelRequired": 2,
+    "hint": "Le feu révèle la nature cachée du métal rouge."
+  },
+  {
+    "id": "fuse_brass",
+    "name": "Laiton",
+    "description": "Alliage doré de cuivre et d'argile, utilisé dans la décoration et l'artisanat.",
+    "outputResourceId": "brass",
+    "outputQuantity": 2,
+    "ingredients": [
+      { "resourceId": "copper", "quantity": 3 },
+      { "resourceId": "clay", "quantity": 2 }
+    ],
+    "fusionTimeSec": 8,
+    "levelRequired": 3,
+    "hint": "L'argile donne au cuivre une teinte plus chaude et une résistance accrue."
+  },
+  {
+    "id": "fuse_steel",
+    "name": "Acier",
+    "description": "Fer et charbon martelés ensemble pour créer quelque chose d'indestructible.",
+    "outputResourceId": "steel",
+    "outputQuantity": 2,
+    "ingredients": [
+      { "resourceId": "iron", "quantity": 4 },
+      { "resourceId": "coal", "quantity": 3 }
+    ],
+    "fusionTimeSec": 10,
+    "levelRequired": 4,
+    "hint": "Fer et feu, martelés ensemble, donnent naissance à quelque chose d'indestructible."
+  },
+  {
+    "id": "fuse_steel_temper",
+    "name": "Acier trempé",
+    "description": "Acier durci par trempe dans la roche concassée — voie alternative vers l'acier.",
+    "outputResourceId": "steel",
+    "outputQuantity": 1,
+    "ingredients": [
+      { "resourceId": "iron", "quantity": 5 },
+      { "resourceId": "stone", "quantity": 2 }
+    ],
+    "fusionTimeSec": 12,
+    "levelRequired": 5,
+    "hint": "La trempe dans la roche produit un métal moins élastique mais plus dur."
+  },
+  {
+    "id": "fuse_silver_refine",
+    "name": "Argent raffiné",
+    "description": "L'impureté du fer, fondue avec de l'argent brut, crée un alliage plus pur.",
+    "outputResourceId": "silver",
+    "outputQuantity": 2,
+    "ingredients": [
+      { "resourceId": "iron", "quantity": 1 },
+      { "resourceId": "silver", "quantity": 1 },
+      { "resourceId": "coal", "quantity": 2 }
+    ],
+    "fusionTimeSec": 14,
+    "levelRequired": 5,
+    "hint": "Le feu sépare l'impur du précieux, si l'on sait où chercher."
+  },
+  {
+    "id": "fuse_bronze_reinf",
+    "name": "Bronze renforcé",
+    "description": "Bronze aux agrégats minéraux — plus lourd mais plus résistant.",
+    "outputResourceId": "bronze",
+    "outputQuantity": 3,
+    "ingredients": [
+      { "resourceId": "copper", "quantity": 4 },
+      { "resourceId": "stone", "quantity": 2 }
+    ],
+    "fusionTimeSec": 10,
+    "levelRequired": 6,
+    "hint": "Du bronze enrichi aux minéraux de carrière."
+  },
+  {
+    "id": "fuse_brass_pure",
+    "name": "Laiton affiné",
+    "description": "Du laiton plus pur, fondu avec du cuivre supplémentaire.",
+    "outputResourceId": "brass",
+    "outputQuantity": 3,
+    "ingredients": [
+      { "resourceId": "brass", "quantity": 1 },
+      { "resourceId": "copper", "quantity": 2 }
+    ],
+    "fusionTimeSec": 10,
+    "levelRequired": 7,
+    "hint": "On affine le laiton en le fondant à nouveau avec du cuivre frais."
+  },
+  {
+    "id": "fuse_silver_crystal",
+    "name": "Argent cristallisé",
+    "description": "Les cristaux révèlent et éliminent les impuretés de l'argent.",
+    "outputResourceId": "silver",
+    "outputQuantity": 3,
+    "ingredients": [
+      { "resourceId": "silver", "quantity": 2 },
+      { "resourceId": "crystal", "quantity": 1 }
+    ],
+    "fusionTimeSec": 15,
+    "levelRequired": 9,
+    "hint": "Les cristaux magiques agissent comme un tamis de lumière sur l'argent fondu."
+  },
+  {
+    "id": "fuse_gold_craft",
+    "name": "Or synthétique",
+    "description": "La topaze agit comme catalyseur pour transmuter l'argent en or.",
+    "outputResourceId": "gold_ore",
+    "outputQuantity": 2,
+    "ingredients": [
+      { "resourceId": "silver", "quantity": 3 },
+      { "resourceId": "topaz", "quantity": 2 }
+    ],
+    "fusionTimeSec": 20,
+    "levelRequired": 11,
+    "hint": "Les anciens alchimistes connaissaient ce secret bien avant les forgerons."
+  },
+  {
+    "id": "fuse_electrum",
+    "name": "Électrum",
+    "description": "Alliage mythique d'or et d'argent aux reflets changeants selon la lumière.",
+    "outputResourceId": "electrum",
+    "outputQuantity": 2,
+    "ingredients": [
+      { "resourceId": "gold_ore", "quantity": 1 },
+      { "resourceId": "silver", "quantity": 2 }
+    ],
+    "fusionTimeSec": 22,
+    "levelRequired": 12,
+    "hint": "L'or et l'argent, fondus ensemble, créent une troisième chose plus belle que les deux."
+  },
+  {
+    "id": "fuse_platinum",
+    "name": "Platine",
+    "description": "Argent et or réunis à haute température révèlent le platine en leur sein.",
+    "outputResourceId": "platinum",
+    "outputQuantity": 1,
+    "ingredients": [
+      { "resourceId": "silver", "quantity": 2 },
+      { "resourceId": "gold_ore", "quantity": 1 }
+    ],
+    "fusionTimeSec": 25,
+    "levelRequired": 12,
+    "hint": "Le platine se cache dans l'or — il faut savoir le chercher."
+  },
+  {
+    "id": "fuse_platinum_reinf",
+    "name": "Platine enrichi",
+    "description": "Plus d'or, plus d'argent — plus de platine.",
+    "outputResourceId": "platinum",
+    "outputQuantity": 2,
+    "ingredients": [
+      { "resourceId": "gold_ore", "quantity": 2 },
+      { "resourceId": "silver", "quantity": 3 }
+    ],
+    "fusionTimeSec": 32,
+    "levelRequired": 13,
+    "hint": "La générosité en matériaux se reflète dans la générosité du résultat."
+  },
+  {
+    "id": "fuse_obsidian",
+    "name": "Obsidienne synthétique",
+    "description": "Les cristaux vitrifiés sous la chaleur intense du charbon deviennent de l'obsidienne.",
+    "outputResourceId": "obsidian",
+    "outputQuantity": 2,
+    "ingredients": [
+      { "resourceId": "crystal", "quantity": 3 },
+      { "resourceId": "coal", "quantity": 5 }
+    ],
+    "fusionTimeSec": 28,
+    "levelRequired": 14,
+    "hint": "Le verre de la terre, né du feu et des gemmes."
+  },
+  {
+    "id": "fuse_electrum_pure",
+    "name": "Électrum pur",
+    "description": "De l'électrum affiné avec de l'or supplémentaire — plus brillant encore.",
+    "outputResourceId": "electrum",
+    "outputQuantity": 3,
+    "ingredients": [
+      { "resourceId": "electrum", "quantity": 2 },
+      { "resourceId": "gold_ore", "quantity": 1 }
+    ],
+    "fusionTimeSec": 20,
+    "levelRequired": 14,
+    "hint": "On peut toujours affiner ce qui brille déjà."
+  },
+  {
+    "id": "fuse_crystal_pure",
+    "name": "Cristaux purifiés",
+    "description": "L'argent élimine les inclusions des cristaux, concentrant leur énergie magique.",
+    "outputResourceId": "crystal",
+    "outputQuantity": 3,
+    "ingredients": [
+      { "resourceId": "crystal", "quantity": 2 },
+      { "resourceId": "silver", "quantity": 1 }
+    ],
+    "fusionTimeSec": 22,
+    "levelRequired": 15,
+    "hint": "La lumière de l'argent traverse les cristaux et chasse leurs imperfections."
+  },
+  {
+    "id": "fuse_mithril",
+    "name": "Mithril",
+    "description": "Un alliage des anciens mages, transmis par les Elfes à travers les âges.",
+    "outputResourceId": "mithril",
+    "outputQuantity": 1,
+    "ingredients": [
+      { "resourceId": "silver", "quantity": 4 },
+      { "resourceId": "crystal", "quantity": 3 }
+    ],
+    "fusionTimeSec": 45,
+    "levelRequired": 16,
+    "hint": "L'éclat de l'argent combiné à la magie des cristaux dépasse ce que la nature seule peut offrir."
+  },
+  {
+    "id": "fuse_darksteel",
+    "name": "Acier Sombre",
+    "description": "L'obsidienne absorbe les impuretés de l'acier, le rendant plus sombre et plus létal.",
+    "outputResourceId": "darksteel",
+    "outputQuantity": 2,
+    "ingredients": [
+      { "resourceId": "steel", "quantity": 3 },
+      { "resourceId": "obsidian", "quantity": 1 }
+    ],
+    "fusionTimeSec": 40,
+    "levelRequired": 18,
+    "hint": "L'ombre de l'obsidienne donne à l'acier une âme plus sombre."
+  },
+  {
+    "id": "fuse_mithril_platinum",
+    "name": "Mithril de platine",
+    "description": "Le platine et les cristaux, une voie alternative vers le mithril.",
+    "outputResourceId": "mithril",
+    "outputQuantity": 2,
+    "ingredients": [
+      { "resourceId": "platinum", "quantity": 2 },
+      { "resourceId": "crystal", "quantity": 3 }
+    ],
+    "fusionTimeSec": 50,
+    "levelRequired": 18,
+    "hint": "Il existe plusieurs chemins vers les sommets — certains passent par le platine."
+  },
+  {
+    "id": "fuse_obsidian_pure",
+    "name": "Obsidienne purifiée",
+    "description": "L'obsidienne concentrée dans ses propres flammes — densité magique maximale.",
+    "outputResourceId": "obsidian",
+    "outputQuantity": 3,
+    "ingredients": [
+      { "resourceId": "obsidian", "quantity": 2 },
+      { "resourceId": "crystal", "quantity": 2 }
+    ],
+    "fusionTimeSec": 35,
+    "levelRequired": 20,
+    "hint": "L'obsidienne recuite révèle une densité que peu de matériaux peuvent égaler."
+  },
+  {
+    "id": "fuse_darksteel_pure",
+    "name": "Acier Sombre renforcé",
+    "description": "De l'acier sombre affiné avec de l'acier ordinaire pour en amplifier les propriétés.",
+    "outputResourceId": "darksteel",
+    "outputQuantity": 3,
+    "ingredients": [
+      { "resourceId": "darksteel", "quantity": 2 },
+      { "resourceId": "steel", "quantity": 2 }
+    ],
+    "fusionTimeSec": 45,
+    "levelRequired": 20,
+    "hint": "L'acier sombre se renforce encore en absorbant l'acier ordinaire."
+  },
+  {
+    "id": "fuse_adamantium",
+    "name": "Adamantium",
+    "description": "La transmutation de l'adamantium — secret jalousement gardé des forgerons légendaires.",
+    "outputResourceId": "adamantium",
+    "outputQuantity": 1,
+    "ingredients": [
+      { "resourceId": "platinum", "quantity": 3 },
+      { "resourceId": "crystal", "quantity": 4 }
+    ],
+    "fusionTimeSec": 70,
+    "levelRequired": 23,
+    "hint": "Le platine et les cristaux, sous une chaleur que peu de forges peuvent atteindre."
+  },
+  {
+    "id": "fuse_mithrilite",
+    "name": "Mithrilite",
+    "description": "Alliance du mithril et des cristaux — imperméable à la magie corrompue.",
+    "outputResourceId": "mithrilite",
+    "outputQuantity": 1,
+    "ingredients": [
+      { "resourceId": "mithril", "quantity": 2 },
+      { "resourceId": "crystal", "quantity": 3 }
+    ],
+    "fusionTimeSec": 80,
+    "levelRequired": 24,
+    "hint": "Le mithril fondu dans les cristaux crée quelque chose que la magie ne peut pénétrer."
+  },
+  {
+    "id": "fuse_dragonite",
+    "name": "Dragonite",
+    "description": "L'adamantium fondu dans l'âme même d'un dragon primordial — résiste aux volcans.",
+    "outputResourceId": "dragonite",
+    "outputQuantity": 1,
+    "ingredients": [
+      { "resourceId": "adamantium", "quantity": 1 },
+      { "resourceId": "dragon_scale", "quantity": 2 }
+    ],
+    "fusionTimeSec": 120,
+    "levelRequired": 27,
+    "hint": "Seule l'âme d'un dragon peut transcender l'adamantium."
+  },
+  {
+    "id": "fuse_diamond",
+    "name": "Diamant",
+    "description": "La compression ultime des cristaux dans l'adamantium crée un diamant parfait.",
+    "outputResourceId": "diamond",
+    "outputQuantity": 1,
+    "ingredients": [
+      { "resourceId": "crystal", "quantity": 5 },
+      { "resourceId": "adamantium", "quantity": 1 }
+    ],
+    "fusionTimeSec": 140,
+    "levelRequired": 28,
+    "hint": "Un diamant n'est qu'un cristal comprimé par une force inimaginable."
+  },
+  {
+    "id": "fuse_staralloy",
+    "name": "Alliage des Étoiles",
+    "description": "La fusion ultime — dit-on qu'il fut forgé la première fois sous une comète.",
+    "outputResourceId": "staralloy",
+    "outputQuantity": 1,
+    "ingredients": [
+      { "resourceId": "mithrilite", "quantity": 1 },
+      { "resourceId": "dragonite", "quantity": 1 },
+      { "resourceId": "diamond", "quantity": 1 }
+    ],
+    "fusionTimeSec": 180,
+    "levelRequired": 32,
+    "hint": "Trois légendaires réunis — seul un forgeron des étoiles peut accomplir cela."
+  }
+]
