@@ -676,12 +676,14 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         forgeName: s.player.forgeName ?? 'La Forge du Débutant',
         talentPoints: migratedTalentPoints,
         talentsUnlocked: s.player.talentsUnlocked ?? [],
-        unlockedRecipeIds: Array.from(new Set([
-          ...STARTER_RECIPE_IDS,
-          ...(s.player.unlockedRecipeIds ?? []),
-          ...(s.craftedItems ?? []).map((item) => item.recipeId),
-          ...(s.forgeHistory ?? []).flatMap((item) => item.recipeId ? [item.recipeId] : []),
-        ])),
+        unlockedRecipeIds: (() => {
+          // Avoid O(N) spread operators creating intermediate arrays on every load.
+          const set = new Set(STARTER_RECIPE_IDS);
+          (s.player.unlockedRecipeIds ?? []).forEach((id) => set.add(id));
+          (s.craftedItems ?? []).forEach((item) => set.add(item.recipeId));
+          (s.forgeHistory ?? []).forEach((item) => { if (item.recipeId) set.add(item.recipeId); });
+          return Array.from(set);
+        })(),
         totalGoldEarned: s.player.totalGoldEarned ?? 0,
         totalItemsCrafted: s.player.totalItemsCrafted ?? 0,
         totalOrdersDelivered: s.player.totalOrdersDelivered ?? 0,
