@@ -283,3 +283,10 @@ uri = "file://screenshots/forge-btn-anvil-only.jpg"
 type = "image"
 title = "Forge — enclume + texte seulement"
 description = "Le bouton FORGER n'affiche plus que l'enclume dorée et le texte, sans la plaque de métal — flottement et rebond au toucher conservés."
+
+[[outputs]]
+id = "oIIYvPPlLady5rkiUWr9M"
+uri = "file://screenshots/forge-btn-above-anvil.jpg"
+type = "image"
+title = "Forge — bouton centré au-dessus de l'enclume"
+description = "Le bouton FORGER (enclume + texte) est centré juste au-dessus de l'enclume du décor, légèrement agrandi (190×118), avec flottement et rebond au toucher."
