@@ -360,3 +360,10 @@ uri = "file://screenshots/forge-rail-centered.jpg"
 type = "image"
 title = "Forge — rail gauche centré verticalement"
 description = "Les 4 boutons QUÊTES, ÉVÉNEMENTS, APPRENTI et AMÉLIORER sont maintenant centrés verticalement sur le côté gauche de l'écran."
+
+[[outputs]]
+id = "vKuwBivbhqtEMFEqFSlu3"
+uri = "file://screenshots/forge-mat-right.jpg"
+type = "image"
+title = "Forge — rail espacé + matériaux à droite"
+description = "Les 4 boutons du rail gauche sont plus espacés, et le panneau des matériaux est déplacé en bas à droite de l'écran."
