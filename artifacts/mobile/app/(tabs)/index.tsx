@@ -1222,6 +1222,7 @@ export default function ForgeScreen() {
   const selectedRecipe = session.recipeId ? game.getRecipeById(session.recipeId) : null;
   const pendingOrders = game.activeOrders.filter((o) => !o.completed);
   const pendingCount = pendingOrders.length;
+  const idleScrollRef = useRef<ScrollView>(null);
   const upgradeLevel = Object.values(game.forgeUpgrades).reduce((a, b) => a + b, 0);
 
   return (
@@ -1247,9 +1248,14 @@ export default function ForgeScreen() {
       <View style={[styles.header, { paddingTop: headerTopPad + 10 }]}>
         <View style={styles.headerTopRow}>
           <View style={styles.headerLeft}>
-            <View style={md.levelRing}>
-              <View style={md.levelRingInner}>
-                <Text style={md.levelRingText}>{player.level}</Text>
+            <View style={{ alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+              <View style={md.levelRing}>
+                <View style={md.levelRingInner}>
+                  <Text style={md.levelRingText}>{player.level}</Text>
+                </View>
+              </View>
+              <View style={md.forgeRing}>
+                <Text style={md.forgeRingText}>{forgeSkillLevel}</Text>
               </View>
             </View>
             <View>
@@ -1314,10 +1320,9 @@ export default function ForgeScreen() {
             onPress={() => router.push('/world')}
           />
           <RailButton
-            icon="package"
-            label="COFFRES"
-            badge={upgradeLevel > 0 ? upgradeLevel : undefined}
-            onPress={() => setShowUpgradesModal(true)}
+            icon="user"
+            label="APPRENTI"
+            onPress={() => idleScrollRef.current?.scrollTo({ y: 0, animated: true })}
           />
         </View>
       )}
@@ -1422,6 +1427,7 @@ export default function ForgeScreen() {
       >
         {craftPhase === 'IDLE' && (
           <ScrollView
+            ref={idleScrollRef}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={[md.idlePanel, { paddingBottom: bottomPad + 4 }]}
@@ -2106,6 +2112,17 @@ const md = StyleSheet.create({
   headerStatBox: { flex: 1 },
   headerStatTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2 },
   headerStatValue: { color: MEDIEVAL.textLight, fontSize: 11, fontWeight: '800' },
+  forgeRing: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 2,
+    borderColor: MEDIEVAL.ember,
+    backgroundColor: 'rgba(16,10,6,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  forgeRingText: { color: MEDIEVAL.emberSoft, fontSize: 14, fontWeight: '800' },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'stretch',
