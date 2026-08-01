@@ -22,7 +22,7 @@ import StudioSplash from '@/components/StudioSplash';
 import DailyRewardModal from '@/components/DailyRewardModal';
 import FirstForgeTutorial from '@/components/FirstForgeTutorial';
 
-// Prevents native splash from auto-hiding. We hide it ourselves once fonts are ready.
+// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
@@ -38,7 +38,7 @@ function RootLayoutNav() {
   );
 }
 
-function AppWithSplash({ fontsReady }: { fontsReady: boolean }) {
+function AppWithSplash() {
   const { isLoaded, hasCompletedFirstForgeTutorial, completeFirstForgeTutorial } = useGame();
   const [splashDone, setSplashDone] = useState(
     // Dev web uniquement : ?nosplash=1 saute l'intro (captures d'écran/tests)
@@ -49,13 +49,8 @@ function AppWithSplash({ fontsReady }: { fontsReady: boolean }) {
       window.location?.search?.includes('nosplash'),
   );
   const [tutorialResolved, setTutorialResolved] = useState(false);
-
-  // Don't dismiss StudioSplash until both the animation/video is done AND fonts are loaded.
-  // This prevents a brief flash of system-font text if fonts were still loading.
-  const fullyDone = splashDone && fontsReady;
-
-  const shouldShowTutorial = fullyDone && isLoaded && !hasCompletedFirstForgeTutorial && !tutorialResolved;
-  const canShowDailyReward = fullyDone && isLoaded && (hasCompletedFirstForgeTutorial || tutorialResolved);
+  const shouldShowTutorial = splashDone && isLoaded && !hasCompletedFirstForgeTutorial && !tutorialResolved;
+  const canShowDailyReward = splashDone && isLoaded && (hasCompletedFirstForgeTutorial || tutorialResolved);
 
   const finishTutorial = async () => {
     await completeFirstForgeTutorial();
@@ -67,7 +62,7 @@ function AppWithSplash({ fontsReady }: { fontsReady: boolean }) {
       <RootLayoutNav />
       {shouldShowTutorial && <FirstForgeTutorial onDone={finishTutorial} />}
       {canShowDailyReward && <DailyRewardModal />}
-      {!fullyDone && <StudioSplash onDone={() => setSplashDone(true)} />}
+      {!splashDone && <StudioSplash onDone={() => setSplashDone(true)} />}
     </>
   );
 }
@@ -81,24 +76,21 @@ export default function RootLayout() {
   });
 
   // Defer RevenueCat init off the synchronous module-load hot path.
-  // initializeRevenueCat() does AsyncStorage + network; running it after the
-  // first frame means nothing blocks the initial render.
   useEffect(() => {
     try { initializeRevenueCat(); }
     catch (err) { console.warn('RevenueCat unavailable:', err); }
   }, []);
 
-  // Hide the native splash as soon as fonts are ready.
-  // StudioSplash renders immediately underneath and covers the UI during font loading.
   useEffect(() => {
     if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync().catch(() => {});
+      SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
 
-  // Do NOT return null while fonts load. Rendering the providers immediately lets
-  // GameProvider start its AsyncStorage read in parallel with font loading.
-  // StudioSplash covers any briefly-unstyled content.
+  // Wait for fonts before mounting providers — prevents race conditions
+  // in GameProvider's AsyncStorage load and SubscriptionProvider init.
+  if (!fontsLoaded && !fontError) return null;
+
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
@@ -110,7 +102,7 @@ export default function RootLayout() {
                   <RewardedAdsProvider>
                     <AchievementProvider>
                       <GoldGrantReconciler />
-                      <AppWithSplash fontsReady={fontsLoaded || !!fontError} />
+                      <AppWithSplash />
                     </AchievementProvider>
                   </RewardedAdsProvider>
                 </GameProvider>
