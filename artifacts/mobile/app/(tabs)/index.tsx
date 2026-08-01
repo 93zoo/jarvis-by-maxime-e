@@ -1304,36 +1304,24 @@ export default function ForgeScreen() {
             badge={upgradeLevel > 0 ? upgradeLevel : undefined}
             onPress={() => setShowUpgradesModal(true)}
           />
-          <RailButton
-            icon="bar-chart-2"
-            label="CLASSEMENT"
-            onPress={() => router.push('/profile')}
-          />
         </View>
       )}
 
-      {/* ── Right rail: materials ── */}
-      {craftPhase === 'IDLE' && (
-        <View style={[md.materialsRail, { top: headerTopPad + 96 }]}>
-          <Text style={md.materialsTitle}>MATÉRIAUX</Text>
-          <ScrollView showsVerticalScrollIndicator={false} style={md.materialsScroll}>
-            {game.inventory.length === 0 ? (
-              <Text style={md.materialsEmpty}>Récoltez dans le Monde</Text>
-            ) : (
-              game.inventory.slice(0, 9).map((inv) => {
-                const res = game.getResourceById(inv.resourceId);
-                return (
-                  <View key={inv.resourceId} style={md.materialRow}>
-                    <View style={[md.materialChip, { backgroundColor: res?.color ?? '#555' }]} />
-                    <Text style={md.materialName} numberOfLines={1}>
-                      {(res?.name ?? inv.resourceId).toUpperCase()}
-                    </Text>
-                    <Text style={md.materialQty}>{inv.quantity.toLocaleString()}</Text>
-                  </View>
-                );
-              })
-            )}
-          </ScrollView>
+      {/* ── Materials as ingots, floating on the backdrop (no panel) ── */}
+      {craftPhase === 'IDLE' && game.inventory.length > 0 && (
+        <View style={[md.ingotRail, { top: headerTopPad + 100 }]} pointerEvents="none">
+          {game.inventory.slice(0, 7).map((inv) => {
+            const res = game.getResourceById(inv.resourceId);
+            const c = res?.color ?? '#8A7A6A';
+            return (
+              <View key={inv.resourceId} style={md.ingotRow}>
+                <View style={[md.ingotBar, { backgroundColor: c, borderColor: 'rgba(0,0,0,0.45)' }]}>
+                  <View style={md.ingotHighlight} />
+                </View>
+                <Text style={md.ingotQty}>{inv.quantity.toLocaleString()}</Text>
+              </View>
+            );
+          })}
         </View>
       )}
 
@@ -2063,6 +2051,25 @@ const md = StyleSheet.create({
   },
   materialsScroll: { flexGrow: 0 },
   materialsEmpty: { color: MEDIEVAL.textDim, fontSize: 10, textAlign: 'center', paddingVertical: 8 },
+  ingotRail: { position: 'absolute', right: 10, alignItems: 'flex-end', gap: 12 },
+  ingotRow: { alignItems: 'center', gap: 3 },
+  ingotBar: {
+    width: 46,
+    height: 16,
+    borderRadius: 3,
+    borderWidth: 1,
+    transform: [{ skewX: '-14deg' }],
+    overflow: 'hidden',
+  },
+  ingotHighlight: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '55%',
+    backgroundColor: 'rgba(255,255,255,0.30)',
+  },
+  ingotQty: { color: '#F5E6C8', fontSize: 10, fontWeight: '800' },
   materialRow: {
     flexDirection: 'row',
     alignItems: 'center',
