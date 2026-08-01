@@ -269,3 +269,10 @@ uri = "file://screenshots/forge-btn-static.jpg"
 type = "image"
 title = "Forge — bouton FORGER statique et propre"
 description = "Rotation retirée, damier gris/blanc supprimé de l'image, et effet de pression (rebond + vibration) au toucher."
+
+[[outputs]]
+id = "uLIjphcgQvRp1r0cYhC0V"
+uri = "file://screenshots/forge-btn-float.jpg"
+type = "image"
+title = "Forge — bouton FORGER réduit et flottant"
+description = "Bouton FORGER plus petit (168×104) avec un flottement vertical doux sur place, en plus du rebond + vibration au toucher."
