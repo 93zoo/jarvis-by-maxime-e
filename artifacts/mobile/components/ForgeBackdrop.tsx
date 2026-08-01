@@ -19,7 +19,7 @@ import { Animated, DimensionValue, Easing, ImageBackground, StyleSheet, View } f
 import { LinearGradient } from 'expo-linear-gradient';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const FORGE_BG = require('../assets/images/forge-bg.png');
+const FORGE_BG = require('../assets/images/forge-bg-v2.png');
 
 // ─── Ember particle ─────────────────────────────────────────────────────────
 function Ember({ x, size, duration, delay, drift, color }: {
@@ -50,7 +50,7 @@ function Ember({ x, size, duration, delay, drift, color }: {
       style={{
         position: 'absolute',
         left: x,
-        bottom: '26%',
+        bottom: '54%',
         width: size,
         height: size,
         borderRadius: size / 2,
@@ -89,7 +89,7 @@ function SmokeWisp({ x, size, duration, delay }: { x: DimensionValue; size: numb
       style={{
         position: 'absolute',
         left: x,
-        bottom: '34%',
+        bottom: '58%',
         width: size,
         height: size,
         borderRadius: size / 2,
@@ -145,13 +145,15 @@ export default function ForgeBackdrop() {
   const breath = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Fire glow: fast irregular flicker, like real flames
+    // Fire glow: irregular flicker, like real flames licking the hearth
     const flicker = Animated.loop(
       Animated.sequence([
-        Animated.timing(fireGlow, { toValue: 1, duration: 900, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        Animated.timing(fireGlow, { toValue: 0.35, duration: 700, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        Animated.timing(fireGlow, { toValue: 0.8, duration: 1100, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        Animated.timing(fireGlow, { toValue: 0.2, duration: 800, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(fireGlow, { toValue: 1, duration: 420, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(fireGlow, { toValue: 0.45, duration: 260, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(fireGlow, { toValue: 0.85, duration: 540, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(fireGlow, { toValue: 0.3, duration: 200, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(fireGlow, { toValue: 0.7, duration: 680, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(fireGlow, { toValue: 0.15, duration: 340, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
       ]),
     );
     // Scene breath: very slow ambient light variation
@@ -166,28 +168,29 @@ export default function ForgeBackdrop() {
     return () => { flicker.stop(); breathe.stop(); };
   }, [fireGlow, breath]);
 
-  const glowOpacity = fireGlow.interpolate({ inputRange: [0, 1], outputRange: [0.04, 0.14] });
+  const glowOpacity = fireGlow.interpolate({ inputRange: [0, 1], outputRange: [0.06, 0.22] });
   const breathOpacity = breath.interpolate({ inputRange: [0, 1], outputRange: [0.02, 0.06] });
 
   // Deterministic particle configs (stable across renders)
+  // Hearth sits center-left in the artwork (~x 20–55%, upper-middle of frame)
   const embers = useMemo(() => [
-    { x: '44%', size: 6, duration: 2600, delay: 0, drift: 18, color: '#FF9A3C' },
-    { x: '50%', size: 5, duration: 2200, delay: 500, drift: -14, color: '#FFC06A' },
-    { x: '47%', size: 7, duration: 3100, delay: 1100, drift: 26, color: '#FF7B24' },
-    { x: '53%', size: 5, duration: 2400, delay: 1600, drift: -22, color: '#FFB054' },
-    { x: '41%', size: 5, duration: 2900, delay: 800, drift: 12, color: '#FF9A3C' },
-    { x: '56%', size: 6, duration: 2700, delay: 2000, drift: -8, color: '#FFD08A' },
-    { x: '46%', size: 4, duration: 2000, delay: 2400, drift: 20, color: '#FFC06A' },
-    { x: '51%', size: 5, duration: 3300, delay: 300, drift: -18, color: '#FF7B24' },
-    { x: '43%', size: 4, duration: 2500, delay: 1400, drift: -26, color: '#FFE0A0' },
-    { x: '54%', size: 6, duration: 3000, delay: 1900, drift: 16, color: '#FF9A3C' },
+    { x: '26%', size: 6, duration: 2600, delay: 0, drift: 18, color: '#FF9A3C' },
+    { x: '33%', size: 5, duration: 2200, delay: 500, drift: -14, color: '#FFC06A' },
+    { x: '30%', size: 7, duration: 3100, delay: 1100, drift: 26, color: '#FF7B24' },
+    { x: '38%', size: 5, duration: 2400, delay: 1600, drift: -22, color: '#FFB054' },
+    { x: '24%', size: 5, duration: 2900, delay: 800, drift: 12, color: '#FF9A3C' },
+    { x: '42%', size: 6, duration: 2700, delay: 2000, drift: -8, color: '#FFD08A' },
+    { x: '29%', size: 4, duration: 2000, delay: 2400, drift: 20, color: '#FFC06A' },
+    { x: '36%', size: 5, duration: 3300, delay: 300, drift: -18, color: '#FF7B24' },
+    { x: '27%', size: 4, duration: 2500, delay: 1400, drift: -26, color: '#FFE0A0' },
+    { x: '40%', size: 6, duration: 3000, delay: 1900, drift: 16, color: '#FF9A3C' },
   ] as const, []);
 
   const wisps = useMemo(() => [
-    { x: '40%', size: 60, duration: 7000, delay: 0 },
-    { x: '52%', size: 50, duration: 8200, delay: 2600 },
-    { x: '46%', size: 70, duration: 7600, delay: 4800 },
-    { x: '56%', size: 44, duration: 6800, delay: 1200 },
+    { x: '24%', size: 60, duration: 7000, delay: 0 },
+    { x: '36%', size: 50, duration: 8200, delay: 2600 },
+    { x: '30%', size: 70, duration: 7600, delay: 4800 },
+    { x: '42%', size: 44, duration: 6800, delay: 1200 },
   ] as const, []);
 
   const dust = useMemo(() => [
@@ -219,14 +222,13 @@ export default function ForgeBackdrop() {
 }
 
 const styles = StyleSheet.create({
-  // Wide, very soft warm halo over the artwork's hearth — low opacity so the
-  // artwork stays identical to the capture, only the light "breathes".
+  // Warm halo over the artwork's hearth (center-left, upper-middle of frame)
   hearthGlow: {
     position: 'absolute',
-    left: '25%',
-    right: '25%',
-    top: '18%',
-    height: '30%',
+    left: '14%',
+    right: '48%',
+    top: '20%',
+    height: '26%',
     borderRadius: 260,
     backgroundColor: '#FF8A2A',
   },

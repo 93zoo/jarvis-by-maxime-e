@@ -49,7 +49,7 @@ function qualityLabel(q: Quality): string {
 }
 
 // Photorealistic forge backdrop (generated asset)
-const FORGE_BG = require('../../assets/images/forge-bg.jpg');
+const FORGE_BG = require('../../assets/images/forge-bg-v2.png');
 
 // ─── Medieval UI palette (leather / brushed steel / ember) ───────────────────
 const MEDIEVAL = {
