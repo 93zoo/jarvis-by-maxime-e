@@ -18,11 +18,10 @@ import { GameProvider } from '@/context/GameContext';
 import { AchievementProvider } from '@/context/AchievementContext';
 import IntroCinematic from '@/components/IntroCinematic';
 import { initializeRevenueCat, SubscriptionProvider } from '@/lib/revenuecat';
+import GoldGrantReconciler from '@/components/GoldGrantReconciler';
 
-let revenueCatReady = false;
 try {
   initializeRevenueCat();
-  revenueCatReady = true;
 } catch (err) {
   console.warn('RevenueCat unavailable:', err);
 }
@@ -101,6 +100,7 @@ export default function RootLayout() {
               <SubscriptionProvider>
                 <GameProvider>
                   <AchievementProvider>
+                    <GoldGrantReconciler />
                     <AppWithCinematic />
                   </AchievementProvider>
                 </GameProvider>

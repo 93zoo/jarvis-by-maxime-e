@@ -21,10 +21,8 @@ export const GOLD_PRODUCTS: Record<string, number> = {
   gold_chest_large: 6000,
 };
 
-function getRevenueCatApiKey() {
-  if (!REVENUECAT_TEST_API_KEY || !REVENUECAT_IOS_API_KEY || !REVENUECAT_ANDROID_API_KEY) {
-    throw new Error('RevenueCat Public API Keys not found');
-  }
+function getRevenueCatApiKey(): string | undefined {
+  // Only require the key actually needed for the current environment.
   if (__DEV__ || Platform.OS === 'web' || Constants.executionEnvironment === 'storeClient') {
     return REVENUECAT_TEST_API_KEY;
   }
@@ -33,24 +31,35 @@ function getRevenueCatApiKey() {
   return REVENUECAT_TEST_API_KEY;
 }
 
+let rcInitialized = false;
+
 export function initializeRevenueCat() {
   const apiKey = getRevenueCatApiKey();
-  if (!apiKey) throw new Error('RevenueCat Public API Key not found');
+  if (!apiKey) throw new Error('RevenueCat Public API Key not found for this platform');
   Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
   Purchases.configure({ apiKey });
+  rcInitialized = true;
+}
+
+export function isRevenueCatInitialized(): boolean {
+  return rcInitialized;
 }
 
 function useSubscriptionContext() {
+  const available = rcInitialized;
+
   const customerInfoQuery = useQuery({
     queryKey: ['revenuecat', 'customer-info'],
     queryFn: async () => Purchases.getCustomerInfo(),
     staleTime: 60 * 1000,
+    enabled: available,
   });
 
   const offeringsQuery = useQuery({
     queryKey: ['revenuecat', 'offerings'],
     queryFn: async () => Purchases.getOfferings(),
     staleTime: 300 * 1000,
+    enabled: available,
   });
 
   const purchaseMutation = useMutation({
@@ -75,14 +84,16 @@ function useSubscriptionContext() {
   }, [isSubscribed]);
 
   return {
+    available,
     customerInfo: customerInfoQuery.data,
     offerings: offeringsQuery.data,
     isSubscribed,
-    isLoading: customerInfoQuery.isLoading || offeringsQuery.isLoading,
+    isLoading: available && (customerInfoQuery.isLoading || offeringsQuery.isLoading),
     purchase: purchaseMutation.mutateAsync,
     restore: restoreMutation.mutateAsync,
     isPurchasing: purchaseMutation.isPending,
     isRestoring: restoreMutation.isPending,
+    refetchCustomerInfo: customerInfoQuery.refetch,
   };
 }
 

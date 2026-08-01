@@ -18,7 +18,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import type { PurchasesPackage } from 'react-native-purchases';
 import { useSubscription, GOLD_PRODUCTS } from '@/lib/revenuecat';
-import { useGame } from '@/context/GameContext';
 import { useColors } from '@/hooks/useColors';
 
 function baseProductId(identifier: string): string {
@@ -30,8 +29,7 @@ export default function BoutiqueScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const game = useGame();
-  const { offerings, isSubscribed, isLoading, purchase, restore, isPurchasing, isRestoring } =
+  const { available, offerings, isSubscribed, isLoading, purchase, restore, isPurchasing, isRestoring } =
     useSubscription();
 
   const [confirmPkg, setConfirmPkg] = useState<PurchasesPackage | null>(null);
@@ -52,8 +50,9 @@ export default function BoutiqueScreen() {
       await purchase(pkg);
       const goldAmount = GOLD_PRODUCTS[baseProductId(pkg.product.identifier)];
       if (goldAmount) {
-        game.addGold(goldAmount);
-        setFeedback(`+${goldAmount.toLocaleString()} or ajoutés à ta bourse !`);
+        // Gold is granted idempotently by GoldGrantReconciler from the
+        // customer's transaction history — never directly here.
+        setFeedback(`Achat confirmé — +${goldAmount.toLocaleString()} or arrivent dans ta bourse !`);
       } else {
         setFeedback('Forge Premium activé — XP de forge doublée !');
       }
@@ -74,7 +73,14 @@ export default function BoutiqueScreen() {
         </TouchableOpacity>
       </View>
 
-      {isLoading ? (
+      {!available ? (
+        <View style={styles.center}>
+          <Feather name="cloud-off" size={28} color={colors.mutedForeground} />
+          <Text style={[styles.cardDesc, { color: colors.mutedForeground, marginTop: 10, textAlign: 'center' }]}>
+            Boutique indisponible pour le moment.{'\n'}Réessaie plus tard.
+          </Text>
+        </View>
+      ) : isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.accent} />
         </View>
@@ -160,6 +166,14 @@ export default function BoutiqueScreen() {
               {isRestoring ? 'Restauration…' : 'Restaurer mes achats'}
             </Text>
           </TouchableOpacity>
+
+          <Text style={[styles.legal, { color: colors.mutedForeground }]}>
+            Forge Premium est un abonnement mensuel à renouvellement automatique. Le montant est
+            facturé sur ton compte App Store ou Google Play à la confirmation de l'achat, puis à
+            chaque période de renouvellement. Tu peux annuler à tout moment dans les réglages
+            d'abonnement de ton store, au moins 24 h avant la fin de la période en cours. Les packs
+            d'or sont des achats uniques non remboursables une fois consommés.
+          </Text>
         </ScrollView>
       )}
 
@@ -207,6 +221,7 @@ const styles = StyleSheet.create({
   buyBtn: { borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
   buyBtnText: { fontSize: 13, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.5 },
   restore: { alignItems: 'center', paddingVertical: 14 },
+  legal: { fontSize: 10, lineHeight: 15, opacity: 0.7, marginTop: 4 },
   restoreText: { fontSize: 12, textDecorationLine: 'underline' },
   feedback: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 10, padding: 10 },
   feedbackText: { fontSize: 12, flex: 1 },
