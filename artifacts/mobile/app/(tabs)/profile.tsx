@@ -2582,12 +2582,16 @@ const upgStyles = StyleSheet.create({
 });
 
 // ─── Main Profile Screen ──────────────────────────────────────────────────────
-export default function ProfileScreen() {
+type ProfileTab = 'skills' | 'talents' | 'upgrades' | 'achievements' | 'stats';
+const ALL_PROFILE_TABS: readonly ProfileTab[] = ['skills', 'talents', 'upgrades', 'achievements', 'stats'];
+
+export default function ProfileScreen({ tabs, title }: { tabs?: readonly ProfileTab[]; title?: string } = {}) {
+  const visibleTabs = tabs ?? ALL_PROFILE_TABS;
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const game = useGame();
   const headerTopPad = Platform.OS === 'web' ? 67 : insets.top;
-  const [activeTab, setActiveTab] = useState<'skills' | 'talents' | 'upgrades' | 'achievements' | 'stats'>('skills');
+  const [activeTab, setActiveTab] = useState<ProfileTab>((tabs ?? ALL_PROFILE_TABS)[0]);
   const [selectedSkillId, setSelectedSkillId] = useState<SkillType | null>(null);
   const [selectedTree, setSelectedTree] = useState<TreeKey>('forge');
   const [showCustomize, setShowCustomize] = useState(false);
@@ -2640,7 +2644,7 @@ export default function ProfileScreen() {
       >
         <View style={styles.headerLeft}>
           <Feather name="user" size={22} color={colors.primary} />
-          <Text style={[styles.headerTitle, { color: colors.foreground }]}>PROFIL</Text>
+          <Text style={[styles.headerTitle, { color: colors.foreground }]}>{title ?? 'PROFIL'}</Text>
           {player.talentPoints > 0 && (
             <View style={[styles.tpBadge, { backgroundColor: '#9966CC' }]}>
               <Text style={styles.tpBadgeText}>{player.talentPoints} pt</Text>
@@ -2740,7 +2744,7 @@ export default function ProfileScreen() {
 
       {/* Tab bar */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.tabBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]} contentContainerStyle={{ flexGrow: 1 }}>
-        {(['skills', 'talents', 'upgrades', 'achievements', 'stats'] as const).map((tab) => {
+        {visibleTabs.map((tab) => {
           const labels: Record<string, string> = { skills: '⭐ Compétences', talents: 'Talents', upgrades: 'Améliorations', achievements: 'Succès', stats: 'Stats' };
           return (
             <TouchableOpacity

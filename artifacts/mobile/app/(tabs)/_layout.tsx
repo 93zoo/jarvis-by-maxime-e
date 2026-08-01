@@ -32,6 +32,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: 'books.vertical', selected: 'books.vertical.fill' }} />
         <Label>Codex</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="skills">
+        <Icon sf={{ default: 'star', selected: 'star.fill' }} />
+        <Label>Compétences</Label>
+      </NativeTabs.Trigger>
       {/* Profil lives inside Codex — hidden trigger keeps the route alive */}
       <NativeTabs.Trigger name="profile" hidden>
         <Icon sf={{ default: 'person', selected: 'person.fill' }} />
@@ -142,6 +146,18 @@ function ClassicTabLayout() {
               <SymbolView name="books.vertical" tintColor={color} size={22} />
             ) : (
               <Feather name="book-open" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="skills"
+        options={{
+          title: 'Compétences',
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="star" tintColor={color} size={22} />
+            ) : (
+              <Feather name="star" size={22} color={color} />
             ),
         }}
       />
