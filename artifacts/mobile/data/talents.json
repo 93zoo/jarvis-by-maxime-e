@@ -49,6 +49,17 @@
     "effect": "minQualityGood:1", "tree": "forge", "tier": 4, "col": 1,
     "requiredSkill": "forge", "requiredSkillLevel": 50, "prerequisiteIds": ["forge_legendary_2", "forge_xp_2"], "icon": "crown", "cost": 3
   },
+  {
+    "id": "forge_enigma_master",
+    "name": "Maître Artisan",
+    "description": "Zone cible de l'énigme Précision +25% plus large",
+    "effect": "enigmaZoneBonus:0.25",
+    "tree": "forge", "tier": 1, "col": 2,
+    "requiredSkill": "forge", "requiredSkillLevel": 5,
+    "prerequisiteIds": ["forge_speed_1"],
+    "icon": "target",
+    "cost": 1
+  },
 
   {
     "id": "ext_yield_1", "name": "Bons Minerais", "description": "+1 ressource garantie par collecte",

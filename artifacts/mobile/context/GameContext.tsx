@@ -228,6 +228,16 @@ function qualityFromScore(score: number): { quality: Quality; rarity: Rarity } {
   return { quality: 'poor', rarity: 'common' };
 }
 
+function bumpQuality(q: Quality): { quality: Quality; rarity: Rarity } {
+  switch (q) {
+    case 'poor':      return { quality: 'normal',    rarity: 'uncommon' };
+    case 'normal':    return { quality: 'good',      rarity: 'rare' };
+    case 'good':      return { quality: 'excellent', rarity: 'epic' };
+    case 'excellent': return { quality: 'legendary', rarity: 'legendary' };
+    case 'legendary': return { quality: 'legendary', rarity: 'legendary' };
+  }
+}
+
 function valueMultFromQuality(quality: Quality): number {
   switch (quality) {
     case 'legendary': return 5.0;
@@ -1346,7 +1356,7 @@ interface GameContextType {
   addResource: (resourceId: string, qty: number) => void;
   removeResource: (resourceId: string, qty: number) => void;
   craftItem: (recipeId: string) => Item | null;
-  craftItemWithScore: (recipeId: string, qualityScore: number) => Item | null;
+  craftItemWithScore: (recipeId: string, qualityScore: number, enigmaBonus?: boolean) => Item | null;
   socketGem: (itemInstanceId: string, slotIndex: number, gem: GemData) => boolean;
   removeGem: (itemInstanceId: string, slotIndex: number) => void;
   acceptOrder: (orderId: string) => void;
@@ -1835,7 +1845,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   );
 
   const craftItemWithScore = useCallback(
-    (recipeId: string, qualityScore: number): Item | null => {
+    (recipeId: string, qualityScore: number, enigmaBonus?: boolean): Item | null => {
       const recipe = ALL_RECIPES.find((r) => r.id === recipeId);
       if (!recipe) return null;
       if (!canCraftRecipe(recipeId)) return null;
@@ -1848,7 +1858,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const talentQualityBonus = computeTalentBonus(state.player.talentsUnlocked, 'qualityBonus') * 100;
       const statQualityBonus = (state.player.statUpgrades?.['quality_bonus'] ?? 0) * 3;
       const clampedScore = Math.max(0, Math.min(100, Math.round(qualityScore + talentQualityBonus + statQualityBonus)));
-      const { quality, rarity } = qualityFromScore(clampedScore);
+      const rawQR = qualityFromScore(clampedScore);
+      const { quality, rarity } = enigmaBonus ? bumpQuality(rawQR.quality) : rawQR;
       const base = recipe.outputItemBase;
 
       const unique = generateUniqueTraits(makeUniqueSeed(), base.category);
@@ -1883,6 +1894,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         craftedAt: Date.now(),
         qualityScore: clampedScore,
         unique,
+        ...(enigmaBonus ? { enigmaMastered: true } : {}),
       };
 
       dispatch({ type: 'ADD_CRAFTED_ITEM', item });

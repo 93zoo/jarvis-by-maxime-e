@@ -33,6 +33,7 @@ import HammeringMiniGame, { HitLabel } from '@/components/HammeringMiniGame';
 import WeatherEffect, { WeatherType } from '@/components/WeatherEffect';
 import AudioManager from '@/utils/AudioManager';
 import { applyStoredAudioSettings } from '@/utils/audioSettings';
+import CraftingEnigmaModal from '@/components/CraftingEnigma';
 
 // ─── Quality helpers ─────────────────────────────────────────────────────────
 function qualityColor(q: Quality, colors: ReturnType<typeof useColors>): string {
@@ -929,6 +930,8 @@ export default function ForgeScreen() {
   const quenchProgressRef = useRef(100);
   const quenchDoneRef = useRef(false);
   const runResultRef = useRef<((mod: number) => void) | null>(null);
+  const activeRecipeRef = useRef<RecipeData | null>(null);
+  const [pendingEnigma, setPendingEnigma] = useState<{ recipeId: string; qualityScore: number } | null>(null);
 
   const { height: winH } = useWindowDimensions();
   const headerTopPad = Platform.OS === 'web' ? 67 : insets.top;
@@ -1116,14 +1119,20 @@ export default function ForgeScreen() {
         // ── Apply quench bonus/penalty ──────────────────────────────────
         qualityScore = Math.min(100, Math.max(1, qualityScore + quenchMod));
 
-        const item = game.craftItemWithScore(recipeId, qualityScore);
-        if (item) {
-          setCraftedItem(item);
-          AudioManager.playCraftComplete();
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        const recipeLevel = activeRecipeRef.current?.levelRequired ?? 0;
+        if (recipeLevel >= 5) {
+          // Rare+ recipe → show the forge enigma before finalising the craft
+          setPendingEnigma({ recipeId, qualityScore });
+        } else {
+          const item = game.craftItemWithScore(recipeId, qualityScore);
+          if (item) {
+            setCraftedItem(item);
+            AudioManager.playCraftComplete();
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          }
+          setRewardDoubled(false);
+          setCraftPhase('RESULT');
         }
-        setRewardDoubled(false);
-        setCraftPhase('RESULT');
       }, 750);
     };
 
@@ -1170,6 +1179,7 @@ export default function ForgeScreen() {
     setSession({ recipeId: recipe.id, strikesCompleted: 0, strikeScores: [] });
     setHeatingProgress(0);
     setCraftedItem(null);
+    activeRecipeRef.current = recipe;
     // Roll for a random forge event
     const evt = rollForgeEvent();
     setActiveForgeEvent(evt);
@@ -1261,6 +1271,23 @@ export default function ForgeScreen() {
     setQuenchLabel(null);
     quenchProgressRef.current = 100;
     quenchDoneRef.current = false;
+  };
+
+  const handleEnigmaResult = (success: boolean) => {
+    if (!pendingEnigma) return;
+    const item = game.craftItemWithScore(pendingEnigma.recipeId, pendingEnigma.qualityScore, success);
+    if (item) {
+      setCraftedItem(item);
+      AudioManager.playCraftComplete();
+      if (success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
+    }
+    setPendingEnigma(null);
+    setRewardDoubled(false);
+    setCraftPhase('RESULT');
   };
 
   if (!game.isLoaded) {
@@ -1799,6 +1826,16 @@ export default function ForgeScreen() {
                         <Text style={[styles.recipeXP, { color: colors.accent }]}>
                           +{recipe.xpReward} XP
                         </Text>
+                        {recipe.levelRequired >= 5 && (
+                          <View
+                            style={[
+                              styles.forgeBadge,
+                              { backgroundColor: '#E8B84B1A', borderWidth: 1, borderColor: '#E8B84B55' },
+                            ]}
+                          >
+                            <Text style={[styles.forgeBadgeText, { color: '#E8B84B' }]}>DÉFI</Text>
+                          </View>
+                        )}
                         {canCraft ? (
                           <View style={[styles.forgeBadge, { backgroundColor: colors.primary }]}>
                             <Text style={[styles.forgeBadgeText, { color: colors.primaryForeground }]}>
@@ -1817,6 +1854,17 @@ export default function ForgeScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* ── Forge Enigma Modal ── */}
+      {pendingEnigma != null && activeRecipeRef.current != null && (
+        <CraftingEnigmaModal
+          recipe={activeRecipeRef.current}
+          enigmaZoneBonus={
+            game.player.talentsUnlocked.includes('forge_enigma_master') ? 0.25 : 0
+          }
+          onResult={handleEnigmaResult}
+        />
+      )}
 
       {/* ── Orders Modal ── */}
       <OrdersModal

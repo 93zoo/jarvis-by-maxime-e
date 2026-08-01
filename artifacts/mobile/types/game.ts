@@ -266,6 +266,8 @@ export interface Item {
   qualityScore: number;
   /** Unique procedurally generated traits (absent on items from old saves). */
   unique?: UniqueItemTraits;
+  /** True when this item was crafted with a successful forge enigma bonus (quality bumped one tier). */
+  enigmaMastered?: boolean;
 }
 
 export interface InventoryItem {
