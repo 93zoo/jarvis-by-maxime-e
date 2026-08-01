@@ -227,6 +227,18 @@ export interface SkillData {
 // ---------------------------------------------------------------------------
 // Runtime game objects
 // ---------------------------------------------------------------------------
+/** Procedurally generated unique traits — see utils/uniqueWeapon.ts */
+export interface UniqueItemTraits {
+  seed: number;
+  form: string;
+  fitting: string;
+  grip: string;
+  engraving: string;
+  steelTint: string;
+  epithet: string;
+  variancePct: number;
+}
+
 export interface Item {
   instanceId: string;
   recipeId: string;
@@ -248,6 +260,8 @@ export interface Item {
   craftedBy: string;
   craftedAt: number;
   qualityScore: number;
+  /** Unique procedurally generated traits (absent on items from old saves). */
+  unique?: UniqueItemTraits;
 }
 
 export interface InventoryItem {

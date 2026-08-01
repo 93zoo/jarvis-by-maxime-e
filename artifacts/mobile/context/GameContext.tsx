@@ -38,6 +38,12 @@ import type {
   StatUpgradeDefinition,
   TalentData,
 } from '@/types/game';
+import {
+  applyUniqueVariance,
+  generateUniqueTraits,
+  makeUniqueSeed,
+  uniqueName,
+} from '@/utils/uniqueWeapon';
 
 // ---------------------------------------------------------------------------
 // Static data (loaded once)
@@ -391,11 +397,12 @@ function makeApprenticeItem(recipe: RecipeData, apprenticeLevel: number): Item {
 
   const base  = recipe.outputItemBase;
   const value = Math.round(base.valueMultiplier * 100 * qualityMults[quality]);
+  const unique = generateUniqueTraits(makeUniqueSeed(), base.category as ItemCategory);
 
   return {
     instanceId:   makeId(),
     recipeId:     recipe.id,
-    name:         base.name,
+    name:         uniqueName(base.name, unique),
     description:  base.description,
     lore:         base.lore,
     category:     base.category as ItemCategory,
@@ -406,13 +413,14 @@ function makeApprenticeItem(recipe: RecipeData, apprenticeLevel: number): Item {
     maxDurability: base.durabilityBase,
     weight:       base.weight,
     value,
-    stats:        base.baseStats ?? {},
+    stats:        applyUniqueVariance(base.baseStats ?? {}, unique),
     gemSlots:     base.gemSlots ?? 0,
     gems:         Array(base.gemSlots ?? 0).fill(null),
     materials:    recipe.requirements.map((r) => r.resourceId),
     craftedBy:    'apprentice',
     craftedAt:    Date.now(),
     qualityScore: QUALITY_SCORE[quality],
+    unique,
   };
 }
 
@@ -1668,18 +1676,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const { quality, rarity } = qualityFromScore(qualityScore);
       const base = recipe.outputItemBase;
 
+      const unique = generateUniqueTraits(makeUniqueSeed(), base.category);
       const statMultiplier = valueMultFromQuality(quality);
-      const scaledStats: ItemStats = {};
-      if (base.baseStats.attack) scaledStats.attack = Math.round(base.baseStats.attack * statMultiplier);
-      if (base.baseStats.defense) scaledStats.defense = Math.round(base.baseStats.defense * statMultiplier);
-      if (base.baseStats.speed) scaledStats.speed = Math.round(base.baseStats.speed * statMultiplier);
-      if (base.baseStats.luck) scaledStats.luck = Math.round(base.baseStats.luck * statMultiplier);
-      if (base.baseStats.magic) scaledStats.magic = Math.round(base.baseStats.magic * statMultiplier);
+      const rawStats: ItemStats = {};
+      if (base.baseStats.attack) rawStats.attack = Math.round(base.baseStats.attack * statMultiplier);
+      if (base.baseStats.defense) rawStats.defense = Math.round(base.baseStats.defense * statMultiplier);
+      if (base.baseStats.speed) rawStats.speed = Math.round(base.baseStats.speed * statMultiplier);
+      if (base.baseStats.luck) rawStats.luck = Math.round(base.baseStats.luck * statMultiplier);
+      if (base.baseStats.magic) rawStats.magic = Math.round(base.baseStats.magic * statMultiplier);
+      const scaledStats = applyUniqueVariance(rawStats, unique);
 
       const item: Item = {
         instanceId: makeId(),
         recipeId,
-        name: base.name,
+        name: uniqueName(base.name, unique),
         description: base.description,
         lore: base.lore,
         category: base.category,
@@ -1697,6 +1707,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         craftedBy: state.player.name,
         craftedAt: Date.now(),
         qualityScore,
+        unique,
       };
 
       dispatch({ type: 'ADD_CRAFTED_ITEM', item });
@@ -1761,18 +1772,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const { quality, rarity } = qualityFromScore(clampedScore);
       const base = recipe.outputItemBase;
 
+      const unique = generateUniqueTraits(makeUniqueSeed(), base.category);
       const statMultiplier = valueMultFromQuality(quality);
-      const scaledStats: ItemStats = {};
-      if (base.baseStats.attack) scaledStats.attack = Math.round(base.baseStats.attack * statMultiplier);
-      if (base.baseStats.defense) scaledStats.defense = Math.round(base.baseStats.defense * statMultiplier);
-      if (base.baseStats.speed) scaledStats.speed = Math.round(base.baseStats.speed * statMultiplier);
-      if (base.baseStats.luck) scaledStats.luck = Math.round(base.baseStats.luck * statMultiplier);
-      if (base.baseStats.magic) scaledStats.magic = Math.round(base.baseStats.magic * statMultiplier);
+      const rawStats: ItemStats = {};
+      if (base.baseStats.attack) rawStats.attack = Math.round(base.baseStats.attack * statMultiplier);
+      if (base.baseStats.defense) rawStats.defense = Math.round(base.baseStats.defense * statMultiplier);
+      if (base.baseStats.speed) rawStats.speed = Math.round(base.baseStats.speed * statMultiplier);
+      if (base.baseStats.luck) rawStats.luck = Math.round(base.baseStats.luck * statMultiplier);
+      if (base.baseStats.magic) rawStats.magic = Math.round(base.baseStats.magic * statMultiplier);
+      const scaledStats = applyUniqueVariance(rawStats, unique);
 
       const item: Item = {
         instanceId: makeId(),
         recipeId,
-        name: base.name,
+        name: uniqueName(base.name, unique),
         description: base.description,
         lore: base.lore,
         category: base.category,
@@ -1790,6 +1803,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         craftedBy: state.player.name,
         craftedAt: Date.now(),
         qualityScore: clampedScore,
+        unique,
       };
 
       dispatch({ type: 'ADD_CRAFTED_ITEM', item });

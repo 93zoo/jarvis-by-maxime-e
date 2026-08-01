@@ -292,6 +292,30 @@ export default function ItemDetailSheet({ itemInstanceId, onClose }: Props) {
                   </Text>
                 ) : null}
 
+                {/* Unique traits */}
+                {item.unique && (
+                  <>
+                    <SectionLabel label="PIÈCE UNIQUE ✦" color={item.unique.steelTint} />
+                    <View style={[styles.uniqueCard, { borderColor: item.unique.steelTint + '55', backgroundColor: colors.card }]}>
+                      <View style={styles.uniqueRow}>
+                        <View style={[styles.tintSwatch, { backgroundColor: item.unique.steelTint }]} />
+                        <Text style={[styles.uniqueTrait, { color: colors.foreground }]}>
+                          {item.unique.form} · {item.unique.fitting}
+                        </Text>
+                      </View>
+                      <Text style={[styles.uniqueTrait, { color: colors.mutedForeground }]}>
+                        Prise : {item.unique.grip}
+                      </Text>
+                      <Text style={[styles.uniqueEngraving, { color: colors.mutedForeground }]}>
+                        Gravure : {item.unique.engraving}
+                      </Text>
+                      <Text style={[styles.uniqueSeed, { color: colors.mutedForeground }]}>
+                        Empreinte de forge nº {item.unique.seed.toString(16).toUpperCase().padStart(8, '0')}
+                      </Text>
+                    </View>
+                  </>
+                )}
+
                 {/* Stats */}
                 {Object.keys(item.stats).length > 0 && (
                   <>
@@ -524,6 +548,12 @@ const styles = StyleSheet.create({
   categoryLabel: { fontSize: 12, marginBottom: 8 },
   description: { fontSize: 13, lineHeight: 19, marginBottom: 8 },
   lore: { fontSize: 12, lineHeight: 18, fontStyle: 'italic', marginBottom: 18, opacity: 0.8 },
+  uniqueCard: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 5 },
+  uniqueRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  tintSwatch: { width: 12, height: 12, borderRadius: 6 },
+  uniqueTrait: { fontSize: 12, lineHeight: 17 },
+  uniqueEngraving: { fontSize: 12, lineHeight: 17, fontStyle: 'italic' },
+  uniqueSeed: { fontSize: 10, letterSpacing: 1, opacity: 0.6, marginTop: 3 },
   sectionLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 2, marginTop: 18, marginBottom: 10 },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
   statChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, alignItems: 'center', minWidth: 66 },
