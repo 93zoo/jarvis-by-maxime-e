@@ -17,7 +17,9 @@
       "supportsTablet": false
     },
     "android": {
-      "backgroundColor": "#0A0810"
+      "backgroundColor": "#0A0810",
+      "package": "com.forgekingdoms.app",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/images/icon.png",
