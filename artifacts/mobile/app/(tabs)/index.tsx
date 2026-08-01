@@ -2304,7 +2304,15 @@ const styles = StyleSheet.create({
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   headerTitle: { fontSize: 17, fontWeight: '800', letterSpacing: 3 },
   headerForgeName: { fontSize: 11, fontWeight: '500', letterSpacing: 1, marginTop: 1 },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  headerRight: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignContent: 'center',
+    gap: 7,
+    maxWidth: 168,
+  },
   pill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, gap: 3 },
   pillText: { fontSize: 13, fontWeight: '700' },
 
