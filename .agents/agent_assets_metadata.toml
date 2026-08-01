@@ -318,3 +318,17 @@ uri = "file://screenshots/forge-header-clean.jpg"
 type = "image"
 title = "Forge — header sans « Niv.1 »"
 description = "Le titre du header affiche maintenant simplement « FORGE » au lieu de « FORGE Niv.1 »."
+
+[[outputs]]
+id = "kQmd1iRH8cYphGjXIIQSx"
+uri = "file://screenshots/forge-btn-raised.jpg"
+type = "image"
+title = "Forge — bouton remonté + typo rail restaurée"
+description = "Le bouton FORGER est remonté légèrement au-dessus du centre, et les labels QUÊTES/ÉVÉNEMENTS/APPRENTI/AMÉLIORER ont retrouvé leur typographie d'origine."
+
+[[outputs]]
+id = "Crj7bbvJeI9lz42d1aGxB"
+uri = "file://screenshots/forge-btn-higher.jpg"
+type = "image"
+title = "Forge — bouton FORGER remonté"
+description = "Le bouton FORGER est remonté plus haut au-dessus du centre de l'écran, flottement et rebond conservés."
