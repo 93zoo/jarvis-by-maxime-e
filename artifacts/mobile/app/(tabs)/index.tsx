@@ -1171,7 +1171,7 @@ function RailButton({
   return (
     <TouchableOpacity style={md.railBtn} onPress={onPress} activeOpacity={0.8}>
       <View style={md.railBtnCircle}>
-        <Feather name={icon} size={18} color={MEDIEVAL.textLight} />
+        <Feather name={icon} size={18} color={MEDIEVAL.oldGold} />
         {badge !== undefined && badge > 0 && (
           <View style={md.badge}>
             <Text style={md.badgeText}>{badge}</Text>
@@ -2449,17 +2449,17 @@ const md = StyleSheet.create({
     borderRadius: 23,
     backgroundColor: MEDIEVAL.panelLight,
     borderWidth: 1.5,
-    borderColor: MEDIEVAL.border,
+    borderColor: MEDIEVAL.oldGold,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.55,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 5,
+    shadowColor: MEDIEVAL.oldGold,
+    shadowOpacity: 0.75,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 8,
   },
   railBtnLabel: {
-    color: MEDIEVAL.textDim,
+    color: MEDIEVAL.oldGold,
     fontSize: 8,
     fontWeight: '800',
     letterSpacing: 1,
