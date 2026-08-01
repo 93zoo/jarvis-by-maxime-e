@@ -62,16 +62,17 @@ export default function BoutiqueScreen() {
     try {
       const watched = await showRewardedAd('daily_chest');
       if (!watched) return;
-      // Marquer AVANT de créditer pour éviter tout double coffre le même jour.
-      await AsyncStorage.setItem(DAILY_CHEST_KEY, todayKey());
-      setChestClaimedToday(true);
       const gold = 150 + game.player.level * 25;
       const mat1 = CHEST_MATERIALS[Math.floor(Math.random() * CHEST_MATERIALS.length)];
       let mat2 = CHEST_MATERIALS[Math.floor(Math.random() * CHEST_MATERIALS.length)];
       if (mat2 === mat1) mat2 = CHEST_MATERIALS[(CHEST_MATERIALS.indexOf(mat1) + 1) % CHEST_MATERIALS.length];
+      // Créditer d'abord, puis marquer le jour : en cas de crash au milieu,
+      // le joueur ne perd jamais sa récompense (au pire un coffre bonus).
       game.addGold(gold);
       game.addResource(mat1, 3);
       game.addResource(mat2, 2);
+      await AsyncStorage.setItem(DAILY_CHEST_KEY, todayKey());
+      setChestClaimedToday(true);
       setFeedback(`Coffre du jour ouvert : +${gold} or, +3 ${mat1}, +2 ${mat2} !`);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } finally {

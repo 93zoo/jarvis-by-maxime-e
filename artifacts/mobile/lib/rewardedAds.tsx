@@ -58,6 +58,8 @@ export function RewardedAdsProvider({ children }: { children: React.ReactNode })
   const showRewardedAd = useCallback(
     (_placement: AdPlacement): Promise<boolean> => {
       if (!adsUnlocked) return Promise.resolve(false);
+      // Garde de réentrance : une seule pub à la fois.
+      if (resolverRef.current) return Promise.resolve(false);
       // NOTE: en build natif store, remplacer ce bloc par le SDK de pub réel.
       return new Promise<boolean>((resolve) => {
         resolverRef.current = resolve;
