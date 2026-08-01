@@ -276,3 +276,10 @@ uri = "file://screenshots/forge-btn-float.jpg"
 type = "image"
 title = "Forge — bouton FORGER réduit et flottant"
 description = "Bouton FORGER plus petit (168×104) avec un flottement vertical doux sur place, en plus du rebond + vibration au toucher."
+
+[[outputs]]
+id = "uAnUCmiSKF5zKArDSFo8s"
+uri = "file://screenshots/forge-btn-anvil-only.jpg"
+type = "image"
+title = "Forge — enclume + texte seulement"
+description = "Le bouton FORGER n'affiche plus que l'enclume dorée et le texte, sans la plaque de métal — flottement et rebond au toucher conservés."
