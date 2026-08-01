@@ -55,6 +55,9 @@ export default function CodexScreen() {
 
   const discoveredRecipeIds = new Set(game.craftedItems.map((i) => i.recipeId));
 
+  // Resource IDs that can be produced via the alloy fusion system
+  const alloyOutputIds = new Set(game.allAlloys.map((a) => a.outputResourceId));
+
   const TABS: { key: CodexTab; label: string; icon: string }[] = [
     { key: 'resources', label: 'Matériaux', icon: 'diamond-stone' },
     { key: 'recipes', label: 'Recettes', icon: 'book-open-page-variant' },
@@ -221,6 +224,7 @@ export default function CodexScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setTimeout(() => setRecipeMessage(null), 2400);
     };
+    const needsAlloy = recipe.requirements.some((r) => alloyOutputIds.has(r.resourceId));
     return (
       <Animated.View entering={FadeInDown.delay(Math.min(index * 30, 400)).springify()}>
       <View
@@ -238,9 +242,17 @@ export default function CodexScreen() {
             <Feather name="tool" size={18} color={colors.primary} />
             <View style={styles.entryInfo}>
               <Text style={[styles.entryName, { color: colors.foreground }]}>{recipe.name}</Text>
-              <Text style={[styles.entryRarity, { color: colors.mutedForeground }]}>
-                {recipe.category} · Forge Niv.{recipe.levelRequired} {discovered ? '· Découverte' : '· Débloquée'}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <Text style={[styles.entryRarity, { color: colors.mutedForeground }]}>
+                  {recipe.category} · Forge Niv.{recipe.levelRequired} {discovered ? '· Découverte' : '· Débloquée'}
+                </Text>
+                {needsAlloy && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#D4A53720', paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: '#D4A53760' }}>
+                    <MaterialCommunityIcons name="merge" size={10} color="#D4A537" />
+                    <Text style={{ fontSize: 9, fontWeight: '700', color: '#D4A537' }}>ALLIAGE</Text>
+                  </View>
+                )}
+              </View>
             </View>
             <Text style={[styles.entryValue, { color: colors.accent }]}>
               +{recipe.xpReward} XP

@@ -456,6 +456,26 @@ export interface Apprentice {
   readyItem: Item | null;         // finished item waiting to be collected
 }
 
+// ---------------------------------------------------------------------------
+// Alloy / fusion system
+// ---------------------------------------------------------------------------
+export interface AlloyIngredient {
+  resourceId: string;
+  quantity: number;
+}
+
+export interface AlloyData {
+  id: string;
+  name: string;
+  description: string;
+  outputResourceId: string;
+  outputQuantity: number;
+  ingredients: AlloyIngredient[];
+  fusionTimeSec: number;
+  levelRequired: number;
+  hint: string;
+}
+
 export interface StatUpgradeDefinition {
   id: string;
   name: string;
@@ -492,5 +512,6 @@ export interface SaveData {
   apprentice: Apprentice | null;
   completedRegions: string[];
   completedSets: string[];
+  discoveredAlloyIds: string[];
   lastSaved: number;
 }

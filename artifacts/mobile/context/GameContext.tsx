@@ -11,6 +11,7 @@ import React, {
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {
+  AlloyData,
   Apprentice,
   CraftOrder,
   CombatDrop,
@@ -59,6 +60,7 @@ const ALL_NPCS: NPCData[] = require('@/data/npcs.json');
 const ALL_QUESTS: Quest[] = require('@/data/quests.json');
 const ALL_TALENTS: TalentData[] = require('@/data/talents.json');
 const ALL_FORGE_UPGRADES: ForgeUpgradeData[] = require('@/data/forgeUpgrades.json');
+const ALL_ALLOYS: AlloyData[] = require('@/data/alloys.json');
 
 export const STAT_UPGRADE_DEFINITIONS: StatUpgradeDefinition[] = [
   {
@@ -261,6 +263,7 @@ interface GameState {
   apprentice: Apprentice | null;
   completedRegions: string[];
   completedSets: string[];
+  discoveredAlloyIds: string[];
 }
 
 type GameAction =
@@ -318,7 +321,8 @@ type GameAction =
   | { type: 'CLAIM_SET_REWARD'; setId: string; goldReward: number }
   | { type: 'TRAIN_APPRENTICE'; goldCost: number }
   // Stat upgrades
-  | { type: 'BUY_STAT_UPGRADE'; upgradeId: string; goldCost: number };
+  | { type: 'BUY_STAT_UPGRADE'; upgradeId: string; goldCost: number }
+  | { type: 'FUSE_ALLOY'; alloyId: string; ingredients: { resourceId: string; quantity: number }[]; outputResourceId: string; outputQuantity: number };
 
 function buildInitialPlayer(): Player {
   const skills = SKILL_TYPES.reduce(
@@ -449,6 +453,7 @@ function buildInitialState(): GameState {
     apprentice: null,
     completedRegions: [],
     completedSets: [],
+    discoveredAlloyIds: [],
   };
 }
 
@@ -614,6 +619,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         apprentice: s.apprentice ?? null,
         completedRegions: s.completedRegions ?? [],
         completedSets: s.completedSets ?? [],
+        discoveredAlloyIds: s.discoveredAlloyIds ?? [],
       };
     }
     case 'RESET': {
@@ -1268,6 +1274,32 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    case 'FUSE_ALLOY': {
+      // Deduct ingredients
+      let inv = [...state.inventory];
+      for (const ing of action.ingredients) {
+        inv = inv
+          .map((i) => i.resourceId === ing.resourceId ? { ...i, quantity: i.quantity - ing.quantity } : i)
+          .filter((i) => i.quantity > 0);
+      }
+      // Add output resource
+      const outIdx = inv.findIndex((i) => i.resourceId === action.outputResourceId);
+      if (outIdx >= 0) {
+        inv[outIdx] = { ...inv[outIdx], quantity: inv[outIdx].quantity + action.outputQuantity };
+      } else {
+        inv.push({ resourceId: action.outputResourceId, quantity: action.outputQuantity });
+      }
+      // Record alloy as discovered
+      const alreadyDiscovered = state.discoveredAlloyIds.includes(action.alloyId);
+      return {
+        ...state,
+        inventory: inv,
+        discoveredAlloyIds: alreadyDiscovered
+          ? state.discoveredAlloyIds
+          : [...state.discoveredAlloyIds, action.alloyId],
+      };
+    }
+
     default:
       return state;
   }
@@ -1371,6 +1403,10 @@ interface GameContextType {
   // Stat upgrades
   buyStatUpgrade: (upgradeId: string) => { success: boolean; message: string; cost: number };
   getStatUpgradeBonus: (effectType: string) => number;
+  // Alloy / fusion
+  allAlloys: AlloyData[];
+  discoveredAlloyIds: string[];
+  fuseAlloy: (alloyId: string) => { success: boolean; message: string };
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -1574,6 +1610,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           apprentice: state.apprentice,
           completedRegions: state.completedRegions,
           completedSets: state.completedSets,
+          discoveredAlloyIds: state.discoveredAlloyIds,
           lastSaved: now,
         };
         await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
@@ -1676,6 +1713,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         apprentice: state.apprentice,
         completedRegions: state.completedRegions,
         completedSets: state.completedSets,
+        discoveredAlloyIds: state.discoveredAlloyIds,
         lastSaved: Date.now(),
       };
       AsyncStorage.setItem(SAVE_KEY, JSON.stringify(immediteSave)).catch(() => {
@@ -2263,6 +2301,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       apprentice: state.apprentice,
       completedRegions: state.completedRegions,
       completedSets: state.completedSets,
+      discoveredAlloyIds: state.discoveredAlloyIds,
       lastSaved: now,
     };
     try {
@@ -2298,6 +2337,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         apprentice: state.apprentice,
         completedRegions: state.completedRegions,
         completedSets: state.completedSets,
+        discoveredAlloyIds: state.discoveredAlloyIds,
         lastSaved: Date.now(),
       };
       const res = await fetch(`${base}/save`, {
@@ -2464,6 +2504,36 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [state.player.statUpgrades, state.player.gold],
   );
 
+  const fuseAlloy = useCallback(
+    (alloyId: string): { success: boolean; message: string } => {
+      const alloy = ALL_ALLOYS.find((a) => a.id === alloyId);
+      if (!alloy) return { success: false, message: 'Alliage introuvable.' };
+      if (state.player.level < alloy.levelRequired) {
+        return { success: false, message: `Niveau ${alloy.levelRequired} requis.` };
+      }
+      for (const ing of alloy.ingredients) {
+        const qty = state.inventory.find((i) => i.resourceId === ing.resourceId)?.quantity ?? 0;
+        if (qty < ing.quantity) {
+          const res = ALL_RESOURCES.find((r) => r.id === ing.resourceId);
+          return { success: false, message: `${res?.name ?? ing.resourceId} insuffisant (${ing.quantity} requis, vous en avez ${qty}).` };
+        }
+      }
+      dispatch({
+        type: 'FUSE_ALLOY',
+        alloyId,
+        ingredients: alloy.ingredients,
+        outputResourceId: alloy.outputResourceId,
+        outputQuantity: alloy.outputQuantity,
+      });
+      const outRes = ALL_RESOURCES.find((r) => r.id === alloy.outputResourceId);
+      return {
+        success: true,
+        message: `+${alloy.outputQuantity} ${outRes?.name ?? alloy.outputResourceId} obtenu !`,
+      };
+    },
+    [state.inventory, state.player.level],
+  );
+
   const customizePlayer = useCallback(
     (name: string, forgeName: string, avatarColor?: string, avatarIcon?: string | null, avatarImage?: string | null): void => {
       const trimmedName = name.trim();
@@ -2591,6 +2661,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       // Stat upgrades
       buyStatUpgrade,
       getStatUpgradeBonus,
+      // Alloy / fusion
+      allAlloys: ALL_ALLOYS,
+      discoveredAlloyIds: state.discoveredAlloyIds,
+      fuseAlloy,
     }),
     // Include cloud sync reactive state so status transitions propagate to consumers
     // eslint-disable-next-line react-hooks/exhaustive-deps

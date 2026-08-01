@@ -23,9 +23,10 @@ import { useGame } from '@/context/GameContext';
 import { useColors } from '@/hooks/useColors';
 import type { Item, ItemCategory, Quality, ResourceData } from '@/types/game';
 import ItemDetailSheet from '@/components/ItemDetailSheet';
+import AlloyWorkshop from '@/components/AlloyWorkshop';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type TabType = 'resources' | 'items';
+type TabType = 'resources' | 'items' | 'alloys';
 type SortOption = 'newest' | 'quality' | 'value' | 'name';
 type CategoryFilter = 'all' | ItemCategory;
 type QualityFilter = 'all' | Quality;
@@ -381,31 +382,35 @@ export default function InventoryScreen() {
 
       {/* ── Tab bar ── */}
       <View style={[styles.tabBar, { borderBottomColor: colors.border }]}>
-        {(['resources', 'items'] as TabType[]).map((tab) => (
+        {([
+          { key: 'resources', label: 'Ressources', icon: 'diamond-stone', badge: game.inventory.length },
+          { key: 'items', label: 'Objets', icon: 'sword-cross', badge: game.craftedItems.length },
+          { key: 'alloys', label: 'Alliages', icon: 'merge', badge: game.discoveredAlloyIds.length },
+        ] as { key: TabType; label: string; icon: string; badge: number }[]).map((tab) => (
           <TouchableOpacity
-            key={tab}
-            style={[styles.tab, activeTab === tab && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
-            onPress={() => setActiveTab(tab)}
+            key={tab.key}
+            style={[styles.tab, activeTab === tab.key && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
+            onPress={() => setActiveTab(tab.key)}
           >
             <MaterialCommunityIcons
-              name={tab === 'resources' ? 'diamond-stone' : 'sword-cross'}
-              size={18}
-              color={activeTab === tab ? colors.primary : colors.mutedForeground}
+              name={tab.icon as any}
+              size={17}
+              color={activeTab === tab.key ? colors.primary : colors.mutedForeground}
             />
-            <Text style={[styles.tabText, { color: activeTab === tab ? colors.primary : colors.mutedForeground }]}>
-              {tab === 'resources' ? 'Ressources' : 'Objets forgés'}
+            <Text style={[styles.tabText, { color: activeTab === tab.key ? colors.primary : colors.mutedForeground }]}>
+              {tab.label}
             </Text>
-            <View style={[styles.tabBadge, { backgroundColor: activeTab === tab ? colors.primary : colors.muted }]}>
-              <Text style={[styles.tabBadgeText, { color: activeTab === tab ? colors.primaryForeground : colors.mutedForeground }]}>
-                {tab === 'resources' ? game.inventory.length : game.craftedItems.length}
+            <View style={[styles.tabBadge, { backgroundColor: activeTab === tab.key ? colors.primary : colors.muted }]}>
+              <Text style={[styles.tabBadgeText, { color: activeTab === tab.key ? colors.primaryForeground : colors.mutedForeground }]}>
+                {tab.badge}
               </Text>
             </View>
           </TouchableOpacity>
         ))}
       </View>
 
-      {/* ── Search + filter row ── */}
-      <View style={[styles.toolbarRow, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+      {/* ── Search + filter row (only for resources / items) ── */}
+      {activeTab !== 'alloys' && <View style={[styles.toolbarRow, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <View style={[styles.searchBox, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
           <Feather name="search" size={14} color={colors.mutedForeground} />
           <TextInput
@@ -430,7 +435,7 @@ export default function InventoryScreen() {
             <Feather name="sliders" size={15} color={showFilters ? colors.primaryForeground : colors.mutedForeground} />
           </TouchableOpacity>
         )}
-      </View>
+      </View>}
 
       {/* ── Filter panel (items only) ── */}
       {activeTab === 'items' && showFilters && (
@@ -495,7 +500,11 @@ export default function InventoryScreen() {
       )}
 
       {/* ── Content ── */}
-      {activeTab === 'resources' ? (
+      {activeTab === 'alloys' && (
+        <AlloyWorkshop bottomPad={bottomPad} />
+      )}
+
+      {activeTab === 'resources' && (
         filteredResources.length === 0 ? (
           <Animated.View entering={FadeInDown.duration(400)} style={styles.emptyCenter}>
             <MaterialCommunityIcons name="package-variant" size={48} color={colors.mutedForeground} />
@@ -517,28 +526,32 @@ export default function InventoryScreen() {
             showsVerticalScrollIndicator={false}
           />
         )
-      ) : filteredItems.length === 0 ? (
-        <Animated.View entering={FadeInDown.duration(400)} style={styles.emptyCenter}>
-          <MaterialCommunityIcons name="hammer-wrench" size={48} color={colors.mutedForeground} />
-          <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-            {search || categoryFilter !== 'all' || qualityFilter !== 'all' ? 'Aucun résultat' : 'Aucun objet forgé'}
-          </Text>
-          <Text style={[styles.emptyDesc, { color: colors.mutedForeground }]}>
-            {search || categoryFilter !== 'all' || qualityFilter !== 'all'
-              ? 'Modifiez les filtres pour voir plus d\'objets'
-              : 'Rendez-vous à la Forge pour créer votre premier objet'}
-          </Text>
-        </Animated.View>
-      ) : (
-        <FlatList
-          data={filteredItems}
-          keyExtractor={(i) => i.instanceId}
-          renderItem={({ item, index }) => (
-            <CraftedItemCard item={item} onPress={() => setSelectedItemId(item.instanceId)} colors={colors} index={index} />
-          )}
-          contentContainerStyle={[styles.listContent, { paddingBottom: bottomPad }]}
-          showsVerticalScrollIndicator={false}
-        />
+      )}
+
+      {activeTab === 'items' && (
+        filteredItems.length === 0 ? (
+          <Animated.View entering={FadeInDown.duration(400)} style={styles.emptyCenter}>
+            <MaterialCommunityIcons name="hammer-wrench" size={48} color={colors.mutedForeground} />
+            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
+              {search || categoryFilter !== 'all' || qualityFilter !== 'all' ? 'Aucun résultat' : 'Aucun objet forgé'}
+            </Text>
+            <Text style={[styles.emptyDesc, { color: colors.mutedForeground }]}>
+              {search || categoryFilter !== 'all' || qualityFilter !== 'all'
+                ? 'Modifiez les filtres pour voir plus d\'objets'
+                : 'Rendez-vous à la Forge pour créer votre premier objet'}
+            </Text>
+          </Animated.View>
+        ) : (
+          <FlatList
+            data={filteredItems}
+            keyExtractor={(i) => i.instanceId}
+            renderItem={({ item, index }) => (
+              <CraftedItemCard item={item} onPress={() => setSelectedItemId(item.instanceId)} colors={colors} index={index} />
+            )}
+            contentContainerStyle={[styles.listContent, { paddingBottom: bottomPad }]}
+            showsVerticalScrollIndicator={false}
+          />
+        )
       )}
 
       {/* ── Item detail sheet ── */}

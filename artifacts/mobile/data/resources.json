@@ -297,5 +297,83 @@
     "quality": "good",
     "baseValue": 150,
     "color": "#1A1A1A"
+  },
+  {
+    "id": "brass",
+    "name": "Laiton",
+    "description": "Alliage doré de cuivre et d'argile — prisé pour la décoration et les garnitures.",
+    "type": "metal",
+    "level": 5,
+    "weight": 2.2,
+    "purity": 65,
+    "rarity": "uncommon",
+    "quality": "good",
+    "baseValue": 18,
+    "color": "#D4A537"
+  },
+  {
+    "id": "electrum",
+    "name": "Électrum",
+    "description": "Alliage mythique d'or et d'argent aux reflets changeants selon la lumière.",
+    "type": "metal",
+    "level": 14,
+    "weight": 2.8,
+    "purity": 88,
+    "rarity": "rare",
+    "quality": "excellent",
+    "baseValue": 220,
+    "color": "#E8D44D"
+  },
+  {
+    "id": "darksteel",
+    "name": "Acier Sombre",
+    "description": "Acier durci dans l'obsidienne — plus tranchant que le froid de la mort.",
+    "type": "metal",
+    "level": 20,
+    "weight": 3.0,
+    "purity": 90,
+    "rarity": "epic",
+    "quality": "excellent",
+    "baseValue": 650,
+    "color": "#2D3561"
+  },
+  {
+    "id": "mithrilite",
+    "name": "Mithrilite",
+    "description": "Alliance du mithril et des cristaux — imperméable à la magie corrompue.",
+    "type": "metal",
+    "level": 24,
+    "weight": 1.2,
+    "purity": 97,
+    "rarity": "epic",
+    "quality": "legendary",
+    "baseValue": 900,
+    "color": "#74C2E1"
+  },
+  {
+    "id": "dragonite",
+    "name": "Dragonite",
+    "description": "L'adamantium fondu dans l'âme d'un dragon primordial — résiste aux volcans.",
+    "type": "metal",
+    "level": 28,
+    "weight": 4.0,
+    "purity": 98,
+    "rarity": "legendary",
+    "quality": "legendary",
+    "baseValue": 2500,
+    "color": "#B34A2A"
+  },
+  {
+    "id": "staralloy",
+    "name": "Alliage des Étoiles",
+    "description": "La fusion ultime — dit-on qu'il fut forgé sous une comète pour la première fois.",
+    "type": "metal",
+    "level": 32,
+    "weight": 2.0,
+    "purity": 100,
+    "rarity": "legendary",
+    "quality": "legendary",
+    "baseValue": 6000,
+    "color": "#A9B7FF"
   }
 ]
