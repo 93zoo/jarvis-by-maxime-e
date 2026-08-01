@@ -1473,8 +1473,8 @@ export default function ForgeScreen() {
       >
         {craftPhase === 'IDLE' && (
           <>
-            {/* FORGER — artwork button centered just above the anvil in the backdrop */}
-            <View style={[md.forgeOverAnvil, { bottom: winH * 0.56 }]} pointerEvents="box-none">
+            {/* FORGER — artwork button dead center on screen */}
+            <View style={[md.forgeOverAnvil, { bottom: winH / 2 - 59 }]} pointerEvents="box-none">
               <TouchableOpacity
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
