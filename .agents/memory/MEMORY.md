@@ -6,3 +6,5 @@
 - [expo-audio native sounds](expo-audio-native.md) — correct version for SDK 54 is ~1.1.1; use lazy require pattern to avoid crash if native module missing.
 - [Animated mixed-driver crash](animated-mixed-drivers.md) — never animate color JS-driven on an element with native-driven styles; cross-fade two layers instead. Web masks this crash.
 - [Monetization design rules](monetization-design.md) — idempotent gold grants, premium bridge, rewarded-ads rules (level 5+, optional, credit before day marker).
+- [Replit ports config danger](replit-ports-danger.md) — never manually add [[ports]] to .replit; remapping externalPort 80 breaks Expo Go proxy access.
+- [Video in Expo Go SDK 54](expo-go-video-constraint.md) — expo-video and expo-av Video both crash in Expo Go SDK 54 (native modules absent); video intro only works in standalone/dev builds.
