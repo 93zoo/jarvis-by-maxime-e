@@ -923,13 +923,26 @@ export default function ForgeScreen() {
   // Init audio on mount + weather cycle + forge ambience
   useEffect(() => {
     AudioManager.init();
-    // Restore saved mute/volume before starting ambience
-    applyStoredAudioSettings();
-    // Start the looping fire-crackle ambience when the forge tab is entered
-    AudioManager.startForgeAmbience();
-    // Medieval music bed + layered environmental loops (fire crackle, bellows)
-    AudioManager.startMusic();
-    AudioManager.startAmbienceLayers();
+    // Restore saved mute/volume BEFORE starting any loop so a muted player
+    // never hears a burst on app open.
+    applyStoredAudioSettings().finally(() => {
+      // Start the looping fire-crackle ambience when the forge tab is entered
+      AudioManager.startForgeAmbience();
+      // Medieval music bed + layered environmental loops (fire crackle, bellows)
+      AudioManager.startMusic();
+      AudioManager.startAmbienceLayers();
+    });
+
+    return () => {
+      // Stop every loop started above so nothing outlives the forge screen
+      AudioManager.stopMusic();
+      AudioManager.stopAmbienceLayers();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Web: page-visibility suspend/resume lives in its own effect below.
+  useEffect(() => {
 
     // Web: use the Page Visibility API to suspend/resume the AudioContext so
     // the oscillator graph stays alive and there is no audible gap on return.

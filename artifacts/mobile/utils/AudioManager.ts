@@ -557,6 +557,28 @@ class AudioManagerClass {
 
   // ── Medieval background music ──────────────────────────────────────────────
 
+  // Pending autoplay-retry listeners (web) — removed deterministically on stop
+  private autoplayKicks: (() => void)[] = [];
+
+  private _registerAutoplayKick(play: () => void): void {
+    if (typeof window === 'undefined') return;
+    const kick = () => {
+      play();
+      window.removeEventListener('pointerdown', kick);
+      this.autoplayKicks = this.autoplayKicks.filter((k) => k !== kick);
+    };
+    this.autoplayKicks.push(kick);
+    window.addEventListener('pointerdown', kick);
+  }
+
+  private _clearAutoplayKicks(): void {
+    if (typeof window === 'undefined') return;
+    for (const kick of this.autoplayKicks) {
+      window.removeEventListener('pointerdown', kick);
+    }
+    this.autoplayKicks = [];
+  }
+
   /** Starts the looping medieval music bed. Safe to call multiple times. */
   startMusic(): void {
     if (Platform.OS !== 'web') {
@@ -581,11 +603,7 @@ class AudioManagerClass {
       el.volume = this.muted ? 0 : this.musicVolumeLevel * 0.6;
       // Autoplay may be blocked until a user gesture — retry on first interaction.
       el.play().catch(() => {
-        const kick = () => {
-          el.play().catch(() => { /* ignore */ });
-          window.removeEventListener('pointerdown', kick);
-        };
-        window.addEventListener('pointerdown', kick);
+        this._registerAutoplayKick(() => { el.play().catch(() => { /* ignore */ }); });
       });
       this.webMusicEl = el;
     } catch { /* ignore */ }
@@ -603,6 +621,7 @@ class AudioManagerClass {
       try { this.webMusicEl.pause(); } catch { /* ignore */ }
       this.webMusicEl = null;
     }
+    this._clearAutoplayKicks();
   }
 
   setMusicVolume(level: number): void {
@@ -652,11 +671,7 @@ class AudioManagerClass {
         el.loop = true;
         el.volume = this.muted ? 0 : vol * this.ambienceVolumeLevel;
         el.play().catch(() => {
-          const kick = () => {
-            el.play().catch(() => { /* ignore */ });
-            window.removeEventListener('pointerdown', kick);
-          };
-          window.addEventListener('pointerdown', kick);
+          this._registerAutoplayKick(() => { el.play().catch(() => { /* ignore */ }); });
         });
         this.webAmbienceEls.push(el);
       }
@@ -672,6 +687,7 @@ class AudioManagerClass {
       try { el.pause(); } catch { /* ignore */ }
     }
     this.webAmbienceEls = [];
+    this._clearAutoplayKicks();
   }
 
   setAmbienceVolume(level: number): void {
