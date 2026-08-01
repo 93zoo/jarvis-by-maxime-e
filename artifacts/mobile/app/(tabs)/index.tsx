@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Animated,
   AppState,
+  Easing,
   FlatList,
   Image,
   ImageBackground,
@@ -911,6 +912,7 @@ export default function ForgeScreen() {
 
   const sceneRef = useRef<ForgeScene3DRef>(null);
   const forgePressRef = useRef(new Animated.Value(1));
+  const forgeFloatRef = useRef(new Animated.Value(0));
   const hitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const temperatureRef = useRef(0); // readable inside callbacks without stale closure
   // ── Quench gauge ──
@@ -941,6 +943,32 @@ export default function ForgeScreen() {
       bounciness: 12,
     }).start();
   };
+
+  // Gentle floating-in-place bob for the FORGER artwork button
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(forgeFloatRef.current, {
+          toValue: 1,
+          duration: 2200,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(forgeFloatRef.current, {
+          toValue: 0,
+          duration: 2200,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, []);
+  const forgeFloatY = forgeFloatRef.current.interpolate({
+    inputRange: [0, 1],
+    outputRange: [5, -5],
+  });
 
   // Init audio on mount + weather cycle + forge ambience
   useEffect(() => {
@@ -1454,7 +1482,7 @@ export default function ForgeScreen() {
                 onPressOut={onForgePressOut}
                 activeOpacity={1}
               >
-                <Animated.View style={{ transform: [{ scale: forgePressRef.current }] }}>
+                <Animated.View style={{ transform: [{ translateY: forgeFloatY }, { scale: forgePressRef.current }] }}>
                   <Image
                     source={require('../../assets/images/forge-btn.png')}
                     style={md.forgeBtnArt}
@@ -2140,7 +2168,7 @@ const md = StyleSheet.create({
     borderColor: 'rgba(200,140,60,0.35)',
   },
   sideBtnText: { color: MEDIEVAL.textLight, fontSize: 9, fontWeight: '800', letterSpacing: 1 },
-  forgeBtnArt: { width: 220, height: 136 },
+  forgeBtnArt: { width: 168, height: 104 },
   headerBadge: {
     position: 'absolute',
     top: -5,
