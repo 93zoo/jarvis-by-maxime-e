@@ -40,8 +40,8 @@ const REGION_COLORS: Record<string, string> = {
 };
 
 const REGION_ICONS: Record<string, any> = {
-  village: 'home-group', forest: 'pine-tree', mountains: 'image-filter-hdr', mines: 'pickaxe',
-  swamp: 'water', desert: 'weather-sunny', ruins: 'chess-rook', port: 'anchor',
+  village: 'home-group', forest: 'pine-tree', mountains: 'summit', mines: 'pickaxe',
+  swamp: 'water', desert: 'cactus', ruins: 'pillar', port: 'anchor',
   volcano: 'volcano', castle: 'castle',
 };
 
