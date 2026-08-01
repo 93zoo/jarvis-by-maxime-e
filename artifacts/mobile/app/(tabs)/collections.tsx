@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, Modal,
   StyleSheet, Platform, Pressable,
@@ -39,6 +39,134 @@ const FILTER_KEYS: Record<string, string> = {
 };
 
 // ─── Sub-components (must be defined BEFORE the main screen — Hermes rule) ────
+
+function formatCountdown(ms: number): string {
+  if (ms <= 0) return 'Terminé';
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) return `${h}h ${String(m).padStart(2, '0')}m`;
+  return `${m}m ${String(s).padStart(2, '0')}s`;
+}
+
+function EventBanner({
+  game, colors,
+}: {
+  game: ReturnType<typeof useGame>;
+  colors: ReturnType<typeof useColors>;
+}) {
+  // Tick every second so the countdown stays live and the banner swaps
+  // automatically when the event rotates.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const active = game.getActiveEvent();
+  if (!active) return null;
+  const { event, endsAt } = active;
+  const progress = game.getEventProgress();
+  const activeTiers = event.bonuses.filter(t => progress.count >= t.count);
+  const currentTier = activeTiers.length > 0 ? activeTiers[activeTiers.length - 1] : null;
+  const remaining = endsAt - now;
+
+  return (
+    <View style={evStyles.wrapper}>
+      <LinearGradient
+        colors={[colors.primary + '33', colors.card]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[evStyles.card, { borderColor: colors.primary + '77' }]}
+      >
+        {/* Header row */}
+        <View style={evStyles.headerRow}>
+          <View style={[evStyles.iconWrap, { backgroundColor: colors.primary + '22', borderColor: colors.primary + '66' }]}>
+            <MaterialCommunityIcons name={event.icon as any} size={24} color={colors.primary} />
+          </View>
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={[evStyles.overline, { color: colors.primary }]}>ÉVÉNEMENT EN COURS</Text>
+            <Text style={[evStyles.name, { color: colors.foreground }]} numberOfLines={1}>{event.name}</Text>
+          </View>
+          <View style={[evStyles.timerBadge, { backgroundColor: colors.background + 'CC', borderColor: colors.primary + '55' }]}>
+            <MaterialCommunityIcons name="timer-sand" size={13} color={colors.primary} />
+            <Text style={[evStyles.timerText, { color: colors.primary }]}>{formatCountdown(remaining)}</Text>
+          </View>
+        </View>
+
+        <Text style={[evStyles.description, { color: colors.mutedForeground }]} numberOfLines={2}>
+          {event.description}
+        </Text>
+
+        {/* Combo items */}
+        <View style={evStyles.itemsRow}>
+          {event.items.map((recipeId) => {
+            const crafted = progress.craftedIds.includes(recipeId);
+            return (
+              <View
+                key={recipeId}
+                style={[evStyles.itemChip, {
+                  backgroundColor: crafted ? colors.primary + '22' : colors.secondary,
+                  borderColor: crafted ? colors.primary : colors.border,
+                }]}
+              >
+                <Feather name={crafted ? 'check-circle' : 'circle'} size={12} color={crafted ? colors.primary : colors.mutedForeground} />
+                <Text style={[evStyles.itemChipText, { color: crafted ? colors.foreground : colors.mutedForeground }]} numberOfLines={1}>
+                  {recipeId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+
+        {/* Bonus tiers */}
+        {event.bonuses.map((tier) => {
+          const reached = progress.count >= tier.count;
+          const isCurrent = currentTier?.count === tier.count;
+          return (
+            <View key={tier.count} style={[evStyles.tierRow, {
+              backgroundColor: reached ? colors.primary + '15' : colors.secondary,
+              borderColor: isCurrent ? colors.primary : 'transparent',
+              borderWidth: 1,
+            }]}>
+              <Text style={[evStyles.tierLabel, { color: reached ? colors.primary : colors.mutedForeground }]}>
+                {reached ? '✦ ' : ''}{tier.label} ({tier.count}/{progress.total})
+              </Text>
+              <Text style={[evStyles.tierEffects, { color: reached ? colors.foreground : colors.mutedForeground }]} numberOfLines={1}>
+                {tier.effects.map(e =>
+                  `${BONUS_LABELS[e.type] ?? e.type} ${e.type === 'qualityBonus' ? `+${e.value}` : `+${e.value}%`}`
+                ).join('  ·  ')}
+              </Text>
+            </View>
+          );
+        })}
+
+        <Text style={[evStyles.footnote, { color: colors.mutedForeground }]}>
+          Combo exclusif — les bonus expirent à la fin de l'événement
+        </Text>
+      </LinearGradient>
+    </View>
+  );
+}
+const evStyles = StyleSheet.create({
+  wrapper:      { marginHorizontal: 16, marginBottom: 12 },
+  card:         { borderRadius: 16, padding: 14, borderWidth: 1.5 },
+  headerRow:    { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  iconWrap:     { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
+  overline:     { fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
+  name:         { fontSize: 16, fontWeight: '800', marginTop: 1 },
+  timerBadge:   { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 10, borderWidth: 1 },
+  timerText:    { fontSize: 12, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  description:  { fontSize: 12, lineHeight: 17, marginBottom: 10 },
+  itemsRow:     { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
+  itemChip:     { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 9, borderWidth: 1 },
+  itemChipText: { fontSize: 11, fontWeight: '600' },
+  tierRow:      { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, marginBottom: 5 },
+  tierLabel:    { fontSize: 12, fontWeight: '700', marginBottom: 2 },
+  tierEffects:  { fontSize: 11 },
+  footnote:     { fontSize: 10, fontStyle: 'italic', marginTop: 4, textAlign: 'center' },
+});
 
 function BonusSummaryPanel({
   game, colors,
@@ -384,6 +512,9 @@ export default function CollectionsScreen() {
 
       {/* Content */}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: bottomPad }}>
+        {/* Temporary event with exclusive combo */}
+        <EventBanner game={game} colors={colors} />
+
         {/* Active bonus summary */}
         <BonusSummaryPanel game={game} colors={colors} />
 

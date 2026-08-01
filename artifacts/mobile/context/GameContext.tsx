@@ -23,6 +23,7 @@ import type {
   Item,
   ItemCategory,
   ItemSet,
+  CollectionEvent,
   ItemStats,
   NPCData,
   Player,
@@ -136,16 +137,52 @@ export const STAT_UPGRADE_DEFINITIONS: StatUpgradeDefinition[] = [
     unit: 'h',
   },
 ];
-const ALL_COLLECTIONS: ItemSet[] = require('@/data/collections.json');
+const COLLECTIONS_DATA = require('@/data/collections.json');
+const ALL_COLLECTIONS: ItemSet[] = COLLECTIONS_DATA.sets ?? COLLECTIONS_DATA;
+const ALL_COLLECTION_EVENTS: CollectionEvent[] = COLLECTIONS_DATA.events ?? [];
+const EVENT_ROTATION_MS = (COLLECTIONS_DATA.eventRotationHours ?? 48) * 60 * 60 * 1000;
 
-/** Pure helper — computes total bonus for a given type from all active collection tiers. */
+/**
+ * Rotating temporary events: every EVENT_ROTATION_MS window, the next event in
+ * the list becomes active (deterministic from wall-clock time, so it is the
+ * same for every player and needs no server).
+ */
+export function getActiveCollectionEvent(now: number = Date.now()): { event: CollectionEvent; startsAt: number; endsAt: number } | null {
+  if (ALL_COLLECTION_EVENTS.length === 0) return null;
+  const cycle = Math.floor(now / EVENT_ROTATION_MS);
+  const event = ALL_COLLECTION_EVENTS[cycle % ALL_COLLECTION_EVENTS.length];
+  return { event, startsAt: cycle * EVENT_ROTATION_MS, endsAt: (cycle + 1) * EVENT_ROTATION_MS };
+}
+
+/** Top active tier for a list of tiers, given how many combo items were crafted. */
+function topActiveTier(bonuses: { count: number; effects: { type: string; value: number }[] }[], count: number) {
+  const activeTiers = bonuses.filter((b) => count >= b.count);
+  return activeTiers.length > 0 ? activeTiers[activeTiers.length - 1] : null;
+}
+
+/**
+ * Pure helper — computes total bonus for a given type from all active
+ * collection tiers, plus the currently active temporary event combo (if any).
+ * Event bonuses expire automatically: they are recomputed from Date.now()
+ * on every call, so once the event window ends they simply stop applying.
+ */
 function computeCollectionBonus(bonusType: string, craftedIds: Set<string>): number {
   let total = 0;
   for (const set of ALL_COLLECTIONS) {
     const count = set.items.filter((id) => craftedIds.has(id)).length;
-    const activeTiers = set.bonuses.filter((b) => count >= b.count);
-    if (activeTiers.length > 0) {
-      const topTier = activeTiers[activeTiers.length - 1];
+    const topTier = topActiveTier(set.bonuses, count);
+    if (topTier) {
+      for (const effect of topTier.effects) {
+        if (effect.type === bonusType) total += effect.value;
+      }
+    }
+  }
+  // Temporary event combo (only while the event is active)
+  const active = getActiveCollectionEvent();
+  if (active) {
+    const count = active.event.items.filter((id) => craftedIds.has(id)).length;
+    const topTier = topActiveTier(active.event.bonuses, count);
+    if (topTier) {
       for (const effect of topTier.effects) {
         if (effect.type === bonusType) total += effect.value;
       }
@@ -1480,6 +1517,10 @@ interface GameContextType {
   completedSets: string[];
   getCollectionBonusTotal: (bonusType: string) => number;
   getCollectionProgress: (setId: string) => { count: number; total: number; craftedIds: string[] };
+  /** Currently active temporary collection event (rotating), or null. */
+  getActiveEvent: () => { event: CollectionEvent; startsAt: number; endsAt: number } | null;
+  /** Progress on the active event's combo (crafted item ids among the combo). */
+  getEventProgress: () => { count: number; total: number; craftedIds: string[] };
   // Showcase vitrine
   showcasedItemIds: string[];
   pinToShowcase: (instanceId: string) => void;
@@ -1938,6 +1979,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const getCollectionBonusTotal = useCallback(
     (bonusType: string): number => computeCollectionBonus(bonusType, everCraftedRecipeIds),
+    [everCraftedRecipeIds],
+  );
+
+  const getActiveEvent = useCallback(() => getActiveCollectionEvent(), []);
+
+  const getEventProgress = useCallback(
+    (): { count: number; total: number; craftedIds: string[] } => {
+      const active = getActiveCollectionEvent();
+      if (!active) return { count: 0, total: 0, craftedIds: [] };
+      const craftedIds = active.event.items.filter((id) => everCraftedRecipeIds.has(id));
+      return { count: craftedIds.length, total: active.event.items.length, craftedIds };
+    },
     [everCraftedRecipeIds],
   );
 
@@ -2860,6 +2913,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       completedSets: state.completedSets,
       getCollectionBonusTotal,
       getCollectionProgress,
+      getActiveEvent,
+      getEventProgress,
       claimSetReward,
       // Stat upgrades
       buyStatUpgrade,

@@ -422,6 +422,17 @@ export interface SetBonusTier {
   effects: SetBonusEffect[];
 }
 
+/** Temporary rotating event that unlocks an exclusive collection combo. */
+export interface CollectionEvent {
+  id: string;
+  name: string;
+  theme: string;
+  icon: string;
+  description: string;
+  items: string[];
+  bonuses: SetBonusTier[];
+}
+
 export interface ItemSet {
   id: string;
   name: string;

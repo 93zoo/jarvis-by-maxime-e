@@ -1,240 +1,1122 @@
-[
-  {
-    "id": "iron_knight",
-    "name": "Chevalier de Fer",
-    "theme": "knight",
-    "icon": "chess-rook",
-    "rarity": "common",
-    "secret": false,
-    "description": "L'équipement classique du chevalier protège et impressionne les marchands du village.",
-    "items": ["iron_sword", "iron_shield", "iron_armor", "iron_helmet"],
-    "bonuses": [
-      { "count": 2, "label": "Duo du Chevalier", "effects": [{"type":"reputationBonus","value":5}] },
-      { "count": 3, "label": "Trio du Chevalier", "effects": [{"type":"reputationBonus","value":8},{"type":"orderGoldBonus","value":5}] },
-      { "count": 4, "label": "Chevalier Complet", "effects": [{"type":"reputationBonus","value":12},{"type":"orderGoldBonus","value":10},{"type":"qualityBonus","value":2}] }
-    ],
-    "reward": { "gold": 300, "title": "Forgeron du Chevalier" }
-  },
-  {
-    "id": "bronze_warrior",
-    "name": "Guerrier de Bronze",
-    "theme": "warrior",
-    "icon": "shield-half-full",
-    "rarity": "common",
-    "secret": false,
-    "description": "L'alliance du bronze forge des guerriers redoutables sur le champ de bataille.",
-    "items": ["bronze_sword", "bronze_axe", "bronze_shield", "bronze_helmet", "bronze_armor"],
-    "bonuses": [
-      { "count": 2, "label": "Duo de Bronze", "effects": [{"type":"dropBonus","value":5}] },
-      { "count": 3, "label": "Trio de Bronze", "effects": [{"type":"dropBonus","value":8}] },
-      { "count": 4, "label": "Armement de Bronze", "effects": [{"type":"dropBonus","value":10},{"type":"marketValueBonus","value":5}] },
-      { "count": 5, "label": "Guerrier de Bronze Complet", "effects": [{"type":"dropBonus","value":15},{"type":"marketValueBonus","value":10},{"type":"qualityBonus","value":3}] }
-    ],
-    "reward": { "gold": 500, "title": "Maître de Bronze" }
-  },
-  {
-    "id": "steel_legion",
-    "name": "Légion d'Acier",
-    "theme": "legion",
-    "icon": "sword-cross",
-    "rarity": "rare",
-    "secret": false,
-    "description": "La légion d'acier domine les marchés et impose son autorité à tous les clients.",
-    "items": ["steel_sword", "steel_shield", "steel_armor", "steel_helmet", "steel_lance"],
-    "bonuses": [
-      { "count": 2, "label": "Avant-garde d'Acier", "effects": [{"type":"orderGoldBonus","value":8}] },
-      { "count": 3, "label": "Trio d'Acier", "effects": [{"type":"orderGoldBonus","value":12}] },
-      { "count": 4, "label": "Bataillon d'Acier", "effects": [{"type":"orderGoldBonus","value":15},{"type":"reputationBonus","value":5}] },
-      { "count": 5, "label": "Légion Complète", "effects": [{"type":"orderGoldBonus","value":22},{"type":"reputationBonus","value":10},{"type":"qualityBonus","value":3}] }
-    ],
-    "reward": { "gold": 1200, "title": "Légionnaire de l'Acier" }
-  },
-  {
-    "id": "dragon_lord",
-    "name": "Seigneur Dragon",
-    "theme": "dragon",
-    "icon": "fire",
-    "rarity": "epic",
-    "secret": false,
-    "description": "Qui porte les écailles du dragon inspire crainte et respect dans tout le royaume.",
-    "items": ["dragon_shield", "dragon_helmet", "dragon_armor"],
-    "bonuses": [
-      { "count": 2, "label": "Écailles du Dragon", "effects": [{"type":"reputationBonus","value":12}] },
-      { "count": 3, "label": "Seigneur Dragon Complet", "effects": [{"type":"reputationBonus","value":22},{"type":"orderGoldBonus","value":15},{"type":"qualityBonus","value":5}] }
-    ],
-    "reward": { "gold": 2500, "title": "Forgeron du Dragon" }
-  },
-  {
-    "id": "adamantium_master",
-    "name": "Maître Adamantium",
-    "theme": "adamantium",
-    "icon": "diamond-stone",
-    "rarity": "epic",
-    "secret": false,
-    "description": "L'adamantium, le métal des rois, confère une valeur inestimable à chaque pièce.",
-    "items": ["adamantium_sword", "adamantium_shield", "adamantium_dagger"],
-    "bonuses": [
-      { "count": 2, "label": "Duo Adamantium", "effects": [{"type":"marketValueBonus","value":10}] },
-      { "count": 3, "label": "Trinity Adamantium", "effects": [{"type":"marketValueBonus","value":22},{"type":"orderGoldBonus","value":10},{"type":"qualityBonus","value":5}] }
-    ],
-    "reward": { "gold": 2000, "title": "Maître de l'Adamantium" }
-  },
-  {
-    "id": "dwarf_miner",
-    "name": "Mineur Nain",
-    "theme": "dwarf",
-    "icon": "pickaxe",
-    "rarity": "common",
-    "secret": false,
-    "description": "Les nains connaissent chaque veine de minerai. Leurs outils récoltent le double.",
-    "items": ["iron_pickaxe", "bronze_pickaxe", "iron_hammer", "iron_tool"],
-    "bonuses": [
-      { "count": 2, "label": "Duo Mineur", "effects": [{"type":"dropBonus","value":8}] },
-      { "count": 3, "label": "Trio du Nain", "effects": [{"type":"dropBonus","value":12},{"type":"forgeXpBonus","value":5}] },
-      { "count": 4, "label": "Équipement Complet du Nain", "effects": [{"type":"dropBonus","value":18},{"type":"forgeXpBonus","value":10},{"type":"craftSpeedBonus","value":5}] }
-    ],
-    "reward": { "gold": 400, "title": "Maître Mineur" }
-  },
-  {
-    "id": "crystal_elf",
-    "name": "Elfe Cristallin",
-    "theme": "elf",
-    "icon": "star-four-points",
-    "rarity": "epic",
-    "secret": false,
-    "description": "La magie des cristaux amplifie chaque geste de l'elfe forgeron, sublimant sa création.",
-    "items": ["crystal_sword", "crystal_amulet", "emerald_amulet"],
-    "bonuses": [
-      { "count": 2, "label": "Duo Cristallin", "effects": [{"type":"forgeXpBonus","value":8},{"type":"qualityBonus","value":4}] },
-      { "count": 3, "label": "Elfe Cristallin Complet", "effects": [{"type":"forgeXpBonus","value":18},{"type":"qualityBonus","value":8},{"type":"marketValueBonus","value":8}] }
-    ],
-    "reward": { "gold": 1800, "title": "Elfe Forgeron" }
-  },
-  {
-    "id": "supreme_king",
-    "name": "Roi Suprême",
-    "theme": "king",
-    "icon": "crown",
-    "rarity": "legendary",
-    "secret": false,
-    "description": "Les insignes royaux commandent le respect de tous. Les commandes affluent en or.",
-    "items": ["sapphire_crown", "diamond_ring", "legendary_blade", "platinum_ring"],
-    "bonuses": [
-      { "count": 2, "label": "Insigne Royal", "effects": [{"type":"reputationBonus","value":10},{"type":"orderGoldBonus","value":10}] },
-      { "count": 3, "label": "Autorité Royale", "effects": [{"type":"reputationBonus","value":15},{"type":"orderGoldBonus","value":15}] },
-      { "count": 4, "label": "Roi Suprême Complet", "effects": [{"type":"reputationBonus","value":25},{"type":"orderGoldBonus","value":25},{"type":"marketValueBonus","value":15},{"type":"qualityBonus","value":5}] }
-    ],
-    "reward": { "gold": 5000, "title": "Forgeron du Roi" }
-  },
-  {
-    "id": "celestial_conqueror",
-    "name": "Conquérant Céleste",
-    "theme": "celestial",
-    "icon": "flare",
-    "rarity": "legendary",
-    "secret": false,
-    "description": "Les armes des étoiles forgent plus vite et révèlent des secrets de l'art de la forge.",
-    "items": ["celestial_axe", "eternal_lance", "diamond_sword"],
-    "bonuses": [
-      { "count": 2, "label": "Duo Céleste", "effects": [{"type":"craftSpeedBonus","value":10},{"type":"qualityBonus","value":6}] },
-      { "count": 3, "label": "Conquérant Céleste Complet", "effects": [{"type":"craftSpeedBonus","value":20},{"type":"qualityBonus","value":12},{"type":"forgeXpBonus","value":12}] }
-    ],
-    "reward": { "gold": 3000, "title": "Conquérant des Étoiles" }
-  },
-  {
-    "id": "arcane_mage",
-    "name": "Mage Arcanique",
-    "theme": "mage",
-    "icon": "auto-fix",
-    "rarity": "rare",
-    "secret": false,
-    "description": "L'arcane attire une clientèle raffinée prête à payer des prix exorbitants.",
-    "items": ["arcane_scepter", "emerald_amulet", "silver_ring"],
-    "bonuses": [
-      { "count": 2, "label": "Duo Arcanique", "effects": [{"type":"marketValueBonus","value":8}] },
-      { "count": 3, "label": "Mage Arcanique Complet", "effects": [{"type":"marketValueBonus","value":15},{"type":"reputationBonus","value":10},{"type":"forgeXpBonus","value":8}] }
-    ],
-    "reward": { "gold": 1500, "title": "Forgeron Arcanique" }
-  },
-  {
-    "id": "mythic_relics",
-    "name": "Reliques Mythiques",
-    "theme": "mythic",
-    "icon": "sword",
-    "rarity": "mythic",
-    "secret": false,
-    "description": "Réunir les cinq reliques mythiques, c'est atteindre le sommet absolu de la forge.",
-    "items": ["legendary_blade", "eternal_lance", "dragon_armor", "diamond_sword", "sapphire_crown"],
-    "bonuses": [
-      { "count": 2, "label": "Éclat Mythique", "effects": [{"type":"reputationBonus","value":10},{"type":"orderGoldBonus","value":10}] },
-      { "count": 3, "label": "Puissance Mythique", "effects": [{"type":"reputationBonus","value":15},{"type":"orderGoldBonus","value":15},{"type":"qualityBonus","value":5}] },
-      { "count": 4, "label": "Ascension Mythique", "effects": [{"type":"reputationBonus","value":20},{"type":"orderGoldBonus","value":20},{"type":"qualityBonus","value":10},{"type":"marketValueBonus","value":10}] },
-      { "count": 5, "label": "Maître des Reliques", "effects": [{"type":"reputationBonus","value":30},{"type":"orderGoldBonus","value":28},{"type":"qualityBonus","value":15},{"type":"marketValueBonus","value":18},{"type":"forgeXpBonus","value":15}] }
-    ],
-    "reward": { "gold": 10000, "title": "Maître des Reliques Mythiques" }
-  },
-  {
-    "id": "viking_axes",
-    "name": "Viking Nordique",
-    "theme": "viking",
-    "icon": "axe",
-    "rarity": "rare",
-    "secret": true,
-    "description": "Les guerriers du Nord jurent par la hache. Quatre haches font une légende.",
-    "items": ["iron_axe", "bronze_axe", "steel_axe", "celestial_axe"],
-    "bonuses": [
-      { "count": 2, "label": "Duo de Haches", "effects": [{"type":"craftSpeedBonus","value":5}] },
-      { "count": 3, "label": "Trio Viking", "effects": [{"type":"craftSpeedBonus","value":10},{"type":"dropBonus","value":8}] },
-      { "count": 4, "label": "Viking Complet", "effects": [{"type":"craftSpeedBonus","value":15},{"type":"dropBonus","value":12},{"type":"forgeXpBonus","value":10}] }
-    ],
-    "reward": { "gold": 1000, "title": "Guerrier Viking" }
-  },
-  {
-    "id": "samurai_way",
-    "name": "Voie du Samouraï",
-    "theme": "samurai",
-    "icon": "knife",
-    "rarity": "rare",
-    "secret": true,
-    "description": "La discipline du samouraï forge des lames d'une précision absolue.",
-    "items": ["silver_sword", "steel_lance", "crystal_amulet"],
-    "bonuses": [
-      { "count": 2, "label": "Duo Samouraï", "effects": [{"type":"craftSpeedBonus","value":8},{"type":"qualityBonus","value":4}] },
-      { "count": 3, "label": "Voie du Samouraï Complète", "effects": [{"type":"craftSpeedBonus","value":12},{"type":"qualityBonus","value":8},{"type":"forgeXpBonus","value":10}] }
-    ],
-    "reward": { "gold": 1200, "title": "Maître Samouraï" }
-  },
-  {
-    "id": "pirate_abyss",
-    "name": "Corsaire des Abysses",
-    "theme": "pirate",
-    "icon": "skull-crossbones",
-    "rarity": "rare",
-    "secret": true,
-    "description": "Le corsaire pille les marchés avec ses lames noires et son or scintillant.",
-    "items": ["obsidian_blade", "copper_ring", "gold_ring"],
-    "bonuses": [
-      { "count": 2, "label": "Duo du Corsaire", "effects": [{"type":"marketValueBonus","value":10}] },
-      { "count": 3, "label": "Corsaire Complet", "effects": [{"type":"marketValueBonus","value":22},{"type":"orderGoldBonus","value":12}] }
-    ],
-    "reward": { "gold": 1500, "title": "Corsaire des Abysses" }
-  },
-  {
-    "id": "rings_of_power",
-    "name": "Anneaux du Pouvoir",
-    "theme": "rings",
-    "icon": "ring",
-    "rarity": "mythic",
-    "secret": true,
-    "description": "Six anneaux forgés ensemble transcendent le métal et l'or pour atteindre l'absolu.",
-    "items": ["copper_ring", "silver_ring", "gold_ring", "platinum_ring", "ruby_ring", "diamond_ring"],
-    "bonuses": [
-      { "count": 2, "label": "Duo d'Anneaux", "effects": [{"type":"marketValueBonus","value":5}] },
-      { "count": 3, "label": "Trio d'Anneaux", "effects": [{"type":"marketValueBonus","value":10},{"type":"orderGoldBonus","value":5}] },
-      { "count": 4, "label": "Quatuor d'Anneaux", "effects": [{"type":"marketValueBonus","value":15},{"type":"orderGoldBonus","value":10}] },
-      { "count": 5, "label": "Quintette d'Anneaux", "effects": [{"type":"marketValueBonus","value":20},{"type":"orderGoldBonus","value":15},{"type":"reputationBonus","value":8}] },
-      { "count": 6, "label": "Anneaux du Pouvoir Complets", "effects": [{"type":"marketValueBonus","value":30},{"type":"orderGoldBonus","value":22},{"type":"reputationBonus","value":15},{"type":"qualityBonus","value":5}] }
-    ],
-    "reward": { "gold": 8000, "title": "Seigneur des Anneaux" }
-  }
-]
+{
+  "sets": [
+    {
+      "id": "iron_knight",
+      "name": "Chevalier de Fer",
+      "theme": "knight",
+      "icon": "chess-rook",
+      "rarity": "common",
+      "secret": false,
+      "description": "L'équipement classique du chevalier protège et impressionne les marchands du village.",
+      "items": [
+        "iron_sword",
+        "iron_shield",
+        "iron_armor",
+        "iron_helmet"
+      ],
+      "bonuses": [
+        {
+          "count": 2,
+          "label": "Duo du Chevalier",
+          "effects": [
+            {
+              "type": "reputationBonus",
+              "value": 5
+            }
+          ]
+        },
+        {
+          "count": 3,
+          "label": "Trio du Chevalier",
+          "effects": [
+            {
+              "type": "reputationBonus",
+              "value": 8
+            },
+            {
+              "type": "orderGoldBonus",
+              "value": 5
+            }
+          ]
+        },
+        {
+          "count": 4,
+          "label": "Chevalier Complet",
+          "effects": [
+            {
+              "type": "reputationBonus",
+              "value": 12
+            },
+            {
+              "type": "orderGoldBonus",
+              "value": 10
+            },
+            {
+              "type": "qualityBonus",
+              "value": 2
+            }
+          ]
+        }
+      ],
+      "reward": {
+        "gold": 300,
+        "title": "Forgeron du Chevalier"
+      }
+    },
+    {
+      "id": "bronze_warrior",
+      "name": "Guerrier de Bronze",
+      "theme": "warrior",
+      "icon": "shield-half-full",
+      "rarity": "common",
+      "secret": false,
+      "description": "L'alliance du bronze forge des guerriers redoutables sur le champ de bataille.",
+      "items": [
+        "bronze_sword",
+        "bronze_axe",
+        "bronze_shield",
+        "bronze_helmet",
+        "bronze_armor"
+      ],
+      "bonuses": [
+        {
+          "count": 2,
+          "label": "Duo de Bronze",
+          "effects": [
+            {
+              "type": "dropBonus",
+              "value": 5
+            }
+          ]
+        },
+        {
+          "count": 3,
+          "label": "Trio de Bronze",
+          "effects": [
+            {
+              "type": "dropBonus",
+              "value": 8
+            }
+          ]
+        },
+        {
+          "count": 4,
+          "label": "Armement de Bronze",
+          "effects": [
+            {
+              "type": "dropBonus",
+              "value": 10
+            },
+            {
+              "type": "marketValueBonus",
+              "value": 5
+            }
+          ]
+        },
+        {
+          "count": 5,
+          "label": "Guerrier de Bronze Complet",
+          "effects": [
+            {
+              "type": "dropBonus",
+              "value": 15
+            },
+            {
+              "type": "marketValueBonus",
+              "value": 10
+            },
+            {
+              "type": "qualityBonus",
+              "value": 3
+            }
+          ]
+        }
+      ],
+      "reward": {
+        "gold": 500,
+        "title": "Maître de Bronze"
+      }
+    },
+    {
+      "id": "steel_legion",
+      "name": "Légion d'Acier",
+      "theme": "legion",
+      "icon": "sword-cross",
+      "rarity": "rare",
+      "secret": false,
+      "description": "La légion d'acier domine les marchés et impose son autorité à tous les clients.",
+      "items": [
+        "steel_sword",
+        "steel_shield",
+        "steel_armor",
+        "steel_helmet",
+        "steel_lance"
+      ],
+      "bonuses": [
+        {
+          "count": 2,
+          "label": "Avant-garde d'Acier",
+          "effects": [
+            {
+              "type": "orderGoldBonus",
+              "value": 8
+            }
+          ]
+        },
+        {
+          "count": 3,
+          "label": "Trio d'Acier",
+          "effects": [
+            {
+              "type": "orderGoldBonus",
+              "value": 12
+            }
+          ]
+        },
+        {
+          "count": 4,
+          "label": "Bataillon d'Acier",
+          "effects": [
+            {
+              "type": "orderGoldBonus",
+              "value": 15
+            },
+            {
+              "type": "reputationBonus",
+              "value": 5
+            }
+          ]
+        },
+        {
+          "count": 5,
+          "label": "Légion Complète",
+          "effects": [
+            {
+              "type": "orderGoldBonus",
+              "value": 22
+            },
+            {
+              "type": "reputationBonus",
+              "value": 10
+            },
+            {
+              "type": "qualityBonus",
+              "value": 3
+            }
+          ]
+        }
+      ],
+      "reward": {
+        "gold": 1200,
+        "title": "Légionnaire de l'Acier"
+      }
+    },
+    {
+      "id": "dragon_lord",
+      "name": "Seigneur Dragon",
+      "theme": "dragon",
+      "icon": "fire",
+      "rarity": "epic",
+      "secret": false,
+      "description": "Qui porte les écailles du dragon inspire crainte et respect dans tout le royaume.",
+      "items": [
+        "dragon_shield",
+        "dragon_helmet",
+        "dragon_armor"
+      ],
+      "bonuses": [
+        {
+          "count": 2,
+          "label": "Écailles du Dragon",
+          "effects": [
+            {
+              "type": "reputationBonus",
+              "value": 12
+            }
+          ]
+        },
+        {
+          "count": 3,
+          "label": "Seigneur Dragon Complet",
+          "effects": [
+            {
+              "type": "reputationBonus",
+              "value": 22
+            },
+            {
+              "type": "orderGoldBonus",
+              "value": 15
+            },
+            {
+              "type": "qualityBonus",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "reward": {
+        "gold": 2500,
+        "title": "Forgeron du Dragon"
+      }
+    },
+    {
+      "id": "adamantium_master",
+      "name": "Maître Adamantium",
+      "theme": "adamantium",
+      "icon": "diamond-stone",
+      "rarity": "epic",
+      "secret": false,
+      "description": "L'adamantium, le métal des rois, confère une valeur inestimable à chaque pièce.",
+      "items": [
+        "adamantium_sword",
+        "adamantium_shield",
+        "adamantium_dagger"
+      ],
+      "bonuses": [
+        {
+          "count": 2,
+          "label": "Duo Adamantium",
+          "effects": [
+            {
+              "type": "marketValueBonus",
+              "value": 10
+            }
+          ]
+        },
+        {
+          "count": 3,
+          "label": "Trinity Adamantium",
+          "effects": [
+            {
+              "type": "marketValueBonus",
+              "value": 22
+            },
+            {
+              "type": "orderGoldBonus",
+              "value": 10
+            },
+            {
+              "type": "qualityBonus",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "reward": {
+        "gold": 2000,
+        "title": "Maître de l'Adamantium"
+      }
+    },
+    {
+      "id": "dwarf_miner",
+      "name": "Mineur Nain",
+      "theme": "dwarf",
+      "icon": "pickaxe",
+      "rarity": "common",
+      "secret": false,
+      "description": "Les nains connaissent chaque veine de minerai. Leurs outils récoltent le double.",
+      "items": [
+        "iron_pickaxe",
+        "bronze_pickaxe",
+        "iron_hammer",
+        "iron_tool"
+      ],
+      "bonuses": [
+        {
+          "count": 2,
+          "label": "Duo Mineur",
+          "effects": [
+            {
+              "type": "dropBonus",
+              "value": 8
+            }
+          ]
+        },
+        {
+          "count": 3,
+          "label": "Trio du Nain",
+          "effects": [
+            {
+              "type": "dropBonus",
+              "value": 12
+            },
+            {
+              "type": "forgeXpBonus",
+              "value": 5
+            }
+          ]
+        },
+        {
+          "count": 4,
+          "label": "Équipement Complet du Nain",
+          "effects": [
+            {
+              "type": "dropBonus",
+              "value": 18
+            },
+            {
+              "type": "forgeXpBonus",
+              "value": 10
+            },
+            {
+              "type": "craftSpeedBonus",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "reward": {
+        "gold": 400,
+        "title": "Maître Mineur"
+      }
+    },
+    {
+      "id": "crystal_elf",
+      "name": "Elfe Cristallin",
+      "theme": "elf",
+      "icon": "star-four-points",
+      "rarity": "epic",
+      "secret": false,
+      "description": "La magie des cristaux amplifie chaque geste de l'elfe forgeron, sublimant sa création.",
+      "items": [
+        "crystal_sword",
+        "crystal_amulet",
+        "emerald_amulet"
+      ],
+      "bonuses": [
+        {
+          "count": 2,
+          "label": "Duo Cristallin",
+          "effects": [
+            {
+              "type": "forgeXpBonus",
+              "value": 8
+            },
+            {
+              "type": "qualityBonus",
+              "value": 4
+            }
+          ]
+        },
+        {
+          "count": 3,
+          "label": "Elfe Cristallin Complet",
+          "effects": [
+            {
+              "type": "forgeXpBonus",
+              "value": 18
+            },
+            {
+              "type": "qualityBonus",
+              "value": 8
+            },
+            {
+              "type": "marketValueBonus",
+              "value": 8
+            }
+          ]
+        }
+      ],
+      "reward": {
+        "gold": 1800,
+        "title": "Elfe Forgeron"
+      }
+    },
+    {
+      "id": "supreme_king",
+      "name": "Roi Suprême",
+      "theme": "king",
+      "icon": "crown",
+      "rarity": "legendary",
+      "secret": false,
+      "description": "Les insignes royaux commandent le respect de tous. Les commandes affluent en or.",
+      "items": [
+        "sapphire_crown",
+        "diamond_ring",
+        "legendary_blade",
+        "platinum_ring"
+      ],
+      "bonuses": [
+        {
+          "count": 2,
+          "label": "Insigne Royal",
+          "effects": [
+            {
+              "type": "reputationBonus",
+              "value": 10
+            },
+            {
+              "type": "orderGoldBonus",
+              "value": 10
+            }
+          ]
+        },
+        {
+          "count": 3,
+          "label": "Autorité Royale",
+          "effects": [
+            {
+              "type": "reputationBonus",
+              "value": 15
+            },
+            {
+              "type": "orderGoldBonus",
+              "value": 15
+            }
+          ]
+        },
+        {
+          "count": 4,
+          "label": "Roi Suprême Complet",
+          "effects": [
+            {
+              "type": "reputationBonus",
+              "value": 25
+            },
+            {
+              "type": "orderGoldBonus",
+              "value": 25
+            },
+            {
+              "type": "marketValueBonus",
+              "value": 15
+            },
+            {
+              "type": "qualityBonus",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "reward": {
+        "gold": 5000,
+        "title": "Forgeron du Roi"
+      }
+    },
+    {
+      "id": "celestial_conqueror",
+      "name": "Conquérant Céleste",
+      "theme": "celestial",
+      "icon": "flare",
+      "rarity": "legendary",
+      "secret": false,
+      "description": "Les armes des étoiles forgent plus vite et révèlent des secrets de l'art de la forge.",
+      "items": [
+        "celestial_axe",
+        "eternal_lance",
+        "diamond_sword"
+      ],
+      "bonuses": [
+        {
+          "count": 2,
+          "label": "Duo Céleste",
+          "effects": [
+            {
+              "type": "craftSpeedBonus",
+              "value": 10
+            },
+            {
+              "type": "qualityBonus",
+              "value": 6
+            }
+          ]
+        },
+        {
+          "count": 3,
+          "label": "Conquérant Céleste Complet",
+          "effects": [
+            {
+              "type": "craftSpeedBonus",
+              "value": 20
+            },
+            {
+              "type": "qualityBonus",
+              "value": 12
+            },
+            {
+              "type": "forgeXpBonus",
+              "value": 12
+            }
+          ]
+        }
+      ],
+      "reward": {
+        "gold": 3000,
+        "title": "Conquérant des Étoiles"
+      }
+    },
+    {
+      "id": "arcane_mage",
+      "name": "Mage Arcanique",
+      "theme": "mage",
+      "icon": "auto-fix",
+      "rarity": "rare",
+      "secret": false,
+      "description": "L'arcane attire une clientèle raffinée prête à payer des prix exorbitants.",
+      "items": [
+        "arcane_scepter",
+        "emerald_amulet",
+        "silver_ring"
+      ],
+      "bonuses": [
+        {
+          "count": 2,
+          "label": "Duo Arcanique",
+          "effects": [
+            {
+              "type": "marketValueBonus",
+              "value": 8
+            }
+          ]
+        },
+        {
+          "count": 3,
+          "label": "Mage Arcanique Complet",
+          "effects": [
+            {
+              "type": "marketValueBonus",
+              "value": 15
+            },
+            {
+              "type": "reputationBonus",
+              "value": 10
+            },
+            {
+              "type": "forgeXpBonus",
+              "value": 8
+            }
+          ]
+        }
+      ],
+      "reward": {
+        "gold": 1500,
+        "title": "Forgeron Arcanique"
+      }
+    },
+    {
+      "id": "mythic_relics",
+      "name": "Reliques Mythiques",
+      "theme": "mythic",
+      "icon": "sword",
+      "rarity": "mythic",
+      "secret": false,
+      "description": "Réunir les cinq reliques mythiques, c'est atteindre le sommet absolu de la forge.",
+      "items": [
+        "legendary_blade",
+        "eternal_lance",
+        "dragon_armor",
+        "diamond_sword",
+        "sapphire_crown"
+      ],
+      "bonuses": [
+        {
+          "count": 2,
+          "label": "Éclat Mythique",
+          "effects": [
+            {
+              "type": "reputationBonus",
+              "value": 10
+            },
+            {
+              "type": "orderGoldBonus",
+              "value": 10
+            }
+          ]
+        },
+        {
+          "count": 3,
+          "label": "Puissance Mythique",
+          "effects": [
+            {
+              "type": "reputationBonus",
+              "value": 15
+            },
+            {
+              "type": "orderGoldBonus",
+              "value": 15
+            },
+            {
+              "type": "qualityBonus",
+              "value": 5
+            }
+          ]
+        },
+        {
+          "count": 4,
+          "label": "Ascension Mythique",
+          "effects": [
+            {
+              "type": "reputationBonus",
+              "value": 20
+            },
+            {
+              "type": "orderGoldBonus",
+              "value": 20
+            },
+            {
+              "type": "qualityBonus",
+              "value": 10
+            },
+            {
+              "type": "marketValueBonus",
+              "value": 10
+            }
+          ]
+        },
+        {
+          "count": 5,
+          "label": "Maître des Reliques",
+          "effects": [
+            {
+              "type": "reputationBonus",
+              "value": 30
+            },
+            {
+              "type": "orderGoldBonus",
+              "value": 28
+            },
+            {
+              "type": "qualityBonus",
+              "value": 15
+            },
+            {
+              "type": "marketValueBonus",
+              "value": 18
+            },
+            {
+              "type": "forgeXpBonus",
+              "value": 15
+            }
+          ]
+        }
+      ],
+      "reward": {
+        "gold": 10000,
+        "title": "Maître des Reliques Mythiques"
+      }
+    },
+    {
+      "id": "viking_axes",
+      "name": "Viking Nordique",
+      "theme": "viking",
+      "icon": "axe",
+      "rarity": "rare",
+      "secret": true,
+      "description": "Les guerriers du Nord jurent par la hache. Quatre haches font une légende.",
+      "items": [
+        "iron_axe",
+        "bronze_axe",
+        "steel_axe",
+        "celestial_axe"
+      ],
+      "bonuses": [
+        {
+          "count": 2,
+          "label": "Duo de Haches",
+          "effects": [
+            {
+              "type": "craftSpeedBonus",
+              "value": 5
+            }
+          ]
+        },
+        {
+          "count": 3,
+          "label": "Trio Viking",
+          "effects": [
+            {
+              "type": "craftSpeedBonus",
+              "value": 10
+            },
+            {
+              "type": "dropBonus",
+              "value": 8
+            }
+          ]
+        },
+        {
+          "count": 4,
+          "label": "Viking Complet",
+          "effects": [
+            {
+              "type": "craftSpeedBonus",
+              "value": 15
+            },
+            {
+              "type": "dropBonus",
+              "value": 12
+            },
+            {
+              "type": "forgeXpBonus",
+              "value": 10
+            }
+          ]
+        }
+      ],
+      "reward": {
+        "gold": 1000,
+        "title": "Guerrier Viking"
+      }
+    },
+    {
+      "id": "samurai_way",
+      "name": "Voie du Samouraï",
+      "theme": "samurai",
+      "icon": "knife",
+      "rarity": "rare",
+      "secret": true,
+      "description": "La discipline du samouraï forge des lames d'une précision absolue.",
+      "items": [
+        "silver_sword",
+        "steel_lance",
+        "crystal_amulet"
+      ],
+      "bonuses": [
+        {
+          "count": 2,
+          "label": "Duo Samouraï",
+          "effects": [
+            {
+              "type": "craftSpeedBonus",
+              "value": 8
+            },
+            {
+              "type": "qualityBonus",
+              "value": 4
+            }
+          ]
+        },
+        {
+          "count": 3,
+          "label": "Voie du Samouraï Complète",
+          "effects": [
+            {
+              "type": "craftSpeedBonus",
+              "value": 12
+            },
+            {
+              "type": "qualityBonus",
+              "value": 8
+            },
+            {
+              "type": "forgeXpBonus",
+              "value": 10
+            }
+          ]
+        }
+      ],
+      "reward": {
+        "gold": 1200,
+        "title": "Maître Samouraï"
+      }
+    },
+    {
+      "id": "pirate_abyss",
+      "name": "Corsaire des Abysses",
+      "theme": "pirate",
+      "icon": "skull-crossbones",
+      "rarity": "rare",
+      "secret": true,
+      "description": "Le corsaire pille les marchés avec ses lames noires et son or scintillant.",
+      "items": [
+        "obsidian_blade",
+        "copper_ring",
+        "gold_ring"
+      ],
+      "bonuses": [
+        {
+          "count": 2,
+          "label": "Duo du Corsaire",
+          "effects": [
+            {
+              "type": "marketValueBonus",
+              "value": 10
+            }
+          ]
+        },
+        {
+          "count": 3,
+          "label": "Corsaire Complet",
+          "effects": [
+            {
+              "type": "marketValueBonus",
+              "value": 22
+            },
+            {
+              "type": "orderGoldBonus",
+              "value": 12
+            }
+          ]
+        }
+      ],
+      "reward": {
+        "gold": 1500,
+        "title": "Corsaire des Abysses"
+      }
+    },
+    {
+      "id": "rings_of_power",
+      "name": "Anneaux du Pouvoir",
+      "theme": "rings",
+      "icon": "ring",
+      "rarity": "mythic",
+      "secret": true,
+      "description": "Six anneaux forgés ensemble transcendent le métal et l'or pour atteindre l'absolu.",
+      "items": [
+        "copper_ring",
+        "silver_ring",
+        "gold_ring",
+        "platinum_ring",
+        "ruby_ring",
+        "diamond_ring"
+      ],
+      "bonuses": [
+        {
+          "count": 2,
+          "label": "Duo d'Anneaux",
+          "effects": [
+            {
+              "type": "marketValueBonus",
+              "value": 5
+            }
+          ]
+        },
+        {
+          "count": 3,
+          "label": "Trio d'Anneaux",
+          "effects": [
+            {
+              "type": "marketValueBonus",
+              "value": 10
+            },
+            {
+              "type": "orderGoldBonus",
+              "value": 5
+            }
+          ]
+        },
+        {
+          "count": 4,
+          "label": "Quatuor d'Anneaux",
+          "effects": [
+            {
+              "type": "marketValueBonus",
+              "value": 15
+            },
+            {
+              "type": "orderGoldBonus",
+              "value": 10
+            }
+          ]
+        },
+        {
+          "count": 5,
+          "label": "Quintette d'Anneaux",
+          "effects": [
+            {
+              "type": "marketValueBonus",
+              "value": 20
+            },
+            {
+              "type": "orderGoldBonus",
+              "value": 15
+            },
+            {
+              "type": "reputationBonus",
+              "value": 8
+            }
+          ]
+        },
+        {
+          "count": 6,
+          "label": "Anneaux du Pouvoir Complets",
+          "effects": [
+            {
+              "type": "marketValueBonus",
+              "value": 30
+            },
+            {
+              "type": "orderGoldBonus",
+              "value": 22
+            },
+            {
+              "type": "reputationBonus",
+              "value": 15
+            },
+            {
+              "type": "qualityBonus",
+              "value": 5
+            }
+          ]
+        }
+      ],
+      "reward": {
+        "gold": 8000,
+        "title": "Seigneur des Anneaux"
+      }
+    }
+  ],
+  "events": [
+    {
+      "id": "event_halloween",
+      "name": "Nuit des Ombres",
+      "theme": "halloween",
+      "icon": "halloween",
+      "description": "Les esprits rôdent autour de la forge… Forgez le combo des Ombres avant la fin de l'événement pour des bonus exclusifs.",
+      "items": [
+        "obsidian_blade",
+        "ruby_ring",
+        "dragon_helmet"
+      ],
+      "bonuses": [
+        {
+          "count": 2,
+          "label": "Duo des Ombres",
+          "effects": [
+            {
+              "type": "dropBonus",
+              "value": 10
+            }
+          ]
+        },
+        {
+          "count": 3,
+          "label": "Combo des Ombres",
+          "effects": [
+            {
+              "type": "dropBonus",
+              "value": 15
+            },
+            {
+              "type": "marketValueBonus",
+              "value": 12
+            },
+            {
+              "type": "qualityBonus",
+              "value": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_solstice",
+      "name": "Solstice Doré",
+      "theme": "solstice",
+      "icon": "white-balance-sunny",
+      "description": "Le soleil au zénith bénit les artisans. Réunissez le combo du Solstice tant que l'astre brille.",
+      "items": [
+        "gold_ring",
+        "crystal_amulet",
+        "celestial_axe"
+      ],
+      "bonuses": [
+        {
+          "count": 2,
+          "label": "Duo du Solstice",
+          "effects": [
+            {
+              "type": "forgeXpBonus",
+              "value": 10
+            }
+          ]
+        },
+        {
+          "count": 3,
+          "label": "Combo du Solstice",
+          "effects": [
+            {
+              "type": "forgeXpBonus",
+              "value": 18
+            },
+            {
+              "type": "orderGoldBonus",
+              "value": 10
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_forge_royale",
+      "name": "Forge Royale",
+      "theme": "royal",
+      "icon": "crown",
+      "description": "La cour royale passe commande ! Forgez le combo Royal pour impressionner la noblesse pendant l'événement.",
+      "items": [
+        "sapphire_crown",
+        "platinum_ring",
+        "legendary_blade"
+      ],
+      "bonuses": [
+        {
+          "count": 2,
+          "label": "Duo Royal",
+          "effects": [
+            {
+              "type": "reputationBonus",
+              "value": 12
+            }
+          ]
+        },
+        {
+          "count": 3,
+          "label": "Combo Royal",
+          "effects": [
+            {
+              "type": "reputationBonus",
+              "value": 18
+            },
+            {
+              "type": "orderGoldBonus",
+              "value": 15
+            },
+            {
+              "type": "qualityBonus",
+              "value": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_glace",
+      "name": "Givre Éternel",
+      "theme": "winter",
+      "icon": "snowflake",
+      "description": "Un froid mordant s'abat sur le royaume. Le combo du Givre récompense les forgerons qui bravent l'hiver.",
+      "items": [
+        "mithril_sword",
+        "silver_ring",
+        "diamond_ring"
+      ],
+      "bonuses": [
+        {
+          "count": 2,
+          "label": "Duo du Givre",
+          "effects": [
+            {
+              "type": "marketValueBonus",
+              "value": 10
+            }
+          ]
+        },
+        {
+          "count": 3,
+          "label": "Combo du Givre",
+          "effects": [
+            {
+              "type": "marketValueBonus",
+              "value": 15
+            },
+            {
+              "type": "dropBonus",
+              "value": 10
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "eventRotationHours": 48
+}
