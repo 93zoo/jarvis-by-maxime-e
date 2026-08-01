@@ -19,7 +19,7 @@ import { Animated, DimensionValue, Easing, ImageBackground, StyleSheet, View } f
 import { LinearGradient } from 'expo-linear-gradient';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const FORGE_BG = require('../../assets/images/forge-bg.png');
+const FORGE_BG = require('../assets/images/forge-bg.png');
 
 // ─── Ember particle ─────────────────────────────────────────────────────────
 function Ember({ x, size, duration, delay, drift, color }: {
