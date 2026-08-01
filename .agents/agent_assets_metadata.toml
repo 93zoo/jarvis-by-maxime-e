@@ -353,3 +353,10 @@ uri = "file://screenshots/forge-materials-panel.jpg"
 type = "image"
 title = "Forge — panneau des matériaux"
 description = "Panneau des matériaux possédés en bas à gauche : cartes sombres avec nom coloré, quantité et icône de lingot, inspirées de la capture."
+
+[[outputs]]
+id = "c9ZtP4ZUBr6UC9wY7rUZp"
+uri = "file://screenshots/forge-rail-centered.jpg"
+type = "image"
+title = "Forge — rail gauche centré verticalement"
+description = "Les 4 boutons QUÊTES, ÉVÉNEMENTS, APPRENTI et AMÉLIORER sont maintenant centrés verticalement sur le côté gauche de l'écran."
