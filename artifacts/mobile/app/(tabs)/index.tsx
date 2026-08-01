@@ -1373,24 +1373,35 @@ export default function ForgeScreen() {
         </View>
       )}
 
-      {/* ── Materials panel, bottom-left, dark ingot cards ── */}
-      {craftPhase === 'IDLE' && game.inventory.length > 0 && (
+      {/* ── Materials panel, bottom-left, dark ingot cards (always visible, 0 when not owned) ── */}
+      {craftPhase === 'IDLE' && (
         <View style={[md.matPanel, { bottom: bottomPad + 12 }]} pointerEvents="none">
-          {game.inventory.slice(0, 6).map((inv) => {
-            const res = game.getResourceById(inv.resourceId);
-            const c = res?.color ?? '#8A7A6A';
-            return (
-              <View key={inv.resourceId} style={md.matRow}>
-                <View>
-                  <Text style={[md.matName, { color: c }]}>{(res?.name ?? '?').toUpperCase()}</Text>
-                  <Text style={md.matQty}>{inv.quantity.toLocaleString()}</Text>
+          {(() => {
+            const owned = game.inventory.slice(0, 6);
+            const ownedIds = new Set(owned.map((i) => i.resourceId));
+            const fillers = [...game.allResources]
+              .sort((a, b) => a.level - b.level)
+              .filter((r) => !ownedIds.has(r.id))
+              .slice(0, 6 - owned.length);
+            const rows = [
+              ...owned.map((inv) => ({ res: game.getResourceById(inv.resourceId), qty: inv.quantity, key: inv.resourceId })),
+              ...fillers.map((res) => ({ res, qty: 0, key: res.id })),
+            ];
+            return rows.map(({ res, qty, key }) => {
+              const c = res?.color ?? '#8A7A6A';
+              return (
+                <View key={key} style={md.matRow}>
+                  <View>
+                    <Text style={[md.matName, { color: c }]}>{(res?.name ?? '?').toUpperCase()}</Text>
+                    <Text style={md.matQty}>{qty.toLocaleString()}</Text>
+                  </View>
+                  <View style={[md.ingotBar, { backgroundColor: c, borderColor: 'rgba(0,0,0,0.45)' }]}>
+                    <View style={md.ingotHighlight} />
+                  </View>
                 </View>
-                <View style={[md.ingotBar, { backgroundColor: c, borderColor: 'rgba(0,0,0,0.45)' }]}>
-                  <View style={md.ingotHighlight} />
-                </View>
-              </View>
-            );
-          })}
+              );
+            });
+          })()}
         </View>
       )}
 
