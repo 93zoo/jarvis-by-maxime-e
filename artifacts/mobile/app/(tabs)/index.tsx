@@ -1303,10 +1303,15 @@ export default function ForgeScreen() {
           )}
           <TouchableOpacity
             style={md.pill}
-            onPress={() => setShowUpgradesModal(true)}
+            onPress={() => setShowOrdersModal(true)}
             activeOpacity={0.8}
           >
-            <Feather name="settings" size={13} color={MEDIEVAL.textDim} />
+            <Feather name="inbox" size={13} color={MEDIEVAL.textDim} />
+            {pendingCount > 0 && (
+              <View style={md.headerBadge}>
+                <Text style={md.headerBadgeText}>{pendingCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
         </View>
@@ -1445,21 +1450,11 @@ export default function ForgeScreen() {
                 activeOpacity={0.82}
               >
                 <Animated.Image
-                  source={require('@/assets/images/forge-btn.png')}
+                  source={require('../../assets/images/forge-btn.png')}
                   style={[md.forgeBtnArt, { transform: [{ rotate: forgeSpin }] }]}
                   resizeMode="contain"
                 />
               </TouchableOpacity>
-            </View>
-
-            {/* COMMANDES — round button just above the Forge tab icon */}
-            <View style={[md.bottomRoundBtn, { bottom: bottomPad + 16 }]} pointerEvents="box-none">
-              <RailButton
-                icon="inbox"
-                label="COMMANDES"
-                badge={pendingCount > 0 ? pendingCount : undefined}
-                onPress={() => setShowOrdersModal(true)}
-              />
             </View>
 
           </>
@@ -2139,6 +2134,19 @@ const md = StyleSheet.create({
   },
   sideBtnText: { color: MEDIEVAL.textLight, fontSize: 9, fontWeight: '800', letterSpacing: 1 },
   forgeBtnArt: { width: 220, height: 136 },
+  headerBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    minWidth: 15,
+    height: 15,
+    borderRadius: 8,
+    backgroundColor: '#C0392B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  headerBadgeText: { color: '#FFF', fontSize: 8, fontWeight: '800' },
   inventoryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
