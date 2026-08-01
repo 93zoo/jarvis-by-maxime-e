@@ -13,13 +13,14 @@ import {
 } from '@expo-google-fonts/inter';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { GameProvider } from '@/context/GameContext';
+import { GameProvider, useGame } from '@/context/GameContext';
 import { AchievementProvider } from '@/context/AchievementContext';
 import { initializeRevenueCat, SubscriptionProvider } from '@/lib/revenuecat';
 import GoldGrantReconciler from '@/components/GoldGrantReconciler';
 import { RewardedAdsProvider } from '@/lib/rewardedAds';
 import StudioSplash from '@/components/StudioSplash';
 import DailyRewardModal from '@/components/DailyRewardModal';
+import FirstForgeTutorial from '@/components/FirstForgeTutorial';
 
 try {
   initializeRevenueCat();
@@ -44,6 +45,7 @@ function RootLayoutNav() {
 }
 
 function AppWithSplash() {
+  const { isLoaded, hasCompletedFirstForgeTutorial, completeFirstForgeTutorial } = useGame();
   const [splashDone, setSplashDone] = useState(
     // Dev web uniquement : ?nosplash=1 saute l'intro (captures d'écran/tests)
     () =>
@@ -52,11 +54,20 @@ function AppWithSplash() {
       typeof window !== 'undefined' &&
       window.location?.search?.includes('nosplash'),
   );
+  const [tutorialResolved, setTutorialResolved] = useState(false);
+  const shouldShowTutorial = splashDone && isLoaded && !hasCompletedFirstForgeTutorial && !tutorialResolved;
+  const canShowDailyReward = splashDone && isLoaded && (hasCompletedFirstForgeTutorial || tutorialResolved);
+
+  const finishTutorial = async () => {
+    await completeFirstForgeTutorial();
+    setTutorialResolved(true);
+  };
 
   return (
     <>
       <RootLayoutNav />
-      {splashDone && <DailyRewardModal />}
+      {shouldShowTutorial && <FirstForgeTutorial onDone={finishTutorial} />}
+      {canShowDailyReward && <DailyRewardModal />}
       {!splashDone && <StudioSplash onDone={() => setSplashDone(true)} />}
     </>
   );

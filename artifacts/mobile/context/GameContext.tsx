@@ -278,11 +278,17 @@ interface GameState {
   discoveredAlloyIds: string[];
   /** Instance IDs pinned to the player's showcase vitrine (max 6). */
   showcasedItemIds: string[];
+  /**
+   * Only false for an entirely new game. Legacy and restored saves normalize
+   * this to true so established players are not interrupted by onboarding.
+   */
+  hasCompletedFirstForgeTutorial: boolean;
 }
 
 type GameAction =
   | { type: 'LOAD'; payload: SaveData }
   | { type: 'RESET' }
+  | { type: 'COMPLETE_FIRST_FORGE_TUTORIAL' }
   | { type: 'ADD_RESOURCE'; resourceId: string; qty: number }
   | { type: 'REMOVE_RESOURCE'; resourceId: string; qty: number }
   | { type: 'ADD_CRAFTED_ITEM'; item: Item }
@@ -472,6 +478,7 @@ function buildInitialState(): GameState {
     completedSets: [],
     discoveredAlloyIds: [],
     showcasedItemIds: [],
+    hasCompletedFirstForgeTutorial: false,
   };
 }
 
@@ -663,10 +670,14 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         completedSets: s.completedSets ?? [],
         discoveredAlloyIds: s.discoveredAlloyIds ?? [],
         showcasedItemIds: s.showcasedItemIds ?? [],
+        hasCompletedFirstForgeTutorial: s.hasCompletedFirstForgeTutorial ?? true,
       };
     }
     case 'RESET': {
       return { ...buildInitialState(), isLoaded: true };
+    }
+    case 'COMPLETE_FIRST_FORGE_TUTORIAL': {
+      return { ...state, hasCompletedFirstForgeTutorial: true };
     }
     case 'ADD_RESOURCE': {
       const inv = [...state.inventory];
@@ -1377,6 +1388,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 interface GameContextType {
   // State
   isLoaded: boolean;
+  hasCompletedFirstForgeTutorial: boolean;
   player: Player;
   inventory: InventoryItem[];
   craftedItems: Item[];
@@ -1445,6 +1457,7 @@ interface GameContextType {
   fightForMaterials: (regionId: string, playerTotal: number, enemyTotal: number) => CombatResult;
   saveGame: () => Promise<'ok' | 'error'>;
   resetGame: () => void;
+  completeFirstForgeTutorial: () => Promise<void>;
   // Progression
   allTalents: TalentData[];
   allForgeUpgrades: ForgeUpgradeData[];
@@ -2402,6 +2415,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       completedSets: state.completedSets,
       discoveredAlloyIds: state.discoveredAlloyIds,
       showcasedItemIds: state.showcasedItemIds,
+      hasCompletedFirstForgeTutorial: state.hasCompletedFirstForgeTutorial,
       lastSaved: now,
     };
     try {
@@ -2439,6 +2453,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         completedSets: state.completedSets,
         discoveredAlloyIds: state.discoveredAlloyIds,
         showcasedItemIds: state.showcasedItemIds,
+        hasCompletedFirstForgeTutorial: state.hasCompletedFirstForgeTutorial,
         lastSaved: Date.now(),
       };
       const res = await fetch(`${base}/save`, {
@@ -2477,6 +2492,45 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'RESET' });
     AsyncStorage.removeItem(SAVE_KEY).catch(() => {});
   }, []);
+
+  /**
+   * Mark this new game as guided before hiding the overlay. A direct snapshot
+   * write avoids the normal reducer/render delay if the app is closed at once.
+   */
+  const completeFirstForgeTutorial = useCallback(async (): Promise<void> => {
+    const now = Date.now();
+    const save: SaveData = {
+      version: SAVE_VERSION,
+      player: state.player,
+      inventory: state.inventory,
+      craftedItems: state.craftedItems,
+      activeOrders: state.activeOrders,
+      completedQuestIds: state.completedQuestIds,
+      activeQuestIds: state.activeQuestIds,
+      questProgress: state.questProgress,
+      unlockedRegions: state.unlockedRegions,
+      regionExploration: state.regionExploration,
+      npcReputation: state.npcReputation,
+      marketPrices: state.marketPrices,
+      lastOrderGeneratedAt: state.lastOrderGeneratedAt,
+      forgeUpgrades: state.forgeUpgrades,
+      forgeHistory: state.forgeHistory,
+      sessionSnapshots: state.sessionSnapshots,
+      apprentice: state.apprentice,
+      completedRegions: state.completedRegions,
+      completedSets: state.completedSets,
+      discoveredAlloyIds: state.discoveredAlloyIds,
+      showcasedItemIds: state.showcasedItemIds,
+      hasCompletedFirstForgeTutorial: true,
+      lastSaved: now,
+    };
+    dispatch({ type: 'COMPLETE_FIRST_FORGE_TUTORIAL' });
+    try {
+      await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
+    } catch {
+      // The in-memory state still prevents an overlay remount this session.
+    }
+  }, [state]);
 
   // -------------------------------------------------------------------------
   // Progression helpers
@@ -2673,6 +2727,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<GameContextType>(
     () => ({
       isLoaded: state.isLoaded,
+      hasCompletedFirstForgeTutorial: state.hasCompletedFirstForgeTutorial,
       player: state.player,
       inventory: state.inventory,
       craftedItems: state.craftedItems,
@@ -2727,6 +2782,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       fightForMaterials,
       saveGame,
       resetGame,
+      completeFirstForgeTutorial,
       allTalents: ALL_TALENTS,
       allForgeUpgrades: ALL_FORGE_UPGRADES,
       forgeUpgrades: state.forgeUpgrades,

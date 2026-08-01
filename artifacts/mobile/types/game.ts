@@ -523,5 +523,10 @@ export interface SaveData {
   discoveredAlloyIds: string[];
   /** Instance IDs of items pinned to the showcase vitrine (max 6). */
   showcasedItemIds?: string[];
+  /**
+   * Undefined identifies a save made before the first-forge tutorial existed.
+   * Those established games must never receive the tutorial retroactively.
+   */
+  hasCompletedFirstForgeTutorial?: boolean;
   lastSaved: number;
 }
