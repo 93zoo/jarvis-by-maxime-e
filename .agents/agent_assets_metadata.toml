@@ -290,3 +290,10 @@ uri = "file://screenshots/forge-btn-above-anvil.jpg"
 type = "image"
 title = "Forge — bouton centré au-dessus de l'enclume"
 description = "Le bouton FORGER (enclume + texte) est centré juste au-dessus de l'enclume du décor, légèrement agrandi (190×118), avec flottement et rebond au toucher."
+
+[[outputs]]
+id = "Hjv2w-Pi-Tsa8fs254EYT"
+uri = "file://screenshots/forge-rail-typo.jpg"
+type = "image"
+title = "Forge — typo dorée sur les boutons du rail"
+description = "Les labels QUÊTES, ÉVÉNEMENTS, APPRENTI et AMÉLIORER utilisent maintenant la typographie dorée à empattements avec lueur braise, dans le style du texte FORGER."
