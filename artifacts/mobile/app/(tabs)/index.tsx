@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   AppState,
   FlatList,
+  ImageBackground,
   Modal,
   Platform,
   ScrollView,
@@ -14,6 +15,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Animated, {
   Easing,
@@ -50,6 +52,23 @@ function qualityLabel(q: Quality): string {
     case 'poor': return 'MÉDIOCRE';
   }
 }
+
+// Photorealistic forge backdrop (generated asset)
+const FORGE_BG = require('../../assets/images/forge-bg.jpg');
+
+// ─── Medieval UI palette (leather / brushed steel / ember) ───────────────────
+const MEDIEVAL = {
+  ember: '#FF7A1A',
+  emberSoft: '#E8862A',
+  oldGold: '#C9A227',
+  steelDark: '#1A1410',
+  panel: 'rgba(12,9,6,0.78)',
+  panelLight: 'rgba(24,18,12,0.85)',
+  border: 'rgba(200,140,60,0.38)',
+  borderBright: 'rgba(255,150,50,0.65)',
+  textLight: '#F5E7CE',
+  textDim: '#A8927A',
+};
 
 /** Score threshold needed to reliably achieve each quality (mirrors qualityFromScore). */
 const QUALITY_SCORE_THRESHOLD: Record<Quality, number> = {
@@ -633,11 +652,39 @@ function AvatarCircle({
   );
 }
 
+// ─── Rail button (left sidebar) — defined BEFORE ForgeScreen (Hermes rule) ──
+function RailButton({
+  icon,
+  label,
+  badge,
+  onPress,
+}: {
+  icon: React.ComponentProps<typeof Feather>['name'];
+  label: string;
+  badge?: number;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity style={md.railBtn} onPress={onPress} activeOpacity={0.8}>
+      <View style={md.railBtnCircle}>
+        <Feather name={icon} size={18} color={MEDIEVAL.textLight} />
+        {badge !== undefined && badge > 0 && (
+          <View style={md.badge}>
+            <Text style={md.badgeText}>{badge}</Text>
+          </View>
+        )}
+      </View>
+      <Text style={md.railBtnLabel}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function ForgeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const game = useGame();
+  const router = useRouter();
 
   const [craftPhase, setCraftPhase] = useState<CraftPhase>('IDLE');
   const [session, setSession] = useState<CraftSession>(EMPTY_SESSION);
@@ -856,62 +903,127 @@ export default function ForgeScreen() {
   const upgradeLevel = Object.values(game.forgeUpgrades).reduce((a, b) => a + b, 0);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: MEDIEVAL.steelDark }]}>
+      {/* ── Photorealistic forge backdrop ── */}
+      <ImageBackground source={FORGE_BG} resizeMode="cover" style={StyleSheet.absoluteFill}>
+        {/* Readability veils: darker at top (header) and bottom (actions) */}
+        <LinearGradient
+          colors={['rgba(5,3,2,0.72)', 'rgba(5,3,2,0.18)', 'transparent']}
+          locations={[0, 0.22, 0.42]}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+        <LinearGradient
+          colors={['transparent', 'rgba(5,3,2,0.55)', 'rgba(5,3,2,0.88)']}
+          locations={[0.5, 0.78, 1]}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+      </ImageBackground>
+
       {/* ── Header ── */}
-      <LinearGradient
-        colors={[colors.card as string, 'transparent']}
-        style={[styles.header, { paddingTop: headerTopPad + 12 }]}
-      >
+      <View style={[styles.header, { paddingTop: headerTopPad + 10 }]}>
         <View style={styles.headerLeft}>
-          <AvatarCircle color={player.avatarColor} icon={player.avatarIcon} name={player.name} size={34} />
+          <View style={md.levelRing}>
+            <View style={md.levelRingInner}>
+              <Text style={md.levelRingText}>{player.level}</Text>
+            </View>
+          </View>
           <View>
-            <Text style={[styles.headerTitle, { color: colors.foreground }]}>LA FORGE</Text>
-            {player.forgeName ? (
-              <Text style={[styles.headerForgeName, { color: colors.mutedForeground }]} numberOfLines={1}>
-                {player.forgeName}
-              </Text>
-            ) : null}
+            <Text style={md.headerTitle}>FORGERON</Text>
+            <Text style={md.headerXP}>
+              {player.xp.toLocaleString()} / {player.xpToNextLevel.toLocaleString()} XP
+            </Text>
+            <View style={md.headerXPTrack}>
+              <View style={[md.headerXPFill, { width: `${xpPct}%` as `${number}%` }]} />
+            </View>
           </View>
         </View>
         <View style={styles.headerRight}>
-          <View style={[styles.pill, { backgroundColor: colors.secondary }]}>
-            <Feather name="dollar-sign" size={12} color={colors.accent} />
-            <Text style={[styles.pillText, { color: colors.accent }]}>
+          <View style={md.pill}>
+            <Feather name="dollar-sign" size={12} color={MEDIEVAL.oldGold} />
+            <Text style={[md.pillText, { color: MEDIEVAL.oldGold }]}>
               {player.gold.toLocaleString()}
             </Text>
+            <Feather name="plus" size={11} color={MEDIEVAL.textDim} />
           </View>
-          {pendingCount > 0 && (
-            <TouchableOpacity
-              style={[styles.pill, { backgroundColor: '#C0392B' }]}
-              onPress={() => setShowOrdersModal(true)}
-              activeOpacity={0.8}
-            >
-              <Feather name="inbox" size={12} color="#fff" />
-              <Text style={[styles.pillText, { color: '#fff' }]}>{pendingCount}</Text>
-            </TouchableOpacity>
+          {upgradeLevel > 0 && (
+            <View style={md.pill}>
+              <Feather name="trending-up" size={12} color={MEDIEVAL.emberSoft} />
+              <Text style={[md.pillText, { color: MEDIEVAL.emberSoft }]}>+{upgradeLevel}</Text>
+            </View>
           )}
           <TouchableOpacity
-            style={[styles.pill, { backgroundColor: colors.secondary }]}
+            style={md.pill}
             onPress={() => setShowUpgradesModal(true)}
             activeOpacity={0.8}
           >
-            <Feather name="settings" size={12} color={upgradeLevel > 0 ? colors.accent : colors.mutedForeground} />
-            {upgradeLevel > 0 && (
-              <Text style={[styles.pillText, { color: colors.accent }]}>+{upgradeLevel}</Text>
-            )}
+            <Feather name="settings" size={13} color={MEDIEVAL.textDim} />
           </TouchableOpacity>
-          <View style={[styles.pill, { backgroundColor: colors.primary }]}>
-            <Text style={[styles.pillText, { color: colors.primaryForeground }]}>
-              Niv.{player.level}
-            </Text>
-          </View>
         </View>
-      </LinearGradient>
+      </View>
 
-      {/* ── 3D Scene ── */}
-      <View style={styles.sceneContainer}>
-        <ForgeScene3D ref={sceneRef} craftPhase={craftPhase} upgradeLevel={upgradeLevel} />
-        <WeatherEffect type={weather} />
+      {/* ── Left rail ── */}
+      {craftPhase === 'IDLE' && (
+        <View style={[md.leftRail, { top: headerTopPad + 96 }]}>
+          <RailButton
+            icon="book-open"
+            label="QUÊTES"
+            onPress={() => router.push('/codex')}
+          />
+          <RailButton
+            icon="zap"
+            label="ÉVÉNEMENTS"
+            onPress={() => router.push('/world')}
+          />
+          <RailButton
+            icon="package"
+            label="COFFRES"
+            badge={upgradeLevel > 0 ? upgradeLevel : undefined}
+            onPress={() => setShowUpgradesModal(true)}
+          />
+          <RailButton
+            icon="bar-chart-2"
+            label="CLASSEMENT"
+            onPress={() => router.push('/profile')}
+          />
+        </View>
+      )}
+
+      {/* ── Right rail: materials ── */}
+      {craftPhase === 'IDLE' && (
+        <View style={[md.materialsRail, { top: headerTopPad + 96 }]}>
+          <Text style={md.materialsTitle}>MATÉRIAUX</Text>
+          <ScrollView showsVerticalScrollIndicator={false} style={md.materialsScroll}>
+            {game.inventory.length === 0 ? (
+              <Text style={md.materialsEmpty}>Récoltez dans le Monde</Text>
+            ) : (
+              game.inventory.slice(0, 9).map((inv) => {
+                const res = game.getResourceById(inv.resourceId);
+                return (
+                  <View key={inv.resourceId} style={md.materialRow}>
+                    <View style={[md.materialChip, { backgroundColor: res?.color ?? '#555' }]} />
+                    <Text style={md.materialName} numberOfLines={1}>
+                      {(res?.name ?? inv.resourceId).toUpperCase()}
+                    </Text>
+                    <Text style={md.materialQty}>{inv.quantity.toLocaleString()}</Text>
+                  </View>
+                );
+              })
+            )}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* ── 3D Scene (craft phases only) ── */}
+      <View style={styles.sceneContainer} pointerEvents={craftPhase === 'IDLE' ? 'none' : 'auto'}>
+        {craftPhase !== 'IDLE' && (
+          <>
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(5,3,2,0.55)' }]} />
+            <ForgeScene3D ref={sceneRef} craftPhase={craftPhase} upgradeLevel={upgradeLevel} />
+            <WeatherEffect type={weather} />
+          </>
+        )}
 
         {/* Heating overlay */}
         {craftPhase === 'HEATING' && (
@@ -977,25 +1089,94 @@ export default function ForgeScreen() {
         )}
       </View>
 
-      {/* ── Bottom Panel ── */}
+      {/* ── Bottom action panel ── */}
       <View
         style={[
           styles.bottomPanel,
-          { backgroundColor: colors.card, borderTopColor: colors.border },
+          craftPhase !== 'IDLE' && { backgroundColor: 'rgba(10,7,5,0.85)' },
         ]}
+        pointerEvents="box-none"
       >
         {craftPhase === 'IDLE' && (
-          <IdlePanel
-            player={player}
-            forgeSkillLevel={forgeSkillLevel}
-            forgeXPPct={forgeXPPct}
-            xpPct={xpPct}
-            availableCount={availableRecipes.length}
-            colors={colors}
-            bottomPad={bottomPad}
-            onStartCraft={() => setShowRecipeSheet(true)}
-            game={game}
-          />
+          <View style={[md.idlePanel, { paddingBottom: bottomPad + 4 }]}>
+            {/* Forge stats strip */}
+            <View style={md.statsStrip}>
+              <View style={md.statBox}>
+                <Text style={md.statLabel}>FORGE</Text>
+                <Text style={[md.statValue, { color: MEDIEVAL.emberSoft }]}>Niv.{forgeSkillLevel}</Text>
+                <View style={md.statTrack}>
+                  <View style={[md.statFill, { width: `${forgeXPPct}%` as `${number}%`, backgroundColor: MEDIEVAL.ember }]} />
+                </View>
+              </View>
+              <View style={md.statBox}>
+                <Text style={md.statLabel}>JOUEUR</Text>
+                <Text style={md.statValue}>Niv.{player.level}</Text>
+                <View style={md.statTrack}>
+                  <View style={[md.statFill, { width: `${xpPct}%` as `${number}%`, backgroundColor: MEDIEVAL.oldGold }]} />
+                </View>
+              </View>
+              <View style={md.statBox}>
+                <Text style={md.statLabel}>FORGÉS</Text>
+                <Text style={md.statValue}>{player.totalItemsCrafted}</Text>
+              </View>
+            </View>
+
+            {/* Apprentice (only when one is hired) */}
+            {game.apprentice !== null && <ApprenticeCard game={game} colors={colors} />}
+
+            {/* Main action row: AMÉLIORER / FORGER / COMMANDES */}
+            <View style={md.actionRow}>
+              <TouchableOpacity
+                style={md.sideBtn}
+                onPress={() => setShowUpgradesModal(true)}
+                activeOpacity={0.82}
+              >
+                <Feather name="trending-up" size={18} color={MEDIEVAL.textLight} />
+                <Text style={md.sideBtnText}>AMÉLIORER</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={md.forgeBtn}
+                onPress={() => setShowRecipeSheet(true)}
+                activeOpacity={0.82}
+              >
+                <LinearGradient
+                  colors={['#5A2E0E', '#8A4416', '#5A2E0E']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={md.forgeBtnInner}
+                >
+                  <Feather name="tool" size={22} color={MEDIEVAL.ember} />
+                  <Text style={md.forgeBtnText}>FORGER</Text>
+                  <Text style={md.forgeBtnSub}>{availableRecipes.length} recettes</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={md.sideBtn}
+                onPress={() => setShowOrdersModal(true)}
+                activeOpacity={0.82}
+              >
+                <Feather name="inbox" size={18} color={MEDIEVAL.textLight} />
+                <Text style={md.sideBtnText}>COMMANDES</Text>
+                {pendingCount > 0 && (
+                  <View style={md.badge}>
+                    <Text style={md.badgeText}>{pendingCount}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Inventory bar */}
+            <TouchableOpacity
+              style={md.inventoryBtn}
+              onPress={() => router.push('/inventory')}
+              activeOpacity={0.82}
+            >
+              <Feather name="briefcase" size={15} color={MEDIEVAL.textDim} />
+              <Text style={md.inventoryBtnText}>INVENTAIRE</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         {craftPhase === 'HAMMERING' && (
@@ -1491,93 +1672,245 @@ const apStyles = StyleSheet.create({
 });
 
 // ─── Idle Panel ──────────────────────────────────────────────────────────────
-function IdlePanel({
-  player,
-  forgeSkillLevel,
-  forgeXPPct,
-  xpPct,
-  availableCount,
-  colors,
-  bottomPad,
-  onStartCraft,
-  game,
-}: {
-  player: ReturnType<typeof useGame>['player'];
-  forgeSkillLevel: number;
-  forgeXPPct: number;
-  xpPct: number;
-  availableCount: number;
-  colors: ReturnType<typeof useColors>;
-  bottomPad: number;
-  onStartCraft: () => void;
-  game: ReturnType<typeof useGame>;
-}) {
-  return (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={[styles.idlePanel, { paddingBottom: bottomPad + 8 }]}
-      keyboardShouldPersistTaps="handled"
-    >
-      {/* Forge stats */}
-      <View style={styles.forgeStats}>
-        <View style={styles.forgeStat}>
-          <Text style={[styles.forgeStatLabel, { color: colors.mutedForeground }]}>
-            FORGE
-          </Text>
-          <Text style={[styles.forgeStatValue, { color: colors.accent }]}>
-            Niv.{forgeSkillLevel}
-          </Text>
-          <View style={[styles.miniTrack, { backgroundColor: colors.muted }]}>
-            <View
-              style={[
-                styles.miniFill,
-                { width: `${forgeXPPct}%` as `${number}%`, backgroundColor: colors.primary },
-              ]}
-            />
-          </View>
-        </View>
-        <View style={styles.forgeStat}>
-          <Text style={[styles.forgeStatLabel, { color: colors.mutedForeground }]}>
-            JOUEUR
-          </Text>
-          <Text style={[styles.forgeStatValue, { color: colors.foreground }]}>
-            Niv.{player.level}
-          </Text>
-          <View style={[styles.miniTrack, { backgroundColor: colors.muted }]}>
-            <View
-              style={[
-                styles.miniFill,
-                { width: `${xpPct}%` as `${number}%`, backgroundColor: colors.accent },
-              ]}
-            />
-          </View>
-        </View>
-        <View style={styles.forgeStat}>
-          <Text style={[styles.forgeStatLabel, { color: colors.mutedForeground }]}>FORGÉS</Text>
-          <Text style={[styles.forgeStatValue, { color: colors.foreground }]}>
-            {player.totalItemsCrafted}
-          </Text>
-          <View style={[styles.miniTrack, { backgroundColor: 'transparent' }]} />
-        </View>
-      </View>
+// ─── Medieval styles ─────────────────────────────────────────────────────────
+const md = StyleSheet.create({
+  // Header
+  levelRing: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: MEDIEVAL.oldGold,
+    backgroundColor: 'rgba(12,9,6,0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.6,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 6,
+  },
+  levelRingInner: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: 'rgba(200,140,60,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  levelRingText: { color: MEDIEVAL.oldGold, fontSize: 15, fontWeight: '900' },
+  headerTitle: { color: MEDIEVAL.textLight, fontSize: 15, fontWeight: '900', letterSpacing: 3 },
+  headerXP: { color: MEDIEVAL.textDim, fontSize: 9, fontWeight: '600', letterSpacing: 0.5, marginTop: 1 },
+  headerXPTrack: {
+    width: 96,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    marginTop: 3,
+    overflow: 'hidden',
+  },
+  headerXPFill: { height: '100%', borderRadius: 2, backgroundColor: MEDIEVAL.oldGold },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: MEDIEVAL.panel,
+    borderWidth: 1,
+    borderColor: MEDIEVAL.border,
+  },
+  pillText: { fontSize: 12, fontWeight: '800' },
 
-      {/* Start button */}
-      <TouchableOpacity
-        style={[styles.startCraftBtn, { backgroundColor: colors.primary }]}
-        onPress={onStartCraft}
-        activeOpacity={0.8}
-      >
-        <Feather name="tool" size={18} color={colors.primaryForeground} />
-        <Text style={[styles.startCraftText, { color: colors.primaryForeground }]}>
-          FORGER  ·  {availableCount} recettes
-        </Text>
-      </TouchableOpacity>
+  // Left rail
+  leftRail: {
+    position: 'absolute',
+    left: 12,
+    zIndex: 10,
+    gap: 14,
+  },
+  railBtn: { alignItems: 'center', width: 64 },
+  railBtnCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: MEDIEVAL.panelLight,
+    borderWidth: 1.5,
+    borderColor: MEDIEVAL.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.55,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 5,
+  },
+  railBtnLabel: {
+    color: MEDIEVAL.textDim,
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginTop: 4,
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 17,
+    height: 17,
+    borderRadius: 9,
+    backgroundColor: '#C0392B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  badgeText: { color: '#fff', fontSize: 9, fontWeight: '900' },
 
-      {/* Apprentice card — inlined so it scrolls with the panel */}
-      <ApprenticeCard game={game} colors={colors} />
-    </ScrollView>
-  );
-}
+  // Materials rail
+  materialsRail: {
+    position: 'absolute',
+    right: 12,
+    zIndex: 10,
+    width: 132,
+    maxHeight: 300,
+    borderRadius: 10,
+    backgroundColor: MEDIEVAL.panel,
+    borderWidth: 1,
+    borderColor: MEDIEVAL.border,
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    paddingBottom: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.55,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 6,
+  },
+  materialsTitle: {
+    color: MEDIEVAL.oldGold,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 2.5,
+    textAlign: 'center',
+    marginBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(200,140,60,0.25)',
+    paddingBottom: 5,
+  },
+  materialsScroll: { flexGrow: 0 },
+  materialsEmpty: { color: MEDIEVAL.textDim, fontSize: 10, textAlign: 'center', paddingVertical: 8 },
+  materialRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  materialChip: {
+    width: 12,
+    height: 12,
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.28)',
+  },
+  materialName: { flex: 1, color: MEDIEVAL.textLight, fontSize: 9, fontWeight: '700', letterSpacing: 0.5 },
+  materialQty: { color: MEDIEVAL.oldGold, fontSize: 10, fontWeight: '800' },
+
+  // Idle action panel
+  idlePanel: { paddingHorizontal: 16 },
+  statsStrip: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 10,
+  },
+  statBox: {
+    flex: 1,
+    borderRadius: 8,
+    backgroundColor: MEDIEVAL.panel,
+    borderWidth: 1,
+    borderColor: MEDIEVAL.border,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  statLabel: { color: MEDIEVAL.textDim, fontSize: 8, fontWeight: '800', letterSpacing: 1.5 },
+  statValue: { color: MEDIEVAL.textLight, fontSize: 13, fontWeight: '800', marginTop: 1 },
+  statTrack: {
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  statFill: { height: '100%', borderRadius: 2 },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 8,
+    marginTop: 4,
+  },
+  sideBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: MEDIEVAL.panelLight,
+    borderWidth: 1.5,
+    borderColor: MEDIEVAL.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.5,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 5,
+  },
+  sideBtnText: { color: MEDIEVAL.textLight, fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+  forgeBtn: {
+    flex: 1.6,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: MEDIEVAL.borderBright,
+    overflow: 'hidden',
+    shadowColor: MEDIEVAL.ember,
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 8,
+  },
+  forgeBtnInner: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    paddingVertical: 10,
+  },
+  forgeBtnText: {
+    color: '#FFD9A0',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 4,
+    textShadowColor: 'rgba(255,122,26,0.6)',
+    textShadowRadius: 8,
+  },
+  forgeBtnSub: { color: MEDIEVAL.textDim, fontSize: 9, fontWeight: '600', letterSpacing: 1 },
+  inventoryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 8,
+    paddingVertical: 9,
+    borderRadius: 10,
+    backgroundColor: MEDIEVAL.panel,
+    borderWidth: 1,
+    borderColor: MEDIEVAL.border,
+  },
+  inventoryBtnText: { color: MEDIEVAL.textDim, fontSize: 11, fontWeight: '800', letterSpacing: 2 },
+});
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
@@ -1633,9 +1966,7 @@ const styles = StyleSheet.create({
   hitFlashText: { fontSize: 32, fontWeight: '900', letterSpacing: 3 },
 
   // Bottom panel
-  bottomPanel: {
-    borderTopWidth: 1,
-  },
+  bottomPanel: {},
   inProgressPanel: {
     flexDirection: 'row',
     alignItems: 'center',
