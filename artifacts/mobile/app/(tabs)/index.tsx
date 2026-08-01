@@ -1236,7 +1236,7 @@ export default function ForgeScreen() {
             style={StyleSheet.absoluteFill}
           />
           <LinearGradient
-            colors={['transparent', 'rgba(5,3,2,0.55)', 'rgba(5,3,2,0.88)']}
+            colors={['transparent', 'rgba(5,3,2,0.38)', 'rgba(5,3,2,0.62)']}
             locations={[0.5, 0.78, 1]}
             style={StyleSheet.absoluteFill}
           />
@@ -2139,27 +2139,17 @@ const md = StyleSheet.create({
     gap: 4,
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: MEDIEVAL.panelLight,
-    borderWidth: 1.5,
-    borderColor: MEDIEVAL.border,
-    shadowColor: '#000',
-    shadowOpacity: 0.5,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 5,
+    backgroundColor: 'rgba(16,10,6,0.42)',
+    borderWidth: 1,
+    borderColor: 'rgba(200,140,60,0.35)',
   },
   sideBtnText: { color: MEDIEVAL.textLight, fontSize: 9, fontWeight: '800', letterSpacing: 1 },
   forgeBtn: {
     flex: 1.6,
     borderRadius: 12,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: MEDIEVAL.borderBright,
     overflow: 'hidden',
-    shadowColor: MEDIEVAL.ember,
-    shadowOpacity: 0.45,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 8,
   },
   forgeBtnInner: {
     alignItems: 'center',
