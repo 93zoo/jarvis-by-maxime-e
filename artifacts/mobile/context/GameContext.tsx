@@ -1293,7 +1293,7 @@ interface GameContextType {
   getCollectionProgress: (setId: string) => { count: number; total: number; craftedIds: string[] };
   claimSetReward: (setId: string) => { success: boolean; gold: number };
   fightForMaterials: (regionId: string, playerTotal: number, enemyTotal: number) => CombatResult;
-  saveGame: () => Promise<void>;
+  saveGame: () => Promise<'ok' | 'error'>;
   resetGame: () => void;
   // Progression
   allTalents: TalentData[];
@@ -2173,7 +2173,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [state.player.level, state.player.talentsUnlocked, state.forgeUpgrades, state.player.statUpgrades],
   );
 
-  const saveGame = useCallback(async () => {
+  const saveGame = useCallback(async (): Promise<'ok' | 'error'> => {
     const now = Date.now();
     const snapshot: SessionSnapshot = {
       timestamp: now,
@@ -2210,7 +2210,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       completedSets: state.completedSets,
       lastSaved: now,
     };
-    await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
+    try {
+      await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
+      return 'ok';
+    } catch {
+      return 'error';
+    }
   }, [state]);
 
   const syncToCloud = useCallback(async () => {

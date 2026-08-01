@@ -188,12 +188,12 @@ function TalentTreeView({
           <Text style={[tStyles.treeStateText, { color: '#9966CC' }]}>{game.player.talentPoints} pt</Text>
         </View>
       </View>
-      {/* Canvas */}
+      {/* Canvas — explicit height required on Android so the horizontal ScrollView doesn't collapse */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={{ marginHorizontal: 16 }}
-        contentContainerStyle={{ justifyContent: 'center' }}
+        style={{ marginHorizontal: 16, height: CANVAS_H }}
+        contentContainerStyle={{ justifyContent: 'center', height: CANVAS_H }}
       >
         <View style={{ width: CANVAS_W, height: CANVAS_H }}>
           {Array.from({ length: 5 }).map((_, tier) => (
@@ -2493,8 +2493,12 @@ export default function ProfileScreen() {
   const selectedSkill = selectedSkillId ? game.allSkills.find((s) => s.id === selectedSkillId) ?? null : null;
 
   const handleSave = async () => {
-    await game.saveGame();
-    Alert.alert('Sauvegardé', 'Votre progression a été sauvegardée.');
+    const result = await game.saveGame();
+    if (result === 'ok') {
+      Alert.alert('✅ Sauvegardé', 'Votre progression a été sauvegardée.');
+    } else {
+      Alert.alert('❌ Erreur', 'La sauvegarde a échoué. Vérifiez le stockage de l\'appareil.');
+    }
   };
   const handleReset = () => {
     Alert.alert('Réinitialiser', 'Toute votre progression sera perdue. Êtes-vous sûr ?', [
