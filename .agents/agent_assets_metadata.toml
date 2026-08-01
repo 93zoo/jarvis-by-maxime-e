@@ -367,3 +367,10 @@ uri = "file://screenshots/forge-mat-right.jpg"
 type = "image"
 title = "Forge — rail espacé + matériaux à droite"
 description = "Les 4 boutons du rail gauche sont plus espacés, et le panneau des matériaux est déplacé en bas à droite de l'écran."
+
+[[outputs]]
+id = "LxD4cZEMETtd3PAZXI6zx"
+uri = "file://screenshots/forge-mat-left.jpg"
+type = "image"
+title = "Forge — synthèse des ressources en bas à gauche"
+description = "Le panneau des matériaux possédés est de retour en bas à gauche de l'écran Forge : cartes sombres avec nom coloré, quantité et lingot."
