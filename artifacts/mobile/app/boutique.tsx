@@ -26,7 +26,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors } from '@/hooks/useColors';
 
 const DAILY_CHEST_KEY = '@fk_daily_ad_chest_v1';
+const AD_GOLD_KEY = '@fk_ad_gold_v1';
+const AD_GOLD_MAX_PER_DAY = 3;
 const CHEST_MATERIALS = ['silver', 'gold_ore', 'crystal', 'ruby', 'sapphire', 'emerald'];
+
+function adGoldAmount(level: number): number {
+  return 75 + level * 15;
+}
 
 function todayKey(): string {
   const d = new Date();
@@ -63,12 +69,45 @@ export default function BoutiqueScreen() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [chestClaimedToday, setChestClaimedToday] = useState<boolean | null>(null);
   const [chestBusy, setChestBusy] = useState(false);
+  const [adGoldCount, setAdGoldCount] = useState<number | null>(null);
+  const [adGoldBusy, setAdGoldBusy] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem(DAILY_CHEST_KEY)
       .then((v) => setChestClaimedToday(v === todayKey()))
       .catch(() => setChestClaimedToday(false));
+    AsyncStorage.getItem(AD_GOLD_KEY)
+      .then((raw) => {
+        if (!raw) return setAdGoldCount(0);
+        try {
+          const parsed = JSON.parse(raw) as { day?: string; count?: number };
+          setAdGoldCount(parsed.day === todayKey() ? Math.max(0, parsed.count ?? 0) : 0);
+        } catch {
+          setAdGoldCount(0);
+        }
+      })
+      .catch(() => setAdGoldCount(0));
   }, []);
+
+  const watchAdForGold = async () => {
+    if (adGoldBusy || adGoldCount === null || adGoldCount >= AD_GOLD_MAX_PER_DAY) return;
+    setAdGoldBusy(true);
+    try {
+      const watched = await showRewardedAd('gold_boost');
+      if (!watched) return;
+      const gold = adGoldAmount(game.player.level);
+      // Créditer d'abord, puis marquer le compteur : en cas de crash au milieu,
+      // le joueur ne perd jamais sa récompense (au pire une pub bonus).
+      game.addGold(gold);
+      const nextCount = adGoldCount + 1;
+      await AsyncStorage.setItem(AD_GOLD_KEY, JSON.stringify({ day: todayKey(), count: nextCount }));
+      setAdGoldCount(nextCount);
+      setFeedback(`+${gold} or ajoutés à ta bourse ! (${nextCount}/${AD_GOLD_MAX_PER_DAY} aujourd'hui)`);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } finally {
+      setAdGoldBusy(false);
+    }
+  };
 
   const claimDailyChest = async () => {
     if (chestBusy || chestClaimedToday !== false) return;
@@ -155,6 +194,39 @@ export default function BoutiqueScreen() {
           {/* Coffre quotidien gratuit (pub récompensée) */}
           <Text style={[styles.sectionLabel, { color: colors.primary }]}>GRATUIT DU JOUR</Text>
           {adsUnlocked ? (
+            <>
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.accent + '55' }]}>
+              <View style={styles.cardRow}>
+                <Feather name="play-circle" size={20} color={colors.accent} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.cardTitle, { color: colors.foreground }]}>Or contre une pub</Text>
+                  <Text style={[styles.cardDesc, { color: colors.mutedForeground }]}>
+                    Regarde une courte pub et gagne +{adGoldAmount(game.player.level)} or —{' '}
+                    {AD_GOLD_MAX_PER_DAY} fois par jour
+                  </Text>
+                </View>
+              </View>
+              {adGoldCount !== null && adGoldCount >= AD_GOLD_MAX_PER_DAY ? (
+                <View style={[styles.buyBtn, { backgroundColor: colors.accent + '22' }]}>
+                  <Text style={[styles.buyBtnText, { color: colors.accent }]}>
+                    Limite du jour atteinte — reviens demain ✦
+                  </Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.buyBtn, { backgroundColor: colors.accent }]}
+                  onPress={watchAdForGold}
+                  disabled={adGoldBusy || adGoldCount === null}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.buyBtnText, { color: '#1A1208' }]}>
+                    {adGoldBusy
+                      ? 'Publicité en cours…'
+                      : `🎬 +${adGoldAmount(game.player.level)} or contre une pub (${adGoldCount ?? 0}/${AD_GOLD_MAX_PER_DAY})`}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
             <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.accent + '55' }]}>
               <View style={styles.cardRow}>
                 <Feather name="gift" size={20} color={colors.accent} />
@@ -182,6 +254,7 @@ export default function BoutiqueScreen() {
                 </TouchableOpacity>
               )}
             </View>
+            </>
           ) : (
             <Text style={[styles.cardDesc, { color: colors.mutedForeground }]}>
               Débloqué au niveau {ADS_UNLOCK_LEVEL} du forgeron — continue de forger !

@@ -17,7 +17,7 @@ import { useGame } from '@/context/GameContext';
 export const ADS_UNLOCK_LEVEL = 5;
 const SIMULATED_AD_SECONDS = 5;
 
-export type AdPlacement = 'double_craft_reward' | 'daily_chest';
+export type AdPlacement = 'double_craft_reward' | 'daily_chest' | 'gold_boost';
 
 interface RewardedAdsContextValue {
   /** true dès que le forgeron a atteint le niveau 5 */
