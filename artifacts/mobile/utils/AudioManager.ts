@@ -76,6 +76,22 @@ function assetToWebUrl(src: SoundModule): string | null {
   } catch { return null; }
 }
 
+// ─── Sound pool config ────────────────────────────────────────────────────────
+
+/**
+ * Short-duration sounds that benefit from a small player pool so rapid taps
+ * can overlap without cancelling each other.  Long-duration sounds (craft
+ * complete, achievement, etc.) keep the single-player approach.
+ */
+const POOLED_SOUNDS = new Set([
+  'hammer_strike',
+  'perfect_strike',
+  'click',
+  'collect',
+  'coin',
+]);
+const POOL_SIZE = 3;
+
 // ─── AudioManagerClass ───────────────────────────────────────────────────────
 
 class AudioManagerClass {
@@ -84,7 +100,10 @@ class AudioManagerClass {
   private masterGain: GainNode | null = null;
 
   // expo-audio players (native only)
-  private nativePlayers: Record<string, ExpoAudioPlayer> = {};
+  // Pooled sounds → array of players; single sounds → one player.
+  private nativePlayers: Record<string, ExpoAudioPlayer | ExpoAudioPlayer[]> = {};
+  /** Round-robin index per pooled sound key. */
+  private nativePoolIndexes: Record<string, number> = {};
   private nativeLoaded = false;
   private nativeAmbiencePlayer: ExpoAudioPlayer | null = null;
   private ambienceVolume = 0.15;
@@ -130,9 +149,21 @@ class AudioManagerClass {
     if (!cap) { this.nativeLoaded = false; return; }
     try {
       for (const [key, src] of Object.entries(SOUND_FILES)) {
-        const player: ExpoAudioPlayer = cap(src);
-        player.volume = this.muted ? 0 : this.volume;
-        this.nativePlayers[key] = player;
+        if (POOLED_SOUNDS.has(key)) {
+          // Create a small pool so rapid taps overlap without cancelling
+          const pool: ExpoAudioPlayer[] = [];
+          for (let i = 0; i < POOL_SIZE; i++) {
+            const p: ExpoAudioPlayer = cap(src);
+            p.volume = this.muted ? 0 : this.volume;
+            pool.push(p);
+          }
+          this.nativePlayers[key] = pool;
+          this.nativePoolIndexes[key] = 0;
+        } else {
+          const player: ExpoAudioPlayer = cap(src);
+          player.volume = this.muted ? 0 : this.volume;
+          this.nativePlayers[key] = player;
+        }
       }
       this.nativeLoaded = true;
     } catch {
@@ -143,15 +174,27 @@ class AudioManagerClass {
   private _playNative(key: string): void {
     if (this.muted) return;
     if (!this.nativeLoaded) return;
-    const player: ExpoAudioPlayer = this.nativePlayers[key];
-    if (!player) return;
+    const entry = this.nativePlayers[key];
+    if (!entry) return;
     try {
-      player.volume = this.volume;
-      // Seek to start then play so the same player can be reused
-      player.seekTo(0).then(() => player.play()).catch(() => {
-        // Fallback: just call play directly
-        try { player.play(); } catch { /* ignore */ }
-      });
+      if (Array.isArray(entry)) {
+        // Round-robin through the pool so successive rapid taps each get their
+        // own player and never cancel a sound that is still playing.
+        const idx = this.nativePoolIndexes[key] ?? 0;
+        const player: ExpoAudioPlayer = entry[idx];
+        this.nativePoolIndexes[key] = (idx + 1) % entry.length;
+        player.volume = this.volume;
+        player.seekTo(0).then(() => player.play()).catch(() => {
+          try { player.play(); } catch { /* ignore */ }
+        });
+      } else {
+        // Single player for long-duration sounds — seek then play as before
+        const player: ExpoAudioPlayer = entry;
+        player.volume = this.volume;
+        player.seekTo(0).then(() => player.play()).catch(() => {
+          try { player.play(); } catch { /* ignore */ }
+        });
+      }
     } catch {
       // ignore playback errors
     }
@@ -517,9 +560,13 @@ class AudioManagerClass {
     }
     if (Platform.OS !== 'web') {
       const v = value ? 0 : this.volume;
-      Object.values(this.nativePlayers).forEach((p) => {
-        try { p.volume = v; } catch { /* ignore */ }
-      });
+      for (const entry of Object.values(this.nativePlayers)) {
+        if (Array.isArray(entry)) {
+          entry.forEach((p) => { try { p.volume = v; } catch { /* ignore */ } });
+        } else {
+          try { entry.volume = v; } catch { /* ignore */ }
+        }
+      }
       if (this.nativeAmbiencePlayer) {
         try { this.nativeAmbiencePlayer.volume = value ? 0 : this.ambienceVolume; } catch { /* ignore */ }
       }
@@ -541,9 +588,13 @@ class AudioManagerClass {
     }
     if (Platform.OS !== 'web') {
       const v = this.muted ? 0 : this.volume;
-      Object.values(this.nativePlayers).forEach((p) => {
-        try { p.volume = v; } catch { /* ignore */ }
-      });
+      for (const entry of Object.values(this.nativePlayers)) {
+        if (Array.isArray(entry)) {
+          entry.forEach((p) => { try { p.volume = v; } catch { /* ignore */ } });
+        } else {
+          try { entry.volume = v; } catch { /* ignore */ }
+        }
+      }
       if (this.nativeAmbiencePlayer) {
         try { this.nativeAmbiencePlayer.volume = this.muted ? 0 : this.ambienceVolume; } catch { /* ignore */ }
       }
