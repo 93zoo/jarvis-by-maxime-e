@@ -1411,51 +1411,46 @@ export default function ForgeScreen() {
         style={[styles.bottomPanel, craftPhase !== 'IDLE' && { backgroundColor: 'rgba(10,7,5,0.85)' }, { pointerEvents: 'box-none' }]}
       >
         {craftPhase === 'IDLE' && (
-          <View style={md.centerActions} pointerEvents="box-none">
-            <View style={md.actionsBand}>
-              <View style={md.actionRow}>
-                <TouchableOpacity
-                  style={md.sideBtn}
-                  onPress={() => setShowUpgradesModal(true)}
-                  activeOpacity={0.82}
+          <>
+            {/* FORGER — floating above the anvil */}
+            <View style={md.forgeOverAnvil} pointerEvents="box-none">
+              <TouchableOpacity
+                style={md.forgeBtn}
+                onPress={() => setShowRecipeSheet(true)}
+                activeOpacity={0.82}
+              >
+                <LinearGradient
+                  colors={['#5A2E0E', '#8A4416', '#5A2E0E']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={md.forgeBtnInner}
                 >
-                  <Feather name="trending-up" size={18} color={MEDIEVAL.textLight} />
-                  <Text style={md.sideBtnText}>AMÉLIORER</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={md.forgeBtn}
-                  onPress={() => setShowRecipeSheet(true)}
-                  activeOpacity={0.82}
-                >
-                  <LinearGradient
-                    colors={['#5A2E0E', '#8A4416', '#5A2E0E']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 0, y: 1 }}
-                    style={md.forgeBtnInner}
-                  >
-                    <Feather name="tool" size={22} color={MEDIEVAL.ember} />
-                    <Text style={md.forgeBtnText}>FORGER</Text>
-                    <Text style={md.forgeBtnSub}>{availableRecipes.length} recettes</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={md.sideBtn}
-                  onPress={() => setShowOrdersModal(true)}
-                  activeOpacity={0.82}
-                >
-                  <Feather name="inbox" size={18} color={MEDIEVAL.textLight} />
-                  <Text style={md.sideBtnText}>COMMANDES</Text>
-                  {pendingCount > 0 && (
-                    <View style={md.badge}>
-                      <Text style={md.badgeText}>{pendingCount}</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              </View>
+                  <Feather name="tool" size={22} color={MEDIEVAL.ember} />
+                  <Text style={md.forgeBtnText}>FORGER</Text>
+                  <Text style={md.forgeBtnSub}>{availableRecipes.length} recettes</Text>
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
-          </View>
+
+            {/* COMMANDES — round button just above the Forge tab icon */}
+            <View style={[md.bottomRoundBtn, { bottom: bottomPad + 16 }]} pointerEvents="box-none">
+              <RailButton
+                icon="inbox"
+                label="COMMANDES"
+                badge={pendingCount > 0 ? pendingCount : undefined}
+                onPress={() => setShowOrdersModal(true)}
+              />
+            </View>
+
+            {/* AMÉLIORER — under the header gear icon */}
+            <View style={[md.ameliorerBtn, { top: headerTopPad + 122 }]} pointerEvents="box-none">
+              <RailButton
+                icon="trending-up"
+                label="AMÉLIORER"
+                onPress={() => setShowUpgradesModal(true)}
+              />
+            </View>
+          </>
         )}
 
         {craftPhase === 'HAMMERING' && (
@@ -2116,6 +2111,9 @@ const md = StyleSheet.create({
   },
   centerActions: { ...StyleSheet.absoluteFillObject, justifyContent: 'center' },
   actionsBand: { backgroundColor: 'rgba(0,0,0,0.88)', paddingVertical: 20, paddingHorizontal: 16 },
+  forgeOverAnvil: { position: 'absolute', top: '39%', left: 0, right: 0, alignItems: 'center' },
+  bottomRoundBtn: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+  ameliorerBtn: { position: 'absolute', right: 16 },
   sideBtn: {
     flex: 1,
     alignItems: 'center',
@@ -2129,7 +2127,7 @@ const md = StyleSheet.create({
   },
   sideBtnText: { color: MEDIEVAL.textLight, fontSize: 9, fontWeight: '800', letterSpacing: 1 },
   forgeBtn: {
-    flex: 1.6,
+    width: 190,
     borderRadius: 12,
     borderWidth: 1.5,
     borderColor: MEDIEVAL.borderBright,
