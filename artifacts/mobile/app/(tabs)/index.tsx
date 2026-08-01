@@ -21,6 +21,7 @@ import { useGame } from '@/context/GameContext';
 import { useColors } from '@/hooks/useColors';
 import type { Item, Quality, RecipeData } from '@/types/game';
 import ForgeScene3D, { CraftPhase, ForgeScene3DRef } from '@/components/ForgeScene3D';
+import ForgeBackdrop from '@/components/ForgeBackdrop';
 import HammeringMiniGame, { HitLabel } from '@/components/HammeringMiniGame';
 import WeatherEffect, { WeatherType } from '@/components/WeatherEffect';
 import AudioManager from '@/utils/AudioManager';
@@ -926,6 +927,9 @@ export default function ForgeScreen() {
     applyStoredAudioSettings();
     // Start the looping fire-crackle ambience when the forge tab is entered
     AudioManager.startForgeAmbience();
+    // Medieval music bed + layered environmental loops (fire crackle, bellows)
+    AudioManager.startMusic();
+    AudioManager.startAmbienceLayers();
 
     // Web: use the Page Visibility API to suspend/resume the AudioContext so
     // the oscillator graph stays alive and there is no audible gap on return.
@@ -1322,6 +1326,8 @@ export default function ForgeScreen() {
 
       {/* ── 3D Scene (always rendered for audio/particles; hidden in IDLE by opacity) ── */}
       <View style={styles.sceneContainer}>
+        {/* Cinematic living backdrop (artwork + embers, smoke, glow, dust) */}
+        <ForgeBackdrop />
         {/* Dark overlay during craft phases */}
         {craftPhase !== 'IDLE' && (
           <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(5,3,2,0.55)' }]} />

@@ -59,6 +59,22 @@ const SOUND_FILES: Record<string, SoundModule> = {
 // Ambience asset kept separate — loaded lazily on demand, not pre-warmed.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const FORGE_AMBIENCE_SRC: SoundModule = require('../assets/sounds/forge_ambience.mp3');
+// Medieval background music + layered forge ambience loops (generated assets).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const MUSIC_SRC: SoundModule = require('../assets/sounds/medieval_music.mp3');
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const FIRE_CRACKLE_SRC: SoundModule = require('../assets/sounds/fire_crackle.mp3');
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const BELLOWS_SRC: SoundModule = require('../assets/sounds/forge_bellows.mp3');
+
+/** Resolves a required asset module to a playable URL on web. */
+function assetToWebUrl(src: SoundModule): string | null {
+  try {
+    if (typeof src === 'string') return src;
+    if (src && typeof src === 'object' && 'uri' in src) return src.uri as string;
+    return null;
+  } catch { return null; }
+}
 
 // ─── AudioManagerClass ───────────────────────────────────────────────────────
 
@@ -77,6 +93,18 @@ class AudioManagerClass {
   private volume = 0.35;
   /** User-facing volume level 0–1 (before the internal 0.35 ceiling). */
   private volumeLevel = 1.0;
+  /** Independent music volume 0–1. */
+  private musicVolumeLevel = 0.6;
+  /** Independent ambience volume 0–1. */
+  private ambienceVolumeLevel = 0.5;
+
+  // Music player (native expo-audio or web HTMLAudio)
+  private nativeMusicPlayer: ExpoAudioPlayer | null = null;
+  private webMusicEl: HTMLAudioElement | null = null;
+
+  // Layered ambience loops (fire crackle + bellows)
+  private nativeAmbienceLayers: ExpoAudioPlayer[] = [];
+  private webAmbienceEls: HTMLAudioElement[] = [];
 
   // Forge ambience nodes (fire crackle loop)
   private ambienceSource: AudioBufferSourceNode | null = null;
@@ -496,6 +524,9 @@ class AudioManagerClass {
         try { this.nativeAmbiencePlayer.volume = value ? 0 : this.ambienceVolume; } catch { /* ignore */ }
       }
     }
+    // Keep music + ambience layers in sync with mute
+    this.setMusicVolume(this.musicVolumeLevel);
+    this.setAmbienceVolume(this.ambienceVolumeLevel);
   }
 
   isMuted(): boolean {
@@ -522,6 +553,140 @@ class AudioManagerClass {
   /** Returns the user-facing volume level 0–1. */
   getVolume(): number {
     return this.volumeLevel;
+  }
+
+  // ── Medieval background music ──────────────────────────────────────────────
+
+  /** Starts the looping medieval music bed. Safe to call multiple times. */
+  startMusic(): void {
+    if (Platform.OS !== 'web') {
+      if (this.nativeMusicPlayer) return;
+      const cap = getCreateAudioPlayer();
+      if (!cap) return;
+      try {
+        const player: ExpoAudioPlayer = cap(MUSIC_SRC);
+        player.loop = true;
+        player.volume = this.muted ? 0 : this.musicVolumeLevel * 0.6;
+        player.play();
+        this.nativeMusicPlayer = player;
+      } catch { /* degrade silently */ }
+      return;
+    }
+    if (this.webMusicEl) return;
+    try {
+      const url = assetToWebUrl(MUSIC_SRC);
+      if (!url) return;
+      const el = new Audio(url);
+      el.loop = true;
+      el.volume = this.muted ? 0 : this.musicVolumeLevel * 0.6;
+      // Autoplay may be blocked until a user gesture — retry on first interaction.
+      el.play().catch(() => {
+        const kick = () => {
+          el.play().catch(() => { /* ignore */ });
+          window.removeEventListener('pointerdown', kick);
+        };
+        window.addEventListener('pointerdown', kick);
+      });
+      this.webMusicEl = el;
+    } catch { /* ignore */ }
+  }
+
+  stopMusic(): void {
+    if (Platform.OS !== 'web') {
+      if (this.nativeMusicPlayer) {
+        try { this.nativeMusicPlayer.pause(); } catch { /* ignore */ }
+        this.nativeMusicPlayer = null;
+      }
+      return;
+    }
+    if (this.webMusicEl) {
+      try { this.webMusicEl.pause(); } catch { /* ignore */ }
+      this.webMusicEl = null;
+    }
+  }
+
+  setMusicVolume(level: number): void {
+    this.musicVolumeLevel = Math.max(0, Math.min(1, level));
+    const v = this.muted ? 0 : this.musicVolumeLevel * 0.6;
+    if (this.nativeMusicPlayer) {
+      try { this.nativeMusicPlayer.volume = v; } catch { /* ignore */ }
+    }
+    if (this.webMusicEl) {
+      try { this.webMusicEl.volume = v; } catch { /* ignore */ }
+    }
+  }
+
+  getMusicVolume(): number {
+    return this.musicVolumeLevel;
+  }
+
+  // ── Layered forge ambience (fire crackle + bellows + coal) ────────────────
+
+  /** Starts the layered environmental loops. Safe to call multiple times. */
+  startAmbienceLayers(): void {
+    const layers = [
+      { src: FIRE_CRACKLE_SRC, vol: 0.5 },
+      { src: BELLOWS_SRC, vol: 0.35 },
+    ];
+    if (Platform.OS !== 'web') {
+      if (this.nativeAmbienceLayers.length > 0) return;
+      const cap = getCreateAudioPlayer();
+      if (!cap) return;
+      try {
+        for (const { src, vol } of layers) {
+          const player: ExpoAudioPlayer = cap(src);
+          player.loop = true;
+          player.volume = this.muted ? 0 : vol * this.ambienceVolumeLevel;
+          player.play();
+          this.nativeAmbienceLayers.push(player);
+        }
+      } catch { /* degrade silently */ }
+      return;
+    }
+    if (this.webAmbienceEls.length > 0) return;
+    try {
+      for (const { src, vol } of layers) {
+        const url = assetToWebUrl(src);
+        if (!url) continue;
+        const el = new Audio(url);
+        el.loop = true;
+        el.volume = this.muted ? 0 : vol * this.ambienceVolumeLevel;
+        el.play().catch(() => {
+          const kick = () => {
+            el.play().catch(() => { /* ignore */ });
+            window.removeEventListener('pointerdown', kick);
+          };
+          window.addEventListener('pointerdown', kick);
+        });
+        this.webAmbienceEls.push(el);
+      }
+    } catch { /* ignore */ }
+  }
+
+  stopAmbienceLayers(): void {
+    for (const p of this.nativeAmbienceLayers) {
+      try { p.pause(); } catch { /* ignore */ }
+    }
+    this.nativeAmbienceLayers = [];
+    for (const el of this.webAmbienceEls) {
+      try { el.pause(); } catch { /* ignore */ }
+    }
+    this.webAmbienceEls = [];
+  }
+
+  setAmbienceVolume(level: number): void {
+    this.ambienceVolumeLevel = Math.max(0, Math.min(1, level));
+    const baseVols = [0.5, 0.35];
+    this.nativeAmbienceLayers.forEach((p, i) => {
+      try { p.volume = this.muted ? 0 : (baseVols[i] ?? 0.4) * this.ambienceVolumeLevel; } catch { /* ignore */ }
+    });
+    this.webAmbienceEls.forEach((el, i) => {
+      try { el.volume = this.muted ? 0 : (baseVols[i] ?? 0.4) * this.ambienceVolumeLevel; } catch { /* ignore */ }
+    });
+  }
+
+  getAmbienceVolume(): number {
+    return this.ambienceVolumeLevel;
   }
 }
 

@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Modal,
   PanResponder,
   Platform,
@@ -101,31 +102,77 @@ function TalentNode({
   const bg = unlocked ? treeColor : available ? '#0A0810' : '#12101A';
   const border = unlocked ? treeColor : available ? treeColor : '#2A2840';
   const opacity = unlocked ? 1 : available ? 0.9 : 0.4;
+
+  // Soft pulse on available nodes; steady glow on unlocked ones
+  const pulse = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (!available && !selected) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1.12, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 900, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [available, selected, pulse]);
+
+  // Pop animation when a talent gets unlocked
+  const unlockScale = useRef(new Animated.Value(1)).current;
+  const prevUnlocked = useRef(unlocked);
+  useEffect(() => {
+    if (unlocked && !prevUnlocked.current) {
+      unlockScale.setValue(0.5);
+      Animated.spring(unlockScale, { toValue: 1, friction: 4, tension: 120, useNativeDriver: true }).start();
+    }
+    prevUnlocked.current = unlocked;
+  }, [unlocked, unlockScale]);
+
+  const glowOpacity = unlocked ? 0.5 : available ? 0.28 : 0;
+
   return (
-    <TouchableOpacity
-      activeOpacity={0.8}
-      onPress={onPress}
+    <Animated.View
       style={{
         position: 'absolute',
         left: x - NODE_R,
         top: y - NODE_R,
         width: NODE_R * 2,
         height: NODE_R * 2,
-        borderRadius: NODE_R,
-        backgroundColor: bg,
-        borderWidth: selected ? 3 : 2,
-        borderColor: selected ? '#fff' : border,
-        opacity,
-        justifyContent: 'center',
-        alignItems: 'center',
+        transform: [{ scale: Animated.multiply(pulse, unlockScale) }],
       }}
     >
-      <Feather
-        name={talent.icon as 'tool'}
-        size={14}
-        color={unlocked ? '#fff' : available ? treeColor : '#3A3860'}
+      {/* Glow halo */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          left: -7, top: -7, right: -7, bottom: -7,
+          borderRadius: NODE_R + 7,
+          backgroundColor: treeColor,
+          opacity: glowOpacity,
+        }}
       />
-    </TouchableOpacity>
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={onPress}
+        style={{
+          flex: 1,
+          borderRadius: NODE_R,
+          backgroundColor: bg,
+          borderWidth: selected ? 3 : 2,
+          borderColor: selected ? '#fff' : border,
+          opacity,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <Feather
+          name={talent.icon as 'tool'}
+          size={14}
+          color={unlocked ? '#fff' : available ? treeColor : '#3A3860'}
+        />
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 
@@ -196,15 +243,6 @@ function TalentTreeView({
         contentContainerStyle={{ justifyContent: 'center', height: CANVAS_H }}
       >
         <View style={{ width: CANVAS_W, height: CANVAS_H }}>
-          {Array.from({ length: 5 }).map((_, tier) => (
-            <View
-              key={`tier-${tier}`}
-              pointerEvents="none"
-              style={[tStyles.tierRow, { top: TIER0_Y + tier * TIER_STEP - 40, borderColor: colors.border }]}
-            >
-              <Text style={[tStyles.tierLabel, { color: colors.mutedForeground }]}>PALIER {tier + 1}</Text>
-            </View>
-          ))}
           {/* Connection lines */}
           {treeTalents.map((t) => {
             const toPos = nodePosForTalent(t);
@@ -1477,6 +1515,87 @@ function AudioSettingsCard({ colors }: { colors: ReturnType<typeof useColors> })
         </View>
         <Feather name="volume-2" size={12} color={colors.mutedForeground} />
       </View>
+
+      {/* Independent music / ambience sliders */}
+      <AudioSubSlider
+        icon="music"
+        label="Musique"
+        color="#9966CC"
+        colors={colors}
+        getValue={() => AudioManager.getMusicVolume()}
+        setValue={(v) => AudioManager.setMusicVolume(v)}
+      />
+      <AudioSubSlider
+        icon="wind"
+        label="Ambiance (feu, soufflet)"
+        color="#D4851A"
+        colors={colors}
+        getValue={() => AudioManager.getAmbienceVolume()}
+        setValue={(v) => AudioManager.setAmbienceVolume(v)}
+      />
+    </View>
+  );
+}
+
+/** Compact slider row for music / ambience volumes (persisted via saveAudioSettings on release). */
+function AudioSubSlider({ icon, label, color, colors, getValue, setValue }: {
+  icon: 'music' | 'wind';
+  label: string;
+  color: string;
+  colors: ReturnType<typeof useColors>;
+  getValue: () => number;
+  setValue: (v: number) => void;
+}) {
+  const [value, setSliderValue] = useState(() => getValue());
+  const trackWidthRef = useRef(0);
+  const valueRef = useRef(value);
+  valueRef.current = value;
+
+  const applyFromX = (x: number) => {
+    const w = trackWidthRef.current;
+    if (w <= 0) return;
+    const v = Math.max(0, Math.min(1, x / w));
+    setSliderValue(v);
+    valueRef.current = v;
+    setValue(v);
+  };
+
+  const pan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (evt) => applyFromX(evt.nativeEvent.locationX),
+      onPanResponderMove: (evt) => applyFromX(evt.nativeEvent.locationX),
+      onPanResponderRelease: () => {
+        saveAudioSettings({
+          muted: AudioManager.isMuted(),
+          volume: AudioManager.getVolume(),
+          musicVolume: AudioManager.getMusicVolume(),
+          ambienceVolume: AudioManager.getAmbienceVolume(),
+        });
+      },
+    })
+  ).current;
+
+  return (
+    <View style={audioStyles.subSliderRow}>
+      <Feather name={icon} size={13} color={color} />
+      <Text style={[audioStyles.subSliderLabel, { color: colors.mutedForeground }]} numberOfLines={1}>
+        {label}
+      </Text>
+      <View
+        style={[audioStyles.subTrack, { backgroundColor: colors.muted }]}
+        onLayout={(e) => { trackWidthRef.current = e.nativeEvent.layout.width; }}
+        {...pan.panHandlers}
+      >
+        <View
+          style={[
+            audioStyles.subFill,
+            { width: `${Math.round(value * 100)}%` as `${number}%`, backgroundColor: color },
+          ]}
+        />
+      </View>
+      <Text style={[audioStyles.subSliderPct, { color }]}>{Math.round(value * 100)}%</Text>
     </View>
   );
 }
@@ -1493,6 +1612,11 @@ const audioStyles = StyleSheet.create({
   track: { flex: 1, height: 10, borderRadius: 5, overflow: 'visible', position: 'relative', justifyContent: 'center' },
   fill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 5, minWidth: 4 },
   thumb: { position: 'absolute', width: 18, height: 18, borderRadius: 9, marginLeft: -9, top: -4, borderWidth: 2, borderColor: '#fff' },
+  subSliderRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  subSliderLabel: { fontSize: 11, fontWeight: '600', width: 120 },
+  subTrack: { flex: 1, height: 8, borderRadius: 4, overflow: 'hidden', justifyContent: 'center' },
+  subFill: { height: '100%', borderRadius: 4, minWidth: 3 },
+  subSliderPct: { fontSize: 10, fontWeight: '800', width: 34, textAlign: 'right' },
 });
 
 // ─── Stats tab content ────────────────────────────────────────────────────────
@@ -2467,7 +2591,7 @@ export default function ProfileScreen() {
   const [selectedSkillId, setSelectedSkillId] = useState<SkillType | null>(null);
   const [selectedTree, setSelectedTree] = useState<TreeKey>('forge');
   const [showCustomize, setShowCustomize] = useState(false);
-  const [cardCollapsed, setCardCollapsed] = useState(false);
+  const [cardCollapsed, setCardCollapsed] = useState(true);
   const hasPromptedRef = useRef(false);
 
   // Auto-prompt customization on first session (name still at default)
@@ -2617,7 +2741,7 @@ export default function ProfileScreen() {
       {/* Tab bar */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.tabBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]} contentContainerStyle={{ flexGrow: 1 }}>
         {(['skills', 'talents', 'upgrades', 'achievements', 'stats'] as const).map((tab) => {
-          const labels: Record<string, string> = { skills: 'Compétences', talents: 'Talents', upgrades: 'Améliorations', achievements: 'Succès', stats: 'Stats' };
+          const labels: Record<string, string> = { skills: '⭐ Compétences', talents: 'Talents', upgrades: 'Améliorations', achievements: 'Succès', stats: 'Stats' };
           return (
             <TouchableOpacity
               key={tab}

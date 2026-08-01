@@ -108,3 +108,24 @@ id = "ZRFl0C4F0qlS91-dSKhDc"
 uri = "file://artifacts/mobile/assets/sounds/craft_fail_2.mp3"
 type = "audio"
 title = "craft_fail"
+
+[[outputs]]
+id = "VPn0I4OaOUsx_cqBcSYkn"
+uri = "file://artifacts/mobile/assets/sounds/fire_crackle.mp3"
+type = "audio"
+title = "fire crackle loop"
+description = "Generated sound effect: Crackling fireplace fire, warm crackles and pops, steady cozy campfire burning, seamless loop"
+
+[[outputs]]
+id = "Pp1Ptq6aixMi92JYOY30P"
+uri = "file://artifacts/mobile/assets/sounds/forge_bellows.mp3"
+type = "audio"
+title = "forge bellows loop"
+description = "Generated sound effect: Blacksmith forge ambience: soft bellows whoosh, glowing coal bed rumble, occasional faint distant metal tink, deep warm air movement, seamless loop"
+
+[[outputs]]
+id = "kD82Ro6l9cXe-TQ0wywiy"
+uri = "file://artifacts/mobile/assets/sounds/medieval_music.mp3"
+type = "audio"
+title = "medieval forge ambience"
+description = "Generated music: Medieval blacksmith forge ambient music, very calm and immersive, soft lute and dulcimer melody, subtle low strings, gentle and unobtrusive, loopable background atmosphere, no drums,…"

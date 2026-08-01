@@ -10,8 +10,12 @@ export const AUDIO_SETTINGS_KEY = '@fk_audio_settings';
 
 export interface AudioSettings {
   muted: boolean;
-  /** User-facing volume 0–1 */
+  /** User-facing SFX volume 0–1 */
   volume: number;
+  /** Music volume 0–1 (independent) */
+  musicVolume?: number;
+  /** Ambience volume 0–1 (independent) */
+  ambienceVolume?: number;
 }
 
 /** Load audio prefs from AsyncStorage and apply them to AudioManager. */
@@ -21,6 +25,8 @@ export async function applyStoredAudioSettings(): Promise<void> {
     if (!raw) return;
     const settings: AudioSettings = JSON.parse(raw);
     AudioManager.setVolume(settings.volume ?? 1);
+    AudioManager.setMusicVolume(settings.musicVolume ?? 0.6);
+    AudioManager.setAmbienceVolume(settings.ambienceVolume ?? 0.5);
     AudioManager.setMuted(settings.muted ?? false);
   } catch {
     // ignore — audio works with defaults
