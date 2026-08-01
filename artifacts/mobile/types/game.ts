@@ -341,6 +341,12 @@ export interface CraftOrder {
   reputationReward: number;
   accepted: boolean;
   completed: boolean;
+  /** True for time-sensitive urgent orders (10–30 min real-time countdown). */
+  isUrgent?: boolean;
+  /** Extra gold awarded if delivered before deadline (urgent orders only). */
+  urgentBonusGold?: number;
+  /** Extra XP awarded if delivered before deadline (urgent orders only). */
+  urgentBonusXp?: number;
 }
 
 // ---------------------------------------------------------------------------

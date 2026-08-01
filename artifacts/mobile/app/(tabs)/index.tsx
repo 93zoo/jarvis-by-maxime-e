@@ -254,6 +254,20 @@ const oStyles = StyleSheet.create({
   btnAccept: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 },
   btnRefuse: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center', borderWidth: 1 },
   btnText: { fontSize: 14, fontWeight: '700' },
+  urgentBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  urgentBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, gap: 4 },
+  urgentBadgeText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
+  urgentTimer: { fontSize: 14, fontWeight: '800', letterSpacing: 1, fontVariant: ['tabular-nums'] as const },
+  urgentBonusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' },
+  urgentBonusChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, gap: 3 },
+  urgentBonusText: { fontSize: 11, fontWeight: '700' },
+  urgentHeaderBadge: {
+    position: 'absolute', top: -5, right: -7,
+    minWidth: 16, height: 16, borderRadius: 8,
+    backgroundColor: '#FF3D00', alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  urgentHeaderBadgeText: { fontSize: 9, fontWeight: '800', color: '#fff' },
 });
 
 function OrdersModal({
@@ -268,6 +282,13 @@ function OrdersModal({
   setDeliverOrderId: (id: string | null) => void;
 }) {
   const [deliverMsg, setDeliverMsg] = useState<string | null>(null);
+  const [nowTick, setNowTick] = useState(Date.now());
+  useEffect(() => {
+    if (!visible) return;
+    const id = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [visible]);
+
   const pendingOrders = game.activeOrders.filter((o) => !o.completed);
   const selectedOrder = deliverOrderId ? pendingOrders.find((o) => o.id === deliverOrderId) : null;
 
@@ -292,9 +313,14 @@ function OrdersModal({
       })
     : [];
 
-  const deadlineLabel = (deadline: number) => {
-    const diff = deadline - Date.now();
-    if (diff <= 0) return 'Expiré';
+  const deadlineLabel = (deadline: number, urgent?: boolean) => {
+    const diff = deadline - nowTick;
+    if (diff <= 0) return urgent ? '00:00' : 'Expiré';
+    if (urgent) {
+      const m = Math.floor(diff / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
     const h = Math.floor(diff / 3600000);
     const m = Math.floor((diff % 3600000) / 60000);
     return h > 0 ? `${h}h${m}m` : `${m}m`;
@@ -378,26 +404,62 @@ function OrdersModal({
                 </View>
               }
               renderItem={({ item: order }) => {
-                const expired = order.deadline < Date.now();
+                const expired = order.deadline < nowTick;
+                const urgentTimerDone = order.isUrgent && expired;
+                const urgentBorderColor = order.isUrgent ? (expired ? '#B71C1C' : '#FF6D00') : order.accepted ? colors.primary : colors.border;
                 return (
-                  <View style={[oStyles.orderCard, { backgroundColor: colors.secondary, borderColor: order.accepted ? colors.primary : colors.border }]}>
+                  <View style={[oStyles.orderCard, { backgroundColor: colors.secondary, borderColor: urgentBorderColor, borderWidth: order.isUrgent ? 2 : 1 }]}>
                     <View style={oStyles.orderCardTop}>
                       <Text style={{ fontSize: 24 }}>{order.npcEmoji}</Text>
                       <View style={{ flex: 1 }}>
                         <Text style={[oStyles.orderNPC, { color: colors.foreground }]}>{order.npcName}</Text>
                         <Text style={[oStyles.orderType, { color: colors.mutedForeground }]}>
-                          {order.npcType} · {deadlineLabel(order.deadline)}
-                          {expired && <Text style={{ color: '#F44336' }}> EXPIRÉ</Text>}
+                          {order.npcType}
+                          {!order.isUrgent && ` · ${deadlineLabel(order.deadline)}`}
+                          {!order.isUrgent && expired && <Text style={{ color: '#F44336' }}> EXPIRÉ</Text>}
                         </Text>
                       </View>
                       <View style={[oStyles.rewardBadge, { backgroundColor: colors.card }]}>
                         <Text style={[oStyles.rewardText, { color: colors.accent }]}>{order.goldReward}g</Text>
                       </View>
                     </View>
+
+                    {/* Urgent badge + live countdown */}
+                    {order.isUrgent && (
+                      <View style={oStyles.urgentBadgeRow}>
+                        <View style={[oStyles.urgentBadge, { backgroundColor: urgentTimerDone ? '#B71C1C22' : '#FF6D0022' }]}>
+                          <Text style={{ fontSize: 12 }}>⚡</Text>
+                          <Text style={[oStyles.urgentBadgeText, { color: urgentTimerDone ? '#FF5252' : '#FF6D00' }]}>
+                            {urgentTimerDone ? 'EXPIRÉ' : 'URGENT'}
+                          </Text>
+                        </View>
+                        {!urgentTimerDone && (
+                          <Text style={[oStyles.urgentTimer, { color: nowTick > order.deadline - 5 * 60_000 ? '#FF3D00' : '#FF8F00' }]}>
+                            {deadlineLabel(order.deadline, true)}
+                          </Text>
+                        )}
+                      </View>
+                    )}
+
                     <Text style={[oStyles.orderRequest, { color: colors.foreground }]}>Commande : {order.requestedName}</Text>
                     <Text style={[oStyles.orderMeta, { color: colors.mutedForeground }]}>
                       {order.requestedCategory} · +{order.xpReward} XP
                     </Text>
+
+                    {/* Urgent bonus preview */}
+                    {order.isUrgent && !urgentTimerDone && (
+                      <View style={oStyles.urgentBonusRow}>
+                        <Text style={[oStyles.urgentBonusText, { color: colors.mutedForeground }]}>Si livré à temps :</Text>
+                        <View style={[oStyles.urgentBonusChip, { backgroundColor: '#FF6D0020' }]}>
+                          <Text style={{ fontSize: 11 }}>⚡</Text>
+                          <Text style={[oStyles.urgentBonusText, { color: '#FF8F00' }]}>+{order.urgentBonusGold ?? 0}g</Text>
+                        </View>
+                        <View style={[oStyles.urgentBonusChip, { backgroundColor: '#1565C020' }]}>
+                          <Text style={{ fontSize: 11 }}>✨</Text>
+                          <Text style={[oStyles.urgentBonusText, { color: '#1E88E5' }]}>+{order.urgentBonusXp ?? 0} XP</Text>
+                        </View>
+                      </View>
+                    )}
                     {(() => {
                       const reach = qualityReachability(order.minQuality, game.player.skills.forge ?? 1);
                       const bgColor = reachabilityBgColor(reach);
@@ -1377,7 +1439,7 @@ export default function ForgeScreen() {
             </View>
           )}
           <TouchableOpacity
-            style={md.pill}
+            style={[md.pill, { position: 'relative' }]}
             onPress={() => setShowOrdersModal(true)}
             activeOpacity={0.8}
           >
@@ -1387,6 +1449,14 @@ export default function ForgeScreen() {
                 <Text style={md.headerBadgeText}>{pendingCount}</Text>
               </View>
             )}
+            {(() => {
+              const urgentCount = pendingOrders.filter((o) => o.isUrgent && o.deadline > Date.now()).length;
+              return urgentCount > 0 ? (
+                <View style={oStyles.urgentHeaderBadge}>
+                  <Text style={oStyles.urgentHeaderBadgeText}>⚡</Text>
+                </View>
+              ) : null;
+            })()}
           </TouchableOpacity>
         </View>
         </View>

@@ -167,6 +167,8 @@ function recipeUnlockCost(recipe: RecipeData): number {
 const ORDER_INTERVAL_MS = 3 * 60 * 1000; // 3 minutes
 /** Maximum simultaneous pending orders */
 const MAX_ORDERS = 5;
+/** Fraction of auto-generated orders that carry a short urgent countdown (10–30 min real-time). */
+const URGENT_ORDER_CHANCE = 0.22;
 
 /** Maximum inventory weight (kg) based on player level */
 const MAX_WEIGHT_BASE = 100;
@@ -296,7 +298,8 @@ type GameAction =
   | { type: 'ADD_ORDER'; order: CraftOrder }
   | { type: 'ACCEPT_ORDER'; orderId: string }
   | { type: 'REFUSE_ORDER'; orderId: string }
-  | { type: 'DELIVER_ORDER'; orderId: string; itemInstanceId: string }
+  | { type: 'DELIVER_ORDER'; orderId: string; itemInstanceId: string; onTime?: boolean }
+  | { type: 'EXPIRE_URGENT_ORDERS' }
   // Quests
   | { type: 'ACCEPT_QUEST'; questId: string }
   | { type: 'COMPLETE_QUEST'; questId: string }
@@ -492,12 +495,35 @@ function generateNpcOrder(playerLevel: number, forgeLevel: number, extraDeadline
       ?? ALL_RECIPES[0];
 
   const budgetRange = npc.budgetMax - npc.budgetMin;
-  const goldReward = Math.round(npc.budgetMin + Math.random() * budgetRange);
-  const xpReward = Math.round(recipe.xpReward * (1.5 + Math.random()));
+  const baseGold = Math.round(npc.budgetMin + Math.random() * budgetRange);
+  const baseXp = Math.round(recipe.xpReward * (1.5 + Math.random()));
   const repReward = Math.round(5 + Math.random() * 15);
-  // Deadline: 6–18 hours from now (more generous than before), plus any upgrade bonus
-  const deadlineHours = 6 + Math.floor(Math.random() * 13) + extraDeadlineHours;
-  const deadline = Date.now() + deadlineHours * 60 * 60 * 1000;
+
+  // Determine if this order carries an urgent short-window timer
+  const isUrgent = Math.random() < URGENT_ORDER_CHANCE;
+
+  let deadline: number;
+  let goldReward: number;
+  let xpReward: number;
+  let urgentBonusGold: number | undefined;
+  let urgentBonusXp: number | undefined;
+
+  if (isUrgent) {
+    // Short countdown: 10–30 minutes of real time
+    const urgentMinutes = 10 + Math.floor(Math.random() * 21);
+    deadline = Date.now() + urgentMinutes * 60_000;
+    // Higher base to reflect difficulty, plus a bonus stacked on top for on-time delivery
+    goldReward = Math.round(baseGold * 1.6);
+    xpReward = baseXp;
+    urgentBonusGold = Math.round(baseGold * 1.4);
+    urgentBonusXp = Math.round(baseXp * 1.5);
+  } else {
+    // Regular deadline: 6–18 hours, plus any upgrade extension
+    const deadlineHours = 6 + Math.floor(Math.random() * 13) + extraDeadlineHours;
+    deadline = Date.now() + deadlineHours * 60 * 60 * 1000;
+    goldReward = baseGold;
+    xpReward = baseXp;
+  }
 
   // Orders start with forgiving quality targets and rise only with actual forge
   // ability. This avoids "good" requests before the player can reliably make one.
@@ -527,6 +553,7 @@ function generateNpcOrder(playerLevel: number, forgeLevel: number, extraDeadline
     reputationReward: repReward,
     accepted: false,
     completed: false,
+    ...(isUrgent ? { isUrgent: true, urgentBonusGold, urgentBonusXp } : {}),
   };
 }
 
@@ -831,10 +858,20 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         activeOrders: state.activeOrders.filter((o) => o.id !== action.orderId),
       };
     }
+    case 'EXPIRE_URGENT_ORDERS': {
+      const now = Date.now();
+      const updated = state.activeOrders.filter(
+        (o) => !o.isUrgent || o.completed || o.deadline > now,
+      );
+      if (updated.length === state.activeOrders.length) return state;
+      return { ...state, activeOrders: updated };
+    }
+
     case 'DELIVER_ORDER': {
       const order = state.activeOrders.find((o) => o.id === action.orderId);
       if (!order) return state;
-      const gold = state.player.gold + order.goldReward;
+      const urgentBonus = action.onTime && order.isUrgent ? (order.urgentBonusGold ?? 0) : 0;
+      const gold = state.player.gold + order.goldReward + urgentBonus;
       const player = {
         ...state.player,
         gold,
@@ -1570,6 +1607,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.isLoaded, state.player.level]);
 
+  // Purge expired urgent orders every minute + immediately on load
+  useEffect(() => {
+    if (!state.isLoaded) return;
+    dispatch({ type: 'EXPIRE_URGENT_ORDERS' });
+    const t = setInterval(() => {
+      dispatch({ type: 'EXPIRE_URGENT_ORDERS' });
+    }, 60_000);
+    return () => clearInterval(t);
+  }, [state.isLoaded]);
+
   // Cloud auto-sync every 5 minutes — calls through ref so always uses current state
   useEffect(() => {
     if (!state.isLoaded) return;
@@ -2067,8 +2114,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       // Check minimum quality
       if (QUALITY_ORDER[item.quality] < QUALITY_ORDER[order.minQuality])
         return { success: false, message: `Qualité insuffisante (${item.quality} < ${order.minQuality} requis).` };
-      dispatch({ type: 'DELIVER_ORDER', orderId, itemInstanceId });
+      const onTime = !!(order.isUrgent && Date.now() <= order.deadline);
+      dispatch({ type: 'DELIVER_ORDER', orderId, itemInstanceId, onTime });
       dispatch({ type: 'ADD_PLAYER_XP', amount: order.xpReward });
+      if (onTime && order.urgentBonusXp) {
+        dispatch({ type: 'ADD_PLAYER_XP', amount: order.urgentBonusXp });
+      }
       dispatch({ type: 'ADD_SKILL_XP', skill: 'commerce', amount: Math.round(order.xpReward * 0.5) });
       // Collection bonuses: order gold and reputation
       const orderGoldBonus = computeCollectionBonus('orderGoldBonus', everCraftedRecipeIds);
@@ -2076,7 +2127,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         const bonusGold = Math.round(order.goldReward * orderGoldBonus / 100);
         if (bonusGold > 0) dispatch({ type: 'ADD_GOLD', amount: bonusGold });
       }
-      return { success: true, message: 'Livraison effectuée avec succès !' };
+      const bonusLine = onTime
+        ? ` ⚡ +${order.urgentBonusGold ?? 0}g et +${order.urgentBonusXp ?? 0} XP bonus !`
+        : '';
+      return { success: true, message: `Livraison effectuée avec succès !${bonusLine}` };
     },
     [state.activeOrders, state.craftedItems, everCraftedRecipeIds],
   );
