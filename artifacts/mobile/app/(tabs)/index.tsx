@@ -3,8 +3,8 @@ import {
   ActivityIndicator,
   Animated,
   AppState,
-  Easing,
   FlatList,
+  Image,
   ImageBackground,
   Modal,
   Platform,
@@ -910,7 +910,7 @@ export default function ForgeScreen() {
   const [overheated, setOverheated] = useState(false); // flash state
 
   const sceneRef = useRef<ForgeScene3DRef>(null);
-  const forgeSpinRef = useRef(new Animated.Value(0));
+  const forgePressRef = useRef(new Animated.Value(1));
   const hitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const temperatureRef = useRef(0); // readable inside callbacks without stale closure
   // ── Quench gauge ──
@@ -924,23 +924,23 @@ export default function ForgeScreen() {
   const headerTopPad = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPad = insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 80;
 
-  // Slow continuous spin of the FORGER artwork button above the anvil
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.timing(forgeSpinRef.current, {
-        toValue: 1,
-        duration: 9000,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    );
-    loop.start();
-    return () => loop.stop();
-  }, []);
-  const forgeSpin = forgeSpinRef.current.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
+  // Press feedback: slight shrink + bounce on the FORGER artwork button
+  const onForgePressIn = () => {
+    Animated.spring(forgePressRef.current, {
+      toValue: 0.88,
+      useNativeDriver: true,
+      speed: 40,
+      bounciness: 0,
+    }).start();
+  };
+  const onForgePressOut = () => {
+    Animated.spring(forgePressRef.current, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 16,
+      bounciness: 12,
+    }).start();
+  };
 
   // Init audio on mount + weather cycle + forge ambience
   useEffect(() => {
@@ -1446,14 +1446,21 @@ export default function ForgeScreen() {
             {/* FORGER — artwork button centered just above the bottom tab bar */}
             <View style={[md.forgeOverAnvil, { bottom: bottomPad + 8 }]} pointerEvents="box-none">
               <TouchableOpacity
-                onPress={() => setShowRecipeSheet(true)}
-                activeOpacity={0.82}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  setShowRecipeSheet(true);
+                }}
+                onPressIn={onForgePressIn}
+                onPressOut={onForgePressOut}
+                activeOpacity={1}
               >
-                <Animated.Image
-                  source={require('../../assets/images/forge-btn.png')}
-                  style={[md.forgeBtnArt, { transform: [{ rotate: forgeSpin }] }]}
-                  resizeMode="contain"
-                />
+                <Animated.View style={{ transform: [{ scale: forgePressRef.current }] }}>
+                  <Image
+                    source={require('../../assets/images/forge-btn.png')}
+                    style={md.forgeBtnArt}
+                    resizeMode="contain"
+                  />
+                </Animated.View>
               </TouchableOpacity>
             </View>
 
