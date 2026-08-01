@@ -255,3 +255,10 @@ uri = "file://screenshots/forge-commandes-header.jpg"
 type = "image"
 title = "Forge — FORGER corrigé + COMMANDES dans le header"
 description = "Le bouton FORGER artwork (avec rotation) utilise maintenant un chemin d'asset relatif qui fonctionne sur Expo Go, et COMMANDES a remplacé l'engrenage dans le header avec son badge."
+
+[[outputs]]
+id = "xpV5aAc1zshSeNkPthdIi"
+uri = "file://screenshots/forge-btn-bottom.jpg"
+type = "image"
+title = "Forge — bouton FORGER centré au-dessus du footer"
+description = "Le bouton FORGER artwork (avec rotation) est maintenant centré horizontalement, juste au-dessus de la barre d'onglets du bas."
