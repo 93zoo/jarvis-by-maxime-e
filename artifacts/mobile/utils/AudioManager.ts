@@ -385,6 +385,94 @@ class AudioManagerClass {
     this.synth({ frequency: 160, type: 'sawtooth', duration: 200, gain: 0.3, decay: true });
   }
 
+  /**
+   * Temperature danger warning — hissing steam/sizzle when metal is too hot.
+   * Plays once per HAMMERING session when temp first crosses 75%.
+   */
+  playTempWarning(): void {
+    if (Platform.OS !== 'web') { this._playNative('craft_fail'); return; }
+    if (!this.ctx || !this.masterGain || this.muted) return;
+    try {
+      const now = this.ctx.currentTime;
+      // High-pitched sweeping hiss: sawtooth sliding down + noise-like harmonics
+      const osc1 = this.ctx.createOscillator();
+      const g1 = this.ctx.createGain();
+      osc1.type = 'sawtooth';
+      osc1.frequency.setValueAtTime(1200, now);
+      osc1.frequency.exponentialRampToValueAtTime(400, now + 0.35);
+      g1.gain.setValueAtTime(0.25, now);
+      g1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc1.connect(g1);
+      g1.connect(this.masterGain);
+      osc1.start(now);
+      osc1.stop(now + 0.4);
+
+      const osc2 = this.ctx.createOscillator();
+      const g2 = this.ctx.createGain();
+      osc2.type = 'sawtooth';
+      osc2.frequency.setValueAtTime(800, now + 0.05);
+      osc2.frequency.exponentialRampToValueAtTime(250, now + 0.4);
+      osc2.detune.setValueAtTime(+30, now);
+      g2.gain.setValueAtTime(0.15, now + 0.05);
+      g2.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+      osc2.connect(g2);
+      g2.connect(this.masterGain);
+      osc2.start(now + 0.05);
+      osc2.stop(now + 0.45);
+    } catch { /* ignore */ }
+  }
+
+  /**
+   * Overheat crack — sharp metallic stress fracture sound when forge hits 100%.
+   * Paired with a strong haptic in the UI layer.
+   */
+  playOverheatCrack(): void {
+    if (Platform.OS !== 'web') { this._playNative('craft_fail'); return; }
+    if (!this.ctx || !this.masterGain || this.muted) return;
+    try {
+      const now = this.ctx.currentTime;
+      // Deep percussive thud (body of the crack)
+      const osc1 = this.ctx.createOscillator();
+      const g1 = this.ctx.createGain();
+      osc1.type = 'sawtooth';
+      osc1.frequency.setValueAtTime(180, now);
+      osc1.frequency.exponentialRampToValueAtTime(40, now + 0.25);
+      g1.gain.setValueAtTime(0.55, now);
+      g1.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      osc1.connect(g1);
+      g1.connect(this.masterGain);
+      osc1.start(now);
+      osc1.stop(now + 0.3);
+
+      // High metallic snap overtone
+      const osc2 = this.ctx.createOscillator();
+      const g2 = this.ctx.createGain();
+      osc2.type = 'square';
+      osc2.frequency.setValueAtTime(900, now);
+      osc2.frequency.exponentialRampToValueAtTime(150, now + 0.15);
+      osc2.detune.setValueAtTime(-20, now);
+      g2.gain.setValueAtTime(0.35, now);
+      g2.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      osc2.connect(g2);
+      g2.connect(this.masterGain);
+      osc2.start(now);
+      osc2.stop(now + 0.2);
+
+      // Short distorted burst (grinding)
+      const osc3 = this.ctx.createOscillator();
+      const g3 = this.ctx.createGain();
+      osc3.type = 'sawtooth';
+      osc3.frequency.setValueAtTime(320, now + 0.02);
+      osc3.detune.setValueAtTime(+50, now + 0.02);
+      g3.gain.setValueAtTime(0.2, now + 0.02);
+      g3.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      osc3.connect(g3);
+      g3.connect(this.masterGain);
+      osc3.start(now + 0.02);
+      osc3.stop(now + 0.25);
+    } catch { /* ignore */ }
+  }
+
   // ── Forge ambience — fire crackle + low rumble loop ─────────────────────────
 
   /**

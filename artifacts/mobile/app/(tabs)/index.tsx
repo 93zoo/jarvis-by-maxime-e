@@ -1215,6 +1215,8 @@ export default function ForgeScreen() {
   const forgeFloatRef = useRef(new Animated.Value(0));
   const hitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const temperatureRef = useRef(0); // readable inside callbacks without stale closure
+  const tempWarnedRef = useRef(false); // true once the >75% warning has fired this session
+  const gaugeShakeAnim = useRef(new Animated.Value(0));
   // ── Quench gauge ──
   const [quenchProgress, setQuenchProgress] = useState(100); // 100=hot → 0=cold
   const [quenchTapped, setQuenchTapped] = useState(false);
@@ -1474,6 +1476,7 @@ export default function ForgeScreen() {
     setSession({ recipeId: recipe.id, strikesCompleted: 0, strikeScores: [] });
     setHeatingProgress(0);
     setCraftedItem(null);
+    tempWarnedRef.current = false;
     activeRecipeRef.current = recipe;
     // Roll for a random forge event
     const evt = rollForgeEvent();
@@ -1484,11 +1487,23 @@ export default function ForgeScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   };
 
+  const triggerGaugeShake = () => {
+    gaugeShakeAnim.current.setValue(0);
+    Animated.sequence([
+      Animated.timing(gaugeShakeAnim.current, { toValue: -5, duration: 45, useNativeDriver: true }),
+      Animated.timing(gaugeShakeAnim.current, { toValue: 5,  duration: 45, useNativeDriver: true }),
+      Animated.timing(gaugeShakeAnim.current, { toValue: -4, duration: 45, useNativeDriver: true }),
+      Animated.timing(gaugeShakeAnim.current, { toValue: 4,  duration: 45, useNativeDriver: true }),
+      Animated.timing(gaugeShakeAnim.current, { toValue: 0,  duration: 35, useNativeDriver: true }),
+    ]).start();
+  };
+
   const handleStrike = (score: number, label: HitLabel) => {
     sceneRef.current?.triggerHammerStrike();
 
     // ── Temperature rise (+25 per tap; capped at 110) ──────────────────────
-    const newTemp = Math.min(110, temperatureRef.current + 25);
+    const prevTemp = temperatureRef.current;
+    const newTemp = Math.min(110, prevTemp + 25);
     temperatureRef.current = newTemp;
     setTemperature(newTemp);
 
@@ -1500,9 +1515,17 @@ export default function ForgeScreen() {
       finalLabel = 'RATÉ';
       setOverheated(true);
       setTimeout(() => setOverheated(false), 1100);
-      AudioManager.playError();
+      AudioManager.playOverheatCrack();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      triggerGaugeShake();
     } else {
+      // First time crossing 75% this session → warning hiss + light haptic
+      if (!tempWarnedRef.current && newTemp >= 75) {
+        tempWarnedRef.current = true;
+        AudioManager.playTempWarning();
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        triggerGaugeShake();
+      }
       // Normal sound feedback
       if (score === 25) AudioManager.playPerfectStrike();
       else if (score > 0)  AudioManager.playHammerStrike();
@@ -1561,6 +1584,7 @@ export default function ForgeScreen() {
     setTemperature(0);
     setOverheated(false);
     temperatureRef.current = 0;
+    tempWarnedRef.current = false;
     setQuenchProgress(100);
     setQuenchTapped(false);
     setQuenchLabel(null);
@@ -1874,7 +1898,7 @@ export default function ForgeScreen() {
             {/* ── Temperature gauge ── */}
             <View style={styles.tempGauge}>
               <Text style={styles.tempIcon}>🌡️</Text>
-              <View style={styles.tempTrackWrap}>
+              <Animated.View style={[styles.tempTrackWrap, { transform: [{ translateX: gaugeShakeAnim.current }] }]}>
                 <View style={styles.tempTrack}>
                   <View
                     style={[
@@ -1899,7 +1923,7 @@ export default function ForgeScreen() {
                 ) : (
                   <Text style={styles.tempHint}>Frappe régulièrement pour maintenir la chaleur</Text>
                 )}
-              </View>
+              </Animated.View>
               <Text
                 style={[
                   styles.tempValue,
