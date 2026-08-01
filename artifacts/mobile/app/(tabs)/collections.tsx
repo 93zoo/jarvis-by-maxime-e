@@ -1,0 +1,422 @@
+import React, { useState, useMemo } from 'react';
+import {
+  View, Text, ScrollView, TouchableOpacity, Modal,
+  StyleSheet, Platform, Pressable,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
+import { Feather } from '@expo/vector-icons';
+import { useColors } from '@/hooks/useColors';
+import { useGame } from '@/context/GameContext';
+import type { ItemSet } from '@/types/game';
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+const RARITY_COLORS: Record<string, string> = {
+  common:    '#9E9E9E',
+  rare:      '#2196F3',
+  epic:      '#9C27B0',
+  legendary: '#FF8F00',
+  mythic:    '#E91E63',
+};
+const RARITY_LABELS: Record<string, string> = {
+  common: 'Commun', rare: 'Rare', epic: 'Épique', legendary: 'Légendaire', mythic: 'Mythique',
+};
+const BONUS_LABELS: Record<string, string> = {
+  orderGoldBonus:    '💰 Or des commandes',
+  reputationBonus:   '⭐ Réputation NPC',
+  qualityBonus:      '✨ Qualité (bonus)',
+  forgeXpBonus:      '🔥 XP de forge',
+  dropBonus:         '⛏️ Récolte',
+  craftSpeedBonus:   '⚡ Vitesse de forge',
+  marketValueBonus:  '🪙 Prix de vente',
+};
+const FILTERS = ['Tous', 'Commun', 'Rare', 'Épique', 'Légendaire', 'Mythique'] as const;
+const FILTER_KEYS: Record<string, string> = {
+  'Tous': '', 'Commun': 'common', 'Rare': 'rare',
+  'Épique': 'epic', 'Légendaire': 'legendary', 'Mythique': 'mythic',
+};
+
+// ─── Sub-components (must be defined BEFORE the main screen — Hermes rule) ────
+
+function BonusSummaryPanel({
+  game, colors,
+}: {
+  game: ReturnType<typeof useGame>;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const bonusTypes = ['orderGoldBonus', 'reputationBonus', 'qualityBonus', 'forgeXpBonus', 'dropBonus', 'craftSpeedBonus', 'marketValueBonus'];
+  const active = bonusTypes.filter(t => game.getCollectionBonusTotal(t) > 0);
+  if (active.length === 0) return null;
+  return (
+    <View style={[spStyles.panel, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+      <Text style={[spStyles.title, { color: colors.foreground }]}>⚡ Bonus actifs des collections</Text>
+      <View style={spStyles.grid}>
+        {active.map(t => {
+          const val = game.getCollectionBonusTotal(t);
+          return (
+            <View key={t} style={[spStyles.chip, { backgroundColor: colors.card, borderColor: colors.primary + '44' }]}>
+              <Text style={[spStyles.chipText, { color: colors.foreground }]}>
+                {BONUS_LABELS[t]}{'\n'}
+                <Text style={{ color: colors.primary, fontWeight: '800' }}>
+                  {t === 'qualityBonus' ? `+${val}` : `+${val}%`}
+                </Text>
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+const spStyles = StyleSheet.create({
+  panel:  { marginHorizontal: 16, marginBottom: 12, borderRadius: 14, padding: 14, borderWidth: 1 },
+  title:  { fontSize: 13, fontWeight: '700', marginBottom: 10, letterSpacing: 0.5 },
+  grid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip:   { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, borderWidth: 1 },
+  chipText: { fontSize: 11, lineHeight: 16 },
+});
+
+function SetDetailModal({
+  set, visible, onClose, game, colors,
+}: {
+  set: ItemSet | null;
+  visible: boolean;
+  onClose: () => void;
+  game: ReturnType<typeof useGame>;
+  colors: ReturnType<typeof useColors>;
+}) {
+  if (!set) return null;
+  const progress = game.getCollectionProgress(set.id);
+  const isComplete = progress.count === progress.total;
+  const isClaimed  = game.completedSets.includes(set.id);
+  const rc = RARITY_COLORS[set.rarity];
+
+  const handleClaim = () => {
+    const result = game.claimSetReward(set.id);
+    if (result.success) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+    onClose();
+  };
+
+  // Current active tier
+  const activeTiers = set.bonuses.filter(b => progress.count >= b.count);
+  const currentTier = activeTiers.length > 0 ? activeTiers[activeTiers.length - 1] : null;
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+      <View style={mdStyles.overlay}>
+        <View style={[mdStyles.sheet, { backgroundColor: colors.card, borderColor: rc + '88' }]}>
+          <View style={[mdStyles.handle, { backgroundColor: colors.muted }]} />
+
+          {/* Header */}
+          <View style={mdStyles.headerRow}>
+            <Text style={{ fontSize: 36 }}>{set.emoji}</Text>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={[mdStyles.setName, { color: colors.foreground }]}>{set.name}</Text>
+              <View style={[mdStyles.rarityBadge, { backgroundColor: rc + '22', borderColor: rc + '55' }]}>
+                <Text style={[mdStyles.rarityText, { color: rc }]}>{RARITY_LABELS[set.rarity]}</Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={onClose}>
+              <Feather name="x" size={22} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={[mdStyles.description, { color: colors.mutedForeground }]}>{set.description}</Text>
+
+          {/* Progress bar */}
+          <View style={mdStyles.progressRow}>
+            <Text style={[mdStyles.progressLabel, { color: colors.foreground }]}>
+              {progress.count}/{progress.total} objets forgés
+            </Text>
+            <Text style={[mdStyles.progressLabel, { color: colors.mutedForeground }]}>
+              {Math.round(progress.count / progress.total * 100)}%
+            </Text>
+          </View>
+          <View style={[mdStyles.progressBar, { backgroundColor: colors.muted }]}>
+            <View style={[mdStyles.progressFill, { width: `${(progress.count / progress.total) * 100}%` as `${number}%`, backgroundColor: rc }]} />
+          </View>
+
+          <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 320 }}>
+            {/* Items list */}
+            <Text style={[mdStyles.sectionTitle, { color: colors.foreground }]}>Objets</Text>
+            {set.items.map((recipeId) => {
+              const crafted = progress.craftedIds.includes(recipeId);
+              const isSecret = set.secret && !game.getCollectionProgress(set.id).craftedIds.length;
+              return (
+                <View key={recipeId} style={[mdStyles.itemRow, { backgroundColor: colors.secondary }]}>
+                  <Feather name={crafted ? 'check-circle' : 'circle'} size={16} color={crafted ? '#4CAF50' : colors.mutedForeground} />
+                  <Text style={[mdStyles.itemName, { color: crafted ? colors.foreground : colors.mutedForeground }]}>
+                    {isSecret && !crafted ? '???' : recipeId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                  </Text>
+                </View>
+              );
+            })}
+
+            {/* Bonus tiers */}
+            <Text style={[mdStyles.sectionTitle, { color: colors.foreground }]}>Bonus</Text>
+            {set.bonuses.map((tier) => {
+              const reached = progress.count >= tier.count;
+              const isCurrent = currentTier?.count === tier.count;
+              return (
+                <View key={tier.count} style={[
+                  mdStyles.tierRow,
+                  { backgroundColor: reached ? rc + '15' : colors.secondary, borderColor: isCurrent ? rc : 'transparent', borderWidth: isCurrent ? 1 : 0 },
+                ]}>
+                  <View style={mdStyles.tierHeader}>
+                    <Text style={[mdStyles.tierLabel, { color: reached ? rc : colors.mutedForeground }]}>
+                      {reached ? '✦ ' : ''}{tier.label} ({tier.count}/{set.items.length})
+                    </Text>
+                  </View>
+                  {tier.effects.map((effect) => (
+                    <Text key={effect.type} style={[mdStyles.effectText, { color: reached ? colors.foreground : colors.mutedForeground }]}>
+                      {BONUS_LABELS[effect.type]}: {effect.type === 'qualityBonus' ? `+${effect.value}` : `+${effect.value}%`}
+                    </Text>
+                  ))}
+                </View>
+              );
+            })}
+
+            {/* Reward */}
+            <View style={[mdStyles.rewardRow, { backgroundColor: isClaimed ? colors.muted : rc + '22', borderColor: rc + '55' }]}>
+              <Text style={[mdStyles.rewardTitle, { color: isClaimed ? colors.mutedForeground : rc }]}>
+                {isClaimed ? '✅ Récompense obtenue' : '🎁 Récompense de collection'}
+              </Text>
+              <Text style={[mdStyles.rewardText, { color: isClaimed ? colors.mutedForeground : colors.foreground }]}>
+                {set.reward.gold.toLocaleString()} 💰  •  Titre : « {set.reward.title} »
+              </Text>
+              {isComplete && !isClaimed && (
+                <TouchableOpacity style={[mdStyles.claimBtn, { backgroundColor: rc }]} onPress={handleClaim}>
+                  <Text style={[mdStyles.claimBtnText, { color: '#fff' }]}>Réclamer la récompense</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+const mdStyles = StyleSheet.create({
+  overlay:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  sheet:       { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, borderWidth: 1.5, paddingBottom: 40 },
+  handle:      { width: 36, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
+  headerRow:   { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  setName:     { fontSize: 20, fontWeight: '800' },
+  rarityBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, borderWidth: 1, marginTop: 4 },
+  rarityText:  { fontSize: 11, fontWeight: '700' },
+  description: { fontSize: 13, lineHeight: 18, marginBottom: 12 },
+  progressRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  progressLabel: { fontSize: 12, fontWeight: '600' },
+  progressBar: { height: 6, borderRadius: 3, marginBottom: 14, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 3 },
+  sectionTitle: { fontSize: 13, fontWeight: '700', marginTop: 12, marginBottom: 6, letterSpacing: 0.5 },
+  itemRow:     { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8, borderRadius: 8, marginBottom: 4 },
+  itemName:    { fontSize: 13 },
+  tierRow:     { padding: 10, borderRadius: 10, marginBottom: 6 },
+  tierHeader:  { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  tierLabel:   { fontSize: 12, fontWeight: '700' },
+  effectText:  { fontSize: 12, marginLeft: 4, marginBottom: 2 },
+  rewardRow:   { borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 8 },
+  rewardTitle: { fontSize: 13, fontWeight: '800', marginBottom: 4 },
+  rewardText:  { fontSize: 13, marginBottom: 8 },
+  claimBtn:    { paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
+  claimBtnText: { fontSize: 14, fontWeight: '800' },
+});
+
+function SetCard({
+  set, game, colors, onPress,
+}: {
+  set: ItemSet;
+  game: ReturnType<typeof useGame>;
+  colors: ReturnType<typeof useColors>;
+  onPress: () => void;
+}) {
+  const progress = game.getCollectionProgress(set.id);
+  const rc = RARITY_COLORS[set.rarity];
+  const isComplete = progress.count === progress.total;
+  const isClaimed  = game.completedSets.includes(set.id);
+  const anyFound   = progress.count > 0;
+  const isRevealed = !set.secret || anyFound;
+
+  // Active tier effects summary
+  const activeTiers = set.bonuses.filter(b => progress.count >= b.count);
+  const currentTier = activeTiers.length > 0 ? activeTiers[activeTiers.length - 1] : null;
+
+  return (
+    <Pressable
+      style={[
+        scStyles.card,
+        {
+          backgroundColor: colors.card,
+          borderColor: isComplete ? rc : colors.border,
+          borderWidth: isComplete ? 1.5 : 1,
+        },
+      ]}
+      onPress={onPress}
+    >
+      {/* Emoji + Name */}
+      <View style={scStyles.topRow}>
+        <Text style={{ fontSize: 26 }}>{isRevealed ? set.emoji : '🔒'}</Text>
+        <View style={{ flex: 1, marginLeft: 10 }}>
+          <Text style={[scStyles.name, { color: colors.foreground }]} numberOfLines={1}>
+            {isRevealed ? set.name : 'Collection Secrète'}
+          </Text>
+          <View style={[scStyles.rarityBadge, { backgroundColor: rc + '22' }]}>
+            <Text style={[scStyles.rarityText, { color: rc }]}>{RARITY_LABELS[set.rarity]}</Text>
+          </View>
+        </View>
+        {isComplete && <Text style={{ fontSize: 16 }}>{isClaimed ? '✅' : '🎁'}</Text>}
+      </View>
+
+      {/* Progress */}
+      <View style={scStyles.progressRow}>
+        <View style={[scStyles.progressBar, { backgroundColor: colors.muted }]}>
+          <View style={[scStyles.progressFill, {
+            width: `${Math.round((progress.count / progress.total) * 100)}%` as `${number}%`,
+            backgroundColor: rc,
+          }]} />
+        </View>
+        <Text style={[scStyles.progressText, { color: colors.mutedForeground }]}>
+          {progress.count}/{progress.total}
+        </Text>
+      </View>
+
+      {/* Active bonus */}
+      {currentTier && (
+        <Text style={[scStyles.bonusText, { color: rc }]} numberOfLines={1}>
+          ✦ {currentTier.label}
+        </Text>
+      )}
+    </Pressable>
+  );
+}
+const scStyles = StyleSheet.create({
+  card:        { borderRadius: 14, padding: 14, marginBottom: 10 },
+  topRow:      { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  name:        { fontSize: 14, fontWeight: '800' },
+  rarityBadge: { alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, marginTop: 3 },
+  rarityText:  { fontSize: 10, fontWeight: '700' },
+  progressRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  progressBar: { flex: 1, height: 5, borderRadius: 3, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 3 },
+  progressText: { fontSize: 11, fontWeight: '600', minWidth: 28, textAlign: 'right' },
+  bonusText:   { fontSize: 11, fontWeight: '700', marginTop: 2 },
+});
+
+// ─── Main Screen ─────────────────────────────────────────────────────────────
+export default function CollectionsScreen() {
+  const colors  = useColors();
+  const insets  = useSafeAreaInsets();
+  const game    = useGame();
+
+  const [filter, setFilter]         = useState<typeof FILTERS[number]>('Tous');
+  const [selectedSet, setSelectedSet] = useState<ItemSet | null>(null);
+
+  const headerTopPad = Platform.OS === 'web' ? 67 : insets.top;
+  const bottomPad    = insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 80;
+
+  // Summary stats
+  const totalSets     = game.allCollections.length;
+  const completedSets = game.allCollections.filter(s => game.getCollectionProgress(s.id).count === s.items.length).length;
+  const inProgress    = game.allCollections.filter(s => {
+    const p = game.getCollectionProgress(s.id);
+    return p.count > 0 && p.count < p.total;
+  }).length;
+
+  // Filtered + sorted sets
+  const filtered = useMemo(() => {
+    const filterKey = FILTER_KEYS[filter];
+    const sets = game.allCollections.filter(s => !filterKey || s.rarity === filterKey);
+    // Sort: complete first, then in-progress, then locked; within each group by rarity
+    const order = { mythic: 0, legendary: 1, epic: 2, rare: 3, common: 4 };
+    return [...sets].sort((a, b) => {
+      const pa = game.getCollectionProgress(a.id);
+      const pb = game.getCollectionProgress(b.id);
+      const statusA = pa.count === pa.total ? 0 : pa.count > 0 ? 1 : 2;
+      const statusB = pb.count === pb.total ? 0 : pb.count > 0 ? 1 : 2;
+      if (statusA !== statusB) return statusA - statusB;
+      return (order[a.rarity] ?? 5) - (order[b.rarity] ?? 5);
+    });
+  }, [filter, game]);
+
+  return (
+    <View style={[csStyles.container, { backgroundColor: colors.background }]}>
+      {/* Header */}
+      <View style={[csStyles.header, { paddingTop: headerTopPad + 10 }]}>
+        <View>
+          <Text style={[csStyles.title, { color: colors.foreground }]}>COLLECTIONS</Text>
+          <Text style={[csStyles.subtitle, { color: colors.mutedForeground }]}>
+            {completedSets}/{totalSets} complètes · {inProgress} en cours
+          </Text>
+        </View>
+        <View style={[csStyles.trophyBadge, { backgroundColor: colors.primary + '22' }]}>
+          <Text style={{ fontSize: 22 }}>🏆</Text>
+          <Text style={[csStyles.trophyText, { color: colors.primary }]}>{completedSets}</Text>
+        </View>
+      </View>
+
+      {/* Filter tabs */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={csStyles.filterScroll} contentContainerStyle={csStyles.filterContent}>
+        {FILTERS.map(f => (
+          <TouchableOpacity
+            key={f}
+            style={[csStyles.filterTab, { backgroundColor: filter === f ? colors.primary : colors.secondary, borderColor: colors.border }]}
+            onPress={() => setFilter(f)}
+          >
+            <Text style={[csStyles.filterText, { color: filter === f ? colors.primaryForeground : colors.mutedForeground }]}>{f}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Content */}
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: bottomPad }}>
+        {/* Active bonus summary */}
+        <BonusSummaryPanel game={game} colors={colors} />
+
+        {/* Set cards */}
+        {filtered.map(set => (
+          <SetCard
+            key={set.id}
+            set={set}
+            game={game}
+            colors={colors}
+            onPress={() => setSelectedSet(set)}
+          />
+        ))}
+
+        {filtered.length === 0 && (
+          <View style={csStyles.empty}>
+            <Text style={{ fontSize: 40 }}>🔍</Text>
+            <Text style={[csStyles.emptyText, { color: colors.mutedForeground }]}>Aucune collection pour ce filtre</Text>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Detail modal */}
+      <SetDetailModal
+        set={selectedSet}
+        visible={!!selectedSet}
+        onClose={() => setSelectedSet(null)}
+        game={game}
+        colors={colors}
+      />
+    </View>
+  );
+}
+
+const csStyles = StyleSheet.create({
+  container:     { flex: 1 },
+  header:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 18, paddingBottom: 12 },
+  title:         { fontSize: 18, fontWeight: '900', letterSpacing: 3 },
+  subtitle:      { fontSize: 12, fontWeight: '500', marginTop: 2 },
+  trophyBadge:   { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14 },
+  trophyText:    { fontSize: 16, fontWeight: '800' },
+  filterScroll:  { maxHeight: 48, marginBottom: 12 },
+  filterContent: { paddingHorizontal: 16, gap: 8, alignItems: 'center' },
+  filterTab:     { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
+  filterText:    { fontSize: 12, fontWeight: '600' },
+  empty:         { alignItems: 'center', paddingVertical: 60, gap: 12 },
+  emptyText:     { fontSize: 14 },
+});

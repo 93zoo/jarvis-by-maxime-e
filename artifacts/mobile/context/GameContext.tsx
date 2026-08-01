@@ -21,6 +21,7 @@ import type {
   InventoryItem,
   Item,
   ItemCategory,
+  ItemSet,
   ItemStats,
   NPCData,
   Player,
@@ -49,6 +50,23 @@ const ALL_NPCS: NPCData[] = require('@/data/npcs.json');
 const ALL_QUESTS: Quest[] = require('@/data/quests.json');
 const ALL_TALENTS: TalentData[] = require('@/data/talents.json');
 const ALL_FORGE_UPGRADES: ForgeUpgradeData[] = require('@/data/forgeUpgrades.json');
+const ALL_COLLECTIONS: ItemSet[] = require('@/data/collections.json');
+
+/** Pure helper — computes total bonus for a given type from all active collection tiers. */
+function computeCollectionBonus(bonusType: string, craftedIds: Set<string>): number {
+  let total = 0;
+  for (const set of ALL_COLLECTIONS) {
+    const count = set.items.filter((id) => craftedIds.has(id)).length;
+    const activeTiers = set.bonuses.filter((b) => count >= b.count);
+    if (activeTiers.length > 0) {
+      const topTier = activeTiers[activeTiers.length - 1];
+      for (const effect of topTier.effects) {
+        if (effect.type === bonusType) total += effect.value;
+      }
+    }
+  }
+  return total;
+}
 
 /** Generate a random order from the NPC roster */
 const QUALITY_ORDER: Record<Quality, number> = { poor: 0, normal: 1, good: 2, excellent: 3, legendary: 4 };
@@ -158,6 +176,7 @@ interface GameState {
   sessionSnapshots: SessionSnapshot[]; // one per session, newest-last, max 30
   apprentice: Apprentice | null;
   completedRegions: string[];
+  completedSets: string[];
 }
 
 type GameAction =
@@ -212,6 +231,7 @@ type GameAction =
   | { type: 'ASSIGN_APPRENTICE_RECIPE'; recipeId: string; durationMs: number }
   | { type: 'APPRENTICE_FINISH_CRAFT'; item: Item }
   | { type: 'COLLECT_APPRENTICE_ITEM'; salaryCost: number }
+  | { type: 'CLAIM_SET_REWARD'; setId: string; goldReward: number }
   | { type: 'TRAIN_APPRENTICE'; goldCost: number };
 
 function buildInitialPlayer(): Player {
@@ -337,6 +357,7 @@ function buildInitialState(): GameState {
     sessionSnapshots: [],
     apprentice: null,
     completedRegions: [],
+    completedSets: [],
   };
 }
 
@@ -498,6 +519,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         sessionSnapshots: s.sessionSnapshots ?? [],
         apprentice: s.apprentice ?? null,
         completedRegions: s.completedRegions ?? [],
+        completedSets: s.completedSets ?? [],
       };
     }
     case 'RESET': {
@@ -1083,6 +1105,15 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    case 'CLAIM_SET_REWARD': {
+      if (state.completedSets.includes(action.setId)) return state;
+      return {
+        ...state,
+        completedSets: [...state.completedSets, action.setId],
+        player: { ...state.player, gold: state.player.gold + action.goldReward },
+      };
+    }
+
     default:
       return state;
   }
@@ -1149,6 +1180,12 @@ interface GameContextType {
   completedRegions: string[];
   unlockRegion: (regionId: string) => void;
   addExploration: (regionId: string, gain: number) => void;
+  // Collections
+  allCollections: ItemSet[];
+  completedSets: string[];
+  getCollectionBonusTotal: (bonusType: string) => number;
+  getCollectionProgress: (setId: string) => { count: number; total: number; craftedIds: string[] };
+  claimSetReward: (setId: string) => { success: boolean; gold: number };
   fightForMaterials: (regionId: string, playerTotal: number, enemyTotal: number) => CombatResult;
   saveGame: () => Promise<void>;
   resetGame: () => void;
@@ -1378,6 +1415,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           sessionSnapshots: updatedSnaps,
           apprentice: state.apprentice,
           completedRegions: state.completedRegions,
+          completedSets: state.completedSets,
           lastSaved: now,
         };
         await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
@@ -1479,6 +1517,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         sessionSnapshots: state.sessionSnapshots,
         apprentice: state.apprentice,
         completedRegions: state.completedRegions,
+        completedSets: state.completedSets,
         lastSaved: Date.now(),
       };
       AsyncStorage.setItem(SAVE_KEY, JSON.stringify(immediteSave)).catch(() => {
@@ -1561,6 +1600,40 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [canCraftRecipe, state.player],
   );
 
+  // ─── Collections (must be defined before callbacks that use it) ──────────────
+  const everCraftedRecipeIds = useMemo(
+    () => new Set(state.forgeHistory.map((h) => h.recipeId).filter((id): id is string => !!id)),
+    [state.forgeHistory],
+  );
+
+  const getCollectionBonusTotal = useCallback(
+    (bonusType: string): number => computeCollectionBonus(bonusType, everCraftedRecipeIds),
+    [everCraftedRecipeIds],
+  );
+
+  const getCollectionProgress = useCallback(
+    (setId: string): { count: number; total: number; craftedIds: string[] } => {
+      const set = ALL_COLLECTIONS.find((s) => s.id === setId);
+      if (!set) return { count: 0, total: 0, craftedIds: [] };
+      const craftedIds = set.items.filter((id) => everCraftedRecipeIds.has(id));
+      return { count: craftedIds.length, total: set.items.length, craftedIds };
+    },
+    [everCraftedRecipeIds],
+  );
+
+  const claimSetReward = useCallback(
+    (setId: string): { success: boolean; gold: number } => {
+      const set = ALL_COLLECTIONS.find((s) => s.id === setId);
+      if (!set) return { success: false, gold: 0 };
+      if (state.completedSets.includes(setId)) return { success: false, gold: 0 };
+      const count = set.items.filter((id) => everCraftedRecipeIds.has(id)).length;
+      if (count < set.items.length) return { success: false, gold: 0 };
+      dispatch({ type: 'CLAIM_SET_REWARD', setId, goldReward: set.reward.gold });
+      return { success: true, gold: set.reward.gold };
+    },
+    [state.completedSets, everCraftedRecipeIds],
+  );
+
   const craftItemWithScore = useCallback(
     (recipeId: string, qualityScore: number): Item | null => {
       const recipe = ALL_RECIPES.find((r) => r.id === recipeId);
@@ -1609,14 +1682,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       };
 
       dispatch({ type: 'ADD_CRAFTED_ITEM', item });
-      dispatch({ type: 'ADD_PLAYER_XP', amount: recipe.xpReward });
-      dispatch({ type: 'ADD_SKILL_XP', skill: recipe.skillRequired, amount: recipe.xpReward });
+      const forgeXpPct = computeCollectionBonus('forgeXpBonus', everCraftedRecipeIds);
+      const xpWithBonus = Math.round(recipe.xpReward * (1 + forgeXpPct / 100));
+      dispatch({ type: 'ADD_PLAYER_XP', amount: xpWithBonus });
+      dispatch({ type: 'ADD_SKILL_XP', skill: recipe.skillRequired, amount: xpWithBonus });
       dispatch({ type: 'UPDATE_QUEST_PROGRESS', objectiveType: 'craft', targetId: recipe.category, amount: 1 });
       dispatch({ type: 'UPDATE_QUEST_PROGRESS', objectiveType: 'craft', targetId: 'any', amount: 1 });
 
       return item;
     },
-    [canCraftRecipe, state.player],
+    [canCraftRecipe, state.player, everCraftedRecipeIds],
   );
 
   const addGold = useCallback((amount: number) => {
@@ -1647,11 +1722,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
       const collectBonus = Math.floor(computeTalentBonus(state.player.talentsUnlocked, 'collectBonus'));
       const collectYield = computeTalentBonus(state.player.talentsUnlocked, 'collectYield');
+      const collDropPct  = computeCollectionBonus('dropBonus', everCraftedRecipeIds) / 100;
       const drops: { resourceId: string; quantity: number }[] = [];
       for (const node of region.resourceNodes) {
         if (Math.random() < node.dropRate) {
           const baseQty = Math.floor(Math.random() * (node.maxQty - node.minQty + 1) + node.minQty);
-          const qty = Math.max(1, Math.round((baseQty + collectBonus) * (1 + collectYield)));
+          const qty = Math.max(1, Math.round((baseQty + collectBonus) * (1 + collectYield) * (1 + collDropPct)));
           drops.push({ resourceId: node.resourceId, quantity: qty });
           dispatch({ type: 'ADD_RESOURCE', resourceId: node.resourceId, qty });
         }
@@ -1687,7 +1763,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
       return { drops, regionCompleted: false };
     },
-    [state.unlockedRegions, state.regionExploration, state.player.talentsUnlocked, state.completedRegions],
+    [state.unlockedRegions, state.regionExploration, state.player.talentsUnlocked, state.completedRegions, everCraftedRecipeIds],
   );
 
   const unlockRegion = useCallback((regionId: string) => {
@@ -1778,9 +1854,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'DELIVER_ORDER', orderId, itemInstanceId });
       dispatch({ type: 'ADD_PLAYER_XP', amount: order.xpReward });
       dispatch({ type: 'ADD_SKILL_XP', skill: 'commerce', amount: Math.round(order.xpReward * 0.5) });
+      // Collection bonuses: order gold and reputation
+      const orderGoldBonus = computeCollectionBonus('orderGoldBonus', everCraftedRecipeIds);
+      if (orderGoldBonus > 0) {
+        const bonusGold = Math.round(order.goldReward * orderGoldBonus / 100);
+        if (bonusGold > 0) dispatch({ type: 'ADD_GOLD', amount: bonusGold });
+      }
       return { success: true, message: 'Livraison effectuée avec succès !' };
     },
-    [state.activeOrders, state.craftedItems],
+    [state.activeOrders, state.craftedItems, everCraftedRecipeIds],
   );
 
   const buyResource = useCallback(
@@ -1843,13 +1925,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [state.marketPrices],
   );
 
-  const sellItem = useCallback(
+   const sellItem = useCallback(
     (instanceId: string): number => {
       const item = state.craftedItems.find((i) => i.instanceId === instanceId);
       if (!item) return 0;
+      const marketValueBonus = computeCollectionBonus('marketValueBonus', everCraftedRecipeIds);
       const sellBonus = 1
         + computeTalentBonus(state.player.talentsUnlocked, 'sellPriceBonus')
-        + computeTalentBonus(state.player.talentsUnlocked, 'allGoldBonus');
+        + computeTalentBonus(state.player.talentsUnlocked, 'allGoldBonus')
+        + marketValueBonus / 100;
       const goldAmount = Math.round(item.value * 0.85 * sellBonus);
       dispatch({ type: 'SELL_ITEM', instanceId, goldAmount });
       dispatch({ type: 'ADD_SKILL_XP', skill: 'commerce', amount: 5 });
@@ -1857,7 +1941,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'UPDATE_QUEST_PROGRESS', objectiveType: 'sell', targetId: 'any', amount: 1 });
       return goldAmount;
     },
-    [state.craftedItems, state.player.talentsUnlocked],
+    [state.craftedItems, state.player.talentsUnlocked, everCraftedRecipeIds],
   );
 
   const sellResource = useCallback(
@@ -2004,6 +2088,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       sessionSnapshots: updatedSnaps,
       apprentice: state.apprentice,
       completedRegions: state.completedRegions,
+      completedSets: state.completedSets,
       lastSaved: now,
     };
     await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
@@ -2033,6 +2118,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         sessionSnapshots: state.sessionSnapshots,
         apprentice: state.apprentice,
         completedRegions: state.completedRegions,
+        completedSets: state.completedSets,
         lastSaved: Date.now(),
       };
       const res = await fetch(`${base}/save`, {
@@ -2280,6 +2366,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       assignApprenticeRecipe,
       collectApprenticeItem,
       trainApprentice,
+      // Collections
+      allCollections: ALL_COLLECTIONS,
+      completedSets: state.completedSets,
+      getCollectionBonusTotal,
+      getCollectionProgress,
+      claimSetReward,
     }),
     // Include cloud sync reactive state so status transitions propagate to consumers
     // eslint-disable-next-line react-hooks/exhaustive-deps

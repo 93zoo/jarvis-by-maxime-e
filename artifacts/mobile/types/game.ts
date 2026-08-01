@@ -368,6 +368,43 @@ export interface SessionSnapshot {
 }
 
 // ---------------------------------------------------------------------------
+// Collections / Sets system
+// ---------------------------------------------------------------------------
+export type SetBonusType =
+  | 'orderGoldBonus'
+  | 'reputationBonus'
+  | 'qualityBonus'
+  | 'forgeXpBonus'
+  | 'dropBonus'
+  | 'craftSpeedBonus'
+  | 'marketValueBonus';
+
+export interface SetBonusEffect {
+  type: SetBonusType;
+  /** Percentage for multiplier bonuses; flat points for qualityBonus */
+  value: number;
+}
+
+export interface SetBonusTier {
+  count: number;
+  label: string;
+  effects: SetBonusEffect[];
+}
+
+export interface ItemSet {
+  id: string;
+  name: string;
+  theme: string;
+  emoji: string;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'mythic';
+  secret: boolean;
+  description: string;
+  items: string[];
+  bonuses: SetBonusTier[];
+  reward: { gold: number; title: string };
+}
+
+// ---------------------------------------------------------------------------
 // Forge history (persistent — never removed when items are sold)
 // ---------------------------------------------------------------------------
 export interface ForgeHistoryEntry {
@@ -418,5 +455,6 @@ export interface SaveData {
   sessionSnapshots: SessionSnapshot[];
   apprentice: Apprentice | null;
   completedRegions: string[];
+  completedSets: string[];
   lastSaved: number;
 }

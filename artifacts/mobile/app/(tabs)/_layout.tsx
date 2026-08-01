@@ -24,6 +24,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: 'bag', selected: 'bag.fill' }} />
         <Label>Inventaire</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="collections">
+        <Icon sf={{ default: 'trophy', selected: 'trophy.fill' }} />
+        <Label>Sets</Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="profile">
         <Icon sf={{ default: 'person', selected: 'person.fill' }} />
         <Label>Profil</Label>
@@ -105,6 +109,18 @@ function ClassicTabLayout() {
               <SymbolView name="bag" tintColor={color} size={22} />
             ) : (
               <Feather name="archive" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="collections"
+        options={{
+          title: 'Sets',
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="trophy" tintColor={color} size={22} />
+            ) : (
+              <Feather name="award" size={22} color={color} />
             ),
         }}
       />
