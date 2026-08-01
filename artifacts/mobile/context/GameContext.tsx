@@ -47,6 +47,7 @@ import {
   uniqueName,
 } from '@/utils/uniqueWeapon';
 import { premiumXpMultiplier } from '@/lib/premiumStatus';
+import { computeMicroComboBonus } from '@/utils/microCombos';
 import { reportLeaderboardScore } from '@/lib/leaderboard';
 
 // ---------------------------------------------------------------------------
@@ -167,7 +168,9 @@ function topActiveTier(bonuses: { count: number; effects: { type: string; value:
  * on every call, so once the event window ends they simply stop applying.
  */
 function computeCollectionBonus(bonusType: string, craftedIds: Set<string>): number {
-  let total = 0;
+  // Procedurally generated micro-combos ("Découvertes") also grant bonuses
+  // once both of their items have been forged.
+  let total = computeMicroComboBonus(bonusType, craftedIds);
   for (const set of ALL_COLLECTIONS) {
     const count = set.items.filter((id) => craftedIds.has(id)).length;
     const topTier = topActiveTier(set.bonuses, count);
@@ -1515,6 +1518,8 @@ interface GameContextType {
   // Collections
   allCollections: ItemSet[];
   completedSets: string[];
+  /** Recipe IDs the player has ever forged (from persistent forge history). */
+  craftedRecipeIds: string[];
   getCollectionBonusTotal: (bonusType: string) => number;
   getCollectionProgress: (setId: string) => { count: number; total: number; craftedIds: string[] };
   /** Currently active temporary collection event (rotating), or null. */
@@ -1981,6 +1986,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     (bonusType: string): number => computeCollectionBonus(bonusType, everCraftedRecipeIds),
     [everCraftedRecipeIds],
   );
+
+  const craftedRecipeIds = useMemo(() => Array.from(everCraftedRecipeIds), [everCraftedRecipeIds]);
 
   const getActiveEvent = useCallback(() => getActiveCollectionEvent(), []);
 
@@ -2911,6 +2918,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       // Collections
       allCollections: ALL_COLLECTIONS,
       completedSets: state.completedSets,
+      craftedRecipeIds,
       getCollectionBonusTotal,
       getCollectionProgress,
       getActiveEvent,

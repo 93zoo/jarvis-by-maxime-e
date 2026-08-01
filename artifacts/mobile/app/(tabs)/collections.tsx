@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useColors } from '@/hooks/useColors';
 import { useGame } from '@/context/GameContext';
 import type { ItemSet } from '@/types/game';
+import { ALL_MICRO_COMBOS, type MicroCombo } from '@/utils/microCombos';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const RARITY_COLORS: Record<string, string> = {
@@ -445,11 +446,129 @@ const scStyles = StyleSheet.create({
   bonusText:   { fontSize: 11, fontWeight: '700', marginTop: 2 },
 });
 
+function formatRecipeName(recipeId: string): string {
+  return recipeId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function DiscoveredComboCard({
+  combo, colors,
+}: {
+  combo: MicroCombo;
+  colors: ReturnType<typeof useColors>;
+}) {
+  return (
+    <View style={[dcStyles.card, { backgroundColor: colors.card, borderColor: colors.accent + '66' }]}>
+      <View style={dcStyles.topRow}>
+        <View style={[dcStyles.iconWrap, { backgroundColor: colors.accent + '22', borderColor: colors.accent + '55' }]}>
+          <MaterialCommunityIcons name={combo.icon as any} size={20} color={colors.accent} />
+        </View>
+        <View style={{ flex: 1, marginLeft: 10 }}>
+          <Text style={[dcStyles.name, { color: colors.foreground }]} numberOfLines={1}>{combo.name}</Text>
+          <Text style={[dcStyles.items, { color: colors.mutedForeground }]} numberOfLines={1}>
+            {formatRecipeName(combo.items[0])} + {formatRecipeName(combo.items[1])}
+          </Text>
+        </View>
+        <Text style={[dcStyles.bonus, { color: colors.accent }]}>
+          {BONUS_LABELS[combo.bonus.type] ?? combo.bonus.type}{'\n'}
+          <Text style={{ fontWeight: '800' }}>
+            {combo.bonus.type === 'qualityBonus' ? `+${combo.bonus.value}` : `+${combo.bonus.value}%`}
+          </Text>
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function DiscoveriesSection({
+  colors, craftedIds,
+}: {
+  colors: ReturnType<typeof useColors>;
+  craftedIds: Set<string>;
+}) {
+  const { discovered, partial, hiddenCount } = useMemo(() => {
+    const discovered: MicroCombo[] = [];
+    const partial: { combo: MicroCombo; knownId: string }[] = [];
+    let hiddenCount = 0;
+    for (const combo of ALL_MICRO_COMBOS) {
+      const hasA = craftedIds.has(combo.items[0]);
+      const hasB = craftedIds.has(combo.items[1]);
+      if (hasA && hasB) discovered.push(combo);
+      else if (hasA || hasB) partial.push({ combo, knownId: hasA ? combo.items[0] : combo.items[1] });
+      else hiddenCount++;
+    }
+    return { discovered, partial, hiddenCount };
+  }, [craftedIds]);
+
+  return (
+    <View style={dsStyles.section}>
+      <View style={dsStyles.headerRow}>
+        <MaterialCommunityIcons name="flask-outline" size={18} color={colors.accent} />
+        <Text style={[dsStyles.title, { color: colors.foreground }]}>DÉCOUVERTES</Text>
+        <Text style={[dsStyles.count, { color: colors.mutedForeground }]}>
+          {discovered.length}/{ALL_MICRO_COMBOS.length}
+        </Text>
+      </View>
+      <Text style={[dsStyles.subtitle, { color: colors.mutedForeground }]}>
+        Forgez deux objets complémentaires pour révéler un combo unique et son bonus permanent.
+      </Text>
+
+      {discovered.map((combo) => (
+        <DiscoveredComboCard key={combo.id} combo={combo} colors={colors} />
+      ))}
+
+      {/* Partially known combos: one of the two items forged — show a "??" teaser */}
+      {partial.length > 0 && (
+        <View style={dsStyles.partialGrid}>
+          {partial.slice(0, 12).map(({ combo, knownId }) => (
+            <View key={combo.id} style={[dsStyles.partialChip, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+              <Text style={[dsStyles.partialText, { color: colors.mutedForeground }]} numberOfLines={1}>
+                {formatRecipeName(knownId)} + ??
+              </Text>
+            </View>
+          ))}
+          {partial.length > 12 && (
+            <View style={[dsStyles.partialChip, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+              <Text style={[dsStyles.partialText, { color: colors.mutedForeground }]}>+{partial.length - 12} autres…</Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {hiddenCount > 0 && (
+        <Text style={[dsStyles.hiddenText, { color: colors.mutedForeground }]}>
+          ?? — {hiddenCount} combo{hiddenCount > 1 ? 's' : ''} encore inconnu{hiddenCount > 1 ? 's' : ''}
+        </Text>
+      )}
+    </View>
+  );
+}
+const dcStyles = StyleSheet.create({
+  card:     { borderRadius: 12, padding: 12, marginBottom: 8, borderWidth: 1 },
+  topRow:   { flexDirection: 'row', alignItems: 'center' },
+  iconWrap: { width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
+  name:     { fontSize: 13, fontWeight: '800' },
+  items:    { fontSize: 11, marginTop: 2 },
+  bonus:    { fontSize: 10, fontWeight: '600', textAlign: 'right', lineHeight: 14 },
+});
+const dsStyles = StyleSheet.create({
+  section:     { marginTop: 18 },
+  headerRow:   { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+  title:       { fontSize: 14, fontWeight: '900', letterSpacing: 2, flex: 1 },
+  count:       { fontSize: 12, fontWeight: '700' },
+  subtitle:    { fontSize: 11, lineHeight: 15, marginBottom: 10 },
+  partialGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+  partialChip: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 9, borderWidth: 1, maxWidth: '48%' },
+  partialText: { fontSize: 11, fontWeight: '600' },
+  hiddenText:  { fontSize: 11, fontStyle: 'italic', marginTop: 10, textAlign: 'center' },
+});
+
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 export default function CollectionsScreen() {
   const colors  = useColors();
   const insets  = useSafeAreaInsets();
   const game    = useGame();
+
+  const craftedIdsSet = useMemo(() => new Set(game.craftedRecipeIds), [game.craftedRecipeIds]);
 
   const [filter, setFilter]         = useState<typeof FILTERS[number]>('Tous');
   const [selectedSet, setSelectedSet] = useState<ItemSet | null>(null);
@@ -536,6 +655,9 @@ export default function CollectionsScreen() {
             <Text style={[csStyles.emptyText, { color: colors.mutedForeground }]}>Aucune collection pour ce filtre</Text>
           </View>
         )}
+
+        {/* Procedurally generated micro-combos */}
+        <DiscoveriesSection colors={colors} craftedIds={craftedIdsSet} />
       </ScrollView>
 
       {/* Detail modal */}

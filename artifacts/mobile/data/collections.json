@@ -1118,5 +1118,88 @@
       ]
     }
   ],
-  "eventRotationHours": 48
+  "eventRotationHours": 48,
+  "microCombos": {
+    "pairs": [
+      {
+        "categories": [
+          "sword",
+          "shield"
+        ],
+        "label": "Duo Défensif",
+        "icon": "sword-cross"
+      },
+      {
+        "categories": [
+          "axe",
+          "helmet"
+        ],
+        "label": "Berserker",
+        "icon": "axe-battle"
+      },
+      {
+        "categories": [
+          "hammer",
+          "armor"
+        ],
+        "label": "Bastion",
+        "icon": "shield-home"
+      },
+      {
+        "categories": [
+          "lance",
+          "ring"
+        ],
+        "label": "Serment du Chevalier",
+        "icon": "horse-variant"
+      },
+      {
+        "categories": [
+          "dagger",
+          "amulet"
+        ],
+        "label": "Ombre Mystique",
+        "icon": "knife-military"
+      },
+      {
+        "categories": [
+          "tool",
+          "decoration"
+        ],
+        "label": "Artisan Fier",
+        "icon": "hammer-wrench"
+      },
+      {
+        "categories": [
+          "crown",
+          "ring"
+        ],
+        "label": "Parure Royale",
+        "icon": "crown"
+      }
+    ],
+    "epithets": [
+      "de l'Aube",
+      "du Crépuscule",
+      "des Braises",
+      "du Givre",
+      "de la Tempête",
+      "des Profondeurs",
+      "du Zénith",
+      "des Anciens",
+      "de l'Éclipse",
+      "du Serment",
+      "des Étoiles",
+      "de la Fournaise"
+    ],
+    "bonusTypes": [
+      "orderGoldBonus",
+      "reputationBonus",
+      "qualityBonus",
+      "forgeXpBonus",
+      "dropBonus",
+      "craftSpeedBonus",
+      "marketValueBonus"
+    ]
+  }
 }
