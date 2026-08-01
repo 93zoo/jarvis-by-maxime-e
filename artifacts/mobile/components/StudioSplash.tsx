@@ -101,8 +101,8 @@ function RisingEmbers() {
       Animated.loop(
         Animated.sequence([
           Animated.delay(delay),
-          Animated.timing(v, { toValue: 1, duration: dur, useNativeDriver: true, easing: Easing.linear }),
-          Animated.timing(v, { toValue: 0, duration: 0, useNativeDriver: true }),
+          Animated.timing(v, { toValue: 1, duration: dur, useNativeDriver: false, easing: Easing.linear }),
+          Animated.timing(v, { toValue: 0, duration: 0, useNativeDriver: false }),
         ]),
       ),
     );
@@ -160,48 +160,48 @@ function FallbackSplash({ onDone }: { onDone: () => void }) {
     if (doneRef.current) return;
     doneRef.current = true;
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
-    Animated.timing(screenOp, { toValue: 0, duration: 500, useNativeDriver: true }).start(() => onDone());
+    Animated.timing(screenOp, { toValue: 0, duration: 500, useNativeDriver: false }).start(() => onDone());
   }, [screenOp, onDone]);
 
   useEffect(() => {
     const seq = Animated.sequence([
       Animated.delay(200),
       Animated.parallel([
-        Animated.timing(fireScale, { toValue: 1, duration: 900, useNativeDriver: true, easing: Easing.out(Easing.cubic) }),
-        Animated.timing(fireOp,   { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(fireScale, { toValue: 1, duration: 900, useNativeDriver: false, easing: Easing.out(Easing.cubic) }),
+        Animated.timing(fireOp,   { toValue: 1, duration: 700, useNativeDriver: false }),
       ]),
       Animated.delay(200),
       // FORGE
       Animated.parallel([
-        Animated.spring(forgeY,  { toValue: 0, useNativeDriver: true, tension: 90, friction: 8 }),
-        Animated.timing(forgeOp, { toValue: 1, duration: 250, useNativeDriver: true }),
+        Animated.spring(forgeY,  { toValue: 0, useNativeDriver: false, tension: 90, friction: 8 }),
+        Animated.timing(forgeOp, { toValue: 1, duration: 250, useNativeDriver: false }),
         Animated.sequence([
-          Animated.timing(flashOp1, { toValue: 1, duration: 60, useNativeDriver: true }),
-          Animated.timing(flashOp1, { toValue: 0, duration: 180, useNativeDriver: true }),
+          Animated.timing(flashOp1, { toValue: 1, duration: 60, useNativeDriver: false }),
+          Animated.timing(flashOp1, { toValue: 0, duration: 180, useNativeDriver: false }),
         ]),
         Animated.sequence([
           Animated.delay(60),
-          Animated.timing(sparks1, { toValue: 1, duration: 700, useNativeDriver: true }),
+          Animated.timing(sparks1, { toValue: 1, duration: 700, useNativeDriver: false }),
         ]),
       ]),
       Animated.delay(250),
-      Animated.timing(ampersOp, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.timing(ampersOp, { toValue: 1, duration: 300, useNativeDriver: false }),
       Animated.delay(150),
       // KINGDOMS
       Animated.parallel([
-        Animated.spring(kingdomsY,  { toValue: 0, useNativeDriver: true, tension: 90, friction: 8 }),
-        Animated.timing(kingdomsOp, { toValue: 1, duration: 250, useNativeDriver: true }),
+        Animated.spring(kingdomsY,  { toValue: 0, useNativeDriver: false, tension: 90, friction: 8 }),
+        Animated.timing(kingdomsOp, { toValue: 1, duration: 250, useNativeDriver: false }),
         Animated.sequence([
-          Animated.timing(flashOp2, { toValue: 1, duration: 60, useNativeDriver: true }),
-          Animated.timing(flashOp2, { toValue: 0, duration: 180, useNativeDriver: true }),
+          Animated.timing(flashOp2, { toValue: 1, duration: 60, useNativeDriver: false }),
+          Animated.timing(flashOp2, { toValue: 0, duration: 180, useNativeDriver: false }),
         ]),
         Animated.sequence([
           Animated.delay(60),
-          Animated.timing(sparks2, { toValue: 1, duration: 700, useNativeDriver: true }),
+          Animated.timing(sparks2, { toValue: 1, duration: 700, useNativeDriver: false }),
         ]),
       ]),
       Animated.delay(350),
-      Animated.timing(taglineOp,  { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.timing(taglineOp,  { toValue: 1, duration: 500, useNativeDriver: false }),
       Animated.delay(1800),
     ]);
     seq.start(() => finish());
@@ -297,11 +297,13 @@ function FallbackSplash({ onDone }: { onDone: () => void }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 let ExpoVideoModule: typeof import('expo-video') | null = null;
-try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  ExpoVideoModule = require('expo-video');
-} catch {
-  ExpoVideoModule = null;
+if (!IS_EXPO_GO && Platform.OS !== 'web') {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    ExpoVideoModule = require('expo-video');
+  } catch {
+    ExpoVideoModule = null;
+  }
 }
 
 function VideoSplash({ onDone }: { onDone: () => void }) {
@@ -313,7 +315,7 @@ function VideoSplash({ onDone }: { onDone: () => void }) {
   const finish = useCallback(() => {
     if (doneRef.current) return;
     doneRef.current = true;
-    Animated.timing(rootOpacity, { toValue: 0, duration: 400, useNativeDriver: true })
+    Animated.timing(rootOpacity, { toValue: 0, duration: 400, useNativeDriver: false })
       .start(() => onDone());
   }, [rootOpacity, onDone]);
 
