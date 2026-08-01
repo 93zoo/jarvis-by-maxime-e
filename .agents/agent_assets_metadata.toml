@@ -346,3 +346,10 @@ uri = "file://screenshots/skills-no-cloud.jpg"
 type = "image"
 title = "Compétences — bouton Cloud retiré"
 description = "Le bouton Cloud non fonctionnel a été retiré du header — seul le bouton Sauvegarder reste."
+
+[[outputs]]
+id = "GksVeHbopLVNbIfBSQ88v"
+uri = "file://screenshots/forge-materials-panel.jpg"
+type = "image"
+title = "Forge — panneau des matériaux"
+description = "Panneau des matériaux possédés en bas à gauche : cartes sombres avec nom coloré, quantité et icône de lingot, inspirées de la capture."
