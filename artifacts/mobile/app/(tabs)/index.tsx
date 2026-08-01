@@ -268,6 +268,12 @@ const oStyles = StyleSheet.create({
     paddingHorizontal: 3,
   },
   urgentHeaderBadgeText: { fontSize: 9, fontWeight: '800', color: '#fff' },
+  readyBadge: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, gap: 4,
+    alignSelf: 'flex-start', marginBottom: 8,
+  },
+  readyBadgeText: { fontSize: 11, fontWeight: '700' },
 });
 
 function OrdersModal({
@@ -480,6 +486,40 @@ function OrdersModal({
                             </Text>
                           </View>
                         </View>
+                      );
+                    })()}
+                    {(() => {
+                      // Count matching crafted items for ALL orders (accepted or not)
+                      const readyCount = game.craftedItems.filter(
+                        (i) =>
+                          i.category === order.requestedCategory &&
+                          QUALITY_ORDER_UI[i.quality] >= QUALITY_ORDER_UI[order.minQuality],
+                      ).length;
+                      const hasReady = readyCount > 0;
+                      // Tapping to jump to delivery is only available for accepted orders
+                      const tappable = hasReady && order.accepted;
+                      const badgeBg = hasReady
+                        ? order.accepted ? '#1B5E2030' : '#1B5E2018'
+                        : '#37474F18';
+                      const badgeFg = hasReady ? '#2E7D32' : '#78909C';
+                      const label = order.accepted
+                        ? `${readyCount} ${readyCount === 1 ? 'objet prêt' : 'objets prêts'}`
+                        : `${readyCount} en inventaire`;
+                      return (
+                        <TouchableOpacity
+                          disabled={!tappable}
+                          onPress={tappable ? () => setDeliverOrderId(order.id) : undefined}
+                          style={[oStyles.readyBadge, { backgroundColor: badgeBg }]}
+                          activeOpacity={0.7}
+                        >
+                          <Feather name="check-circle" size={11} color={badgeFg} />
+                          <Text style={[oStyles.readyBadgeText, { color: badgeFg }]}>
+                            {label}
+                          </Text>
+                          {tappable && (
+                            <Feather name="chevron-right" size={10} color={badgeFg} />
+                          )}
+                        </TouchableOpacity>
                       );
                     })()}
                     {!expired && (
