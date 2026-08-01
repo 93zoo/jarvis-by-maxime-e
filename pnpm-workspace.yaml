@@ -158,3 +158,8 @@ overrides:
   # drizzle-kit uses esbuild internally on an older version that's vulnerable, this overrides it
   "@esbuild-kit/esm-loader": "npm:tsx@^4.21.0"
   esbuild: "0.27.3"
+  # CVE-2026-14257: brace-expansion ReDoS — force patched releases
+  "brace-expansion@>=1.0.0 <2.0.0": "1.1.18"
+  "brace-expansion@>=2.0.0 <3.0.0": "2.1.4"
+  # CVE-2026-45623 / GHSA-r28c-9q8g-f849: postcss — pin all older lines to patched
+  "postcss@<8.5.25": "8.5.25"
