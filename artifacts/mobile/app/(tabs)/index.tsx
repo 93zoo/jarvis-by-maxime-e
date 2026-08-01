@@ -13,6 +13,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -923,6 +924,7 @@ export default function ForgeScreen() {
   const quenchDoneRef = useRef(false);
   const runResultRef = useRef<((mod: number) => void) | null>(null);
 
+  const { height: winH } = useWindowDimensions();
   const headerTopPad = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPad = insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 80;
 
@@ -1471,8 +1473,8 @@ export default function ForgeScreen() {
       >
         {craftPhase === 'IDLE' && (
           <>
-            {/* FORGER — artwork button centered just above the bottom tab bar */}
-            <View style={[md.forgeOverAnvil, { bottom: bottomPad + 8 }]} pointerEvents="box-none">
+            {/* FORGER — artwork button centered just above the anvil in the backdrop */}
+            <View style={[md.forgeOverAnvil, { bottom: winH * 0.56 }]} pointerEvents="box-none">
               <TouchableOpacity
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -2168,7 +2170,7 @@ const md = StyleSheet.create({
     borderColor: 'rgba(200,140,60,0.35)',
   },
   sideBtnText: { color: MEDIEVAL.textLight, fontSize: 9, fontWeight: '800', letterSpacing: 1 },
-  forgeBtnArt: { width: 168, height: 104 },
+  forgeBtnArt: { width: 190, height: 118 },
   headerBadge: {
     position: 'absolute',
     top: -5,
