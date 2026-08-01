@@ -322,8 +322,16 @@ function ExploreView({
     if (nextRound >= 3) {
       const result = game.fightForMaterials(region.id, nextPlayerScore, nextEnemyScore);
       setCombatResult(result);
-      if (result.won) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      else Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      if (result.won) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        if (result.drops.length > 0) {
+          setTimeout(() => {
+            AudioManager.playCollect();
+          }, 400);
+        }
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
     }
   };
 
