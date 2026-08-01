@@ -44,12 +44,20 @@ export default function ClassementScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const available = isLeaderboardAvailable();
+  // Jeton de requête : seule la réponse la plus récente (et montée) met à jour l'état
+  const reqIdRef = React.useRef(0);
+  useEffect(() => {
+    return () => {
+      reqIdRef.current = -1; // démonté : ignorer toute réponse en vol
+    };
+  }, []);
 
   const load = useCallback(async (p: Period) => {
     if (!available) {
       setLoading(false);
       return;
     }
+    const myReq = ++reqIdRef.current;
     setLoading(true);
     setError(false);
     try {
@@ -64,11 +72,12 @@ export default function ClassementScreen() {
         });
       }
       const result = await fetchLeaderboard(p, pid || undefined);
+      if (reqIdRef.current !== myReq) return; // réponse obsolète ou écran démonté
       setData(result);
     } catch {
-      setError(true);
+      if (reqIdRef.current === myReq) setError(true);
     } finally {
-      setLoading(false);
+      if (reqIdRef.current === myReq) setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [available, game.player.name, game.player.level, game.player.totalPlayerXPEarned, game.player.totalForgeXPEarned]);

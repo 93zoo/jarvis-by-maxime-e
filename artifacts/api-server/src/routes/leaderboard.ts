@@ -84,7 +84,10 @@ router.post("/leaderboard/report", (req, res) => {
       const today = dayKey(new Date());
       const prev = data[safeId];
       // First report (or counter reset after game reset): start fresh, no banked points.
-      const delta = prev ? Math.max(0, total - prev.lastTotal) : 0;
+      // Clamp per-report gains to blunt trivial spoofing (client is untrusted;
+      // a real anti-cheat needs authenticated identities — tracked separately).
+      const MAX_DELTA_PER_REPORT = 20_000;
+      const delta = prev ? Math.min(MAX_DELTA_PER_REPORT, Math.max(0, total - prev.lastTotal)) : 0;
       const days = { ...(prev?.days ?? {}) };
       if (delta > 0) days[today] = (days[today] ?? 0) + delta;
       // Counter went backwards => player reset their game; re-anchor.
