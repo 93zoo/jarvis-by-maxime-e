@@ -1164,9 +1164,39 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ? ALL_RECIPES.find((r) => r.id === state.apprentice!.assignedRecipeId)
         : null;
       const newDuration = recipe ? apprenticeCraftDuration(recipe, newLevel) : 0;
+      // Route accounting through the same path as normal crafting so
+      // apprentice items count toward collections and player stats.
+      const apprenticeHistoryEntry: ForgeHistoryEntry = {
+        instanceId: item.instanceId,
+        recipeId: item.recipeId,
+        name: item.name,
+        category: item.category,
+        quality: item.quality,
+        qualityScore: item.qualityScore,
+        value: item.value,
+        craftedAt: item.craftedAt,
+      };
       return {
         ...state,
-        player: { ...state.player, gold: state.player.gold - action.salaryCost },
+        player: {
+          ...state.player,
+          gold: state.player.gold - action.salaryCost,
+          totalItemsCrafted: state.player.totalItemsCrafted + 1,
+          craftedLegendaryCount:
+            item.quality === 'legendary'
+              ? (state.player.craftedLegendaryCount ?? 0) + 1
+              : (state.player.craftedLegendaryCount ?? 0),
+          craftedExcellentCount:
+            item.quality === 'excellent'
+              ? (state.player.craftedExcellentCount ?? 0) + 1
+              : (state.player.craftedExcellentCount ?? 0),
+          craftedGoodCount:
+            item.quality === 'good'
+              ? (state.player.craftedGoodCount ?? 0) + 1
+              : (state.player.craftedGoodCount ?? 0),
+          bestQualityScore: Math.max(state.player.bestQualityScore ?? 0, item.qualityScore ?? 0),
+        },
+        forgeHistory: [apprenticeHistoryEntry, ...state.forgeHistory].slice(0, FORGE_HISTORY_MAX),
         craftedItems: [...state.craftedItems, item],
         apprentice: {
           ...state.apprentice,
