@@ -1,11 +1,11 @@
 /**
  * StudioSplash — cinématique d'intro vidéo pour Forge & Kingdoms.
  *
- * Utilise expo-av (Video), incluse dans Expo Go SDK 54.
- * - contentFit="contain" → vidéo entière, bandes noires sur les côtés
- * - Fade-in à la première image, fade-out au noir à la fin
+ * Utilise expo-av (Video) v16 — compatible Expo Go SDK 54.
+ * - Fond noir immédiat (opacity 1 dès le montage)
+ * - La vidéo joue via shouldPlay dès que le composant est monté
  * - Bouton « Passer » après 1 s
- * - Repli automatique après 4 s si la vidéo ne charge pas
+ * - Repli onError, timeout 6 s si rien ne charge, timeout 12 s max
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -15,18 +15,17 @@ import {
   Text,
   useWindowDimensions,
 } from 'react-native';
-import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
+import { Video, ResizeMode, type AVPlaybackStatus } from 'expo-av';
 
-const videoSource = require('@/assets/videos/intro.mp4');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const videoSource = require('../assets/videos/intro.mp4');
 
 export default function StudioSplash({ onDone }: { onDone: () => void }) {
   const { width, height } = useWindowDimensions();
 
-  const rootOpacity  = useRef(new Animated.Value(1)).current;
-  const videoOpacity = useRef(new Animated.Value(0)).current;
-  const doneRef      = useRef(false);
-  const readyRef     = useRef(false);
-  const wasPlayingRef = useRef(false);
+  const rootOpacity = useRef(new Animated.Value(1)).current;
+  const doneRef     = useRef(false);
+  const loadedRef   = useRef(false);
   const [showSkip, setShowSkip] = useState(false);
 
   // ── Fondu de sortie → onDone ──────────────────────────────────────────────
@@ -40,57 +39,40 @@ export default function StudioSplash({ onDone }: { onDone: () => void }) {
     }).start(() => onDone());
   }, [rootOpacity, onDone]);
 
-  // ── Repli : si rien ne démarre en 4 s ────────────────────────────────────
+  // Repli : rien de chargé en 6 s
   useEffect(() => {
-    const t = setTimeout(() => { if (!readyRef.current) finish(); }, 4000);
+    const t = setTimeout(() => { if (!loadedRef.current) finish(); }, 6000);
     return () => clearTimeout(t);
   }, [finish]);
 
-  // ── Repli durée max (~11 s) ───────────────────────────────────────────────
+  // Repli durée max 12 s
   useEffect(() => {
-    const t = setTimeout(() => finish(), 11_500);
+    const t = setTimeout(() => finish(), 12_000);
     return () => clearTimeout(t);
   }, [finish]);
 
-  // ── Callback de statut expo-av ────────────────────────────────────────────
+  // ── Callback expo-av ──────────────────────────────────────────────────────
   const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
     if (!status.isLoaded) return;
-
-    // Première fois chargée → fade-in + démarrage
-    if (!readyRef.current) {
-      readyRef.current = true;
-      Animated.timing(videoOpacity, {
-        toValue: 1,
-        duration: 350,
-        useNativeDriver: true,
-      }).start();
+    if (!loadedRef.current) {
+      loadedRef.current = true;
       setTimeout(() => setShowSkip(true), 1000);
     }
-
-    if (status.isPlaying) {
-      wasPlayingRef.current = true;
-    }
-
-    // Fin de clip détectée
-    if (status.didJustFinish) {
-      finish();
-    }
-  }, [videoOpacity, finish]);
+    if (status.didJustFinish) finish();
+  }, [finish]);
 
   return (
     <Animated.View style={[styles.root, { width, height, opacity: rootOpacity }]}>
-      <Animated.View style={{ opacity: videoOpacity }}>
-        <Video
-          source={videoSource}
-          style={{ width, height }}
-          resizeMode={ResizeMode.CONTAIN}
-          shouldPlay
-          isLooping={false}
-          isMuted={false}
-          onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-          onError={() => finish()}
-        />
-      </Animated.View>
+      <Video
+        source={videoSource}
+        style={StyleSheet.absoluteFill}
+        resizeMode={ResizeMode.CONTAIN}
+        shouldPlay
+        isLooping={false}
+        isMuted={false}
+        onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+        onError={() => finish()}
+      />
 
       {showSkip && (
         <Pressable style={styles.skipBtn} onPress={finish} hitSlop={16}>

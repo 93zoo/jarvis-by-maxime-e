@@ -58,7 +58,7 @@
   "dependencies": {
     "@types/three": "^0.168.0",
     "expo-audio": "^1.1.1",
-    "expo-av": "~15.1.7",
+    "expo-av": "~16.0.8",
     "expo-gl": "~16.0.10",
     "expo-video": "~3.0.16",
     "react-native-purchases": "^10.5.0",
