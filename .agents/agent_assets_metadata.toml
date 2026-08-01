@@ -129,3 +129,10 @@ uri = "file://artifacts/mobile/assets/sounds/medieval_music.mp3"
 type = "audio"
 title = "medieval forge ambience"
 description = "Generated music: Medieval blacksmith forge ambient music, very calm and immersive, soft lute and dulcimer melody, subtle low strings, gentle and unobtrusive, loopable background atmosphere, no drums,…"
+
+[[outputs]]
+id = "em-DBWnR-77_kG46qQrhm"
+uri = "file://screenshots/forge-screen.jpg"
+type = "image"
+title = "Forge — nouveau rendu"
+description = "Capture de l'écran Forge avec le fond animé (braises, fumée, lueur du foyer) et l'artwork en arrière-plan."
