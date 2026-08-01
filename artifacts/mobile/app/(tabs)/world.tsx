@@ -15,7 +15,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -25,6 +25,7 @@ import Animated, {
   useSharedValue,
   withTiming,
   runOnJS,
+  FadeInDown,
 } from 'react-native-reanimated';
 import { useGame } from '@/context/GameContext';
 import { useColors } from '@/hooks/useColors';
@@ -38,10 +39,10 @@ const REGION_COLORS: Record<string, string> = {
   ruins: '#6D4C41', port: '#0277BD', volcano: '#BF360C', castle: '#9C27B0',
 };
 
-const REGION_EMOJIS: Record<string, string> = {
-  village: '🏘', forest: '🌲', mountains: '⛰', mines: '⛏',
-  swamp: '🌿', desert: '🏜', ruins: '🏚', port: '⚓',
-  volcano: '🌋', castle: '🏰',
+const REGION_ICONS: Record<string, any> = {
+  village: 'home-group', forest: 'pine-tree', mountains: 'image-filter-hdr', mines: 'pickaxe',
+  swamp: 'water', desert: 'weather-sunny', ruins: 'chess-rook', port: 'anchor',
+  volcano: 'volcano', castle: 'castle',
 };
 
 // Map positions as fractions of map container width/height
@@ -77,11 +78,11 @@ function getPhase(hour: number): DayPhase {
   return 'dusk';
 }
 
-const PHASE_CONFIG: Record<DayPhase, { label: string; emoji: string; tint: string }> = {
-  night: { label: 'Nuit', emoji: '🌙', tint: 'rgba(0,0,50,0.52)' },
-  dawn: { label: 'Aube', emoji: '🌅', tint: 'rgba(255,130,30,0.22)' },
-  day: { label: 'Jour', emoji: '☀️', tint: 'rgba(0,0,0,0)' },
-  dusk: { label: 'Crépuscule', emoji: '🌆', tint: 'rgba(190,70,10,0.28)' },
+const PHASE_CONFIG: Record<DayPhase, { label: string; icon: any; tint: string }> = {
+  night: { label: 'Nuit', icon: 'moon-waning-crescent', tint: 'rgba(10,8,20,0.65)' },
+  dawn: { label: 'Aube', icon: 'weather-sunset-up', tint: 'rgba(60,25,10,0.35)' },
+  day: { label: 'Jour', icon: 'weather-sunny', tint: 'rgba(0,0,0,0)' },
+  dusk: { label: 'Crépuscule', icon: 'weather-sunset-down', tint: 'rgba(40,15,5,0.45)' },
 };
 
 // Resource rarity → cooldown (ms)
@@ -140,9 +141,9 @@ function RegionNode({
         borderWidth: isUnlocked ? 2 : 1,
       }]}>
         {isUnlocked ? (
-          <Text style={{ fontSize: nodeSize * 0.42 }}>{REGION_EMOJIS[region.id] ?? '📍'}</Text>
+          <MaterialCommunityIcons name={REGION_ICONS[region.id] ?? 'map-marker'} size={nodeSize * 0.42} color="#F2E4C4" />
         ) : (
-          <Feather name="lock" size={nodeSize * 0.35} color={canUnlock ? colors.accent : colors.mutedForeground} />
+          <MaterialCommunityIcons name="lock" size={nodeSize * 0.35} color={canUnlock ? colors.accent : colors.mutedForeground} />
         )}
       </View>
       {/* Exploration ring */}
@@ -335,7 +336,9 @@ function ExploreView({
           <Feather name="arrow-left" size={20} color={colors.primary} />
         </TouchableOpacity>
         <View style={styles.exploreHeaderCenter}>
-          <Text style={{ fontSize: 24 }}>{REGION_EMOJIS[region.id]}</Text>
+          <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(200,140,60,0.15)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(200,140,60,0.4)' }}>
+            <MaterialCommunityIcons name={REGION_ICONS[region.id] ?? 'map-marker'} size={24} color="#F2E4C4" />
+          </View>
           <View>
             <Text style={[styles.exploreTitle, { color: colors.foreground }]}>{region.name}</Text>
             <Text style={[styles.exploreSubtitle, { color: colors.mutedForeground }]}>
@@ -358,16 +361,16 @@ function ExploreView({
       </View>
 
       {/* Boss info strip */}
-      <View style={[styles.bossStrip, { backgroundColor: colors.destructive + '18', borderBottomColor: colors.destructive + '30' }]}>
-        <Feather name="alert-triangle" size={13} color={colors.destructive} />
+      <LinearGradient colors={['rgba(183, 28, 28, 0.15)', 'rgba(183, 28, 28, 0.05)']} style={[styles.bossStrip, { borderBottomColor: colors.destructive + '40' }]}>
+        <MaterialCommunityIcons name="skull" size={16} color={colors.destructive} />
         <Text style={[styles.bossStripText, { color: colors.destructive, flex: 1 }]}>
           Boss: {region.boss.name} · Niv.{region.boss.level}
         </Text>
         <TouchableOpacity style={[styles.fightBtn, { backgroundColor: colors.destructive }]} onPress={openCombat}>
-          <Feather name="target" size={13} color="#fff" />
+          <MaterialCommunityIcons name="sword-cross" size={14} color="#fff" />
           <Text style={styles.fightBtnText}>Combattre</Text>
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       {/* Resource nodes */}
       <ScrollView
@@ -375,7 +378,7 @@ function ExploreView({
         showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.nodesTitle, { color: colors.primary }]}>POINTS DE RESSOURCES</Text>
-        {region.resourceNodes.map((node) => {
+        {region.resourceNodes.map((node, idx) => {
           const key = `${region.id}_${node.resourceId}`;
           const res = game.getResourceById(node.resourceId);
           const cdEnd = cooldowns[key] ?? 0;
@@ -386,13 +389,13 @@ function ExploreView({
           const cdSec = cdRemaining % 60;
           const hasQty = game.getInventoryQty(node.resourceId);
           return (
-            <View
-              key={node.resourceId}
+            <Animated.View key={node.resourceId} entering={FadeInDown.delay(Math.min(idx * 40, 400)).springify()}>
+            <LinearGradient
+              colors={['rgba(30,25,20,0.9)', 'rgba(15,12,10,0.95)']}
               style={[
                 styles.nodeCard,
                 {
-                  backgroundColor: colors.card,
-                  borderColor: isCollecting ? rc : isOnCd ? colors.muted : colors.border,
+                  borderColor: isCollecting ? rc : isOnCd ? colors.muted : 'rgba(200,140,60,0.3)',
                   borderWidth: isCollecting ? 1.5 : 1,
                 },
               ]}
@@ -440,7 +443,8 @@ function ExploreView({
                   <Animated.View style={[styles.progressFill, progressStyle, { backgroundColor: rc }]} />
                 </View>
               )}
-            </View>
+            </LinearGradient>
+            </Animated.View>
           );
         })}
 
@@ -453,7 +457,7 @@ function ExploreView({
 
       {/* Weight bar */}
       <View style={[styles.weightBar, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-        <Feather name="package" size={12} color={colors.mutedForeground} />
+        <MaterialCommunityIcons name="weight" size={14} color={colors.mutedForeground} />
         <View style={[styles.weightTrack, { backgroundColor: colors.muted }]}>
           <View style={[styles.weightFill, {
             width: `${Math.min(100, Math.round((currentWeight / game.maxWeight) * 100))}%` as `${number}%`,
@@ -645,8 +649,8 @@ function WorldMapCanvas({
       )}
 
       {/* Phase indicator */}
-      <View style={[styles.phaseLabel, { backgroundColor: 'rgba(10,8,16,0.75)' }]}>
-        <Text style={styles.phaseEmoji}>{phaseConf.emoji}</Text>
+      <View style={[styles.phaseLabel, { backgroundColor: 'rgba(12,9,6,0.85)', borderColor: 'rgba(200,140,60,0.3)', borderWidth: 1 }]}>
+        <MaterialCommunityIcons name={phaseConf.icon} size={18} color="#D4851A" style={{ marginRight: 6 }} />
         <Text style={[styles.phaseLabelText, { color: '#D4851A' }]}>
           {phaseConf.label} · {String(gameHour).padStart(2, '0')}h00
         </Text>
@@ -1125,7 +1129,7 @@ export default function WorldScreen() {
           </TouchableOpacity>
           <View style={[styles.headerBadge, { backgroundColor: colors.secondary }]}>
             <Text style={[styles.headerBadgeText, { color: colors.mutedForeground }]}>
-              {phaseConf.emoji} {phaseConf.label}
+              <MaterialCommunityIcons name={phaseConf.icon} size={14} color="#D4851A" /> {phaseConf.label}
             </Text>
           </View>
           <View style={[styles.headerBadge, { backgroundColor: colors.secondary }]}>
@@ -1176,7 +1180,12 @@ export default function WorldScreen() {
                 onPress={() => handleRegionPress(region)}
                 activeOpacity={0.8}
               >
-                <Text style={{ fontSize: 20, marginRight: 2 }}>{isUnlocked ? REGION_EMOJIS[region.id] : '🔒'}</Text>
+                <MaterialCommunityIcons
+                  name={isUnlocked ? (REGION_ICONS[region.id] ?? 'map-marker') : 'lock'}
+                  size={20}
+                  color={isUnlocked ? '#F2E4C4' : colors.mutedForeground}
+                  style={{ marginRight: 2 }}
+                />
                 <View style={styles.regionRowInfo}>
                   <View style={styles.regionRowTop}>
                     <Text style={[styles.regionRowName, { color: isUnlocked ? colors.foreground : colors.mutedForeground }]}>
@@ -1238,7 +1247,7 @@ export default function WorldScreen() {
 
               {/* Region header */}
               <View style={styles.sheetHeader}>
-                <Text style={{ fontSize: 36 }}>{REGION_EMOJIS[selectedRegion.id]}</Text>
+                <MaterialCommunityIcons name={REGION_ICONS[selectedRegion.id] ?? 'map-marker'} size={36} color="#F2E4C4" />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.sheetTitle, { color: colors.foreground }]}>{selectedRegion.name}</Text>
                   <Text style={[styles.sheetBiome, { color: colors.mutedForeground }]}>

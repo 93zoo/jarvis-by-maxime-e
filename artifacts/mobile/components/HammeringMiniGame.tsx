@@ -1,17 +1,13 @@
-/**
- * HammeringMiniGame — Oscillating-needle precision mini-game.
- * The needle swings faster each strike. Tap at the right moment.
- * Calls onStrike(score, label) with each tap; onComplete when 5 strikes done.
- */
 import React, { useEffect, useRef, useState } from 'react';
 import {
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
   useWindowDimensions,
+  Pressable,
 } from 'react-native';
 import Animated, {
+  type SharedValue,
   Easing,
   useAnimatedStyle,
   useSharedValue,
@@ -22,6 +18,8 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import AudioManager from '@/utils/AudioManager';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export type HitLabel = 'PARFAIT!' | 'EXCELLENT!' | 'TRÈS BIEN' | 'BIEN' | 'RATÉ';
 
@@ -33,7 +31,16 @@ export interface HammeringMiniGameProps {
 }
 
 const TOTAL_STRIKES = 5;
-const PADDING = 32; // px each side
+
+const PALETTE = {
+  neonCyan: '#00E5FF',
+  gold: '#E8B84B',
+  ember: '#FF7A1A',
+  charcoal: '#0D0A07',
+  parchment: '#F5EFE2',
+  steel: '#2A241F',
+  darkRed: '#8B0000',
+};
 
 function scoreFromDeviation(dev: number): { score: number; label: HitLabel } {
   if (dev < 0.04) return { score: 25, label: 'PARFAIT!' };
@@ -43,16 +50,87 @@ function scoreFromDeviation(dev: number): { score: number; label: HitLabel } {
   return { score: 0, label: 'RATÉ' };
 }
 
-function labelColor(label: HitLabel | null, colors: ReturnType<typeof useColors>): string {
-  if (!label) return colors.foreground;
+function labelColor(label: HitLabel | null): string {
+  if (!label) return PALETTE.parchment;
   switch (label) {
-    case 'PARFAIT!': return '#9966CC';
-    case 'EXCELLENT!': return colors.accent;
-    case 'TRÈS BIEN': return colors.primary;
-    case 'BIEN': return '#4CAF50';
-    case 'RATÉ': return colors.destructive;
+    case 'PARFAIT!': return PALETTE.neonCyan;
+    case 'EXCELLENT!': return PALETTE.gold;
+    case 'TRÈS BIEN': return PALETTE.ember;
+    case 'BIEN': return '#E8862A';
+    case 'RATÉ': return PALETTE.darkRed;
   }
 }
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+const Needle = ({ needleNorm, barWidth }: { needleNorm: SharedValue<number>; barWidth: number }) => {
+  const needleStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: needleNorm.value * barWidth }],
+  }));
+
+  return (
+    <Animated.View style={[styles.needleWrapper, needleStyle]}>
+      <View style={styles.needleLine} />
+      <View style={[styles.needleDiamond, { top: -2 }]} />
+      <View style={[styles.needleDiamond, { bottom: -2 }]} />
+    </Animated.View>
+  );
+};
+
+const HitFlash = ({ flashOpacity }: { flashOpacity: SharedValue<number> }) => {
+  const style = useAnimatedStyle(() => ({
+    opacity: flashOpacity.value,
+  }));
+  return <Animated.View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#FFF' }, style]} pointerEvents="none" />;
+};
+
+const GaugeBorder = ({ children, overlay }: { children: React.ReactNode; overlay: React.ReactNode }) => (
+  <View style={styles.gaugeBorderContainer}>
+    <LinearGradient colors={['#3E342B', '#1A1410']} style={styles.gaugeOuterBorder}>
+      {children}
+      <View style={[StyleSheet.absoluteFillObject, { padding: 2 }]} pointerEvents="none">
+        {overlay}
+      </View>
+    </LinearGradient>
+    <View style={[styles.bolt, { top: 4, left: 4 }]} />
+    <View style={[styles.bolt, { top: 4, right: 4 }]} />
+    <View style={[styles.bolt, { bottom: 4, left: 4 }]} />
+    <View style={[styles.bolt, { bottom: 4, right: 4 }]} />
+  </View>
+);
+
+const Gauge = ({
+  barWidth,
+  perfectCenter,
+  needleNorm,
+  flashOpacity,
+}: {
+  barWidth: number;
+  perfectCenter: number;
+  needleNorm: SharedValue<number>;
+  flashOpacity: SharedValue<number>;
+}) => {
+  const cPx = perfectCenter * barWidth;
+  const PERF_HALF = barWidth * 0.04;
+  const EXCEL_HALF = barWidth * 0.09;
+  const TB_HALF = barWidth * 0.16;
+  const BIEN_HALF = barWidth * 0.24;
+
+  return (
+    <GaugeBorder overlay={<Needle needleNorm={needleNorm} barWidth={barWidth} />}>
+      <View style={[styles.gaugeInnerRim, { width: barWidth }]}>
+        <View style={styles.gaugeBackground} />
+        <View style={[styles.zone, styles.zoneBien, { left: cPx - BIEN_HALF, width: BIEN_HALF * 2 }]} />
+        <View style={[styles.zone, styles.zoneTresBien, { left: cPx - TB_HALF, width: TB_HALF * 2 }]} />
+        <View style={[styles.zone, styles.zoneExcellent, { left: cPx - EXCEL_HALF, width: EXCEL_HALF * 2 }]} />
+        <View style={[styles.zone, styles.zonePerfect, { left: cPx - PERF_HALF, width: PERF_HALF * 2 }]}>
+          <View style={styles.zonePerfectCore} />
+        </View>
+        <HitFlash flashOpacity={flashOpacity} />
+      </View>
+    </GaugeBorder>
+  );
+};
 
 export default function HammeringMiniGame({
   strikesCompleted,
@@ -62,18 +140,17 @@ export default function HammeringMiniGame({
 }: HammeringMiniGameProps) {
   const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
-  const barWidth = screenWidth - PADDING * 2;
+  
+  const PADDING = 20;
+  const GAUGE_CHROME = 18; 
+  const barWidth = screenWidth - PADDING * 2 - GAUGE_CHROME;
 
-  // Zone center: randomized between 0.22 and 0.78 each round
   const [perfectCenter] = useState(() => 0.22 + Math.random() * 0.56);
-
-  // Needle position: 0..1 normalised → multiply by barWidth for px
   const needleNorm = useSharedValue(0);
 
   const [lastHit, setLastHit] = useState<HitLabel | null>(null);
   const hitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Oscillation speed increases with each strike
   useEffect(() => {
     const baseDuration = Math.max(650, 1180 - strikesCompleted * 110);
     needleNorm.value = 0;
@@ -87,29 +164,46 @@ export default function HammeringMiniGame({
     );
   }, [strikesCompleted]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const needleStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: needleNorm.value * barWidth - 1.5 }],
-  }));
-
-  // Hit label flash animation
   const hitOpacity = useSharedValue(0);
-  const hitScale = useSharedValue(0.7);
+  const hitScale = useSharedValue(0.5);
+  const hitTranslateY = useSharedValue(0);
+  const flashOpacity = useSharedValue(0);
+  const shakeX = useSharedValue(0);
+  const buttonScale = useSharedValue(1);
 
   const hitLabelStyle = useAnimatedStyle(() => ({
     opacity: hitOpacity.value,
-    transform: [{ scale: hitScale.value }],
+    transform: [
+      { scale: hitScale.value },
+      { translateY: hitTranslateY.value }
+    ],
+  }));
+
+  const containerStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: shakeX.value }],
+  }));
+
+  const buttonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: buttonScale.value }],
   }));
 
   const flashHit = (label: HitLabel) => {
     hitOpacity.value = 1;
-    hitScale.value = 1;
-    hitOpacity.value = withTiming(0, { duration: 900, easing: Easing.out(Easing.exp) });
-    hitScale.value = withTiming(1.25, { duration: 900, easing: Easing.out(Easing.exp) });
+    hitScale.value = 0.6;
+    hitTranslateY.value = 8;
+    
+    hitScale.value = withTiming(1.1, { duration: 400, easing: Easing.out(Easing.back(1.5)) });
+    hitTranslateY.value = withTiming(-16, { duration: 800, easing: Easing.out(Easing.quad) });
+    
+    hitOpacity.value = withSequence(
+      withTiming(1, { duration: 500 }),
+      withTiming(0, { duration: 300, easing: Easing.in(Easing.quad) })
+    );
   };
 
   const handleStrike = () => {
     if (strikesCompleted >= TOTAL_STRIKES) return;
-    const pos = needleNorm.value; // JS-thread read
+    const pos = needleNorm.value; 
     const deviation = Math.abs(pos - perfectCenter);
     const { score, label } = scoreFromDeviation(deviation);
 
@@ -121,12 +215,22 @@ export default function HammeringMiniGame({
         : Haptics.ImpactFeedbackStyle.Light,
     );
 
-    // Audio feedback
     if (score >= 20) {
       AudioManager.playPerfectStrike();
     } else {
       AudioManager.playHammerStrike();
     }
+
+    shakeX.value = withSequence(
+      withTiming(score >= 20 ? -8 : -4, { duration: 40 }),
+      withTiming(score >= 20 ? 8 : 4, { duration: 40 }),
+      withTiming(score >= 20 ? -4 : -2, { duration: 40 }),
+      withTiming(score >= 20 ? 4 : 2, { duration: 40 }),
+      withTiming(0, { duration: 40 })
+    );
+
+    flashOpacity.value = 1;
+    flashOpacity.value = withTiming(0, { duration: 600, easing: Easing.out(Easing.quad) });
 
     setLastHit(label);
     flashHit(label);
@@ -137,158 +241,107 @@ export default function HammeringMiniGame({
     onStrike(score, label);
   };
 
+  const handlePressIn = () => {
+    if (strikesCompleted >= TOTAL_STRIKES) return;
+    buttonScale.value = withTiming(0.94, { duration: 80, easing: Easing.out(Easing.quad) });
+  };
+
+  const handlePressOut = () => {
+    if (strikesCompleted >= TOTAL_STRIKES) return;
+    buttonScale.value = withTiming(1, { duration: 150, easing: Easing.out(Easing.back(1.5)) });
+    handleStrike();
+  };
+
   const totalScore = strikeScores.reduce((a, b) => a + b, 0);
   const maxPossible = strikesCompleted * 25;
   const accuracy = maxPossible > 0 ? Math.round((totalScore / maxPossible) * 100) : 0;
 
-  // Zone pixel positions
-  const cPx = perfectCenter * barWidth;
-  const PERF_HALF = barWidth * 0.065;
-  const EXCEL_HALF = barWidth * 0.13;
-  const GOOD_HALF = barWidth * 0.21;
-
   return (
-    <View style={[styles.container, { backgroundColor: colors.card }]}>
-      {/* Title row */}
-      <View style={styles.titleRow}>
-        <Text style={[styles.title, { color: colors.primary }]}>⚒ MARTELAGE</Text>
-        <Text style={[styles.scoreText, { color: colors.accent }]}>
-          {totalScore} pts
-        </Text>
+    <View style={[styles.container, { backgroundColor: colors.card, paddingHorizontal: PADDING }]}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <MaterialCommunityIcons name="anvil" size={22} color={PALETTE.gold} />
+          <Text style={styles.headerTitle}>MARTELAGE</Text>
+        </View>
+        <View style={styles.scoreBadge}>
+          <MaterialCommunityIcons name="star-four-points" size={16} color={PALETTE.neonCyan} />
+          <Text style={styles.scoreText}>{totalScore} <Text style={styles.scorePts}>pts</Text></Text>
+        </View>
       </View>
 
-      {/* Strikes progress */}
-      <View style={styles.strikesRow}>
-        {Array.from({ length: TOTAL_STRIKES }).map((_, i) => (
-          <View
-            key={i}
-            style={[
-              styles.strikeDot,
-              {
-                backgroundColor:
-                  i < strikesCompleted
-                    ? strikeScores[i] >= 20
-                      ? colors.accent
-                      : strikeScores[i] >= 7
-                      ? colors.primary
-                      : colors.destructive
-                    : colors.muted,
-              },
-            ]}
-          />
-        ))}
-        <Text style={[styles.strikeCount, { color: colors.mutedForeground }]}>
-          {strikesCompleted}/{TOTAL_STRIKES}
-        </Text>
-        {strikesCompleted > 0 && (
-          <Text style={[styles.accuracyText, { color: colors.accent }]}>
-            Précision {accuracy}%
-          </Text>
-        )}
+      {/* Progress */}
+      <View style={styles.progressRow}>
+        <View style={styles.ingotsContainer}>
+          {Array.from({ length: TOTAL_STRIKES }).map((_, i) => {
+            const done = i < strikesCompleted;
+            const score = done ? strikeScores[i] : 0;
+            let bgColor = PALETTE.steel;
+            let glow = 0;
+            if (done) {
+              if (score >= 20) { bgColor = PALETTE.neonCyan; glow = 1; }
+              else if (score >= 14) { bgColor = PALETTE.gold; glow = 0.5; }
+              else if (score >= 7) { bgColor = PALETTE.ember; glow = 0.5; }
+              else { bgColor = PALETTE.darkRed; }
+            }
+            return (
+              <View key={i} style={[styles.ingotWrapper, glow ? { shadowColor: bgColor, shadowOpacity: 0.8, shadowRadius: 6, elevation: 4 } : null]}>
+                <View style={[styles.ingot, { backgroundColor: bgColor }]} />
+              </View>
+            );
+          })}
+        </View>
+        <Text style={styles.accuracyText}>{strikesCompleted > 0 ? `${accuracy}% PRÉCISION` : 'PRÊT'}</Text>
       </View>
 
-      {/* Needle bar */}
-      <View
-        style={[
-          styles.barContainer,
-          { width: barWidth, borderColor: colors.border },
-        ]}
-      >
-        {/* Miss zones (red) */}
-        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: `${colors.destructive}28` }]} />
+      {/* Gauge */}
+      <Animated.View style={[styles.gaugeOuterWrapper, containerStyle]}>
+        <Gauge barWidth={barWidth} perfectCenter={perfectCenter} needleNorm={needleNorm} flashOpacity={flashOpacity} />
+      </Animated.View>
 
-        {/* Good zone (amber) */}
-        <View
-          style={[
-            styles.zone,
-            {
-              left: cPx - GOOD_HALF,
-              width: GOOD_HALF * 2,
-              backgroundColor: `${colors.primary}40`,
-            },
-          ]}
-        />
-
-        {/* Excellent zone (gold) */}
-        <View
-          style={[
-            styles.zone,
-            {
-              left: cPx - EXCEL_HALF,
-              width: EXCEL_HALF * 2,
-              backgroundColor: `${colors.accent}50`,
-            },
-          ]}
-        />
-
-        {/* Perfect zone (green) */}
-        <View
-          style={[
-            styles.zone,
-            {
-              left: cPx - PERF_HALF,
-              width: PERF_HALF * 2,
-              backgroundColor: '#4CAF5070',
-              borderRadius: 3,
-            },
-          ]}
-        />
-
-        {/* Zone border lines */}
-        <View style={[styles.zoneLine, { left: cPx - EXCEL_HALF, backgroundColor: `${colors.accent}60` }]} />
-        <View style={[styles.zoneLine, { left: cPx + EXCEL_HALF - 1, backgroundColor: `${colors.accent}60` }]} />
-
-        {/* Needle */}
-        <Animated.View style={[styles.needle, needleStyle]} />
-
-        {/* Zone label */}
-        <Text
-          style={[
-            styles.zoneLabel,
-            {
-              left: cPx - PERF_HALF,
-              width: PERF_HALF * 2,
-              color: '#4CAF50',
-            },
-          ]}
-        >
-          ✓
-        </Text>
-      </View>
-
-      {/* Hit result flash */}
+      {/* Hit Result Flash */}
       <View style={styles.hitContainer}>
         <Animated.Text
           style={[
             styles.hitLabel,
             hitLabelStyle,
-            { color: labelColor(lastHit, colors) },
+            { color: labelColor(lastHit) },
           ]}
         >
           {lastHit ?? ''}
         </Animated.Text>
       </View>
 
-      {/* Strike button */}
-      <TouchableOpacity
+      {/* Strike Button */}
+      <AnimatedPressable
         style={[
           styles.strikeButton,
-          {
-            backgroundColor:
-              strikesCompleted >= TOTAL_STRIKES ? colors.muted : colors.primary,
-          },
+          buttonAnimatedStyle,
+          strikesCompleted >= TOTAL_STRIKES && styles.strikeButtonDisabled
         ]}
-        onPress={handleStrike}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
         disabled={strikesCompleted >= TOTAL_STRIKES}
-        activeOpacity={0.75}
       >
-        <Text style={[styles.strikeButtonText, { color: colors.primaryForeground }]}>
-          {strikesCompleted >= TOTAL_STRIKES ? 'Finition…' : '⚒  FRAPPER'}
-        </Text>
-      </TouchableOpacity>
+        <LinearGradient
+          colors={strikesCompleted >= TOTAL_STRIKES ? ['#3E342B', '#1A1410'] : [PALETTE.ember, '#A33E00']}
+          style={[styles.strikeButtonGradient, strikesCompleted >= TOTAL_STRIKES && styles.strikeButtonGradientDisabled]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+        >
+          <MaterialCommunityIcons 
+            name={strikesCompleted >= TOTAL_STRIKES ? "check-bold" : "hammer"} 
+            size={28} 
+            color={strikesCompleted >= TOTAL_STRIKES ? "#888" : "#FFF"} 
+          />
+          <Text style={[styles.strikeButtonText, strikesCompleted >= TOTAL_STRIKES && { color: '#888', textShadowColor: 'transparent' }]}>
+            {strikesCompleted >= TOTAL_STRIKES ? 'FINITION…' : 'FRAPPER'}
+          </Text>
+        </LinearGradient>
+      </AnimatedPressable>
 
-      {/* Forge bonus hint */}
-      <Text style={[styles.bonusHint, { color: colors.mutedForeground }]}>
+      {/* Bonus hint */}
+      <Text style={styles.bonusHint}>
         Bonus forge Niv.{forgeSkillLevel}: +{Math.min(40, forgeSkillLevel * 4)} pts qualité
       </Text>
     </View>
@@ -297,94 +350,245 @@ export default function HammeringMiniGame({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: PADDING,
-    paddingTop: 14,
-    paddingBottom: 10,
+    paddingTop: 16,
+    paddingBottom: 16,
   },
-  titleRow: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 16,
   },
-  title: { fontSize: 15, fontWeight: '800', letterSpacing: 2 },
-  scoreText: { fontSize: 18, fontWeight: '800' },
-  strikesRow: {
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 14,
   },
-  strikeDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: PALETTE.parchment,
+    letterSpacing: 2,
   },
-  strikeCount: { fontSize: 13, marginLeft: 4 },
-  accuracyText: { fontSize: 12, fontWeight: '600', marginLeft: 'auto' },
-  barContainer: {
-    height: 52,
+  scoreBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 229, 255, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 8,
     borderWidth: 1,
-    overflow: 'hidden',
-    position: 'relative',
+    borderColor: 'rgba(0, 229, 255, 0.3)',
+    gap: 6,
+  },
+  scoreText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: PALETTE.neonCyan,
+  },
+  scorePts: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: PALETTE.neonCyan,
+    opacity: 0.8,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  ingotsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  ingotWrapper: {},
+  ingot: {
+    width: 14,
+    height: 20,
+    borderRadius: 3,
+    transform: [{ skewX: '-10deg' }],
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  accuracyText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: PALETTE.gold,
+    letterSpacing: 1,
+  },
+  gaugeOuterWrapper: {
     alignSelf: 'center',
+  },
+  gaugeBorderContainer: {
+    padding: 6,
+    backgroundColor: '#1E1915',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#3E342B',
+    shadowColor: '#000',
+    shadowOpacity: 0.8,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+  gaugeOuterBorder: {
+    padding: 2,
+    borderRadius: 4,
+    position: 'relative',
+  },
+  gaugeInnerRim: {
+    backgroundColor: PALETTE.charcoal,
+    borderRadius: 2,
+    overflow: 'hidden',
+    height: 44,
+    position: 'relative',
+  },
+  gaugeBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#110D0A',
+  },
+  bolt: {
+    position: 'absolute',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#0A0806',
+    borderWidth: 1,
+    borderColor: '#4A3E33',
   },
   zone: {
     position: 'absolute',
     top: 0,
     bottom: 0,
   },
-  zoneLine: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    width: 1,
+  zoneBien: {
+    backgroundColor: 'rgba(232, 134, 42, 0.2)',
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: 'rgba(232, 134, 42, 0.4)',
   },
-  needle: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    width: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 1.5,
-    shadowColor: '#FFFFFF',
+  zoneTresBien: {
+    backgroundColor: 'rgba(255, 122, 26, 0.4)',
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: 'rgba(255, 122, 26, 0.6)',
+  },
+  zoneExcellent: {
+    backgroundColor: 'rgba(232, 184, 75, 0.6)',
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: 'rgba(232, 184, 75, 0.8)',
+  },
+  zonePerfect: {
+    backgroundColor: 'rgba(0, 229, 255, 0.3)',
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: PALETTE.neonCyan,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: PALETTE.neonCyan,
     shadowOpacity: 0.8,
+    shadowRadius: 6,
+  },
+  zonePerfectCore: {
+    width: 2,
+    height: '100%',
+    backgroundColor: '#FFF',
+    shadowColor: PALETTE.neonCyan,
+    shadowOpacity: 1,
     shadowRadius: 4,
   },
-  zoneLabel: {
+  needleWrapper: {
     position: 'absolute',
-    bottom: 3,
-    fontSize: 10,
-    textAlign: 'center',
-    fontWeight: '800',
+    top: -4,
+    bottom: -4,
+    left: 0,
+    width: 0, 
+    zIndex: 10,
+  },
+  needleLine: {
+    position: 'absolute',
+    top: 4,
+    bottom: 4,
+    width: 2,
+    left: -1,
+    backgroundColor: '#FFF',
+    shadowColor: PALETTE.neonCyan,
+    shadowOpacity: 1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  needleDiamond: {
+    position: 'absolute',
+    left: -6,
+    width: 12,
+    height: 12,
+    backgroundColor: '#FFF',
+    transform: [{ rotate: '45deg' }],
+    shadowColor: PALETTE.neonCyan,
+    shadowOpacity: 1,
+    shadowRadius: 6,
+    elevation: 4,
   },
   hitContainer: {
-    height: 40,
+    height: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: 4,
+    marginTop: 12,
+    marginBottom: 4,
+    zIndex: 20,
   },
   hitLabel: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: '900',
-    letterSpacing: 2,
-    textAlign: 'center',
+    letterSpacing: 3,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
   },
   strikeButton: {
-    paddingVertical: 15,
-    borderRadius: 14,
+    width: '100%',
+    height: 60,
+    borderRadius: 12,
+    shadowColor: PALETTE.ember,
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  strikeButtonDisabled: {
+    shadowOpacity: 0,
+    elevation: 2,
+  },
+  strikeButtonGradient: {
+    flex: 1,
+    borderRadius: 12,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#FFB770',
+    gap: 12,
+  },
+  strikeButtonGradientDisabled: {
+    borderColor: '#4A3E33',
   },
   strikeButtonText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '900',
-    letterSpacing: 2,
+    letterSpacing: 4,
+    color: '#FFF',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   bonusHint: {
-    fontSize: 11,
+    fontSize: 12,
     textAlign: 'center',
+    marginTop: 12,
+    fontWeight: '600',
+    color: PALETTE.parchment,
+    opacity: 0.6,
   },
 });

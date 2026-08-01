@@ -6,10 +6,13 @@
  * gain du jour ("delta") et le classe par jour et par semaine.
  *
  * Sur web, l'API vit sur `window.location.origin + '/api-server/api'`.
- * Sur natif sans backend accessible, la fonctionnalité est désactivée
+ * Sur natif (Expo Go), on passe par le domaine qui sert le bundle
+ * (Constants.expoConfig.hostUri) : le proxy Metro y expose `/api-server/*`.
+ * Si aucune adresse n'est trouvable, la fonctionnalité est désactivée
  * proprement (les écrans affichent un état "hors ligne").
  */
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 export interface LeaderboardEntry {
   playerId: string;
@@ -29,6 +32,13 @@ export interface LeaderboardResult {
 export function getLeaderboardApiBase(): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.origin) {
     return `${window.location.origin}/api-server/api`;
+  }
+  // Natif : le bundle est servi par Metro, dont le proxy expose aussi /api-server/*.
+  const hostUri: string | undefined = Constants.expoConfig?.hostUri;
+  if (hostUri) {
+    const host = hostUri.split('/')[0]; // ex. "xxx.replit.dev:443" ou "192.168.x.x:8081"
+    const isLocal = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
+    return `${isLocal ? 'http' : 'https'}://${host.replace(/:443$/, '')}/api-server/api`;
   }
   return '';
 }

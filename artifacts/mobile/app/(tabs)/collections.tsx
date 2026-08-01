@@ -5,7 +5,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useColors } from '@/hooks/useColors';
 import { useGame } from '@/context/GameContext';
 import type { ItemSet } from '@/types/game';
@@ -22,13 +24,13 @@ const RARITY_LABELS: Record<string, string> = {
   common: 'Commun', rare: 'Rare', epic: 'Épique', legendary: 'Légendaire', mythic: 'Mythique',
 };
 const BONUS_LABELS: Record<string, string> = {
-  orderGoldBonus:    '💰 Or des commandes',
-  reputationBonus:   '⭐ Réputation NPC',
-  qualityBonus:      '✨ Qualité (bonus)',
-  forgeXpBonus:      '🔥 XP de forge',
-  dropBonus:         '⛏️ Récolte',
-  craftSpeedBonus:   '⚡ Vitesse de forge',
-  marketValueBonus:  '🪙 Prix de vente',
+  orderGoldBonus:    'Or des commandes',
+  reputationBonus:   'Réputation NPC',
+  qualityBonus:      'Qualité (bonus)',
+  forgeXpBonus:      'XP de forge',
+  dropBonus:         'Récolte',
+  craftSpeedBonus:   'Vitesse de forge',
+  marketValueBonus:  'Prix de vente',
 };
 const FILTERS = ['Tous', 'Commun', 'Rare', 'Épique', 'Légendaire', 'Mythique'] as const;
 const FILTER_KEYS: Record<string, string> = {
@@ -49,7 +51,10 @@ function BonusSummaryPanel({
   if (active.length === 0) return null;
   return (
     <View style={[spStyles.panel, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
-      <Text style={[spStyles.title, { color: colors.foreground }]}>⚡ Bonus actifs des collections</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 6 }}>
+        <MaterialCommunityIcons name="lightning-bolt" size={16} color={colors.accent} />
+        <Text style={[spStyles.title, { color: colors.foreground, marginBottom: 0 }]}>Bonus actifs des collections</Text>
+      </View>
       <View style={spStyles.grid}>
         {active.map(t => {
           const val = game.getCollectionBonusTotal(t);
@@ -111,7 +116,9 @@ function SetDetailModal({
 
           {/* Header */}
           <View style={mdStyles.headerRow}>
-            <Text style={{ fontSize: 36 }}>{set.emoji}</Text>
+            <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: rc + '22', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: rc + '55' }}>
+              <MaterialCommunityIcons name="treasure-chest" size={32} color={rc} />
+            </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={[mdStyles.setName, { color: colors.foreground }]}>{set.name}</Text>
               <View style={[mdStyles.rarityBadge, { backgroundColor: rc + '22', borderColor: rc + '55' }]}>
@@ -180,11 +187,14 @@ function SetDetailModal({
 
             {/* Reward */}
             <View style={[mdStyles.rewardRow, { backgroundColor: isClaimed ? colors.muted : rc + '22', borderColor: rc + '55' }]}>
-              <Text style={[mdStyles.rewardTitle, { color: isClaimed ? colors.mutedForeground : rc }]}>
-                {isClaimed ? '✅ Récompense obtenue' : '🎁 Récompense de collection'}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <MaterialCommunityIcons name={isClaimed ? 'check-decagram' : 'gift'} size={18} color={isClaimed ? colors.mutedForeground : rc} />
+                <Text style={[mdStyles.rewardTitle, { color: isClaimed ? colors.mutedForeground : rc, marginBottom: 0 }]}>
+                  {isClaimed ? 'Récompense obtenue' : 'Récompense de collection'}
+                </Text>
+              </View>
               <Text style={[mdStyles.rewardText, { color: isClaimed ? colors.mutedForeground : colors.foreground }]}>
-                {set.reward.gold.toLocaleString()} 💰  •  Titre : « {set.reward.title} »
+                {set.reward.gold.toLocaleString()} or  •  Titre : « {set.reward.title} »
               </Text>
               {isComplete && !isClaimed && (
                 <TouchableOpacity style={[mdStyles.claimBtn, { backgroundColor: rc }]} onPress={handleClaim}>
@@ -258,7 +268,9 @@ function SetCard({
     >
       {/* Emoji + Name */}
       <View style={scStyles.topRow}>
-        <Text style={{ fontSize: 26 }}>{isRevealed ? set.emoji : '🔒'}</Text>
+        <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: rc + '22', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: rc + '55' }}>
+          <MaterialCommunityIcons name={isRevealed ? 'treasure-chest' : 'lock'} size={24} color={isRevealed ? rc : colors.mutedForeground} />
+        </View>
         <View style={{ flex: 1, marginLeft: 10 }}>
           <Text style={[scStyles.name, { color: colors.foreground }]} numberOfLines={1}>
             {isRevealed ? set.name : 'Collection Secrète'}
@@ -267,7 +279,7 @@ function SetCard({
             <Text style={[scStyles.rarityText, { color: rc }]}>{RARITY_LABELS[set.rarity]}</Text>
           </View>
         </View>
-        {isComplete && <Text style={{ fontSize: 16 }}>{isClaimed ? '✅' : '🎁'}</Text>}
+        {isComplete && <MaterialCommunityIcons name={isClaimed ? 'check-decagram' : 'gift'} size={24} color={isClaimed ? '#4CAF50' : '#E8B84B'} />}
       </View>
 
       {/* Progress */}
@@ -351,8 +363,8 @@ export default function CollectionsScreen() {
             {completedSets}/{totalSets} complètes · {inProgress} en cours
           </Text>
         </View>
-        <View style={[csStyles.trophyBadge, { backgroundColor: colors.primary + '22' }]}>
-          <Text style={{ fontSize: 22 }}>🏆</Text>
+        <View style={[csStyles.trophyBadge, { backgroundColor: colors.primary + '22', borderWidth: 1, borderColor: colors.primary + '55' }]}>
+          <MaterialCommunityIcons name="trophy" size={22} color={colors.primary} />
           <Text style={[csStyles.trophyText, { color: colors.primary }]}>{completedSets}</Text>
         </View>
       </View>
@@ -376,19 +388,20 @@ export default function CollectionsScreen() {
         <BonusSummaryPanel game={game} colors={colors} />
 
         {/* Set cards */}
-        {filtered.map(set => (
-          <SetCard
-            key={set.id}
-            set={set}
-            game={game}
-            colors={colors}
-            onPress={() => setSelectedSet(set)}
-          />
+        {filtered.map((set, idx) => (
+          <Animated.View key={set.id} entering={FadeInDown.delay(Math.min(idx * 40, 600)).springify()}>
+            <SetCard
+              set={set}
+              game={game}
+              colors={colors}
+              onPress={() => setSelectedSet(set)}
+            />
+          </Animated.View>
         ))}
 
         {filtered.length === 0 && (
           <View style={csStyles.empty}>
-            <Text style={{ fontSize: 40 }}>🔍</Text>
+            <MaterialCommunityIcons name="magnify" size={40} color={colors.mutedForeground} />
             <Text style={[csStyles.emptyText, { color: colors.mutedForeground }]}>Aucune collection pour ce filtre</Text>
           </View>
         )}
@@ -415,8 +428,8 @@ const csStyles = StyleSheet.create({
   trophyText:    { fontSize: 16, fontWeight: '800' },
   filterScroll:  { maxHeight: 48, marginBottom: 12 },
   filterContent: { paddingHorizontal: 16, gap: 8, alignItems: 'center' },
-  filterTab:     { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
-  filterText:    { fontSize: 12, fontWeight: '600' },
+  filterTab:     { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
+  filterText:    { fontSize: 13, fontWeight: '700' },
   empty:         { alignItems: 'center', paddingVertical: 60, gap: 12 },
   emptyText:     { fontSize: 14 },
 });

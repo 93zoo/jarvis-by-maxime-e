@@ -10,7 +10,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -55,12 +56,12 @@ export default function CodexScreen() {
   const discoveredRecipeIds = new Set(game.craftedItems.map((i) => i.recipeId));
 
   const TABS: { key: CodexTab; label: string; icon: string }[] = [
-    { key: 'resources', label: 'Matériaux', icon: 'grid' },
-    { key: 'recipes', label: 'Recettes', icon: 'book-open' },
+    { key: 'resources', label: 'Matériaux', icon: 'diamond-stone' },
+    { key: 'recipes', label: 'Recettes', icon: 'book-open-page-variant' },
     { key: 'regions', label: 'Régions', icon: 'map' },
-    { key: 'skills', label: 'Compétences', icon: 'star' },
-    { key: 'quests', label: 'Quêtes', icon: 'flag' },
-    { key: 'profil', label: 'Profil', icon: 'user' },
+    { key: 'skills', label: 'Talents', icon: 'auto-fix' },
+    { key: 'quests', label: 'Quêtes', icon: 'flag-triangle' },
+    { key: 'profil', label: 'Profil', icon: 'account' },
   ];
 
   const activeQuests = game.getActiveQuests();
@@ -133,20 +134,30 @@ export default function CodexScreen() {
         })}
         {/* Rewards */}
         <View style={styles.questRewards}>
-          <Text style={[styles.questRewardItem, { color: colors.accent }]}>🪙 {quest.rewards.gold}g</Text>
-          <Text style={[styles.questRewardItem, { color: colors.primary }]}>⭐ {quest.rewards.xp} XP</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <MaterialCommunityIcons name="gold" size={14} color={colors.accent} />
+            <Text style={[styles.questRewardItem, { color: colors.accent }]}>{quest.rewards.gold}g</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <MaterialCommunityIcons name="star" size={14} color={colors.primary} />
+            <Text style={[styles.questRewardItem, { color: colors.primary }]}>{quest.rewards.xp} XP</Text>
+          </View>
           {quest.rewards.unlockRegion && (
-            <Text style={[styles.questRewardItem, { color: '#9C27B0' }]}>🗺 Débloque région</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <MaterialCommunityIcons name="map" size={14} color="#9C27B0" />
+              <Text style={[styles.questRewardItem, { color: '#9C27B0' }]}>Débloque région</Text>
+            </View>
           )}
         </View>
       </View>
     );
   };
 
-  const renderResourceEntry = ({ item: res }: { item: ResourceData }) => {
+  const renderResourceEntry = ({ item: res, index }: { item: ResourceData; index: number }) => {
     const discovered = discoveredResourceIds.has(res.id);
     const rarityColor = RARITY_COLORS[res.rarity] ?? colors.primary;
     return (
+      <Animated.View entering={FadeInDown.delay(Math.min(index * 30, 400)).springify()}>
       <TouchableOpacity
         style={[
           styles.entryCard,
@@ -185,10 +196,11 @@ export default function CodexScreen() {
           </>
         )}
       </TouchableOpacity>
+      </Animated.View>
     );
   };
 
-  const renderRecipeEntry = ({ item: recipe }: { item: (typeof game.allRecipes)[0] }) => {
+  const renderRecipeEntry = ({ item: recipe, index }: { item: (typeof game.allRecipes)[0]; index: number }) => {
     const unlocked = game.player.unlockedRecipeIds.includes(recipe.id);
     const discovered = discoveredRecipeIds.has(recipe.id);
     const skillLevel = game.player.skills[recipe.skillRequired] ?? 0;
@@ -210,6 +222,7 @@ export default function CodexScreen() {
       setTimeout(() => setRecipeMessage(null), 2400);
     };
     return (
+      <Animated.View entering={FadeInDown.delay(Math.min(index * 30, 400)).springify()}>
       <View
         style={[
           styles.entryCard,
@@ -259,13 +272,15 @@ export default function CodexScreen() {
           </>
         )}
       </View>
+      </Animated.View>
     );
   };
 
-  const renderRegionEntry = ({ item: region }: { item: RegionData }) => {
+  const renderRegionEntry = ({ item: region, index }: { item: RegionData; index: number }) => {
     const unlocked = game.unlockedRegions.includes(region.id);
     const exploration = game.regionExploration[region.id] ?? 0;
     return (
+      <Animated.View entering={FadeInDown.delay(Math.min(index * 30, 400)).springify()}>
       <View
         style={[
           styles.regionEntry,
@@ -308,6 +323,7 @@ export default function CodexScreen() {
         )}
         {!unlocked && <Feather name="lock" size={16} color={colors.mutedForeground} />}
       </View>
+      </Animated.View>
     );
   };
 
@@ -343,9 +359,9 @@ export default function CodexScreen() {
               onPress={() => setActiveTab(tab.key)}
               activeOpacity={0.7}
             >
-              <Feather
-                name={tab.icon as 'grid'}
-                size={16}
+              <MaterialCommunityIcons
+                name={tab.icon as any}
+                size={20}
                 color={isActive ? colors.primary : colors.mutedForeground}
               />
               <Text
@@ -585,12 +601,12 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 9,
-    gap: 3,
+    paddingVertical: 12,
+    gap: 4,
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
-  tabText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.2 },
+  tabText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
   listContent: { paddingHorizontal: 16, paddingTop: 12 },
   entryCard: {
     flexDirection: 'row',

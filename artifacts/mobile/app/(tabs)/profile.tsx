@@ -20,9 +20,10 @@ import Reanimated, {
   useAnimatedStyle,
   useReducedMotion,
   Easing,
+  FadeInDown,
   type SharedValue,
 } from 'react-native-reanimated';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -1711,7 +1712,7 @@ function StatsTabContent({ colors, game }: { colors: ReturnType<typeof useColors
           <Text style={[stStyles.infoLabel, { color: colors.mutedForeground }]}>Jours consécutifs</Text>
           <View style={stStyles.streakWrap}>
             <Text style={[stStyles.infoValue, { color: '#D4AF37' }]}>{streak}</Text>
-            <Text style={[stStyles.streakFlame, { color: '#D4AF37' }]}> 🔥</Text>
+            <Text style={[stStyles.streakFlame, { color: '#D4AF37' }]}> ✦</Text>
           </View>
         </View>
         <View style={[stStyles.infoSep, { backgroundColor: colors.border }]} />
@@ -1950,12 +1951,12 @@ function AchievementsTabContent({ colors }: { colors: ReturnType<typeof useColor
       </View>
 
       {/* Achievement rows */}
-      {allAchievements.map((ach: Achievement) => {
+      {allAchievements.map((ach: Achievement, idx: number) => {
         const unlocked = unlockedIds.has(ach.id);
         const info = ACH_CATEGORY_INFO[ach.category] ?? { label: ach.category, color: '#888', icon: 'star' };
         return (
+          <Reanimated.View key={ach.id} entering={FadeInDown.delay(Math.min(idx * 30, 400)).springify()}>
           <View
-            key={ach.id}
             style={[
               styles.achieveRow,
               {
@@ -1989,6 +1990,7 @@ function AchievementsTabContent({ colors }: { colors: ReturnType<typeof useColor
               </View>
             )}
           </View>
+          </Reanimated.View>
         );
       })}
     </>
@@ -2022,20 +2024,20 @@ const AVATAR_ICONS: { icon: string | null; label: string }[] = [
 export interface AvatarPreset {
   id: string;
   label: string;
-  emoji: string;
+  icon: string;
   bg: string;
   accent: string;
 }
 
 export const AVATAR_PRESETS: AvatarPreset[] = [
-  { id: 'dwarf',    label: 'Nain',      emoji: '⚒️', bg: '#5C3317', accent: '#D4851A' },
-  { id: 'elf',      label: 'Elfe',      emoji: '🏹', bg: '#1B4332', accent: '#52B788' },
-  { id: 'knight',   label: 'Chevalier', emoji: '⚔️', bg: '#1A2744', accent: '#6EA8FE' },
-  { id: 'merchant', label: 'Marchand',  emoji: '🪙', bg: '#4A3200', accent: '#D4AF37' },
-  { id: 'mage',     label: 'Mage',      emoji: '🔮', bg: '#2D1B4E', accent: '#C084FC' },
-  { id: 'warrior',  label: 'Guerrier',  emoji: '🛡️', bg: '#3B0A0A', accent: '#F87171' },
-  { id: 'rogue',    label: 'Rôdeur',    emoji: '🗡️', bg: '#141A2E', accent: '#94A3B8' },
-  { id: 'paladin',  label: 'Paladin',   emoji: '✨', bg: '#0C2340', accent: '#7DD3FC' },
+  { id: 'dwarf',    label: 'Nain',      icon: 'anvil', bg: '#5C3317', accent: '#D4851A' },
+  { id: 'elf',      label: 'Elfe',      icon: 'bow-arrow', bg: '#1B4332', accent: '#52B788' },
+  { id: 'knight',   label: 'Chevalier', icon: 'sword-cross', bg: '#1A2744', accent: '#6EA8FE' },
+  { id: 'merchant', label: 'Marchand',  icon: 'gold', bg: '#4A3200', accent: '#D4AF37' },
+  { id: 'mage',     label: 'Mage',      icon: 'crystal-ball', bg: '#2D1B4E', accent: '#C084FC' },
+  { id: 'warrior',  label: 'Guerrier',  icon: 'shield-sword', bg: '#3B0A0A', accent: '#F87171' },
+  { id: 'rogue',    label: 'Rôdeur',    icon: 'knife', bg: '#141A2E', accent: '#94A3B8' },
+  { id: 'paladin',  label: 'Paladin',   icon: 'star-shooting', bg: '#0C2340', accent: '#7DD3FC' },
 ];
 
 // ─── AvatarDisplay ────────────────────────────────────────────────────────────
@@ -2063,7 +2065,7 @@ function AvatarDisplay({
         justifyContent: 'center', alignItems: 'center',
         borderWidth: 2, borderColor: preset.accent + '88',
       }}>
-        <Text style={{ fontSize: size * 0.46, lineHeight: size * 0.56 }}>{preset.emoji}</Text>
+        <MaterialCommunityIcons name={preset.icon as any} size={size * 0.5} color={preset.accent} />
       </View>
     );
   }
@@ -2242,7 +2244,7 @@ function CustomizeModal({
                       },
                     ]}
                   >
-                    <Text style={{ fontSize: 22, lineHeight: 28 }}>{preset.emoji}</Text>
+                    <MaterialCommunityIcons name={preset.icon as any} size={22} color={preset.accent} />
                     <Text style={[cmStyles.illustrationLabel, { color: selected ? preset.accent : '#ffffff99' }]}>
                       {preset.label}
                     </Text>
@@ -2434,6 +2436,12 @@ const cmStyles = StyleSheet.create({
   suggestionText: { fontSize: 12, fontWeight: '600' },
 });
 
+const STAT_ICONS: Record<string, any> = {
+  max_stamina: 'arm-flex',
+  craft_speed: 'lightning-bolt',
+  rare_drop: 'diamond-stone',
+};
+
 // ─── Stat Upgrades Tab ───────────────────────────────────────────────────────
 function StatUpgradesTabContent({ colors }: { colors: ReturnType<typeof useColors> }) {
   const game = useGame();
@@ -2483,7 +2491,7 @@ function StatUpgradesTabContent({ colors }: { colors: ReturnType<typeof useColor
       )}
 
       {/* Upgrade cards */}
-      {STAT_UPGRADE_DEFINITIONS.map((def) => {
+      {STAT_UPGRADE_DEFINITIONS.map((def, idx: number) => {
         const level = (game.player.statUpgrades ?? {})[def.id] ?? 0;
         const isMaxed = level >= def.maxLevel;
         const nextCost = isMaxed ? null : def.costs[level];
@@ -2491,11 +2499,12 @@ function StatUpgradesTabContent({ colors }: { colors: ReturnType<typeof useColor
         const totalBonus = level * def.bonusPerLevel;
 
         return (
-          <View key={def.id} style={[upgStyles.card, { backgroundColor: colors.card, borderColor: isMaxed ? def.color + '66' : colors.border }]}>
+          <Reanimated.View key={def.id} entering={FadeInDown.delay(Math.min(idx * 30, 400)).springify()}>
+          <View style={[upgStyles.card, { backgroundColor: colors.card, borderColor: isMaxed ? def.color + '66' : colors.border }]}>
             {/* Top row */}
             <View style={upgStyles.cardTop}>
               <View style={[upgStyles.emojiBox, { backgroundColor: def.color + '22' }]}>
-                <Text style={upgStyles.emoji}>{def.emoji}</Text>
+                <MaterialCommunityIcons name={STAT_ICONS[def.id] ?? 'star'} size={24} color={def.color} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[upgStyles.cardName, { color: colors.foreground }]}>{def.name}</Text>
@@ -2554,6 +2563,7 @@ function StatUpgradesTabContent({ colors }: { colors: ReturnType<typeof useColor
               </View>
             )}
           </View>
+          </Reanimated.View>
         );
       })}
     </>
@@ -2570,7 +2580,7 @@ const upgStyles = StyleSheet.create({
   card: { borderRadius: 14, padding: 14, borderWidth: 1, marginBottom: 12 },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
   emojiBox: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  emoji: { fontSize: 22 },
+  
   cardName: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
   cardDesc: { fontSize: 11, lineHeight: 15 },
   levelLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
@@ -2625,9 +2635,9 @@ export default function ProfileScreen({ tabs, title }: { tabs?: readonly Profile
   const handleSave = async () => {
     const result = await game.saveGame();
     if (result === 'ok') {
-      Alert.alert('✅ Sauvegardé', 'Votre progression a été sauvegardée.');
+      Alert.alert('Sauvegardé', 'Votre progression a été sauvegardée.');
     } else {
-      Alert.alert('❌ Erreur', 'La sauvegarde a échoué. Vérifiez le stockage de l\'appareil.');
+      Alert.alert('Erreur', 'La sauvegarde a échoué. Vérifiez le stockage de l\'appareil.');
     }
   };
   const handleReset = () => {

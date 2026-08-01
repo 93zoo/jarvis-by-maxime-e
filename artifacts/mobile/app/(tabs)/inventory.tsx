@@ -15,7 +15,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGame } from '@/context/GameContext';
@@ -60,15 +61,15 @@ function rarityColor(r: string, colors: ReturnType<typeof useColors>): string {
   }
 }
 
-function resourceTypeIcon(type: string): string {
+function ResourceTypeIcon({ type, size = 18 }: { type: string, size?: number }) {
   switch (type) {
-    case 'metal': return '⚙';
-    case 'wood': return '🪵';
-    case 'stone': return '🪨';
-    case 'gem': return '💎';
-    case 'organic': return '🌿';
-    case 'clay': return '🏺';
-    default: return '◆';
+    case 'metal': return <MaterialCommunityIcons name="gold" size={size} />;
+    case 'wood': return <MaterialCommunityIcons name="pine-tree" size={size} />;
+    case 'stone': return <MaterialCommunityIcons name="terrain" size={size} />;
+    case 'gem': return <MaterialCommunityIcons name="diamond-stone" size={size} />;
+    case 'organic': return <MaterialCommunityIcons name="leaf" size={size} />;
+    case 'clay': return <MaterialCommunityIcons name="pot" size={size} />;
+    default: return <MaterialCommunityIcons name="shape-outline" size={size} />;
   }
 }
 
@@ -102,6 +103,7 @@ function WeightBar({
   const barColor = pct > 0.9 ? colors.destructive : pct > 0.7 ? colors.primary : colors.accent;
   return (
     <View style={weightStyles.container}>
+      <MaterialCommunityIcons name="weight" size={14} color={pct > 0.7 ? barColor : colors.mutedForeground} />
       <View style={[weightStyles.track, { backgroundColor: colors.muted }]}>
         <View style={[weightStyles.fill, { width: `${Math.round(pct * 100)}%` as `${number}%`, backgroundColor: barColor }]} />
       </View>
@@ -123,24 +125,26 @@ function ResourceCard({
   res,
   qty,
   colors,
-}: { res: ResourceData; qty: number; colors: ReturnType<typeof useColors> }) {
+  index,
+}: { res: ResourceData; qty: number; colors: ReturnType<typeof useColors>; index: number }) {
   const isGem = res.type === 'gem';
   return (
-    <View
-      style={[
-        styles.resourceCard,
-        {
-          backgroundColor: colors.card,
-          borderColor: isGem ? res.color + '80' : colors.border,
-          borderWidth: isGem ? 1.5 : 1,
-        },
-      ]}
-    >
-      {/* Color strip */}
-      <View style={[styles.resourceStrip, { backgroundColor: res.color }]} />
-      <View style={styles.resourceBody}>
-        <View style={styles.resourceTop}>
-          <Text style={[styles.resourceIcon]}>{resourceTypeIcon(res.type)}</Text>
+    <Animated.View entering={FadeInDown.delay(Math.min(index * 30, 400)).springify()}>
+      <LinearGradient
+        colors={['rgba(30,25,20,0.9)', 'rgba(15,12,10,0.95)']}
+        style={[
+          styles.resourceCard,
+          {
+            borderColor: isGem ? res.color + '80' : 'rgba(200,140,60,0.3)',
+            borderWidth: isGem ? 1.5 : 1,
+          },
+        ]}
+      >
+        {/* Color strip */}
+        <View style={[styles.resourceStrip, { backgroundColor: res.color }]} />
+        <View style={styles.resourceBody}>
+          <View style={styles.resourceTop}>
+            <Text style={[styles.resourceIcon, { color: res.color }]}><ResourceTypeIcon type={res.type} size={20} /></Text>
           <View style={styles.resourceNameRow}>
             <Text style={[styles.resourceName, { color: colors.foreground }]}>{res.name}</Text>
             {isGem && (
@@ -166,7 +170,8 @@ function ResourceCard({
           </Text>
         </View>
       </View>
-    </View>
+      </LinearGradient>
+    </Animated.View>
   );
 }
 
@@ -175,16 +180,21 @@ function CraftedItemCard({
   item,
   onPress,
   colors,
-}: { item: Item; onPress: () => void; colors: ReturnType<typeof useColors> }) {
+  index,
+}: { item: Item; onPress: () => void; colors: ReturnType<typeof useColors>; index: number }) {
   const qc = qualityColor(item.quality, colors);
   const gemsSlotted = item.gems.filter(Boolean).length;
   return (
-    <TouchableOpacity
-      style={[styles.itemCard, { backgroundColor: colors.card, borderColor: qc }]}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
-      <View style={[styles.itemQualityStrip, { backgroundColor: qc }]} />
+    <Animated.View entering={FadeInDown.delay(Math.min(index * 30, 400)).springify()}>
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.8}
+      >
+        <LinearGradient
+          colors={['rgba(30,25,20,0.9)', 'rgba(15,12,10,0.95)']}
+          style={[styles.itemCard, { borderColor: qc }]}
+        >
+          <View style={[styles.itemQualityStrip, { backgroundColor: qc }]} />
       <View style={styles.itemBody}>
         <View style={styles.itemTop}>
           <View style={styles.itemInfo}>
@@ -222,32 +232,39 @@ function CraftedItemCard({
         <View style={styles.statPills}>
           {item.stats.attack !== undefined && (
             <View style={[styles.statPill, { backgroundColor: colors.secondary }]}>
-              <Text style={[styles.statPillText, { color: colors.accent }]}>⚔ {item.stats.attack}</Text>
+              <MaterialCommunityIcons name="sword" size={12} color={colors.accent} style={{ marginRight: 4 }} />
+              <Text style={[styles.statPillText, { color: colors.accent }]}>{item.stats.attack}</Text>
             </View>
           )}
           {item.stats.defense !== undefined && (
             <View style={[styles.statPill, { backgroundColor: colors.secondary }]}>
-              <Text style={[styles.statPillText, { color: colors.accent }]}>🛡 {item.stats.defense}</Text>
+              <MaterialCommunityIcons name="shield" size={12} color={colors.accent} style={{ marginRight: 4 }} />
+              <Text style={[styles.statPillText, { color: colors.accent }]}>{item.stats.defense}</Text>
             </View>
           )}
           {item.stats.magic !== undefined && (
             <View style={[styles.statPill, { backgroundColor: colors.secondary }]}>
-              <Text style={[styles.statPillText, { color: colors.accent }]}>✨ {item.stats.magic}</Text>
+              <MaterialCommunityIcons name="auto-fix" size={12} color={colors.accent} style={{ marginRight: 4 }} />
+              <Text style={[styles.statPillText, { color: colors.accent }]}>{item.stats.magic}</Text>
             </View>
           )}
           {item.stats.speed !== undefined && (
             <View style={[styles.statPill, { backgroundColor: colors.secondary }]}>
-              <Text style={[styles.statPillText, { color: colors.accent }]}>⚡ {item.stats.speed}</Text>
+              <MaterialCommunityIcons name="lightning-bolt" size={12} color={colors.accent} style={{ marginRight: 4 }} />
+              <Text style={[styles.statPillText, { color: colors.accent }]}>{item.stats.speed}</Text>
             </View>
           )}
           {gemsSlotted > 0 && (
             <View style={[styles.statPill, { backgroundColor: colors.secondary }]}>
-              <Text style={[styles.statPillText, { color: '#9966CC' }]}>💎 ×{gemsSlotted}</Text>
+              <MaterialCommunityIcons name="diamond-stone" size={12} color="#9966CC" style={{ marginRight: 4 }} />
+              <Text style={[styles.statPillText, { color: '#9966CC' }]}>×{gemsSlotted}</Text>
             </View>
           )}
         </View>
       </View>
-    </TouchableOpacity>
+        </LinearGradient>
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 
@@ -268,14 +285,6 @@ export default function InventoryScreen() {
 
   const headerTopPad = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPad = insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 96;
-
-  if (!game.isLoaded) {
-    return (
-      <View style={[styles.loading, { backgroundColor: colors.background }]}>
-        <ActivityIndicator color={colors.primary} size="large" />
-      </View>
-    );
-  }
 
   // ── Compute total weight (resources + items) ──
   const currentWeight = useMemo(() => {
@@ -331,6 +340,14 @@ export default function InventoryScreen() {
 
   const weightPct = game.maxWeight > 0 ? currentWeight / game.maxWeight : 0;
 
+  if (!game.isLoaded) {
+    return (
+      <View style={[styles.loading, { backgroundColor: colors.background }]}>
+        <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* ── Header ── */}
@@ -353,9 +370,12 @@ export default function InventoryScreen() {
           <WeightBar current={currentWeight} max={game.maxWeight} colors={colors} />
         </View>
         {weightPct > 0.8 && (
-          <Text style={[styles.weightWarning, { color: colors.destructive }]}>
-            ⚠ Inventaire presque plein !
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4 }}>
+            <MaterialCommunityIcons name="alert-circle" size={14} color={colors.destructive} style={{ marginRight: 4 }} />
+            <Text style={[styles.weightWarning, { color: colors.destructive, marginTop: 0 }]}>
+              Inventaire presque plein !
+            </Text>
+          </View>
         )}
       </LinearGradient>
 
@@ -367,9 +387,9 @@ export default function InventoryScreen() {
             style={[styles.tab, activeTab === tab && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
             onPress={() => setActiveTab(tab)}
           >
-            <Feather
-              name={tab === 'resources' ? 'grid' : 'package'}
-              size={15}
+            <MaterialCommunityIcons
+              name={tab === 'resources' ? 'diamond-stone' : 'sword-cross'}
+              size={18}
               color={activeTab === tab ? colors.primary : colors.mutedForeground}
             />
             <Text style={[styles.tabText, { color: activeTab === tab ? colors.primary : colors.mutedForeground }]}>
@@ -477,29 +497,29 @@ export default function InventoryScreen() {
       {/* ── Content ── */}
       {activeTab === 'resources' ? (
         filteredResources.length === 0 ? (
-          <View style={styles.emptyCenter}>
-            <Feather name="package" size={40} color={colors.mutedForeground} />
+          <Animated.View entering={FadeInDown.duration(400)} style={styles.emptyCenter}>
+            <MaterialCommunityIcons name="package-variant" size={48} color={colors.mutedForeground} />
             <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
               {search ? 'Aucun résultat' : 'Inventaire vide'}
             </Text>
             <Text style={[styles.emptyDesc, { color: colors.mutedForeground }]}>
               {search ? `Aucune ressource pour « ${search} »` : 'Explorez le monde pour collecter des ressources'}
             </Text>
-          </View>
+          </Animated.View>
         ) : (
           <FlatList
             data={filteredResources}
             keyExtractor={(x) => x.inv.resourceId}
-            renderItem={({ item: { inv, res } }) => (
-              <ResourceCard res={res!} qty={inv.quantity} colors={colors} />
+            renderItem={({ item: { inv, res }, index }) => (
+              <ResourceCard res={res!} qty={inv.quantity} colors={colors} index={index} />
             )}
             contentContainerStyle={[styles.listContent, { paddingBottom: bottomPad }]}
             showsVerticalScrollIndicator={false}
           />
         )
       ) : filteredItems.length === 0 ? (
-        <View style={styles.emptyCenter}>
-          <Feather name="tool" size={40} color={colors.mutedForeground} />
+        <Animated.View entering={FadeInDown.duration(400)} style={styles.emptyCenter}>
+          <MaterialCommunityIcons name="hammer-wrench" size={48} color={colors.mutedForeground} />
           <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
             {search || categoryFilter !== 'all' || qualityFilter !== 'all' ? 'Aucun résultat' : 'Aucun objet forgé'}
           </Text>
@@ -508,13 +528,13 @@ export default function InventoryScreen() {
               ? 'Modifiez les filtres pour voir plus d\'objets'
               : 'Rendez-vous à la Forge pour créer votre premier objet'}
           </Text>
-        </View>
+        </Animated.View>
       ) : (
         <FlatList
           data={filteredItems}
           keyExtractor={(i) => i.instanceId}
-          renderItem={({ item }) => (
-            <CraftedItemCard item={item} onPress={() => setSelectedItemId(item.instanceId)} colors={colors} />
+          renderItem={({ item, index }) => (
+            <CraftedItemCard item={item} onPress={() => setSelectedItemId(item.instanceId)} colors={colors} index={index} />
           )}
           contentContainerStyle={[styles.listContent, { paddingBottom: bottomPad }]}
           showsVerticalScrollIndicator={false}

@@ -29,6 +29,10 @@ export class ErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, info: { componentStack: string }): void {
+    if (__DEV__) {
+      // Aide au débogage : trace visible dans la console Metro/navigateur
+      console.error('[ErrorBoundary]', error?.message, info?.componentStack?.slice(0, 800));
+    }
     if (typeof this.props.onError === 'function') {
       this.props.onError(error, info.componentStack);
     }

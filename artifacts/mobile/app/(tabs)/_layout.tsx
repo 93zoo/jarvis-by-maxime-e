@@ -1,12 +1,19 @@
 import React from 'react';
 import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { Tabs } from 'expo-router';
 import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
 import { SymbolView } from 'expo-symbols';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const MEDIEVAL = {
+  gold: '#E8B84B',
+  charcoal: '#0D0A07',
+  ember: '#FF7A1A',
+};
 
 // NativeTabs layout for iOS 26+ (liquid glass)
 function NativeTabLayout() {
@@ -36,7 +43,6 @@ function NativeTabLayout() {
         <Icon sf={{ default: 'star', selected: 'star.fill' }} />
         <Label>Compétences</Label>
       </NativeTabs.Trigger>
-      {/* Profil lives inside Codex — hidden trigger keeps the route alive */}
       <NativeTabs.Trigger name="profile" hidden>
         <Icon sf={{ default: 'person', selected: 'person.fill' }} />
         <Label>Profil</Label>
@@ -56,40 +62,52 @@ function ClassicTabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.mutedForeground,
+        tabBarActiveTintColor: MEDIEVAL.gold,
+        tabBarInactiveTintColor: 'rgba(232, 184, 75, 0.4)',
         headerShown: false,
         tabBarStyle: {
           position: 'absolute',
-          backgroundColor: isIOS ? 'transparent' : colors.background,
-          borderTopWidth: isWeb ? 1 : 0,
-          borderTopColor: colors.border,
-          elevation: 0,
-          ...(isWeb ? { height: 84 } : {}),
+          backgroundColor: isIOS ? 'transparent' : MEDIEVAL.charcoal,
+          borderTopWidth: 2,
+          borderTopColor: 'rgba(232, 184, 75, 0.15)',
+          elevation: 10,
+          shadowColor: MEDIEVAL.gold,
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.15,
+          shadowRadius: 12,
+          ...(isWeb ? { height: 84 } : { height: 65 }),
+          paddingBottom: isWeb ? 34 : (isIOS ? 20 : 10),
+          paddingTop: 8,
         },
         tabBarBackground: () =>
           isIOS ? (
             <BlurView
-              intensity={80}
-              tint={isDark ? 'dark' : 'dark'}
+              intensity={90}
+              tint="dark"
               style={StyleSheet.absoluteFill}
             />
           ) : isWeb ? (
-            <View
-              style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]}
+            <LinearGradient
+              colors={['rgba(20,15,10,0.95)', 'rgba(10,8,5,1)']}
+              style={StyleSheet.absoluteFill}
             />
-          ) : null,
+          ) : (
+            <LinearGradient
+              colors={['#1a1410', '#0d0a07']}
+              style={StyleSheet.absoluteFill}
+            />
+          ),
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Forge',
-          tabBarIcon: ({ color }) =>
+          tabBarIcon: ({ color, focused }) =>
             isIOS ? (
-              <SymbolView name="hammer" tintColor={color} size={22} />
+              <SymbolView name="hammer.fill" tintColor={color} size={24} />
             ) : (
-              <Feather name="tool" size={22} color={color} />
+              <MaterialCommunityIcons name="anvil" size={26} color={color} style={focused ? {textShadowColor: MEDIEVAL.ember, textShadowRadius: 8} : {}} />
             ),
         }}
       />
@@ -97,23 +115,23 @@ function ClassicTabLayout() {
         name="world"
         options={{
           title: 'Monde',
-          tabBarIcon: ({ color }) =>
+          tabBarIcon: ({ color, focused }) =>
             isIOS ? (
-              <SymbolView name="map" tintColor={color} size={22} />
+              <SymbolView name="map.fill" tintColor={color} size={24} />
             ) : (
-              <Feather name="map" size={22} color={color} />
+              <MaterialCommunityIcons name="earth" size={26} color={color} style={focused ? {textShadowColor: MEDIEVAL.ember, textShadowRadius: 8} : {}} />
             ),
         }}
       />
       <Tabs.Screen
         name="inventory"
         options={{
-          title: 'Inventaire',
-          tabBarIcon: ({ color }) =>
+          title: 'Stock',
+          tabBarIcon: ({ color, focused }) =>
             isIOS ? (
-              <SymbolView name="bag" tintColor={color} size={22} />
+              <SymbolView name="bag.fill" tintColor={color} size={24} />
             ) : (
-              <Feather name="archive" size={22} color={color} />
+              <MaterialCommunityIcons name="bag-personal" size={26} color={color} style={focused ? {textShadowColor: MEDIEVAL.ember, textShadowRadius: 8} : {}} />
             ),
         }}
       />
@@ -121,18 +139,17 @@ function ClassicTabLayout() {
         name="collections"
         options={{
           title: 'Sets',
-          tabBarIcon: ({ color }) =>
+          tabBarIcon: ({ color, focused }) =>
             isIOS ? (
-              <SymbolView name="trophy" tintColor={color} size={22} />
+              <SymbolView name="trophy.fill" tintColor={color} size={24} />
             ) : (
-              <Feather name="award" size={22} color={color} />
+              <MaterialCommunityIcons name="shield-star" size={26} color={color} style={focused ? {textShadowColor: MEDIEVAL.ember, textShadowRadius: 8} : {}} />
             ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          // Profil lives inside the Codex tab now — keep the route but hide the tab
           href: null,
           title: 'Profil',
         }}
@@ -141,23 +158,23 @@ function ClassicTabLayout() {
         name="codex"
         options={{
           title: 'Codex',
-          tabBarIcon: ({ color }) =>
+          tabBarIcon: ({ color, focused }) =>
             isIOS ? (
-              <SymbolView name="books.vertical" tintColor={color} size={22} />
+              <SymbolView name="books.vertical.fill" tintColor={color} size={24} />
             ) : (
-              <Feather name="book-open" size={22} color={color} />
+              <MaterialCommunityIcons name="book-open-page-variant" size={26} color={color} style={focused ? {textShadowColor: MEDIEVAL.ember, textShadowRadius: 8} : {}} />
             ),
         }}
       />
       <Tabs.Screen
         name="skills"
         options={{
-          title: 'Compétences',
-          tabBarIcon: ({ color }) =>
+          title: 'Talents',
+          tabBarIcon: ({ color, focused }) =>
             isIOS ? (
-              <SymbolView name="star" tintColor={color} size={22} />
+              <SymbolView name="star.fill" tintColor={color} size={24} />
             ) : (
-              <Feather name="star" size={22} color={color} />
+              <MaterialCommunityIcons name="auto-fix" size={26} color={color} style={focused ? {textShadowColor: MEDIEVAL.ember, textShadowRadius: 8} : {}} />
             ),
         }}
       />

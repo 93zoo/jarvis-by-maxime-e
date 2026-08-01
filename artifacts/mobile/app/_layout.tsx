@@ -50,13 +50,25 @@ function RootLayoutNav() {
 function AppWithCinematic() {
   const [introChecked, setIntroChecked] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
-  const [splashDone, setSplashDone] = useState(false);
+  const [splashDone, setSplashDone] = useState(
+    // Dev web uniquement : ?nosplash=1 saute l'intro (captures d'écran/tests)
+    () =>
+      __DEV__ &&
+      require('react-native').Platform.OS === 'web' &&
+      typeof window !== 'undefined' &&
+      window.location?.search?.includes('nosplash'),
+  );
 
   useEffect(() => {
     (async () => {
       try {
+        const skipAll =
+          __DEV__ &&
+          require('react-native').Platform.OS === 'web' &&
+          typeof window !== 'undefined' &&
+          window.location?.search?.includes('nosplash');
         const seen = await AsyncStorage.getItem(INTRO_SEEN_KEY);
-        setShowIntro(!seen);
+        setShowIntro(!seen && !skipAll);
       } catch {
         setShowIntro(false);
       }
