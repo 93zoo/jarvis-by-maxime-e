@@ -136,3 +136,10 @@ uri = "file://screenshots/forge-screen.jpg"
 type = "image"
 title = "Forge — nouveau rendu"
 description = "Capture de l'écran Forge avec le fond animé (braises, fumée, lueur du foyer) et l'artwork en arrière-plan."
+
+[[outputs]]
+id = "lyEvc5Da8MLXY3EjPu2LK"
+uri = "file://screenshots/forge-screen-v2.jpg"
+type = "image"
+title = "Forge — rendu corrigé"
+description = "L'artwork de la forge est maintenant visible en fond (la scène 3D opaque ne le masque plus en mode IDLE), avec braises, fumée et lueur animées."
