@@ -164,3 +164,10 @@ uri = "file://screenshots/forge-final.jpg"
 type = "image"
 title = "Forge — fond identique + effets"
 description = "La carte Compétences est retirée de la page Forge ; le fond est identique à ta capture avec seulement les effets de feu, fumée et lumière subtile."
+
+[[outputs]]
+id = "Pqx-6Rdch1pWJVLsyQ0o7"
+uri = "file://screenshots/forge-ingots.jpg"
+type = "image"
+title = "Forge — lingots intégrés au fond"
+description = "Bouton Classement retiré ; les matériaux s'affichent en lingots métalliques flottant directement sur le fond de la forge, avec leur quantité."
