@@ -311,3 +311,10 @@ uri = "file://screenshots/forge-btn-center.jpg"
 type = "image"
 title = "Forge — bouton FORGER au centre de l'écran"
 description = "Le bouton FORGER (enclume + texte) est maintenant positionné en plein centre de l'écran, avec flottement et rebond au toucher."
+
+[[outputs]]
+id = "T7RlYVerZlTu_P0lSJlb-"
+uri = "file://screenshots/forge-header-clean.jpg"
+type = "image"
+title = "Forge — header sans « Niv.1 »"
+description = "Le titre du header affiche maintenant simplement « FORGE » au lieu de « FORGE Niv.1 »."
