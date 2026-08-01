@@ -391,11 +391,12 @@ function ShowcaseSection({ game, colors, bottomPad }: {
   const canAdd = showcasedItems.length < MAX_SHOWCASE_SLOTS;
 
   return (
-    <ScrollView
+    <View style={{ flex: 1 }}>
+      <ScrollView
       style={{ flex: 1 }}
       contentContainerStyle={[scStyles.container, { paddingBottom: bottomPad }]}
       showsVerticalScrollIndicator={false}
-    >
+      >
       {/* Header */}
       <View style={scStyles.sectionHeader}>
         <View>
@@ -502,6 +503,8 @@ function ShowcaseSection({ game, colors, bottomPad }: {
         </View>
       </Modal>
 
+      </ScrollView>
+
       {/* ── Item picker modal ── */}
       <Modal visible={pickerOpen} transparent animationType="slide" onRequestClose={() => setPickerOpen(false)}>
         <View style={[scStyles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.88)' }]}>
@@ -509,7 +512,12 @@ function ShowcaseSection({ game, colors, bottomPad }: {
             <View style={[scStyles.handle, { backgroundColor: colors.muted }]} />
             <View style={scStyles.pickerHeader}>
               <Text style={[scStyles.pickerTitle, { color: colors.foreground }]}>Choisir un objet</Text>
-              <TouchableOpacity onPress={() => setPickerOpen(false)}>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Fermer le sélecteur d'objet"
+                testID="showcase-picker-close-icon"
+                onPress={() => setPickerOpen(false)}
+              >
                 <Feather name="x" size={22} color={colors.mutedForeground} />
               </TouchableOpacity>
             </View>
@@ -546,10 +554,19 @@ function ShowcaseSection({ game, colors, bottomPad }: {
                 }}
               />
             )}
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Fermer le sélecteur d'objet"
+              testID="showcase-picker-close"
+              style={[scStyles.pickerCloseButton, { borderColor: colors.border }]}
+              onPress={() => setPickerOpen(false)}
+            >
+              <Text style={[scStyles.pickerCloseButtonText, { color: colors.mutedForeground }]}>Fermer</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -616,6 +633,8 @@ const scStyles = StyleSheet.create({
   pickerMeta: { fontSize: 11 },
   emptyPicker: { margin: 20, borderRadius: 14, padding: 30, alignItems: 'center', gap: 10 },
   emptyPickerText: { fontSize: 13, textAlign: 'center', lineHeight: 18 },
+  pickerCloseButton: { alignItems: 'center', borderTopWidth: 1, paddingVertical: 15 },
+  pickerCloseButtonText: { fontSize: 14, fontWeight: '700' },
 });
 
 // ─── Main screen ──────────────────────────────────────────────────────────────

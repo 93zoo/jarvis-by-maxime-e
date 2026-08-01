@@ -1,6 +1,6 @@
-# [Project name]
+# Forge & Kingdoms
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Jeu mobile de forge médiévale fantastique : fabriquez des objets, explorez les régions et développez votre atelier.
 
 ## Run & Operate
 
@@ -34,11 +34,12 @@ _Describe the high-level user-facing capabilities of this app once they exist._
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Préserver une interface de jeu immersive et cohérente en français.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Exécuter `pnpm --filter @workspace/mobile exec tsc --noEmit` après toute modification mobile.
+- Les données de sauvegarde générées dans `artifacts/api-server/.saves/` pendant les tests locaux ne doivent pas être commit.
 
 ## Pointers
 
