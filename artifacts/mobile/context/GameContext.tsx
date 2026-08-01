@@ -276,6 +276,8 @@ interface GameState {
   completedRegions: string[];
   completedSets: string[];
   discoveredAlloyIds: string[];
+  /** Instance IDs pinned to the player's showcase vitrine (max 6). */
+  showcasedItemIds: string[];
 }
 
 type GameAction =
@@ -335,7 +337,9 @@ type GameAction =
   | { type: 'TRAIN_APPRENTICE'; goldCost: number }
   // Stat upgrades
   | { type: 'BUY_STAT_UPGRADE'; upgradeId: string; goldCost: number }
-  | { type: 'FUSE_ALLOY'; alloyId: string; ingredients: { resourceId: string; quantity: number }[]; outputResourceId: string; outputQuantity: number };
+  | { type: 'FUSE_ALLOY'; alloyId: string; ingredients: { resourceId: string; quantity: number }[]; outputResourceId: string; outputQuantity: number }
+  | { type: 'PIN_TO_SHOWCASE'; instanceId: string }
+  | { type: 'UNPIN_FROM_SHOWCASE'; instanceId: string };
 
 function buildInitialPlayer(): Player {
   const skills = SKILL_TYPES.reduce(
@@ -467,6 +471,7 @@ function buildInitialState(): GameState {
     completedRegions: [],
     completedSets: [],
     discoveredAlloyIds: [],
+    showcasedItemIds: [],
   };
 }
 
@@ -657,6 +662,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         completedRegions: s.completedRegions ?? [],
         completedSets: s.completedSets ?? [],
         discoveredAlloyIds: s.discoveredAlloyIds ?? [],
+        showcasedItemIds: s.showcasedItemIds ?? [],
       };
     }
     case 'RESET': {
@@ -731,6 +737,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         craftedItems: state.craftedItems.filter((candidate) => candidate.instanceId !== action.instanceId),
+        showcasedItemIds: state.showcasedItemIds.filter((id) => id !== action.instanceId),
         inventory,
       };
     }
@@ -895,7 +902,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       }
       const rep = { ...state.npcReputation };
       rep[order.npcId] = Math.min(100, (rep[order.npcId] ?? 50) + order.reputationReward);
-      return { ...state, player, craftedItems: items, activeOrders: orders, questProgress: qp, npcReputation: rep };
+      return { ...state, player, craftedItems: items, activeOrders: orders, questProgress: qp, npcReputation: rep, showcasedItemIds: state.showcasedItemIds.filter((id) => id !== action.itemInstanceId) };
     }
 
     // ── Quests ───────────────────────────────────────────────────────────────
@@ -1010,6 +1017,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         player,
         craftedItems: state.craftedItems.filter((i) => i.instanceId !== action.instanceId),
+        showcasedItemIds: state.showcasedItemIds.filter((id) => id !== action.instanceId),
       };
     }
     case 'SELL_RESOURCE': {
@@ -1347,6 +1355,17 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    case 'PIN_TO_SHOWCASE': {
+      const MAX_SHOWCASE = 6;
+      if (state.showcasedItemIds.includes(action.instanceId)) return state;
+      if (state.showcasedItemIds.length >= MAX_SHOWCASE) return state;
+      if (!state.craftedItems.some((i) => i.instanceId === action.instanceId)) return state;
+      return { ...state, showcasedItemIds: [...state.showcasedItemIds, action.instanceId] };
+    }
+    case 'UNPIN_FROM_SHOWCASE': {
+      return { ...state, showcasedItemIds: state.showcasedItemIds.filter((id) => id !== action.instanceId) };
+    }
+
     default:
       return state;
   }
@@ -1418,6 +1437,10 @@ interface GameContextType {
   completedSets: string[];
   getCollectionBonusTotal: (bonusType: string) => number;
   getCollectionProgress: (setId: string) => { count: number; total: number; craftedIds: string[] };
+  // Showcase vitrine
+  showcasedItemIds: string[];
+  pinToShowcase: (instanceId: string) => void;
+  unpinFromShowcase: (instanceId: string) => void;
   claimSetReward: (setId: string) => { success: boolean; gold: number };
   fightForMaterials: (regionId: string, playerTotal: number, enemyTotal: number) => CombatResult;
   saveGame: () => Promise<'ok' | 'error'>;
@@ -1668,6 +1691,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           completedRegions: state.completedRegions,
           completedSets: state.completedSets,
           discoveredAlloyIds: state.discoveredAlloyIds,
+          showcasedItemIds: state.showcasedItemIds,
           lastSaved: now,
         };
         await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
@@ -1771,6 +1795,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         completedRegions: state.completedRegions,
         completedSets: state.completedSets,
         discoveredAlloyIds: state.discoveredAlloyIds,
+        showcasedItemIds: state.showcasedItemIds,
         lastSaved: Date.now(),
       };
       AsyncStorage.setItem(SAVE_KEY, JSON.stringify(immediteSave)).catch(() => {
@@ -2293,6 +2318,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [state.craftedItems, state.inventory],
   );
 
+  const pinToShowcase = useCallback((instanceId: string) => {
+    dispatch({ type: 'PIN_TO_SHOWCASE', instanceId });
+  }, []);
+
+  const unpinFromShowcase = useCallback((instanceId: string) => {
+    dispatch({ type: 'UNPIN_FROM_SHOWCASE', instanceId });
+  }, []);
+
   const removeGem = useCallback(
     (itemInstanceId: string, slotIndex: number): void => {
       const item = state.craftedItems.find((i) => i.instanceId === itemInstanceId);
@@ -2368,6 +2401,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       completedRegions: state.completedRegions,
       completedSets: state.completedSets,
       discoveredAlloyIds: state.discoveredAlloyIds,
+      showcasedItemIds: state.showcasedItemIds,
       lastSaved: now,
     };
     try {
@@ -2404,6 +2438,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         completedRegions: state.completedRegions,
         completedSets: state.completedSets,
         discoveredAlloyIds: state.discoveredAlloyIds,
+        showcasedItemIds: state.showcasedItemIds,
         lastSaved: Date.now(),
       };
       const res = await fetch(`${base}/save`, {
@@ -2731,6 +2766,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       allAlloys: ALL_ALLOYS,
       discoveredAlloyIds: state.discoveredAlloyIds,
       fuseAlloy,
+      // Showcase vitrine
+      showcasedItemIds: state.showcasedItemIds,
+      pinToShowcase,
+      unpinFromShowcase,
     }),
     // Include cloud sync reactive state so status transitions propagate to consumers
     // eslint-disable-next-line react-hooks/exhaustive-deps

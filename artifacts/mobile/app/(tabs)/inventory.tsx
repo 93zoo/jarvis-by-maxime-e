@@ -7,6 +7,7 @@ import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -26,7 +27,7 @@ import ItemDetailSheet from '@/components/ItemDetailSheet';
 import AlloyWorkshop from '@/components/AlloyWorkshop';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type TabType = 'resources' | 'items' | 'alloys';
+type TabType = 'resources' | 'items' | 'alloys' | 'showcase';
 type SortOption = 'newest' | 'quality' | 'value' | 'name';
 type CategoryFilter = 'all' | ItemCategory;
 type QualityFilter = 'all' | Quality;
@@ -269,6 +270,354 @@ function CraftedItemCard({
   );
 }
 
+// ─── Showcase Vitrine ─────────────────────────────────────────────────────────
+const MAX_SHOWCASE_SLOTS = 6;
+
+function showcaseQualityColor(q: Quality, colors: ReturnType<typeof useColors>): string {
+  switch (q) {
+    case 'legendary': return '#9966CC';
+    case 'excellent': return colors.accent;
+    case 'good': return colors.primary;
+    case 'normal': return colors.foreground;
+    case 'poor': return colors.mutedForeground;
+  }
+}
+
+function ShowcaseItemCard({ item, onPress, colors }: {
+  item: Item;
+  onPress: () => void;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const qc = showcaseQualityColor(item.quality, colors);
+  const craftDate = new Date(item.craftedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: '2-digit' });
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={scStyles.slotWrapper}>
+      <View style={[scStyles.filledSlot, { backgroundColor: colors.secondary, borderColor: qc }]}>
+        <View style={[scStyles.qualityStrip, { backgroundColor: qc }]} />
+        <View style={scStyles.slotBody}>
+          {/* Quality label */}
+          <Text style={[scStyles.qualityLabel, { color: qc }]}>{qualityLabel(item.quality)}</Text>
+          {/* Name + epithet */}
+          <Text style={[scStyles.itemName, { color: colors.foreground }]} numberOfLines={2}>{item.name}</Text>
+          {item.unique?.epithet ? (
+            <Text style={[scStyles.epithet, { color: '#E8B84B' }]} numberOfLines={1}>
+              « {item.unique.epithet} »
+            </Text>
+          ) : null}
+          {/* Category */}
+          <Text style={[scStyles.meta, { color: colors.mutedForeground }]}>{item.category} · Niv.{item.level}</Text>
+          {/* Stats */}
+          <View style={scStyles.statRow}>
+            {item.stats.attack !== undefined && (
+              <View style={[scStyles.statChip, { backgroundColor: colors.card }]}>
+                <MaterialCommunityIcons name="sword" size={10} color={colors.accent} />
+                <Text style={[scStyles.statText, { color: colors.accent }]}>{item.stats.attack}</Text>
+              </View>
+            )}
+            {item.stats.defense !== undefined && (
+              <View style={[scStyles.statChip, { backgroundColor: colors.card }]}>
+                <MaterialCommunityIcons name="shield" size={10} color={colors.accent} />
+                <Text style={[scStyles.statText, { color: colors.accent }]}>{item.stats.defense}</Text>
+              </View>
+            )}
+            {item.stats.magic !== undefined && (
+              <View style={[scStyles.statChip, { backgroundColor: colors.card }]}>
+                <MaterialCommunityIcons name="auto-fix" size={10} color={colors.accent} />
+                <Text style={[scStyles.statText, { color: colors.accent }]}>{item.stats.magic}</Text>
+              </View>
+            )}
+          </View>
+          {/* Badges */}
+          <View style={scStyles.badgeRow}>
+            {item.enigmaMastered && (
+              <View style={[scStyles.badge, { backgroundColor: '#5C00AA30' }]}>
+                <Text style={[scStyles.badgeText, { color: '#C084FC' }]}>⚗️ Énigme</Text>
+              </View>
+            )}
+            {item.unique && (
+              <View style={[scStyles.badge, { backgroundColor: '#E8B84B20' }]}>
+                <Text style={[scStyles.badgeText, { color: '#E8B84B' }]}>✦ Unique</Text>
+              </View>
+            )}
+          </View>
+          {/* Forge stamp */}
+          <Text style={[scStyles.stamp, { color: colors.mutedForeground }]}>
+            🔨 {item.craftedBy} · {craftDate}
+          </Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function EmptyShowcaseSlot({ onPress, colors }: { onPress: () => void; colors: ReturnType<typeof useColors> }) {
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={scStyles.slotWrapper}>
+      <View style={[scStyles.emptySlot, { borderColor: colors.border }]}>
+        <Feather name="plus-circle" size={28} color={colors.mutedForeground} />
+        <Text style={[scStyles.emptySlotText, { color: colors.mutedForeground }]}>Épingler{'\n'}un objet</Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function ShowcaseSection({ game, colors, bottomPad }: {
+  game: ReturnType<typeof useGame>;
+  colors: ReturnType<typeof useColors>;
+  bottomPad: number;
+}) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [detailId, setDetailId] = useState<string | null>(null);
+
+  const showcasedItems = useMemo(() =>
+    game.showcasedItemIds
+      .map((id) => game.craftedItems.find((i) => i.instanceId === id))
+      .filter(Boolean) as Item[],
+    [game.showcasedItemIds, game.craftedItems],
+  );
+
+  const pickableItems = useMemo(() => {
+    const pinned = new Set(game.showcasedItemIds);
+    return [...game.craftedItems]
+      .filter((i) => !pinned.has(i.instanceId))
+      .sort((a, b) => {
+        const qd = QUALITY_ORDER[b.quality] - QUALITY_ORDER[a.quality];
+        return qd !== 0 ? qd : b.value - a.value;
+      });
+  }, [game.craftedItems, game.showcasedItemIds]);
+
+  const detailItem = detailId ? showcasedItems.find((i) => i.instanceId === detailId) ?? null : null;
+  const slots = Array.from({ length: MAX_SHOWCASE_SLOTS }, (_, i) => showcasedItems[i] ?? null);
+  const canAdd = showcasedItems.length < MAX_SHOWCASE_SLOTS;
+
+  return (
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={[scStyles.container, { paddingBottom: bottomPad }]}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Header */}
+      <View style={scStyles.sectionHeader}>
+        <View>
+          <Text style={[scStyles.sectionTitle, { color: colors.foreground }]}>✦ VOTRE VITRINE</Text>
+          <Text style={[scStyles.sectionSub, { color: colors.mutedForeground }]}>
+            {showcasedItems.length}/{MAX_SHOWCASE_SLOTS} pièces exposées
+          </Text>
+        </View>
+        {showcasedItems.length === 0 && (
+          <Text style={[scStyles.hintText, { color: colors.mutedForeground }]}>
+            Épinglez vos plus belles créations pour les mettre en valeur.
+          </Text>
+        )}
+      </View>
+
+      {/* 2-column grid */}
+      <View style={scStyles.grid}>
+        {slots.map((item, i) =>
+          item ? (
+            <ShowcaseItemCard key={item.instanceId} item={item} colors={colors} onPress={() => setDetailId(item.instanceId)} />
+          ) : (
+            <EmptyShowcaseSlot key={`empty-${i}`} colors={colors} onPress={() => canAdd && setPickerOpen(true)} />
+          )
+        )}
+      </View>
+
+      {/* ── Detail modal ── */}
+      <Modal visible={!!detailItem} transparent animationType="slide" onRequestClose={() => setDetailId(null)}>
+        <View style={[scStyles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.88)' }]}>
+          <View style={[scStyles.modalSheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[scStyles.handle, { backgroundColor: colors.muted }]} />
+            {detailItem && (() => {
+              const qc = showcaseQualityColor(detailItem.quality, colors);
+              const craftDate = new Date(detailItem.craftedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+              return (
+                <ScrollView showsVerticalScrollIndicator={false}>
+                  <View style={[scStyles.detailQualityBar, { backgroundColor: qc }]} />
+                  <View style={scStyles.detailBody}>
+                    <Text style={[scStyles.detailQualityLabel, { color: qc }]}>{qualityLabel(detailItem.quality)}</Text>
+                    <Text style={[scStyles.detailName, { color: colors.foreground }]}>{detailItem.name}</Text>
+                    {detailItem.unique?.epithet && (
+                      <Text style={[scStyles.detailEpithet, { color: '#E8B84B' }]}>« {detailItem.unique.epithet} »</Text>
+                    )}
+                    <Text style={[scStyles.detailMeta, { color: colors.mutedForeground }]}>
+                      {detailItem.category} · Niveau {detailItem.level} · {detailItem.value}g
+                    </Text>
+
+                    {/* Unique traits */}
+                    {detailItem.unique && (
+                      <View style={scStyles.traitsBox}>
+                        <Text style={[scStyles.traitTitle, { color: colors.accent }]}>✦ TRAITS UNIQUES</Text>
+                        {[
+                          { label: 'Forme', val: detailItem.unique.form },
+                          { label: 'Monture', val: detailItem.unique.fitting },
+                          { label: 'Prise', val: detailItem.unique.grip },
+                          { label: 'Gravure', val: detailItem.unique.engraving },
+                          { label: 'Teinte', val: detailItem.unique.steelTint },
+                        ].map(({ label, val }) => val ? (
+                          <View key={label} style={scStyles.traitRow}>
+                            <Text style={[scStyles.traitLabel, { color: colors.mutedForeground }]}>{label}</Text>
+                            <Text style={[scStyles.traitVal, { color: colors.foreground }]}>{val}</Text>
+                          </View>
+                        ) : null)}
+                      </View>
+                    )}
+
+                    {/* Stats */}
+                    <View style={scStyles.statsGrid}>
+                      {detailItem.stats.attack !== undefined && <View style={[scStyles.statCard, { backgroundColor: colors.secondary }]}><MaterialCommunityIcons name="sword" size={16} color={colors.accent} /><Text style={[scStyles.statCardVal, { color: colors.accent }]}>{detailItem.stats.attack}</Text><Text style={[scStyles.statCardLabel, { color: colors.mutedForeground }]}>ATQ</Text></View>}
+                      {detailItem.stats.defense !== undefined && <View style={[scStyles.statCard, { backgroundColor: colors.secondary }]}><MaterialCommunityIcons name="shield" size={16} color={colors.accent} /><Text style={[scStyles.statCardVal, { color: colors.accent }]}>{detailItem.stats.defense}</Text><Text style={[scStyles.statCardLabel, { color: colors.mutedForeground }]}>DEF</Text></View>}
+                      {detailItem.stats.magic !== undefined && <View style={[scStyles.statCard, { backgroundColor: colors.secondary }]}><MaterialCommunityIcons name="auto-fix" size={16} color={colors.accent} /><Text style={[scStyles.statCardVal, { color: colors.accent }]}>{detailItem.stats.magic}</Text><Text style={[scStyles.statCardLabel, { color: colors.mutedForeground }]}>MAG</Text></View>}
+                      {detailItem.stats.speed !== undefined && <View style={[scStyles.statCard, { backgroundColor: colors.secondary }]}><MaterialCommunityIcons name="lightning-bolt" size={16} color={colors.accent} /><Text style={[scStyles.statCardVal, { color: colors.accent }]}>{detailItem.stats.speed}</Text><Text style={[scStyles.statCardLabel, { color: colors.mutedForeground }]}>VIT</Text></View>}
+                    </View>
+
+                    {/* Badges */}
+                    <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+                      {detailItem.enigmaMastered && <View style={[scStyles.badge, { backgroundColor: '#5C00AA30' }]}><Text style={[scStyles.badgeText, { color: '#C084FC' }]}>⚗️ Défi d'énigme réussi</Text></View>}
+                      {detailItem.unique && <View style={[scStyles.badge, { backgroundColor: '#E8B84B20' }]}><Text style={[scStyles.badgeText, { color: '#E8B84B' }]}>✦ Arme unique</Text></View>}
+                    </View>
+
+                    {/* Forge stamp */}
+                    <View style={[scStyles.stampBox, { backgroundColor: colors.secondary }]}>
+                      <Text style={[scStyles.stampLabel, { color: colors.mutedForeground }]}>EMPREINTE DE FORGE</Text>
+                      <Text style={[scStyles.stampText, { color: colors.foreground }]}>🔨 Forgé par {detailItem.craftedBy}</Text>
+                      <Text style={[scStyles.stampText, { color: colors.mutedForeground }]}>📅 {craftDate}</Text>
+                    </View>
+
+                    {/* Unpin button */}
+                    <TouchableOpacity
+                      style={[scStyles.unpinBtn, { borderColor: '#F44336' }]}
+                      onPress={() => { game.unpinFromShowcase(detailItem.instanceId); setDetailId(null); }}
+                    >
+                      <Feather name="x" size={14} color="#F44336" />
+                      <Text style={[scStyles.unpinBtnText, { color: '#F44336' }]}>Retirer de la vitrine</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={scStyles.closeBtn} onPress={() => setDetailId(null)}>
+                      <Text style={[scStyles.closeBtnText, { color: colors.mutedForeground }]}>Fermer</Text>
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
+              );
+            })()}
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Item picker modal ── */}
+      <Modal visible={pickerOpen} transparent animationType="slide" onRequestClose={() => setPickerOpen(false)}>
+        <View style={[scStyles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.88)' }]}>
+          <View style={[scStyles.modalSheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[scStyles.handle, { backgroundColor: colors.muted }]} />
+            <View style={scStyles.pickerHeader}>
+              <Text style={[scStyles.pickerTitle, { color: colors.foreground }]}>Choisir un objet</Text>
+              <TouchableOpacity onPress={() => setPickerOpen(false)}>
+                <Feather name="x" size={22} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            </View>
+            {pickableItems.length === 0 ? (
+              <View style={[scStyles.emptyPicker, { backgroundColor: colors.secondary }]}>
+                <MaterialCommunityIcons name="hammer-wrench" size={36} color={colors.mutedForeground} />
+                <Text style={[scStyles.emptyPickerText, { color: colors.mutedForeground }]}>
+                  Forgez des objets pour les exposer dans votre vitrine.
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={pickableItems}
+                keyExtractor={(i) => i.instanceId}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 30 }}
+                renderItem={({ item }) => {
+                  const qc = showcaseQualityColor(item.quality, colors);
+                  return (
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      style={[scStyles.pickerRow, { backgroundColor: colors.secondary, borderColor: qc }]}
+                      onPress={() => { game.pinToShowcase(item.instanceId); setPickerOpen(false); }}
+                    >
+                      <View style={[scStyles.pickerStrip, { backgroundColor: qc }]} />
+                      <View style={{ flex: 1, paddingHorizontal: 10, paddingVertical: 8 }}>
+                        <Text style={[scStyles.pickerQuality, { color: qc }]}>{qualityLabel(item.quality)}</Text>
+                        <Text style={[scStyles.pickerName, { color: colors.foreground }]}>{item.name}</Text>
+                        {item.unique?.epithet && <Text style={[scStyles.pickerEpithet, { color: '#E8B84B' }]}>« {item.unique.epithet} »</Text>}
+                        <Text style={[scStyles.pickerMeta, { color: colors.mutedForeground }]}>{item.category} · {item.value}g</Text>
+                      </View>
+                      <Feather name="plus" size={18} color={qc} style={{ paddingRight: 12 }} />
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+    </ScrollView>
+  );
+}
+
+const scStyles = StyleSheet.create({
+  container: { padding: 16 },
+  sectionHeader: { marginBottom: 18 },
+  sectionTitle: { fontSize: 16, fontWeight: '800', letterSpacing: 3, marginBottom: 3 },
+  sectionSub: { fontSize: 12, fontWeight: '500' },
+  hintText: { fontSize: 12, marginTop: 8, lineHeight: 18 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  slotWrapper: { width: '48%' },
+  // Filled slot
+  filledSlot: { borderRadius: 14, borderWidth: 2, flexDirection: 'row', overflow: 'hidden', minHeight: 180 },
+  qualityStrip: { width: 5 },
+  slotBody: { flex: 1, padding: 10, gap: 3 },
+  qualityLabel: { fontSize: 9, fontWeight: '800', letterSpacing: 1.5 },
+  itemName: { fontSize: 13, fontWeight: '700', lineHeight: 17 },
+  epithet: { fontSize: 11, fontStyle: 'italic' },
+  meta: { fontSize: 10, marginTop: 2 },
+  statRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
+  statChip: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 5 },
+  statText: { fontSize: 10, fontWeight: '700' },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 3 },
+  badge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
+  badgeText: { fontSize: 9, fontWeight: '700' },
+  stamp: { fontSize: 9, marginTop: 4, lineHeight: 13 },
+  // Empty slot
+  emptySlot: { borderRadius: 14, borderWidth: 2, borderStyle: 'dashed', height: 160, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  emptySlotText: { fontSize: 11, textAlign: 'center', lineHeight: 16 },
+  // Modal
+  modalOverlay: { flex: 1, justifyContent: 'flex-end' },
+  modalSheet: { maxHeight: '87%', borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, borderBottomWidth: 0 },
+  handle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginTop: 12, marginBottom: 6 },
+  detailQualityBar: { height: 4 },
+  detailBody: { padding: 20 },
+  detailQualityLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 2, marginBottom: 4 },
+  detailName: { fontSize: 22, fontWeight: '800', marginBottom: 4 },
+  detailEpithet: { fontSize: 15, fontStyle: 'italic', marginBottom: 6 },
+  detailMeta: { fontSize: 12, marginBottom: 14 },
+  traitsBox: { borderRadius: 12, padding: 14, marginBottom: 14 },
+  traitTitle: { fontSize: 10, fontWeight: '800', letterSpacing: 2, marginBottom: 8 },
+  traitRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
+  traitLabel: { fontSize: 12 },
+  traitVal: { fontSize: 12, fontWeight: '600' },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+  statCard: { flex: 1, minWidth: 60, borderRadius: 12, padding: 10, alignItems: 'center', gap: 2 },
+  statCardVal: { fontSize: 18, fontWeight: '800' },
+  statCardLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 1 },
+  stampBox: { borderRadius: 12, padding: 14, gap: 4, marginBottom: 16 },
+  stampLabel: { fontSize: 9, fontWeight: '800', letterSpacing: 2, marginBottom: 4 },
+  stampText: { fontSize: 13 },
+  unpinBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 12, borderWidth: 1, marginBottom: 10 },
+  unpinBtnText: { fontSize: 14, fontWeight: '700' },
+  closeBtn: { paddingVertical: 10, alignItems: 'center' },
+  closeBtnText: { fontSize: 14 },
+  // Picker
+  pickerHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 14 },
+  pickerTitle: { fontSize: 17, fontWeight: '700' },
+  pickerRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1.5, marginBottom: 8, overflow: 'hidden' },
+  pickerStrip: { width: 5, alignSelf: 'stretch' },
+  pickerQuality: { fontSize: 9, fontWeight: '800', letterSpacing: 1.5 },
+  pickerName: { fontSize: 14, fontWeight: '700', marginVertical: 2 },
+  pickerEpithet: { fontSize: 11, fontStyle: 'italic', marginBottom: 2 },
+  pickerMeta: { fontSize: 11 },
+  emptyPicker: { margin: 20, borderRadius: 14, padding: 30, alignItems: 'center', gap: 10 },
+  emptyPickerText: { fontSize: 13, textAlign: 'center', lineHeight: 18 },
+});
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export default function InventoryScreen() {
   const colors = useColors();
@@ -386,6 +735,7 @@ export default function InventoryScreen() {
           { key: 'resources', label: 'Ressources', icon: 'diamond-stone', badge: game.inventory.length },
           { key: 'items', label: 'Objets', icon: 'sword-cross', badge: game.craftedItems.length },
           { key: 'alloys', label: 'Alliages', icon: 'merge', badge: game.discoveredAlloyIds.length },
+          { key: 'showcase', label: 'Vitrine', icon: 'star-four-points', badge: game.showcasedItemIds.length },
         ] as { key: TabType; label: string; icon: string; badge: number }[]).map((tab) => (
           <TouchableOpacity
             key={tab.key}
@@ -410,7 +760,7 @@ export default function InventoryScreen() {
       </View>
 
       {/* ── Search + filter row (only for resources / items) ── */}
-      {activeTab !== 'alloys' && <View style={[styles.toolbarRow, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+      {activeTab !== 'alloys' && activeTab !== 'showcase' && <View style={[styles.toolbarRow, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <View style={[styles.searchBox, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
           <Feather name="search" size={14} color={colors.mutedForeground} />
           <TextInput
@@ -552,6 +902,11 @@ export default function InventoryScreen() {
             showsVerticalScrollIndicator={false}
           />
         )
+      )}
+
+      {/* ── Showcase tab ── */}
+      {activeTab === 'showcase' && (
+        <ShowcaseSection game={game} colors={colors} bottomPad={bottomPad} />
       )}
 
       {/* ── Item detail sheet ── */}

@@ -521,5 +521,7 @@ export interface SaveData {
   completedRegions: string[];
   completedSets: string[];
   discoveredAlloyIds: string[];
+  /** Instance IDs of items pinned to the showcase vitrine (max 6). */
+  showcasedItemIds?: string[];
   lastSaved: number;
 }
