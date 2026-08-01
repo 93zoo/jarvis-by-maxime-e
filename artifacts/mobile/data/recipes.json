@@ -1714,5 +1714,239 @@
       "durabilityBase": 600,
       "valueMultiplier": 55
     }
+  },
+  {
+    "id": "corsair_saber",
+    "name": "Sabre du Corsaire",
+    "description": "Une lame courbe et rapide, taillée pour les abordages en haute mer.",
+    "category": "dagger",
+    "requirements": [
+      {
+        "resourceId": "steel",
+        "quantity": 3
+      },
+      {
+        "resourceId": "silver",
+        "quantity": 1
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 3
+      }
+    ],
+    "skillRequired": "forge",
+    "levelRequired": 13,
+    "baseTime": 95,
+    "xpReward": 85,
+    "outputItemBase": {
+      "name": "Sabre du Corsaire",
+      "description": "Un sabre courbé au tranchant salin, léger comme l'écume.",
+      "lore": "On dit que ce sabre a fendu plus de cordages que de chair — mais les deux comptent.",
+      "category": "dagger",
+      "baseStats": {
+        "attack": 26,
+        "speed": 18,
+        "luck": 6
+      },
+      "gemSlots": 1,
+      "weight": 1.1,
+      "durabilityBase": 160,
+      "valueMultiplier": 7
+    }
+  },
+  {
+    "id": "desert_jambiya",
+    "name": "Jambiya du Désert",
+    "description": "Une dague recourbée sertie d'or, prisée des contrebandiers des dunes.",
+    "category": "dagger",
+    "requirements": [
+      {
+        "resourceId": "gold_ore",
+        "quantity": 2
+      },
+      {
+        "resourceId": "steel",
+        "quantity": 2
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 3
+      }
+    ],
+    "skillRequired": "forge",
+    "levelRequired": 16,
+    "baseTime": 115,
+    "xpReward": 105,
+    "outputItemBase": {
+      "name": "Jambiya du Désert",
+      "description": "Une dague d'apparat au manche doré, aussi mortelle qu'élégante.",
+      "lore": "Les corsaires des sables la portent à la ceinture comme promesse et menace.",
+      "category": "dagger",
+      "baseStats": {
+        "attack": 30,
+        "speed": 20,
+        "luck": 10
+      },
+      "gemSlots": 1,
+      "weight": 0.9,
+      "durabilityBase": 170,
+      "valueMultiplier": 9
+    }
+  },
+  {
+    "id": "silk_katana",
+    "name": "Katana de Soie",
+    "description": "Une lame élancée polie mille fois, dont le fil glisse comme la soie.",
+    "category": "sword",
+    "requirements": [
+      {
+        "resourceId": "steel",
+        "quantity": 4
+      },
+      {
+        "resourceId": "silver",
+        "quantity": 2
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 2
+      }
+    ],
+    "skillRequired": "forge",
+    "levelRequired": 14,
+    "baseTime": 110,
+    "xpReward": 95,
+    "outputItemBase": {
+      "name": "Katana de Soie",
+      "description": "Un katana d'une finesse extrême, forgé par pliages successifs.",
+      "lore": "Sa lame chante quand elle fend l'air — un murmure de soie déchirée.",
+      "category": "sword",
+      "baseStats": {
+        "attack": 32,
+        "speed": 16
+      },
+      "gemSlots": 2,
+      "weight": 1.3,
+      "durabilityBase": 190,
+      "valueMultiplier": 8
+    }
+  },
+  {
+    "id": "honor_tanto",
+    "name": "Tantō de l'Honneur",
+    "description": "Une courte lame cérémonielle, compagne discrète du samouraï.",
+    "category": "dagger",
+    "requirements": [
+      {
+        "resourceId": "steel",
+        "quantity": 2
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 2
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 1
+      }
+    ],
+    "skillRequired": "forge",
+    "levelRequired": 11,
+    "baseTime": 80,
+    "xpReward": 70,
+    "outputItemBase": {
+      "name": "Tantō de l'Honneur",
+      "description": "Un tantō sobre et parfait, sans un défaut sur toute la lame.",
+      "lore": "Le samouraï le garde près du cœur : l'honneur se porte, il ne se prête pas.",
+      "category": "dagger",
+      "baseStats": {
+        "attack": 20,
+        "speed": 15
+      },
+      "gemSlots": 1,
+      "weight": 0.6,
+      "durabilityBase": 150,
+      "valueMultiplier": 6
+    }
+  },
+  {
+    "id": "arcanist_staff",
+    "name": "Bâton d'Arcaniste",
+    "description": "Un bâton torsadé couronné d'un cristal qui capte les flux arcaniques.",
+    "category": "decoration",
+    "requirements": [
+      {
+        "resourceId": "crystal",
+        "quantity": 3
+      },
+      {
+        "resourceId": "emerald",
+        "quantity": 1
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 3
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 2
+      }
+    ],
+    "skillRequired": "forge",
+    "levelRequired": 26,
+    "baseTime": 190,
+    "xpReward": 175,
+    "outputItemBase": {
+      "name": "Bâton d'Arcaniste",
+      "description": "Un bâton dont le cristal pulse doucement d'une lumière émeraude.",
+      "lore": "Les arcanistes affirment qu'il choisit son porteur — les autres se brûlent les doigts.",
+      "category": "decoration",
+      "baseStats": {
+        "magic": 45,
+        "luck": 14
+      },
+      "gemSlots": 2,
+      "weight": 1.8,
+      "durabilityBase": 240,
+      "valueMultiplier": 18
+    }
+  },
+  {
+    "id": "mage_orb",
+    "name": "Orbe des Arcanes",
+    "description": "Une sphère de cristal enchâssée d'argent qui amplifie les sortilèges.",
+    "category": "amulet",
+    "requirements": [
+      {
+        "resourceId": "crystal",
+        "quantity": 2
+      },
+      {
+        "resourceId": "silver",
+        "quantity": 2
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 2
+      }
+    ],
+    "skillRequired": "enchantment",
+    "levelRequired": 21,
+    "baseTime": 150,
+    "xpReward": 140,
+    "outputItemBase": {
+      "name": "Orbe des Arcanes",
+      "description": "Un orbe froid au toucher, dans lequel tournoient des brumes d'argent.",
+      "lore": "Regarder trop longtemps dans l'orbe, c'est risquer qu'il vous regarde en retour.",
+      "category": "amulet",
+      "baseStats": {
+        "magic": 36,
+        "luck": 10
+      },
+      "gemSlots": 1,
+      "weight": 1.0,
+      "durabilityBase": 200,
+      "valueMultiplier": 13
+    }
   }
 ]

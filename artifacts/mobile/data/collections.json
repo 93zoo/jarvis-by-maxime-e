@@ -556,7 +556,9 @@
       "items": [
         "arcane_scepter",
         "emerald_amulet",
-        "silver_ring"
+        "silver_ring",
+        "arcanist_staff",
+        "mage_orb"
       ],
       "bonuses": [
         {
@@ -571,6 +573,38 @@
         },
         {
           "count": 3,
+          "label": "Trio Arcanique",
+          "effects": [
+            {
+              "type": "marketValueBonus",
+              "value": 10
+            },
+            {
+              "type": "reputationBonus",
+              "value": 5
+            }
+          ]
+        },
+        {
+          "count": 4,
+          "label": "Cercle Arcanique",
+          "effects": [
+            {
+              "type": "marketValueBonus",
+              "value": 12
+            },
+            {
+              "type": "reputationBonus",
+              "value": 8
+            },
+            {
+              "type": "forgeXpBonus",
+              "value": 5
+            }
+          ]
+        },
+        {
+          "count": 5,
           "label": "Mage Arcanique Complet",
           "effects": [
             {
@@ -769,7 +803,9 @@
       "items": [
         "silver_sword",
         "steel_lance",
-        "crystal_amulet"
+        "crystal_amulet",
+        "silk_katana",
+        "honor_tanto"
       ],
       "bonuses": [
         {
@@ -788,6 +824,38 @@
         },
         {
           "count": 3,
+          "label": "Trio Samouraï",
+          "effects": [
+            {
+              "type": "craftSpeedBonus",
+              "value": 10
+            },
+            {
+              "type": "qualityBonus",
+              "value": 5
+            }
+          ]
+        },
+        {
+          "count": 4,
+          "label": "Discipline du Samouraï",
+          "effects": [
+            {
+              "type": "craftSpeedBonus",
+              "value": 11
+            },
+            {
+              "type": "qualityBonus",
+              "value": 6
+            },
+            {
+              "type": "forgeXpBonus",
+              "value": 5
+            }
+          ]
+        },
+        {
+          "count": 5,
           "label": "Voie du Samouraï Complète",
           "effects": [
             {
@@ -821,7 +889,9 @@
       "items": [
         "obsidian_blade",
         "copper_ring",
-        "gold_ring"
+        "gold_ring",
+        "corsair_saber",
+        "desert_jambiya"
       ],
       "bonuses": [
         {
@@ -836,6 +906,34 @@
         },
         {
           "count": 3,
+          "label": "Trio du Corsaire",
+          "effects": [
+            {
+              "type": "marketValueBonus",
+              "value": 15
+            },
+            {
+              "type": "orderGoldBonus",
+              "value": 6
+            }
+          ]
+        },
+        {
+          "count": 4,
+          "label": "Équipage du Corsaire",
+          "effects": [
+            {
+              "type": "marketValueBonus",
+              "value": 18
+            },
+            {
+              "type": "orderGoldBonus",
+              "value": 9
+            }
+          ]
+        },
+        {
+          "count": 5,
           "label": "Corsaire Complet",
           "effects": [
             {
