@@ -166,7 +166,7 @@ export default function ForgeBackdrop() {
     return () => { flicker.stop(); breathe.stop(); };
   }, [fireGlow, breath]);
 
-  const glowOpacity = fireGlow.interpolate({ inputRange: [0, 1], outputRange: [0.10, 0.28] });
+  const glowOpacity = fireGlow.interpolate({ inputRange: [0, 1], outputRange: [0.04, 0.14] });
   const breathOpacity = breath.interpolate({ inputRange: [0, 1], outputRange: [0.02, 0.06] });
 
   // Deterministic particle configs (stable across renders)
@@ -202,10 +202,8 @@ export default function ForgeBackdrop() {
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       <ImageBackground source={FORGE_BG} style={StyleSheet.absoluteFill} resizeMode="cover" />
 
-      {/* Fire glow over the hearth */}
+      {/* Soft warm light flicker over the hearth — very subtle, no solid shape */}
       <Animated.View style={[styles.hearthGlow, { opacity: glowOpacity }]} />
-      {/* Heat shimmer: soft warm band above the fire */}
-      <Animated.View style={[styles.heatBand, { opacity: glowOpacity }]} />
       {/* Ambient brightness breath */}
       <Animated.View style={[styles.breath, { opacity: breathOpacity }]} />
 
@@ -221,24 +219,16 @@ export default function ForgeBackdrop() {
 }
 
 const styles = StyleSheet.create({
-  // Soft elliptical halo positioned over the artwork's hearth (center, mid-height)
+  // Wide, very soft warm halo over the artwork's hearth — low opacity so the
+  // artwork stays identical to the capture, only the light "breathes".
   hearthGlow: {
     position: 'absolute',
-    left: '34%',
-    right: '34%',
-    top: '26%',
-    height: '22%',
-    borderRadius: 200,
+    left: '25%',
+    right: '25%',
+    top: '18%',
+    height: '30%',
+    borderRadius: 260,
     backgroundColor: '#FF8A2A',
-  },
-  heatBand: {
-    position: 'absolute',
-    left: '40%',
-    right: '40%',
-    top: '20%',
-    height: '10%',
-    borderRadius: 80,
-    backgroundColor: 'rgba(255,180,90,0.22)',
   },
   breath: {
     ...StyleSheet.absoluteFillObject,
