@@ -227,3 +227,10 @@ uri = "file://screenshots/forge-centered-band.jpg"
 type = "image"
 title = "Forge — boutons centrés sur bandeau noir"
 description = "AMÉLIORER / FORGER / COMMANDES centrés au milieu de la page sur un bandeau noir, comme la capture de référence."
+
+[[outputs]]
+id = "Db6C2tgI7HD6QH4ldoEJg"
+uri = "file://screenshots/forge-scattered.jpg"
+type = "image"
+title = "Forge — boutons dispersés"
+description = "FORGER flotte au-dessus de l'enclume, COMMANDES en bouton rond au-dessus de l'icône Forge, AMÉLIORER sous l'engrenage du header."
