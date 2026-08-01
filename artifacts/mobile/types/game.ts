@@ -464,6 +464,8 @@ export interface Apprentice {
   readyItem: Item | null;         // finished item waiting to be collected
   /** Number of times a new item was finished while the previous readyItem was still uncollected. Resets to 0 on successful collection. At 3 the apprentice leaves. */
   missedPayments: number;
+  /** Craft category this apprentice specialises in — quality is bumped one tier when crafting a matching recipe. */
+  specialty: ItemCategory;
 }
 
 // ---------------------------------------------------------------------------

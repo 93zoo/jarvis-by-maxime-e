@@ -990,6 +990,23 @@ function ApprenticeCard({
 
   const missed = ap.missedPayments ?? 0;
 
+  const SPECIALTY_LABEL: Record<string, string> = {
+    sword:      '⚔️ Épée',
+    axe:        '🪓 Hache',
+    hammer:     '🔨 Marteau',
+    lance:      '🏹 Lance',
+    shield:     '🛡️ Bouclier',
+    armor:      '🥋 Armure',
+    helmet:     '⛑️ Casque',
+    ring:       '💍 Anneau',
+    amulet:     '📿 Amulette',
+    dagger:     '🗡️ Dague',
+    crown:      '👑 Couronne',
+    tool:       '🔧 Outil',
+    decoration: '🎨 Décoration',
+  };
+  const specialtyLabel = ap.specialty ? (SPECIALTY_LABEL[ap.specialty] ?? ap.specialty) : null;
+
   return (
     <View style={[apStyles.card, { backgroundColor: colors.card, borderColor: missed >= 1 ? '#E65100' : colors.border }]}>
       {/* Header */}
@@ -1006,6 +1023,12 @@ function ApprenticeCard({
           </View>
         )}
       </View>
+      {/* Specialty */}
+      {specialtyLabel && (
+        <View style={[apStyles.badge, { backgroundColor: colors.secondary, alignSelf: 'flex-start', marginBottom: 4 }]}>
+          <Text style={[apStyles.badgeText, { color: colors.mutedForeground }]}>Spécialité : {specialtyLabel}</Text>
+        </View>
+      )}
 
       {/* XP bar */}
       <View style={[apStyles.track, { backgroundColor: colors.muted }]}>

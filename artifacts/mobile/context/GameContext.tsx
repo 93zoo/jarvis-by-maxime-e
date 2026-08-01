@@ -402,6 +402,13 @@ const INITIAL_INVENTORY: InventoryItem[] = [
 
 const APPRENTICE_NAMES = ['Aldric', 'Bryn', 'Caelum', 'Doric', 'Eira', 'Finn', 'Gwen', 'Holt', 'Idris', 'Jora'];
 const APPRENTICE_HIRE_COST = 500;
+const ALL_ITEM_CATEGORIES: ItemCategory[] = [
+  'sword', 'axe', 'hammer', 'lance', 'shield', 'armor',
+  'helmet', 'ring', 'amulet', 'dagger', 'crown', 'tool', 'decoration',
+];
+function randomSpecialty(): ItemCategory {
+  return ALL_ITEM_CATEGORIES[Math.floor(Math.random() * ALL_ITEM_CATEGORIES.length)];
+}
 
 function apprenticeXpForLevel(level: number): number {
   return Math.round(100 * Math.pow(1.5, level - 1));
@@ -413,7 +420,7 @@ function apprenticeCraftDuration(recipe: RecipeData, apprenticeLevel: number): n
   return Math.round(baseSec * (1 - speedup) * 1000);
 }
 
-function makeApprenticeItem(recipe: RecipeData, apprenticeLevel: number): Item {
+function makeApprenticeItem(recipe: RecipeData, apprenticeLevel: number, specialty?: ItemCategory): Item {
   const roll = Math.random() * 100;
   let quality: Quality;
   if (apprenticeLevel <= 2)      quality = roll < 60 ? 'poor' : 'normal';
@@ -421,6 +428,11 @@ function makeApprenticeItem(recipe: RecipeData, apprenticeLevel: number): Item {
   else if (apprenticeLevel <= 6) quality = roll < 15 ? 'normal' : roll < 55 ? 'good' : roll < 88 ? 'excellent' : 'legendary';
   else if (apprenticeLevel <= 8) quality = roll < 25 ? 'good' : roll < 70 ? 'excellent' : 'legendary';
   else                           quality = roll < 35 ? 'excellent' : 'legendary';
+
+  // Specialty bonus: bump quality one tier when crafting a matching category
+  if (specialty && recipe.category === specialty) {
+    quality = bumpQuality(quality).quality;
+  }
 
   const QUALITY_SCORE: Record<Quality, number> = { poor: 15, normal: 45, good: 65, excellent: 82, legendary: 96 };
   const qualityMults: Record<Quality, number>  = { poor: 0.5, normal: 0.8, good: 1.0, excellent: 1.5, legendary: 2.5 };
@@ -666,7 +678,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         forgeHistory: s.forgeHistory ?? [],
         sessionSnapshots: s.sessionSnapshots ?? [],
         apprentice: s.apprentice
-          ? { ...s.apprentice, missedPayments: s.apprentice.missedPayments ?? 0 }
+          ? { ...s.apprentice, missedPayments: s.apprentice.missedPayments ?? 0, specialty: s.apprentice.specialty ?? randomSpecialty() }
           : null,
         completedRegions: s.completedRegions ?? [],
         completedSets: s.completedSets ?? [],
@@ -1193,6 +1205,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         craftDurationMs: 0,
         readyItem: null,
         missedPayments: 0,
+        specialty: randomSpecialty(),
       };
       return {
         ...state,
@@ -2651,7 +2664,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             dispatch({ type: 'DISMISS_APPRENTICE' });
             setApprenticeToast('Votre apprenti est parti faute de salaire.');
           } else {
-            dispatch({ type: 'APPRENTICE_FINISH_CRAFT', item: makeApprenticeItem(recipe, ap.level) });
+            dispatch({ type: 'APPRENTICE_FINISH_CRAFT', item: makeApprenticeItem(recipe, ap.level, ap.specialty) });
           }
         }
       }
