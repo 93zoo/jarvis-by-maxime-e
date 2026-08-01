@@ -45,6 +45,7 @@ import {
   uniqueName,
 } from '@/utils/uniqueWeapon';
 import { premiumXpMultiplier } from '@/lib/premiumStatus';
+import { reportLeaderboardScore } from '@/lib/leaderboard';
 
 // ---------------------------------------------------------------------------
 // Static data (loaded once)
@@ -346,6 +347,8 @@ function buildInitialPlayer(): Player {
     totalGoldEarned: 150,
     totalPlayTime: 0,
     totalOrdersDelivered: 0,
+    totalPlayerXPEarned: 0,
+    totalForgeXPEarned: 0,
     totalQuestsAccepted: 0,
     craftedLegendaryCount: 0,
     craftedExcellentCount: 0,
@@ -576,6 +579,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         totalGoldEarned: s.player.totalGoldEarned ?? 0,
         totalItemsCrafted: s.player.totalItemsCrafted ?? 0,
         totalOrdersDelivered: s.player.totalOrdersDelivered ?? 0,
+        totalPlayerXPEarned: s.player.totalPlayerXPEarned ?? 0,
+        totalForgeXPEarned: s.player.totalForgeXPEarned ?? 0,
         totalQuestsAccepted: s.player.totalQuestsAccepted ?? 0,
         craftedLegendaryCount: s.player.craftedLegendaryCount ?? 0,
         craftedExcellentCount: s.player.craftedExcellentCount ?? 0,
@@ -705,6 +710,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const updated = levelUpPlayer({
         ...state.player,
         xp: state.player.xp + action.amount,
+        totalPlayerXPEarned: (state.player.totalPlayerXPEarned ?? 0) + Math.max(0, action.amount),
       });
       return { ...state, player: updated };
     }
@@ -717,7 +723,10 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         + computeTalentBonus(state.player.talentsUnlocked, `${action.skill}XPBonus`)
         + forgeXpUpgBonus;
       const boostedAmount = Math.round(action.amount * xpMultiplier);
-      const updated = levelUpSkill(state.player, action.skill, boostedAmount);
+      const basePlayer = action.skill === 'forge'
+        ? { ...state.player, totalForgeXPEarned: (state.player.totalForgeXPEarned ?? 0) + Math.max(0, boostedAmount) }
+        : state.player;
+      const updated = levelUpSkill(basePlayer, action.skill, boostedAmount);
       return { ...state, player: updated };
     }
     case 'UNLOCK_REGION': {
@@ -2295,6 +2304,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ playerId: playerIdRef.current, saveData: save, clientVersion: SAVE_VERSION }),
+      });
+      // Rapport de score pour le classement (best effort, en parallèle)
+      reportLeaderboardScore({
+        playerId: playerIdRef.current,
+        name: state.player.name,
+        level: state.player.level,
+        totalXP: (state.player.totalPlayerXPEarned ?? 0) + (state.player.totalForgeXPEarned ?? 0),
       });
       if (res.ok) {
         setCloudSyncStatus('success');

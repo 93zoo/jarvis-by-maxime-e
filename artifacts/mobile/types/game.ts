@@ -60,6 +60,10 @@ export interface Player {
   totalGoldEarned: number;
   totalPlayTime: number;
   totalOrdersDelivered: number;
+  /** Lifetime cumulative player (forgeron) XP earned — never resets on level-up. Used for leaderboard points. */
+  totalPlayerXPEarned: number;
+  /** Lifetime cumulative forge-skill XP earned — never resets on skill level-up. Used for leaderboard points. */
+  totalForgeXPEarned: number;
   totalQuestsAccepted: number;
   craftedLegendaryCount: number;
   craftedExcellentCount: number;

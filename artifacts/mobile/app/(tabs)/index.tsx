@@ -27,6 +27,7 @@ import type { Item, Quality, RecipeData } from '@/types/game';
 import ForgeScene3D, { CraftPhase, ForgeScene3DRef } from '@/components/ForgeScene3D';
 import ForgeBackdrop from '@/components/ForgeBackdrop';
 import BoutiqueButton from '@/components/BoutiqueButton';
+import NeonIconButton from '@/components/NeonIconButton';
 import { useRewardedAds } from '@/lib/rewardedAds';
 import HammeringMiniGame, { HitLabel } from '@/components/HammeringMiniGame';
 import WeatherEffect, { WeatherType } from '@/components/WeatherEffect';
@@ -1335,6 +1336,12 @@ export default function ForgeScreen() {
             </Text>
             <Feather name="plus" size={11} color={MEDIEVAL.textDim} />
           </TouchableOpacity>
+          <NeonIconButton
+            icon="award"
+            color="#00E5FF"
+            onPress={() => router.push('/classement')}
+            accessibilityLabel="Classement des joueurs"
+          />
           <BoutiqueButton />
           {upgradeLevel > 0 && (
             <View style={md.pill}>
