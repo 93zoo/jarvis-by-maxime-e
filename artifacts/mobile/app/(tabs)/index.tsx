@@ -1302,7 +1302,7 @@ export default function ForgeScreen() {
               <View style={md.headerXPTrack}>
                 <View style={[md.headerXPFill, { width: `${xpPct}%` as `${number}%` }]} />
               </View>
-              <Text style={[md.headerTitle, { marginTop: 8, color: MEDIEVAL.emberSoft }]}>FORGE Niv.{forgeSkillLevel}</Text>
+              <Text style={[md.headerTitle, { marginTop: 8, color: MEDIEVAL.emberSoft }]}>FORGE</Text>
               <Text style={md.headerXP}>
                 {forgeXP.toLocaleString()} / {forgeXPNeeded.toLocaleString()} XP
               </Text>
