@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   AppState,
   FlatList,
+  Image,
   ImageBackground,
   Modal,
   Platform,
@@ -1309,6 +1310,11 @@ export default function ForgeScreen() {
             label="APPRENTI"
             onPress={() => setShowApprenticeModal(true)}
           />
+          <RailButton
+            icon="trending-up"
+            label="AMÉLIORER"
+            onPress={() => setShowUpgradesModal(true)}
+          />
         </View>
       )}
 
@@ -1412,23 +1418,17 @@ export default function ForgeScreen() {
       >
         {craftPhase === 'IDLE' && (
           <>
-            {/* FORGER — floating above the anvil */}
+            {/* FORGER — artwork button floating above the anvil, slightly right */}
             <View style={md.forgeOverAnvil} pointerEvents="box-none">
               <TouchableOpacity
-                style={md.forgeBtn}
                 onPress={() => setShowRecipeSheet(true)}
                 activeOpacity={0.82}
               >
-                <LinearGradient
-                  colors={['#5A2E0E', '#8A4416', '#5A2E0E']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={md.forgeBtnInner}
-                >
-                  <Feather name="tool" size={22} color={MEDIEVAL.ember} />
-                  <Text style={md.forgeBtnText}>FORGER</Text>
-                  <Text style={md.forgeBtnSub}>{availableRecipes.length} recettes</Text>
-                </LinearGradient>
+                <Image
+                  source={require('@/assets/images/forge-btn.png')}
+                  style={md.forgeBtnArt}
+                  resizeMode="contain"
+                />
               </TouchableOpacity>
             </View>
 
@@ -1442,14 +1442,6 @@ export default function ForgeScreen() {
               />
             </View>
 
-            {/* AMÉLIORER — under the header gear icon */}
-            <View style={[md.ameliorerBtn, { top: headerTopPad + 122 }]} pointerEvents="box-none">
-              <RailButton
-                icon="trending-up"
-                label="AMÉLIORER"
-                onPress={() => setShowUpgradesModal(true)}
-              />
-            </View>
           </>
         )}
 
@@ -2111,7 +2103,7 @@ const md = StyleSheet.create({
   },
   centerActions: { ...StyleSheet.absoluteFillObject, justifyContent: 'center' },
   actionsBand: { backgroundColor: 'rgba(0,0,0,0.88)', paddingVertical: 20, paddingHorizontal: 16 },
-  forgeOverAnvil: { position: 'absolute', top: '39%', left: 0, right: 0, alignItems: 'center' },
+  forgeOverAnvil: { position: 'absolute', top: '39%', left: 0, right: 0, alignItems: 'center', paddingLeft: 72 },
   bottomRoundBtn: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   ameliorerBtn: { position: 'absolute', right: 16 },
   sideBtn: {
@@ -2126,28 +2118,7 @@ const md = StyleSheet.create({
     borderColor: 'rgba(200,140,60,0.35)',
   },
   sideBtnText: { color: MEDIEVAL.textLight, fontSize: 9, fontWeight: '800', letterSpacing: 1 },
-  forgeBtn: {
-    width: 190,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: MEDIEVAL.borderBright,
-    overflow: 'hidden',
-  },
-  forgeBtnInner: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-    paddingVertical: 10,
-  },
-  forgeBtnText: {
-    color: '#FFD9A0',
-    fontSize: 18,
-    fontWeight: '900',
-    letterSpacing: 4,
-    textShadowColor: 'rgba(255,122,26,0.6)',
-    textShadowRadius: 8,
-  },
-  forgeBtnSub: { color: MEDIEVAL.textDim, fontSize: 9, fontWeight: '600', letterSpacing: 1 },
+  forgeBtnArt: { width: 220, height: 136 },
   inventoryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
