@@ -1,7 +1,7 @@
 import React from 'react';
 import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { Tabs } from 'expo-router';
@@ -103,11 +103,11 @@ function ClassicTabLayout() {
         name="index"
         options={{
           title: 'Forge',
-          tabBarIcon: ({ color, focused }) =>
+          tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="hammer.fill" tintColor={color} size={24} />
+              <SymbolView name="hammer" tintColor={color} size={22} />
             ) : (
-              <MaterialCommunityIcons name="anvil" size={26} color={color} style={focused ? {textShadowColor: MEDIEVAL.ember, textShadowRadius: 8} : {}} />
+              <Feather name="tool" size={22} color={color} />
             ),
         }}
       />
@@ -115,23 +115,23 @@ function ClassicTabLayout() {
         name="world"
         options={{
           title: 'Monde',
-          tabBarIcon: ({ color, focused }) =>
+          tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="map.fill" tintColor={color} size={24} />
+              <SymbolView name="map" tintColor={color} size={22} />
             ) : (
-              <MaterialCommunityIcons name="earth" size={26} color={color} style={focused ? {textShadowColor: MEDIEVAL.ember, textShadowRadius: 8} : {}} />
+              <Feather name="map" size={22} color={color} />
             ),
         }}
       />
       <Tabs.Screen
         name="inventory"
         options={{
-          title: 'Stock',
-          tabBarIcon: ({ color, focused }) =>
+          title: 'Inventaire',
+          tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="bag.fill" tintColor={color} size={24} />
+              <SymbolView name="bag" tintColor={color} size={22} />
             ) : (
-              <MaterialCommunityIcons name="bag-personal" size={26} color={color} style={focused ? {textShadowColor: MEDIEVAL.ember, textShadowRadius: 8} : {}} />
+              <Feather name="archive" size={22} color={color} />
             ),
         }}
       />
@@ -139,11 +139,11 @@ function ClassicTabLayout() {
         name="collections"
         options={{
           title: 'Sets',
-          tabBarIcon: ({ color, focused }) =>
+          tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="trophy.fill" tintColor={color} size={24} />
+              <SymbolView name="trophy" tintColor={color} size={22} />
             ) : (
-              <MaterialCommunityIcons name="shield-star" size={26} color={color} style={focused ? {textShadowColor: MEDIEVAL.ember, textShadowRadius: 8} : {}} />
+              <Feather name="award" size={22} color={color} />
             ),
         }}
       />
@@ -158,23 +158,23 @@ function ClassicTabLayout() {
         name="codex"
         options={{
           title: 'Codex',
-          tabBarIcon: ({ color, focused }) =>
+          tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="books.vertical.fill" tintColor={color} size={24} />
+              <SymbolView name="books.vertical" tintColor={color} size={22} />
             ) : (
-              <MaterialCommunityIcons name="book-open-page-variant" size={26} color={color} style={focused ? {textShadowColor: MEDIEVAL.ember, textShadowRadius: 8} : {}} />
+              <Feather name="book-open" size={22} color={color} />
             ),
         }}
       />
       <Tabs.Screen
         name="skills"
         options={{
-          title: 'Talents',
-          tabBarIcon: ({ color, focused }) =>
+          title: 'Compétences',
+          tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="star.fill" tintColor={color} size={24} />
+              <SymbolView name="star" tintColor={color} size={22} />
             ) : (
-              <MaterialCommunityIcons name="auto-fix" size={26} color={color} style={focused ? {textShadowColor: MEDIEVAL.ember, textShadowRadius: 8} : {}} />
+              <Feather name="star" size={22} color={color} />
             ),
         }}
       />
