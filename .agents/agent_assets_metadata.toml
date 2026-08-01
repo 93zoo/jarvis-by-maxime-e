@@ -374,3 +374,24 @@ uri = "file://screenshots/forge-mat-left.jpg"
 type = "image"
 title = "Forge — synthèse des ressources en bas à gauche"
 description = "Le panneau des matériaux possédés est de retour en bas à gauche de l'écran Forge : cartes sombres avec nom coloré, quantité et lingot."
+
+[[outputs]]
+id = "gSh5sHrAghKqcVJxIIVlb"
+uri = "file://screenshots/forge-btn-tight.jpg"
+type = "image"
+title = "Forge — découpe ajustée, bandes supprimées"
+description = "Nouvelle découpe du bouton FORGER : zone resserrée autour de l'enclume et du texte, cadre complètement exclu — plus de bandes transparentes."
+
+[[outputs]]
+id = "xb7BxR5O1sP7E2ivZ0L24"
+uri = "file://screenshots/forge-mat-always.jpg"
+type = "image"
+title = "Forge — matériaux toujours visibles"
+description = "Le panneau des matériaux s'affiche maintenant même avec un inventaire vide : les matériaux de base apparaissent avec une quantité 0."
+
+[[outputs]]
+id = "yTs6muDpdKBZQyzxrRSSz"
+uri = "file://screenshots/forge-btn-reverted.jpg"
+type = "image"
+title = "Forge — bouton FORGER restauré"
+description = "L'image du bouton FORGER est revenue à sa version d'avant le recadrage : enclume + texte, nettoyée des bandes, sans modification d'apparence."
