@@ -2040,9 +2040,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const newExploration = Math.min(100, currentExploration + gain);
       dispatch({ type: 'SET_EXPLORATION', regionId, percent: newExploration });
 
-      // Harvest XP + quest progress
+      // Harvest XP + extraction XP + quest progress
       if (drops.length > 0) {
         dispatch({ type: 'ADD_SKILL_XP', skill: 'harvest', amount: drops.length * 3 });
+        dispatch({ type: 'ADD_SKILL_XP', skill: 'extraction', amount: drops.length * 3 });
         dispatch({ type: 'ADD_PLAYER_XP', amount: drops.length * 2 });
         for (const drop of drops) {
           dispatch({ type: 'UPDATE_QUEST_PROGRESS', objectiveType: 'collect', targetId: drop.resourceId, amount: drop.quantity });
