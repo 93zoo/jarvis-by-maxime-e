@@ -44,6 +44,7 @@ import {
   makeUniqueSeed,
   uniqueName,
 } from '@/utils/uniqueWeapon';
+import { premiumXpMultiplier } from '@/lib/premiumStatus';
 
 // ---------------------------------------------------------------------------
 // Static data (loaded once)
@@ -1741,8 +1742,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       };
 
       dispatch({ type: 'ADD_CRAFTED_ITEM', item });
-      dispatch({ type: 'ADD_PLAYER_XP', amount: recipe.xpReward });
-      dispatch({ type: 'ADD_SKILL_XP', skill: recipe.skillRequired, amount: recipe.xpReward });
+      const xpAmount = recipe.xpReward * premiumXpMultiplier();
+      dispatch({ type: 'ADD_PLAYER_XP', amount: xpAmount });
+      dispatch({ type: 'ADD_SKILL_XP', skill: recipe.skillRequired, amount: xpAmount });
       dispatch({ type: 'UPDATE_QUEST_PROGRESS', objectiveType: 'craft', targetId: recipe.category, amount: 1 });
       dispatch({ type: 'UPDATE_QUEST_PROGRESS', objectiveType: 'craft', targetId: 'any', amount: 1 });
 
@@ -1838,7 +1840,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
       dispatch({ type: 'ADD_CRAFTED_ITEM', item });
       const forgeXpPct = computeCollectionBonus('forgeXpBonus', everCraftedRecipeIds);
-      const xpWithBonus = Math.round(recipe.xpReward * (1 + forgeXpPct / 100));
+      const xpWithBonus = Math.round(recipe.xpReward * (1 + forgeXpPct / 100)) * premiumXpMultiplier();
       dispatch({ type: 'ADD_PLAYER_XP', amount: xpWithBonus });
       dispatch({ type: 'ADD_SKILL_XP', skill: recipe.skillRequired, amount: xpWithBonus });
       dispatch({ type: 'UPDATE_QUEST_PROGRESS', objectiveType: 'craft', targetId: recipe.category, amount: 1 });

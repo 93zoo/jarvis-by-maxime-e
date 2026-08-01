@@ -17,6 +17,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GameProvider } from '@/context/GameContext';
 import { AchievementProvider } from '@/context/AchievementContext';
 import IntroCinematic from '@/components/IntroCinematic';
+import { initializeRevenueCat, SubscriptionProvider } from '@/lib/revenuecat';
+
+let revenueCatReady = false;
+try {
+  initializeRevenueCat();
+  revenueCatReady = true;
+} catch (err) {
+  console.warn('RevenueCat unavailable:', err);
+}
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -29,6 +38,7 @@ function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerBackTitle: 'Back' }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="boutique" options={{ headerShown: false, presentation: 'modal' }} />
     </Stack>
   );
 }
@@ -88,11 +98,13 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView style={{ flex: 1 }}>
             <KeyboardProvider>
-              <GameProvider>
-                <AchievementProvider>
-                  <AppWithCinematic />
-                </AchievementProvider>
-              </GameProvider>
+              <SubscriptionProvider>
+                <GameProvider>
+                  <AchievementProvider>
+                    <AppWithCinematic />
+                  </AchievementProvider>
+                </GameProvider>
+              </SubscriptionProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>

@@ -1318,13 +1318,17 @@ export default function ForgeScreen() {
               {player.totalItemsCrafted}
             </Text>
           </View>
-          <View style={md.pill}>
+          <TouchableOpacity
+            style={md.pill}
+            onPress={() => router.push('/boutique')}
+            activeOpacity={0.8}
+          >
             <Feather name="dollar-sign" size={12} color={MEDIEVAL.oldGold} />
             <Text style={[md.pillText, { color: MEDIEVAL.oldGold }]}>
               {player.gold.toLocaleString()}
             </Text>
             <Feather name="plus" size={11} color={MEDIEVAL.textDim} />
-          </View>
+          </TouchableOpacity>
           {upgradeLevel > 0 && (
             <View style={md.pill}>
               <Feather name="trending-up" size={12} color={MEDIEVAL.emberSoft} />
