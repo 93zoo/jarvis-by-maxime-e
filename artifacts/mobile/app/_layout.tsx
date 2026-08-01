@@ -19,6 +19,7 @@ import { AchievementProvider } from '@/context/AchievementContext';
 import IntroCinematic from '@/components/IntroCinematic';
 import { initializeRevenueCat, SubscriptionProvider } from '@/lib/revenuecat';
 import GoldGrantReconciler from '@/components/GoldGrantReconciler';
+import { RewardedAdsProvider } from '@/lib/rewardedAds';
 
 try {
   initializeRevenueCat();
@@ -99,10 +100,12 @@ export default function RootLayout() {
             <KeyboardProvider>
               <SubscriptionProvider>
                 <GameProvider>
-                  <AchievementProvider>
-                    <GoldGrantReconciler />
-                    <AppWithCinematic />
-                  </AchievementProvider>
+                  <RewardedAdsProvider>
+                    <AchievementProvider>
+                      <GoldGrantReconciler />
+                      <AppWithCinematic />
+                    </AchievementProvider>
+                  </RewardedAdsProvider>
                 </GameProvider>
               </SubscriptionProvider>
             </KeyboardProvider>

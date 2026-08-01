@@ -27,6 +27,7 @@ import type { Item, Quality, RecipeData } from '@/types/game';
 import ForgeScene3D, { CraftPhase, ForgeScene3DRef } from '@/components/ForgeScene3D';
 import ForgeBackdrop from '@/components/ForgeBackdrop';
 import BoutiqueButton from '@/components/BoutiqueButton';
+import { useRewardedAds } from '@/lib/rewardedAds';
 import HammeringMiniGame, { HitLabel } from '@/components/HammeringMiniGame';
 import WeatherEffect, { WeatherType } from '@/components/WeatherEffect';
 import AudioManager from '@/utils/AudioManager';
@@ -894,6 +895,9 @@ export default function ForgeScreen() {
   const insets = useSafeAreaInsets();
   const game = useGame();
   const router = useRouter();
+  const { adsUnlocked, showRewardedAd } = useRewardedAds();
+  const [rewardDoubled, setRewardDoubled] = useState(false);
+  const [adBusy, setAdBusy] = useState(false);
 
   const [craftPhase, setCraftPhase] = useState<CraftPhase>('IDLE');
   const [session, setSession] = useState<CraftSession>(EMPTY_SESSION);
@@ -1117,6 +1121,7 @@ export default function ForgeScreen() {
           AudioManager.playCraftComplete();
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
+        setRewardDoubled(false);
         setCraftPhase('RESULT');
       }, 750);
     };
@@ -1939,6 +1944,44 @@ export default function ForgeScreen() {
                 </Text>
               </View>
 
+              {adsUnlocked && (
+                rewardDoubled ? (
+                  <View style={[styles.doubleBtn, { backgroundColor: '#E8B84B22', borderColor: '#E8B84B55' }]}>
+                    <Feather name="check-circle" size={15} color="#E8B84B" />
+                    <Text style={[styles.doubleBtnText, { color: '#E8B84B' }]}>Récompense doublée ✦</Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={[styles.doubleBtn, { backgroundColor: '#E8B84B', borderColor: '#8A6A2A' }]}
+                    disabled={adBusy}
+                    onPress={async () => {
+                      setAdBusy(true);
+                      try {
+                        const watched = await showRewardedAd('double_craft_reward');
+                        if (watched && !rewardDoubled) {
+                          const xp = selectedRecipe?.xpReward ?? 0;
+                          const goldBonus = Math.max(10, Math.round((craftedItem?.value ?? 0) / 2));
+                          if (xp > 0) {
+                            game.addPlayerXP(xp);
+                            game.addSkillXP(selectedRecipe?.skillRequired ?? 'forge', xp);
+                          }
+                          game.addGold(goldBonus);
+                          setRewardDoubled(true);
+                          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        }
+                      } finally {
+                        setAdBusy(false);
+                      }
+                    }}
+                  >
+                    <Feather name="film" size={15} color="#1A1208" />
+                    <Text style={[styles.doubleBtnText, { color: '#1A1208' }]}>
+                      Doubler la récompense (pub)
+                    </Text>
+                  </TouchableOpacity>
+                )
+              )}
+
               <TouchableOpacity
                 style={[styles.collectBtn, { backgroundColor: qualityColor(craftedItem.quality, colors) }]}
                 onPress={() => {
@@ -2488,6 +2531,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   resultAttributionText: { fontSize: 12 },
+  doubleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingVertical: 11,
+    marginTop: 12,
+    alignSelf: 'stretch',
+  },
+  doubleBtnText: { fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
   collectBtn: {
     flexDirection: 'row',
     alignItems: 'center',

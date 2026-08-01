@@ -2,7 +2,7 @@
  * Boutique — in-app purchase shop: gold packs (consumables) + Forge Premium subscription.
  * Prices always come from RevenueCat offerings, never hardcoded.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -18,7 +18,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import type { PurchasesPackage } from 'react-native-purchases';
 import { useSubscription, GOLD_PRODUCTS } from '@/lib/revenuecat';
+import { useRewardedAds, ADS_UNLOCK_LEVEL } from '@/lib/rewardedAds';
+import { useGame } from '@/context/GameContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors } from '@/hooks/useColors';
+
+const DAILY_CHEST_KEY = '@fk_daily_ad_chest_v1';
+const CHEST_MATERIALS = ['silver', 'gold_ore', 'crystal', 'ruby', 'sapphire', 'emerald'];
+
+function todayKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
 
 function baseProductId(identifier: string): string {
   // Play Store subscription ids look like "forge_premium:monthly"
@@ -31,9 +42,42 @@ export default function BoutiqueScreen() {
   const router = useRouter();
   const { available, offerings, isSubscribed, isLoading, purchase, restore, isPurchasing, isRestoring } =
     useSubscription();
+  const game = useGame();
+  const { adsUnlocked, showRewardedAd } = useRewardedAds();
 
   const [confirmPkg, setConfirmPkg] = useState<PurchasesPackage | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [chestClaimedToday, setChestClaimedToday] = useState<boolean | null>(null);
+  const [chestBusy, setChestBusy] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem(DAILY_CHEST_KEY)
+      .then((v) => setChestClaimedToday(v === todayKey()))
+      .catch(() => setChestClaimedToday(false));
+  }, []);
+
+  const claimDailyChest = async () => {
+    if (chestBusy || chestClaimedToday !== false) return;
+    setChestBusy(true);
+    try {
+      const watched = await showRewardedAd('daily_chest');
+      if (!watched) return;
+      // Marquer AVANT de créditer pour éviter tout double coffre le même jour.
+      await AsyncStorage.setItem(DAILY_CHEST_KEY, todayKey());
+      setChestClaimedToday(true);
+      const gold = 150 + game.player.level * 25;
+      const mat1 = CHEST_MATERIALS[Math.floor(Math.random() * CHEST_MATERIALS.length)];
+      let mat2 = CHEST_MATERIALS[Math.floor(Math.random() * CHEST_MATERIALS.length)];
+      if (mat2 === mat1) mat2 = CHEST_MATERIALS[(CHEST_MATERIALS.indexOf(mat1) + 1) % CHEST_MATERIALS.length];
+      game.addGold(gold);
+      game.addResource(mat1, 3);
+      game.addResource(mat2, 2);
+      setFeedback(`Coffre du jour ouvert : +${gold} or, +3 ${mat1}, +2 ${mat2} !`);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } finally {
+      setChestBusy(false);
+    }
+  };
 
   const current = offerings?.current;
   const packages = current?.availablePackages ?? [];
@@ -91,6 +135,42 @@ export default function BoutiqueScreen() {
               <Feather name="check-circle" size={14} color={colors.accent} />
               <Text style={[styles.feedbackText, { color: colors.foreground }]}>{feedback}</Text>
             </View>
+          )}
+
+          {/* Coffre quotidien gratuit (pub récompensée) */}
+          <Text style={[styles.sectionLabel, { color: colors.primary }]}>GRATUIT DU JOUR</Text>
+          {adsUnlocked ? (
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.accent + '55' }]}>
+              <View style={styles.cardRow}>
+                <Feather name="gift" size={20} color={colors.accent} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.cardTitle, { color: colors.foreground }]}>Coffre rare du jour</Text>
+                  <Text style={[styles.cardDesc, { color: colors.mutedForeground }]}>
+                    Regarde une courte pub et repars avec de l'or et des matériaux rares
+                  </Text>
+                </View>
+              </View>
+              {chestClaimedToday ? (
+                <View style={[styles.buyBtn, { backgroundColor: colors.accent + '22' }]}>
+                  <Text style={[styles.buyBtnText, { color: colors.accent }]}>Déjà ouvert — reviens demain ✦</Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.buyBtn, { backgroundColor: colors.accent }]}
+                  onPress={claimDailyChest}
+                  disabled={chestBusy || chestClaimedToday === null}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.buyBtnText, { color: '#1A1208' }]}>
+                    {chestBusy ? 'Ouverture…' : '🎬 Ouvrir gratuitement'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : (
+            <Text style={[styles.cardDesc, { color: colors.mutedForeground }]}>
+              Débloqué au niveau {ADS_UNLOCK_LEVEL} du forgeron — continue de forger !
+            </Text>
           )}
 
           {/* Premium */}
