@@ -1443,8 +1443,8 @@ export default function ForgeScreen() {
       >
         {craftPhase === 'IDLE' && (
           <>
-            {/* FORGER — artwork button floating above the anvil, slightly right */}
-            <View style={md.forgeOverAnvil} pointerEvents="box-none">
+            {/* FORGER — artwork button centered just above the bottom tab bar */}
+            <View style={[md.forgeOverAnvil, { bottom: bottomPad + 8 }]} pointerEvents="box-none">
               <TouchableOpacity
                 onPress={() => setShowRecipeSheet(true)}
                 activeOpacity={0.82}
@@ -2118,7 +2118,7 @@ const md = StyleSheet.create({
   },
   centerActions: { ...StyleSheet.absoluteFillObject, justifyContent: 'center' },
   actionsBand: { backgroundColor: 'rgba(0,0,0,0.88)', paddingVertical: 20, paddingHorizontal: 16 },
-  forgeOverAnvil: { position: 'absolute', top: '39%', left: 0, right: 0, alignItems: 'center', paddingLeft: 72 },
+  forgeOverAnvil: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   bottomRoundBtn: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   ameliorerBtn: { position: 'absolute', right: 16 },
   sideBtn: {
