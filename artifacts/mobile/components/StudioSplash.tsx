@@ -1,10 +1,12 @@
 /**
  * StudioSplash — cinématique d'intro vidéo pour Forge & Kingdoms.
  *
- * - VideoView aux dimensions exactes de l'écran + contentFit="cover"
- * - useWindowDimensions → réactif aux rotations / notches
- * - Fade-in dès que le lecteur est prêt, fade-out au noir à la fin
- * - Bouton « Passer » après 1 s ; repli automatique après 4 s
+ * - contentFit="contain" → vidéo entière, bandes noires sur les côtés
+ * - Fade-in dès readyToPlay, fade-out au noir en fin de clip
+ * - Bouton « Passer » après 1 s
+ * - Fallback : si le lecteur ne démarre pas en 4 s → skip
+ * - Garde contre playingChange(false) prématuré : on attend que
+ *   la vidéo ait vraiment joué avant de considérer une "fin de clip"
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -18,17 +20,20 @@ import {
 import { useVideoPlayer, VideoView } from 'expo-video';
 
 const videoSource = require('@/assets/videos/intro.mp4');
+const VIDEO_DURATION_MS = 10_200; // ~10 s + marge
 
 export default function StudioSplash({ onDone }: { onDone: () => void }) {
   const { width, height } = useWindowDimensions();
 
   const rootOpacity  = useRef(new Animated.Value(1)).current;
   const videoOpacity = useRef(new Animated.Value(0)).current;
-  const doneRef      = useRef(false);
-  const readyRef     = useRef(false);
+
+  const doneRef       = useRef(false);
+  const readyRef      = useRef(false);
+  const wasPlayingRef = useRef(false); // true dès le premier frame joué
   const [showSkip, setShowSkip] = useState(false);
 
-  // ── Fondu de sortie → onDone ──────────────────────────────────────────────
+  // ── Fondu de sortie ───────────────────────────────────────────────────────
   const finish = useCallback(() => {
     if (doneRef.current) return;
     doneRef.current = true;
@@ -39,10 +44,10 @@ export default function StudioSplash({ onDone }: { onDone: () => void }) {
     }).start(() => onDone());
   }, [rootOpacity, onDone]);
 
-  // ── Lecteur vidéo ─────────────────────────────────────────────────────────
+  // ── Lecteur ───────────────────────────────────────────────────────────────
   const player = useVideoPlayer(videoSource, (p) => {
     p.loop  = false;
-    p.muted = Platform.OS === 'web'; // sourdine web → contourne l'autoplay policy
+    p.muted = Platform.OS === 'web';
   });
 
   // ── Événements ────────────────────────────────────────────────────────────
@@ -51,34 +56,45 @@ export default function StudioSplash({ onDone }: { onDone: () => void }) {
       if (evt.status === 'readyToPlay' && !readyRef.current) {
         readyRef.current = true;
         try { player.play(); } catch (_) {}
+
         Animated.timing(videoOpacity, {
           toValue: 1,
           duration: 350,
           useNativeDriver: true,
         }).start();
+
         setTimeout(() => setShowSkip(true), 1000);
       }
     });
 
     const playingSub = player.addListener('playingChange', (evt) => {
-      if (!evt.isPlaying && readyRef.current) finish();
+      if (evt.isPlaying) {
+        // La vidéo joue réellement — on note le fait
+        wasPlayingRef.current = true;
+      } else if (wasPlayingRef.current) {
+        // La vidéo s'était lancée et vient de s'arrêter → fin du clip
+        finish();
+      }
+      // Si isPlaying=false avant que la vidéo ait joué (état initial), on ignore
     });
 
     return () => { statusSub.remove(); playingSub.remove(); };
   }, [player, videoOpacity, finish]);
 
-  // ── Repli 4 s ─────────────────────────────────────────────────────────────
+  // ── Fallback : pas de démarrage après 4 s ─────────────────────────────────
   useEffect(() => {
     const t = setTimeout(() => { if (!readyRef.current) finish(); }, 4000);
     return () => clearTimeout(t);
   }, [finish]);
 
+  // ── Fallback : durée maximale (évite un clip bloqué) ──────────────────────
+  useEffect(() => {
+    const t = setTimeout(() => finish(), VIDEO_DURATION_MS + 1000);
+    return () => clearTimeout(t);
+  }, [finish]);
+
   return (
-    /* Fond noir plein écran, toujours visible jusqu'au fade-out */
-    <Animated.View
-      style={[styles.root, { width, height, opacity: rootOpacity }]}
-    >
-      {/* Vidéo — occupe exactement l'écran, cover centre et recadre */}
+    <Animated.View style={[styles.root, { width, height, opacity: rootOpacity }]}>
       <Animated.View style={{ opacity: videoOpacity }}>
         <VideoView
           player={player}
