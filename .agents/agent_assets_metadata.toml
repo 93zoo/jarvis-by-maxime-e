@@ -234,3 +234,17 @@ uri = "file://screenshots/forge-scattered.jpg"
 type = "image"
 title = "Forge — boutons dispersés"
 description = "FORGER flotte au-dessus de l'enclume, COMMANDES en bouton rond au-dessus de l'icône Forge, AMÉLIORER sous l'engrenage du header."
+
+[[outputs]]
+id = "Yr7vaqI2xngatS18R8ujG"
+uri = "file://screenshots/forge-btn-art.jpg"
+type = "image"
+title = "Forge — bouton FORGER en artwork"
+description = "Le bouton FORGER utilise maintenant l'image métal/enclume au-dessus de l'enclume (légèrement à droite), et AMÉLIORER est un bouton rond sous APPRENTI dans le rail gauche."
+
+[[outputs]]
+id = "Hbxd3ycDP-92nZ1YUCnlR"
+uri = "file://screenshots/forge-btn-spin.jpg"
+type = "image"
+title = "Forge — bouton FORGER en rotation"
+description = "Le bouton FORGER artwork tourne désormais lentement sur lui-même (un tour toutes les 9 secondes) au-dessus de l'enclume."
