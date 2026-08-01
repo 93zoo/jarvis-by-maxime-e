@@ -1349,7 +1349,7 @@ export default function ForgeScreen() {
 
       {/* ── Left rail ── */}
       {craftPhase === 'IDLE' && (
-        <View style={[md.leftRail, { top: headerTopPad + 138 }]}>
+        <View style={[md.leftRail, { top: 0, bottom: 0, justifyContent: 'center' }]} pointerEvents="box-none">
           <RailButton
             icon="book-open"
             label="QUÊTES"
