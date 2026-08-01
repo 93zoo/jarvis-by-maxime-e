@@ -1296,7 +1296,11 @@ export default function ForgeScreen() {
         style={[styles.bottomPanel, craftPhase !== 'IDLE' && { backgroundColor: 'rgba(10,7,5,0.85)' }, { pointerEvents: 'box-none' }]}
       >
         {craftPhase === 'IDLE' && (
-          <View style={[md.idlePanel, { paddingBottom: bottomPad + 4 }]}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={[md.idlePanel, { paddingBottom: bottomPad + 4 }]}
+          >
             {/* Forge stats strip */}
             <View style={md.statsStrip}>
               <View style={md.statBox}>
@@ -1319,8 +1323,8 @@ export default function ForgeScreen() {
               </View>
             </View>
 
-            {/* Apprentice (only when one is hired) */}
-            {game.apprentice !== null && <ApprenticeCard game={game} colors={colors} />}
+            {/* Apprentice card — always visible (hire or manage) */}
+            <ApprenticeCard game={game} colors={colors} />
 
             {/* Main action row: AMÉLIORER / FORGER / COMMANDES */}
             <View style={md.actionRow}>
@@ -1374,7 +1378,7 @@ export default function ForgeScreen() {
               <Feather name="briefcase" size={15} color={MEDIEVAL.textDim} />
               <Text style={md.inventoryBtnText}>INVENTAIRE</Text>
             </TouchableOpacity>
-          </View>
+          </ScrollView>
         )}
 
         {craftPhase === 'HAMMERING' && (
