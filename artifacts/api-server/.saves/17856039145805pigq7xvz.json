@@ -1,0 +1,165 @@
+{
+  "playerId": "17856039145805pigq7xvz",
+  "saveData": {
+    "version": 1,
+    "player": {
+      "id": "1785603914646viyqounh8",
+      "name": "Apprenti Forgeron",
+      "forgeName": "La Forge du Débutant",
+      "level": 1,
+      "xp": 50,
+      "xpToNextLevel": 100,
+      "gold": 150,
+      "forgeLevel": 1,
+      "skills": {
+        "forge": 1,
+        "extraction": 1,
+        "commerce": 1,
+        "construction": 1,
+        "enchantment": 1,
+        "cooking": 1,
+        "harvest": 1,
+        "combat": 1
+      },
+      "skillXP": {
+        "forge": 0,
+        "extraction": 0,
+        "commerce": 0,
+        "construction": 0,
+        "enchantment": 0,
+        "cooking": 0,
+        "harvest": 0,
+        "combat": 0
+      },
+      "talentsUnlocked": [],
+      "unlockedRecipeIds": [
+        "iron_sword",
+        "iron_axe",
+        "iron_lance"
+      ],
+      "talentPoints": 0,
+      "totalItemsCrafted": 0,
+      "totalGoldEarned": 150,
+      "totalPlayTime": 0,
+      "totalOrdersDelivered": 0,
+      "totalPlayerXPEarned": 50,
+      "totalForgeXPEarned": 0,
+      "totalQuestsAccepted": 0,
+      "craftedLegendaryCount": 0,
+      "craftedExcellentCount": 0,
+      "craftedGoodCount": 0,
+      "createdAt": 1785603914646,
+      "streak": 1,
+      "lastPlayedDate": 1785603914646,
+      "bestSalePrice": 0,
+      "bestQualityScore": 0,
+      "statUpgrades": {}
+    },
+    "inventory": [
+      {
+        "resourceId": "iron",
+        "quantity": 5
+      },
+      {
+        "resourceId": "wood",
+        "quantity": 3
+      },
+      {
+        "resourceId": "stone",
+        "quantity": 3
+      },
+      {
+        "resourceId": "copper",
+        "quantity": 2
+      },
+      {
+        "resourceId": "coal",
+        "quantity": 5
+      },
+      {
+        "resourceId": "ruby",
+        "quantity": 2
+      },
+      {
+        "resourceId": "amethyst",
+        "quantity": 1
+      }
+    ],
+    "craftedItems": [],
+    "activeOrders": [
+      {
+        "id": "1785603914769m90z5k",
+        "npcId": "npc_soldier_1",
+        "npcName": "Sergent Marcus",
+        "npcType": "soldier",
+        "npcEmoji": "💂",
+        "requestedCategory": "shield",
+        "requestedName": "Bouclier en Fer",
+        "minQuality": "poor",
+        "deadline": 1785629114769,
+        "goldReward": 369,
+        "xpReward": 54,
+        "reputationReward": 13,
+        "accepted": false,
+        "completed": false
+      },
+      {
+        "id": "1785604094770eq0mtv",
+        "npcId": "npc_soldier_3",
+        "npcName": "Caporal Ana",
+        "npcType": "soldier",
+        "npcEmoji": "⚔️",
+        "requestedCategory": "shield",
+        "requestedName": "Bouclier en Fer",
+        "minQuality": "poor",
+        "deadline": 1785643694770,
+        "goldReward": 162,
+        "xpReward": 40,
+        "reputationReward": 12,
+        "accepted": false,
+        "completed": false
+      }
+    ],
+    "completedQuestIds": [],
+    "activeQuestIds": [],
+    "questProgress": {},
+    "unlockedRegions": [
+      "village"
+    ],
+    "regionExploration": {
+      "village": 0
+    },
+    "npcReputation": {},
+    "marketPrices": {},
+    "lastOrderGeneratedAt": 1785604094770,
+    "forgeUpgrades": {},
+    "forgeHistory": [],
+    "sessionSnapshots": [
+      {
+        "timestamp": 1785603944873,
+        "playerLevel": 1,
+        "gold": 150,
+        "totalItemsCrafted": 0,
+        "forgeLevel": 1,
+        "skills": {
+          "forge": 1,
+          "extraction": 1,
+          "commerce": 1,
+          "construction": 1,
+          "enchantment": 1,
+          "cooking": 1,
+          "harvest": 1,
+          "combat": 1
+        }
+      }
+    ],
+    "apprentice": null,
+    "completedRegions": [],
+    "completedSets": [],
+    "discoveredAlloyIds": [],
+    "showcasedItemIds": [],
+    "lastSaved": 1785604214770
+  },
+  "clientVersion": 1,
+  "savedAt": "2026-08-01T17:10:14.861Z"
+}
