@@ -220,3 +220,10 @@ uri = "file://screenshots/forge-v6.jpg"
 type = "image"
 title = "Forge — v6"
 description = "Fond unique (plus de dédoublement), boutons AMÉLIORER/FORGER/COMMANDES restaurés avec cadres, carte apprenti retirée du milieu (recrutement via le bouton APPRENTI), bouton INVENTAIRE noir retiré, barre du bas opaque."
+
+[[outputs]]
+id = "BiVls8A2UbsDyQZS-QGVs"
+uri = "file://screenshots/forge-centered-band.jpg"
+type = "image"
+title = "Forge — boutons centrés sur bandeau noir"
+description = "AMÉLIORER / FORGER / COMMANDES centrés au milieu de la page sur un bandeau noir, comme la capture de référence."
