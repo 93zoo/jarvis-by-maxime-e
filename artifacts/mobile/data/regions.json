@@ -377,5 +377,49 @@
     "questIds": [
       "quest_castle_1"
     ]
+  },
+  {
+    "id": "dragon_lair",
+    "name": "Repaire du Dragon",
+    "description": "L'antre légendaire d'un dragon ancestral. Les parois d'obsidienne luisent sous la chaleur des flammes. Des trésors épiques y attendent les forgerons les plus valeureux.",
+    "levelRequired": 25,
+    "biome": "légendaire",
+    "icon": "fire",
+    "resourceNodes": [
+      {
+        "resourceId": "dragon_scale",
+        "dropRate": 0.40,
+        "minQty": 1,
+        "maxQty": 3
+      },
+      {
+        "resourceId": "adamantium",
+        "dropRate": 0.30,
+        "minQty": 1,
+        "maxQty": 2
+      },
+      {
+        "resourceId": "diamond",
+        "dropRate": 0.20,
+        "minQty": 1,
+        "maxQty": 2
+      },
+      {
+        "resourceId": "mithril",
+        "dropRate": 0.55,
+        "minQty": 1,
+        "maxQty": 4
+      }
+    ],
+    "boss": {
+      "name": "Dragon Ancestral",
+      "level": 65,
+      "description": "Le maître incontesté du repaire, une créature draconique d'une puissance légendaire qui garde jalousement ses trésors."
+    },
+    "questIds": [
+      "quest_volcano_5",
+      "quest_epic_2",
+      "quest_epic_4"
+    ]
   }
 ]

@@ -37,16 +37,18 @@ const REGION_COLORS: Record<string, string> = {
   village: '#4CAF50', forest: '#2E7D32', mountains: '#546E7A',
   mines: '#78909C', swamp: '#558B2F', desert: '#F9A825',
   ruins: '#6D4C41', port: '#0277BD', volcano: '#BF360C', castle: '#9C27B0',
+  dragon_lair: '#D50000',
 };
 
 const REGION_ICONS: Record<string, any> = {
   village: 'home-group', forest: 'pine-tree', mountains: 'summit', mines: 'pickaxe',
   swamp: 'water', desert: 'cactus', ruins: 'pillar', port: 'anchor',
-  volcano: 'volcano', castle: 'castle',
+  volcano: 'volcano', castle: 'castle', dragon_lair: 'fire',
 };
 
 // Map positions as fractions of map container width/height
 const REGION_POSITIONS: Record<string, { x: number; y: number }> = {
+  dragon_lair: { x: 0.78, y: 0.05 },
   castle: { x: 0.50, y: 0.09 },
   ruins: { x: 0.22, y: 0.20 },
   volcano: { x: 0.78, y: 0.22 },
@@ -66,6 +68,7 @@ const CONNECTIONS: [string, string][] = [
   ['mines', 'desert'], ['desert', 'port'], ['desert', 'volcano'],
   ['mountains', 'ruins'], ['ruins', 'castle'], ['volcano', 'castle'],
   ['mountains', 'castle'], ['swamp', 'forest'],
+  ['volcano', 'dragon_lair'], ['castle', 'dragon_lair'],
 ];
 
 // ─── Day / Night ─────────────────────────────────────────────────────────────
