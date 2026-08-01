@@ -297,3 +297,17 @@ uri = "file://screenshots/forge-rail-typo.jpg"
 type = "image"
 title = "Forge — typo dorée sur les boutons du rail"
 description = "Les labels QUÊTES, ÉVÉNEMENTS, APPRENTI et AMÉLIORER utilisent maintenant la typographie dorée à empattements avec lueur braise, dans le style du texte FORGER."
+
+[[outputs]]
+id = "ZgkOdDlR5clw8CgyoO6Ha"
+uri = "file://screenshots/forge-footer-color.jpg"
+type = "image"
+title = "Forge — footer harmonisé avec le header"
+description = "La barre d'onglets du bas utilise maintenant la même couleur sombre que le fond des écrans (header COLLECTIONS de la capture)."
+
+[[outputs]]
+id = "GRwut0Or-AGcxg7f7HdV2"
+uri = "file://screenshots/forge-btn-center.jpg"
+type = "image"
+title = "Forge — bouton FORGER au centre de l'écran"
+description = "Le bouton FORGER (enclume + texte) est maintenant positionné en plein centre de l'écran, avec flottement et rebond au toucher."
