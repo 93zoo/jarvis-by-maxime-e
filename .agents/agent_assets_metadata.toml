@@ -262,3 +262,10 @@ uri = "file://screenshots/forge-btn-bottom.jpg"
 type = "image"
 title = "Forge — bouton FORGER centré au-dessus du footer"
 description = "Le bouton FORGER artwork (avec rotation) est maintenant centré horizontalement, juste au-dessus de la barre d'onglets du bas."
+
+[[outputs]]
+id = "QWVA_SE80RkMv8Z0wnI1q"
+uri = "file://screenshots/forge-btn-static.jpg"
+type = "image"
+title = "Forge — bouton FORGER statique et propre"
+description = "Rotation retirée, damier gris/blanc supprimé de l'image, et effet de pression (rebond + vibration) au toucher."
