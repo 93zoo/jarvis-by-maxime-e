@@ -213,3 +213,10 @@ uri = "file://screenshots/forge-v5-fixed.jpg"
 type = "image"
 title = "Forge — deux anneaux de niveau + bouton Apprenti"
 description = "Anneau de niveau forge centré sous celui du forgeron dans le header ; bouton COFFRES remplacé par APPRENTI dans le rail ; erreur de hooks corrigée."
+
+[[outputs]]
+id = "rGUfb9AhNz-twHgBO-L8m"
+uri = "file://screenshots/forge-v6.jpg"
+type = "image"
+title = "Forge — v6"
+description = "Fond unique (plus de dédoublement), boutons AMÉLIORER/FORGER/COMMANDES restaurés avec cadres, carte apprenti retirée du milieu (recrutement via le bouton APPRENTI), bouton INVENTAIRE noir retiré, barre du bas opaque."
