@@ -10,5 +10,5 @@ import React from 'react';
 import ProfileScreen from './profile';
 
 export default function SkillsScreen() {
-  return <ProfileScreen tabs={['skills', 'talents']} title="COMPÉTENCES" />;
+  return <ProfileScreen tabs={['skills', 'talents', 'upgrades']} title="COMPÉTENCES" />;
 }
