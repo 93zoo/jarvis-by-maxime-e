@@ -57,10 +57,12 @@
   },
   "dependencies": {
     "@types/three": "^0.168.0",
+    "expo-asset": "^12.0.13",
     "expo-audio": "^1.1.1",
     "expo-gl": "~16.0.10",
     "expo-video": "~3.0.16",
     "react-native-purchases": "^10.5.0",
+    "react-native-webview": "^13.15.0",
     "three": "^0.168.0"
   }
 }
