@@ -150,3 +150,10 @@ uri = "file://screenshots/forge-screen-v3.jpg"
 type = "image"
 title = "Forge — v3 (Profil déplacé, skills sur la forge)"
 description = "Lueur du foyer adoucie (plus de rond orange), braises et fumée renforcées, carte Compétences du forgeron visible sur la page Forge."
+
+[[outputs]]
+id = "Td_WqIqkXGCsaLmMgZn4e"
+uri = "file://screenshots/skills-tab.jpg"
+type = "image"
+title = "Nouvel onglet Compétences"
+description = "L'onglet Compétences dans la barre du bas contient les compétences du forgeron et les arbres de talents."
