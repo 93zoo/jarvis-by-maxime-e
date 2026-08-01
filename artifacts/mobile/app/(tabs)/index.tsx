@@ -1247,22 +1247,30 @@ export default function ForgeScreen() {
       <View style={[styles.header, { paddingTop: headerTopPad + 10 }]}>
         <View style={styles.headerTopRow}>
           <View style={styles.headerLeft}>
-            <View style={md.levelRing}>
-              <View style={md.levelRingInner}>
-                <Text style={md.levelRingText}>{player.level}</Text>
-              </View>
-            </View>
             <View>
               <Text style={md.headerTitle}>FORGERON</Text>
-            <Text style={md.headerXP}>
-              {player.xp.toLocaleString()} / {player.xpToNextLevel.toLocaleString()} XP
-            </Text>
-            <View style={md.headerXPTrack}>
-              <View style={[md.headerXPFill, { width: `${xpPct}%` as `${number}%` }]} />
+              <Text style={md.headerXP}>
+                {player.xp.toLocaleString()} / {player.xpToNextLevel.toLocaleString()} XP
+              </Text>
+              <View style={md.headerXPTrack}>
+                <View style={[md.headerXPFill, { width: `${xpPct}%` as `${number}%` }]} />
+              </View>
+              <Text style={[md.headerTitle, { marginTop: 8, color: MEDIEVAL.emberSoft }]}>FORGE Niv.{forgeSkillLevel}</Text>
+              <Text style={md.headerXP}>
+                {forgeXP.toLocaleString()} / {forgeXPNeeded.toLocaleString()} XP
+              </Text>
+              <View style={md.headerXPTrack}>
+                <View style={[md.headerXPFill, { width: `${forgeXPPct}%` as `${number}%`, backgroundColor: MEDIEVAL.ember }]} />
+              </View>
             </View>
           </View>
-        </View>
         <View style={styles.headerRight}>
+          <View style={md.pill}>
+            <Feather name="award" size={12} color={MEDIEVAL.oldGold} />
+            <Text style={[md.pillText, { color: MEDIEVAL.oldGold }]}>
+              {player.totalItemsCrafted}
+            </Text>
+          </View>
           <View style={md.pill}>
             <Feather name="dollar-sign" size={12} color={MEDIEVAL.oldGold} />
             <Text style={[md.pillText, { color: MEDIEVAL.oldGold }]}>
@@ -1284,34 +1292,6 @@ export default function ForgeScreen() {
             <Feather name="settings" size={13} color={MEDIEVAL.textDim} />
           </TouchableOpacity>
         </View>
-        </View>
-
-        {/* Forge stats — same look as the FORGERON progress bar */}
-        <View style={md.headerStats}>
-          <View style={md.headerStatBox}>
-            <View style={md.headerStatTop}>
-              <Text style={md.statLabel}>FORGE</Text>
-              <Text style={[md.headerStatValue, { color: MEDIEVAL.emberSoft }]}>Niv.{forgeSkillLevel}</Text>
-            </View>
-            <View style={md.statTrack}>
-              <View style={[md.statFill, { width: `${forgeXPPct}%` as `${number}%`, backgroundColor: MEDIEVAL.ember }]} />
-            </View>
-          </View>
-          <View style={md.headerStatBox}>
-            <View style={md.headerStatTop}>
-              <Text style={md.statLabel}>JOUEUR</Text>
-              <Text style={md.headerStatValue}>Niv.{player.level}</Text>
-            </View>
-            <View style={md.statTrack}>
-              <View style={[md.statFill, { width: `${xpPct}%` as `${number}%`, backgroundColor: MEDIEVAL.oldGold }]} />
-            </View>
-          </View>
-          <View style={md.headerStatBox}>
-            <View style={md.headerStatTop}>
-              <Text style={md.statLabel}>FORGÉS</Text>
-              <Text style={md.headerStatValue}>{player.totalItemsCrafted}</Text>
-            </View>
-          </View>
         </View>
       </View>
 
@@ -1444,14 +1424,14 @@ export default function ForgeScreen() {
             {/* Apprentice card — always visible (hire or manage) */}
             <ApprenticeCard game={game} colors={colors} />
 
-            {/* Main action row: AMÉLIORER / FORGER / COMMANDES */}
+            {/* Main action row: AMÉLIORER / FORGER / COMMANDES — floating on the backdrop */}
             <View style={md.actionRow}>
               <TouchableOpacity
                 style={md.sideBtn}
                 onPress={() => setShowUpgradesModal(true)}
                 activeOpacity={0.82}
               >
-                <Feather name="trending-up" size={18} color={MEDIEVAL.textLight} />
+                <Feather name="trending-up" size={20} color={MEDIEVAL.oldGold} />
                 <Text style={md.sideBtnText}>AMÉLIORER</Text>
               </TouchableOpacity>
 
@@ -1460,16 +1440,11 @@ export default function ForgeScreen() {
                 onPress={() => setShowRecipeSheet(true)}
                 activeOpacity={0.82}
               >
-                <LinearGradient
-                  colors={['#5A2E0E', '#8A4416', '#5A2E0E']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={md.forgeBtnInner}
-                >
-                  <Feather name="tool" size={22} color={MEDIEVAL.ember} />
+                <View style={md.forgeBtnInner}>
+                  <Feather name="tool" size={26} color={MEDIEVAL.oldGold} />
                   <Text style={md.forgeBtnText}>FORGER</Text>
                   <Text style={md.forgeBtnSub}>{availableRecipes.length} recettes</Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -1477,7 +1452,7 @@ export default function ForgeScreen() {
                 onPress={() => setShowOrdersModal(true)}
                 activeOpacity={0.82}
               >
-                <Feather name="inbox" size={18} color={MEDIEVAL.textLight} />
+                <Feather name="inbox" size={20} color={MEDIEVAL.oldGold} />
                 <Text style={md.sideBtnText}>COMMANDES</Text>
                 {pendingCount > 0 && (
                   <View style={md.badge}>
@@ -2136,34 +2111,26 @@ const md = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: 5,
     paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: 'rgba(16,10,6,0.42)',
-    borderWidth: 1,
-    borderColor: 'rgba(200,140,60,0.35)',
   },
-  sideBtnText: { color: MEDIEVAL.textLight, fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+  sideBtnText: { color: '#E8D9B0', fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
   forgeBtn: {
     flex: 1.6,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: MEDIEVAL.borderBright,
-    overflow: 'hidden',
   },
   forgeBtnInner: {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   forgeBtnText: {
-    color: '#FFD9A0',
-    fontSize: 18,
+    color: '#D4AF37',
+    fontSize: 20,
     fontWeight: '900',
-    letterSpacing: 4,
-    textShadowColor: 'rgba(255,122,26,0.6)',
-    textShadowRadius: 8,
+    letterSpacing: 5,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowRadius: 6,
   },
   forgeBtnSub: { color: MEDIEVAL.textDim, fontSize: 9, fontWeight: '600', letterSpacing: 1 },
   inventoryBtn: {
