@@ -4,4 +4,5 @@
 - [Player new fields normalization](player-fields.md) — new Player fields (totalOrdersDelivered, craftedLegendaryCount, etc.) need `?? 0` defaults in the LOAD reducer for save backward compat.
 - [Gameplay progression rules](gameplay-progression.md) — player levels award talent points; melting returns quality-scaled recipe materials; region fights reward local drops and Combat XP.
 - [expo-audio native sounds](expo-audio-native.md) — correct version for SDK 54 is ~1.1.1; use lazy require pattern to avoid crash if native module missing.
+- [Animated mixed-driver crash](animated-mixed-drivers.md) — never animate color JS-driven on an element with native-driven styles; cross-fade two layers instead. Web masks this crash.
 - [Monetization design rules](monetization-design.md) — idempotent gold grants, premium bridge, rewarded-ads rules (level 5+, optional, credit before day marker).
