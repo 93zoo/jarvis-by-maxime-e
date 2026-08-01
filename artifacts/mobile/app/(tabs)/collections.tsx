@@ -117,7 +117,7 @@ function SetDetailModal({
           {/* Header */}
           <View style={mdStyles.headerRow}>
             <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: rc + '22', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: rc + '55' }}>
-              <MaterialCommunityIcons name="treasure-chest" size={32} color={rc} />
+              <MaterialCommunityIcons name={(set as any).icon ?? 'treasure-chest'} size={32} color={rc} />
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={[mdStyles.setName, { color: colors.foreground }]}>{set.name}</Text>
@@ -269,7 +269,7 @@ function SetCard({
       {/* Emoji + Name */}
       <View style={scStyles.topRow}>
         <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: rc + '22', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: rc + '55' }}>
-          <MaterialCommunityIcons name={isRevealed ? 'treasure-chest' : 'lock'} size={24} color={isRevealed ? rc : colors.mutedForeground} />
+          <MaterialCommunityIcons name={isRevealed ? ((set as any).icon ?? 'treasure-chest') : 'lock'} size={24} color={isRevealed ? rc : colors.mutedForeground} />
         </View>
         <View style={{ flex: 1, marginLeft: 10 }}>
           <Text style={[scStyles.name, { color: colors.foreground }]} numberOfLines={1}>
