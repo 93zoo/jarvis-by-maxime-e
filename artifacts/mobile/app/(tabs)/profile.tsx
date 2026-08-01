@@ -2467,6 +2467,7 @@ export default function ProfileScreen() {
   const [selectedSkillId, setSelectedSkillId] = useState<SkillType | null>(null);
   const [selectedTree, setSelectedTree] = useState<TreeKey>('forge');
   const [showCustomize, setShowCustomize] = useState(false);
+  const [cardCollapsed, setCardCollapsed] = useState(false);
   const hasPromptedRef = useRef(false);
 
   // Auto-prompt customization on first session (name still at default)
@@ -2537,52 +2538,76 @@ export default function ProfileScreen() {
         </View>
       </LinearGradient>
 
-      {/* Player card */}
+      {/* Player card — tap chevron to collapse */}
       <LinearGradient
         colors={['#2A1A0A', '#1A0E18']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={[styles.playerCard, { borderColor: colors.border }]}
       >
-        <View style={styles.playerCardTop}>
+        <View style={[styles.playerCardTop, cardCollapsed && { marginBottom: 0 }]}>
           <AvatarDisplay
             avatarImage={player.avatarImage}
             avatarColor={player.avatarColor ?? colors.primary}
             avatarIcon={player.avatarIcon}
             initials={initials}
-            size={52}
+            size={cardCollapsed ? 36 : 52}
           />
-          <View style={styles.playerInfo}>
+          <View style={[styles.playerInfo, { flex: 1 }]}>
             <Text style={[styles.playerName, { color: colors.foreground }]}>{player.name}</Text>
-            <Text style={[styles.playerTitle, { color: colors.primary }]}>
-              {player.forgeLevel >= 8 ? 'Maître Forgeron' : player.forgeLevel >= 5 ? 'Forgeron Confirmé' : player.forgeLevel >= 3 ? 'Forgeron' : 'Apprenti Forgeron'}
-            </Text>
-            <Text style={[styles.playerSub, { color: colors.mutedForeground }]}>
-              {player.forgeName ?? 'La Forge du Débutant'} · Niv.{player.forgeLevel}
-            </Text>
+            {!cardCollapsed && (
+              <>
+                <Text style={[styles.playerTitle, { color: colors.primary }]}>
+                  {player.forgeLevel >= 8 ? 'Maître Forgeron' : player.forgeLevel >= 5 ? 'Forgeron Confirmé' : player.forgeLevel >= 3 ? 'Forgeron' : 'Apprenti Forgeron'}
+                </Text>
+                <Text style={[styles.playerSub, { color: colors.mutedForeground }]}>
+                  {player.forgeName ?? 'La Forge du Débutant'} · Niv.{player.forgeLevel}
+                </Text>
+              </>
+            )}
           </View>
-          <View style={{ alignItems: 'center', gap: 6 }}>
-            <View style={[styles.levelCircle, { borderColor: colors.primary }]}>
-              <Text style={[styles.levelNumber, { color: colors.accent }]}>{player.level}</Text>
-              <Text style={[styles.levelLabel, { color: colors.mutedForeground }]}>NIV</Text>
+          {!cardCollapsed && (
+            <View style={{ alignItems: 'center', gap: 6 }}>
+              <View style={[styles.levelCircle, { borderColor: colors.primary }]}>
+                <Text style={[styles.levelNumber, { color: colors.accent }]}>{player.level}</Text>
+                <Text style={[styles.levelLabel, { color: colors.mutedForeground }]}>NIV</Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.customizeBtn, { backgroundColor: `${colors.primary}22`, borderColor: `${colors.primary}44` }]}
+                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowCustomize(true); }}
+              >
+                <Feather name="edit-2" size={11} color={colors.primary} />
+                <Text style={[styles.customizeBtnText, { color: colors.primary }]}>Modifier</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={[styles.customizeBtn, { backgroundColor: `${colors.primary}22`, borderColor: `${colors.primary}44` }]}
-              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowCustomize(true); }}
-            >
-              <Feather name="edit-2" size={11} color={colors.primary} />
-              <Text style={[styles.customizeBtnText, { color: colors.primary }]}>Modifier</Text>
-            </TouchableOpacity>
-          </View>
+          )}
+          {/* Collapse toggle */}
+          <TouchableOpacity
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setCardCollapsed((c) => !c);
+            }}
+            style={styles.collapseBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Feather
+              name={cardCollapsed ? 'chevron-down' : 'chevron-up'}
+              size={16}
+              color={colors.mutedForeground}
+            />
+          </TouchableOpacity>
         </View>
-        <View style={styles.xpSection}>
-          <View style={styles.xpLabelRow}>
-            <Text style={[styles.xpLabel, { color: colors.mutedForeground }]}>Expérience</Text>
-            <Text style={[styles.xpLabel, { color: colors.mutedForeground }]}>{player.xp}/{player.xpToNextLevel}</Text>
+
+        {!cardCollapsed && (
+          <View style={styles.xpSection}>
+            <View style={styles.xpLabelRow}>
+              <Text style={[styles.xpLabel, { color: colors.mutedForeground }]}>Expérience</Text>
+              <Text style={[styles.xpLabel, { color: colors.mutedForeground }]}>{player.xp}/{player.xpToNextLevel}</Text>
+            </View>
+            <View style={[styles.xpTrack, { backgroundColor: colors.muted }]}>
+              <View style={[styles.xpFill, { width: `${Math.min(100, Math.floor((player.xp / player.xpToNextLevel) * 100))}%` as `${number}%`, backgroundColor: colors.accent }]} />
+            </View>
           </View>
-          <View style={[styles.xpTrack, { backgroundColor: colors.muted }]}>
-            <View style={[styles.xpFill, { width: `${Math.min(100, Math.floor((player.xp / player.xpToNextLevel) * 100))}%` as `${number}%`, backgroundColor: colors.accent }]} />
-          </View>
-        </View>
+        )}
       </LinearGradient>
 
       {/* Tab bar */}
@@ -2761,6 +2786,7 @@ const styles = StyleSheet.create({
   levelLabel: { fontSize: 8, fontWeight: '600', letterSpacing: 1 },
   customizeBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, borderWidth: 1 },
   customizeBtnText: { fontSize: 10, fontWeight: '700' },
+  collapseBtn: { padding: 4, marginLeft: 4 },
   xpSection: {},
   xpLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   xpLabel: { fontSize: 10 },
