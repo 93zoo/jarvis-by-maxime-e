@@ -921,6 +921,15 @@ function ApprenticeCard({
   const [pickingRecipe, setPickingRecipe] = React.useState(false);
   const [now, setNow] = React.useState(Date.now());
 
+  // Show auto-dismiss toast when the apprentice leaves due to unpaid salary
+  React.useEffect(() => {
+    if (game.apprenticeToast) {
+      setMsg(game.apprenticeToast);
+      game.clearApprenticeToast();
+      setTimeout(() => setMsg(null), 3500);
+    }
+  }, [game.apprenticeToast]);
+
   // Tick every 5 s to update the progress bar
   React.useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 5000);
@@ -979,8 +988,10 @@ function ApprenticeCard({
     (r) => r.levelRequired <= Math.max(1, ap.level * 4),
   );
 
+  const missed = ap.missedPayments ?? 0;
+
   return (
-    <View style={[apStyles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={[apStyles.card, { backgroundColor: colors.card, borderColor: missed >= 1 ? '#E65100' : colors.border }]}>
       {/* Header */}
       <View style={apStyles.row}>
         <Text style={[apStyles.title, { color: colors.foreground }]}>
@@ -989,6 +1000,11 @@ function ApprenticeCard({
         <View style={[apStyles.badge, { backgroundColor: colors.secondary }]}>
           <Text style={[apStyles.badgeText, { color: colors.accent }]}>Niv. {ap.level}</Text>
         </View>
+        {missed >= 1 && (
+          <View style={[apStyles.badge, { backgroundColor: '#E6510022', borderWidth: 1, borderColor: '#E65100' }]}>
+            <Text style={[apStyles.badgeText, { color: '#E65100' }]}>⚠ {missed}/3 salaires impayés</Text>
+          </View>
+        )}
       </View>
 
       {/* XP bar */}

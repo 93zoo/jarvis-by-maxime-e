@@ -665,7 +665,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         forgeUpgrades: s.forgeUpgrades ?? {},
         forgeHistory: s.forgeHistory ?? [],
         sessionSnapshots: s.sessionSnapshots ?? [],
-        apprentice: s.apprentice ?? null,
+        apprentice: s.apprentice
+          ? { ...s.apprentice, missedPayments: s.apprentice.missedPayments ?? 0 }
+          : null,
         completedRegions: s.completedRegions ?? [],
         completedSets: s.completedSets ?? [],
         discoveredAlloyIds: s.discoveredAlloyIds ?? [],
@@ -1190,6 +1192,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         craftStartedAt: null,
         craftDurationMs: 0,
         readyItem: null,
+        missedPayments: 0,
       };
       return {
         ...state,
@@ -1217,12 +1220,26 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'APPRENTICE_FINISH_CRAFT': {
       if (!state.apprentice) return state;
+      // If a readyItem was already waiting (uncollected), count it as a missed payment.
+      // The previous uncollected item is lost (replaced by the new one).
+      const newMissed = state.apprentice.readyItem !== null
+        ? (state.apprentice.missedPayments ?? 0) + 1
+        : (state.apprentice.missedPayments ?? 0);
+      // Auto-restart the craft immediately so the timer can fire again for the next cycle.
+      const restartRecipe = state.apprentice.assignedRecipeId
+        ? ALL_RECIPES.find((r) => r.id === state.apprentice!.assignedRecipeId) ?? null
+        : null;
+      const restartDuration = restartRecipe
+        ? apprenticeCraftDuration(restartRecipe, state.apprentice.level)
+        : 0;
       return {
         ...state,
         apprentice: {
           ...state.apprentice,
-          craftStartedAt: null,
+          craftStartedAt: restartRecipe ? Date.now() : null,
+          craftDurationMs: restartRecipe ? restartDuration : state.apprentice.craftDurationMs,
           readyItem: action.item,
+          missedPayments: newMissed,
         },
       };
     }
@@ -1286,6 +1303,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           xp: newXp,
           xpToNextLevel: newXpNeeded,
           readyItem: null,
+          missedPayments: 0,
           craftStartedAt: recipe ? now : null,
           craftDurationMs: newDuration,
         },
@@ -1490,6 +1508,9 @@ interface GameContextType {
   allAlloys: AlloyData[];
   discoveredAlloyIds: string[];
   fuseAlloy: (alloyId: string) => { success: boolean; message: string };
+  /** Non-null when the apprentice was auto-dismissed for unpaid salary. Clear it after showing. */
+  apprenticeToast: string | null;
+  clearApprenticeToast: () => void;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -1506,6 +1527,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [lastCloudSync, setLastCloudSync] = useState<number | null>(null);
   // Ref always pointing to latest syncToCloud to avoid stale closure in the interval
   const syncToCloudRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  const [apprenticeToast, setApprenticeToast] = useState<string | null>(null);
 
   // Load saved game + player-id on mount
   useEffect(() => {
@@ -2618,11 +2640,19 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (!state.isLoaded) return;
     const t = setInterval(() => {
       const ap = state.apprentice;
-      if (!ap || ap.readyItem || !ap.craftStartedAt || !ap.assignedRecipeId) return;
+      // Note: readyItem guard intentionally removed — craft auto-restarts after each item,
+      // so the timer must keep firing even when an uncollected item is waiting.
+      if (!ap || !ap.craftStartedAt || !ap.assignedRecipeId) return;
       if (Date.now() - ap.craftStartedAt >= ap.craftDurationMs) {
         const recipe = ALL_RECIPES.find((r) => r.id === ap.assignedRecipeId);
         if (recipe) {
-          dispatch({ type: 'APPRENTICE_FINISH_CRAFT', item: makeApprenticeItem(recipe, ap.level) });
+          // 3rd missed payment: fire the apprentice instead of producing another item
+          if (ap.readyItem !== null && (ap.missedPayments ?? 0) >= 2) {
+            dispatch({ type: 'DISMISS_APPRENTICE' });
+            setApprenticeToast('Votre apprenti est parti faute de salaire.');
+          } else {
+            dispatch({ type: 'APPRENTICE_FINISH_CRAFT', item: makeApprenticeItem(recipe, ap.level) });
+          }
         }
       }
     }, 30_000);
@@ -2810,6 +2840,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       assignApprenticeRecipe,
       collectApprenticeItem,
       trainApprentice,
+      apprenticeToast,
+      clearApprenticeToast: () => setApprenticeToast(null),
       // Collections
       allCollections: ALL_COLLECTIONS,
       completedSets: state.completedSets,
@@ -2830,7 +2862,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }),
     // Include cloud sync reactive state so status transitions propagate to consumers
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state, cloudSyncStatus, lastCloudSync],
+    [state, cloudSyncStatus, lastCloudSync, apprenticeToast],
   );
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

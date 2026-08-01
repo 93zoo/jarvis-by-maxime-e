@@ -462,6 +462,8 @@ export interface Apprentice {
   craftStartedAt: number | null;  // timestamp ms
   craftDurationMs: number;        // ms to finish current craft
   readyItem: Item | null;         // finished item waiting to be collected
+  /** Number of times a new item was finished while the previous readyItem was still uncollected. Resets to 0 on successful collection. At 3 the apprentice leaves. */
+  missedPayments: number;
 }
 
 // ---------------------------------------------------------------------------
