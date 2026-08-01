@@ -248,3 +248,10 @@ uri = "file://screenshots/forge-btn-spin.jpg"
 type = "image"
 title = "Forge — bouton FORGER en rotation"
 description = "Le bouton FORGER artwork tourne désormais lentement sur lui-même (un tour toutes les 9 secondes) au-dessus de l'enclume."
+
+[[outputs]]
+id = "XSRpD0GLpHJxuxUB7mM91"
+uri = "file://screenshots/forge-commandes-header.jpg"
+type = "image"
+title = "Forge — FORGER corrigé + COMMANDES dans le header"
+description = "Le bouton FORGER artwork (avec rotation) utilise maintenant un chemin d'asset relatif qui fonctionne sur Expo Go, et COMMANDES a remplacé l'engrenage dans le header avec son badge."
