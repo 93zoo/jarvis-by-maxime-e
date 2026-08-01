@@ -1373,18 +1373,21 @@ export default function ForgeScreen() {
         </View>
       )}
 
-      {/* ── Materials as ingots, floating on the backdrop (no panel) ── */}
+      {/* ── Materials panel, bottom-left, dark ingot cards ── */}
       {craftPhase === 'IDLE' && game.inventory.length > 0 && (
-        <View style={[md.ingotRail, { top: headerTopPad + 142 }]} pointerEvents="none">
-          {game.inventory.slice(0, 7).map((inv) => {
+        <View style={[md.matPanel, { bottom: bottomPad + 12 }]} pointerEvents="none">
+          {game.inventory.slice(0, 6).map((inv) => {
             const res = game.getResourceById(inv.resourceId);
             const c = res?.color ?? '#8A7A6A';
             return (
-              <View key={inv.resourceId} style={md.ingotRow}>
+              <View key={inv.resourceId} style={md.matRow}>
+                <View>
+                  <Text style={[md.matName, { color: c }]}>{(res?.name ?? '?').toUpperCase()}</Text>
+                  <Text style={md.matQty}>{inv.quantity.toLocaleString()}</Text>
+                </View>
                 <View style={[md.ingotBar, { backgroundColor: c, borderColor: 'rgba(0,0,0,0.45)' }]}>
                   <View style={md.ingotHighlight} />
                 </View>
-                <Text style={md.ingotQty}>{inv.quantity.toLocaleString()}</Text>
               </View>
             );
           })}
@@ -2088,6 +2091,22 @@ const md = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.30)',
   },
   ingotQty: { color: '#F5E6C8', fontSize: 10, fontWeight: '800' },
+  matPanel: { position: 'absolute', left: 10, gap: 8 },
+  matRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    width: 126,
+    paddingVertical: 7,
+    paddingHorizontal: 9,
+    borderRadius: 9,
+    backgroundColor: 'rgba(12,8,5,0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(200,140,60,0.4)',
+  },
+  matName: { fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  matQty: { color: '#F5E6C8', fontSize: 11, fontWeight: '700', marginTop: 1 },
   materialRow: {
     flexDirection: 'row',
     alignItems: 'center',
