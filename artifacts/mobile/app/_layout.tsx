@@ -20,6 +20,8 @@ import IntroCinematic from '@/components/IntroCinematic';
 import { initializeRevenueCat, SubscriptionProvider } from '@/lib/revenuecat';
 import GoldGrantReconciler from '@/components/GoldGrantReconciler';
 import { RewardedAdsProvider } from '@/lib/rewardedAds';
+import StudioSplash from '@/components/StudioSplash';
+import DailyRewardModal from '@/components/DailyRewardModal';
 
 try {
   initializeRevenueCat();
@@ -39,6 +41,7 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerBackTitle: 'Back' }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="boutique" options={{ headerShown: false, presentation: 'modal' }} />
+      <Stack.Screen name="a-propos" options={{ headerShown: false, presentation: 'modal' }} />
     </Stack>
   );
 }
@@ -46,6 +49,7 @@ function RootLayoutNav() {
 function AppWithCinematic() {
   const [introChecked, setIntroChecked] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
+  const [splashDone, setSplashDone] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -71,7 +75,9 @@ function AppWithCinematic() {
   return (
     <>
       <RootLayoutNav />
-      {showIntro && <IntroCinematic onFinish={handleIntroFinish} />}
+      {splashDone && !showIntro && <DailyRewardModal />}
+      {showIntro && splashDone && <IntroCinematic onFinish={handleIntroFinish} />}
+      {!splashDone && <StudioSplash onDone={() => setSplashDone(true)} />}
     </>
   );
 }

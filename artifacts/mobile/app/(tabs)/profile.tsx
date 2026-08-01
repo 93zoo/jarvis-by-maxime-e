@@ -23,6 +23,7 @@ import Reanimated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -2586,6 +2587,7 @@ type ProfileTab = 'skills' | 'talents' | 'upgrades' | 'achievements' | 'stats';
 const ALL_PROFILE_TABS: readonly ProfileTab[] = ['skills', 'talents', 'upgrades', 'achievements', 'stats'];
 
 export default function ProfileScreen({ tabs, title }: { tabs?: readonly ProfileTab[]; title?: string } = {}) {
+  const router = useRouter();
   const visibleTabs = tabs ?? ALL_PROFILE_TABS;
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -2851,6 +2853,13 @@ export default function ProfileScreen({ tabs, title }: { tabs?: readonly Profile
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>AUDIO</Text>
             <AudioSettingsCard colors={colors} />
             <StatsTabContent colors={colors} game={game} />
+            <TouchableOpacity
+              style={[styles.resetBtn, { borderColor: '#8A6A2A' }]}
+              onPress={() => router.push('/a-propos')}
+            >
+              <Feather name="info" size={15} color="#E8B84B" />
+              <Text style={[styles.resetBtnText, { color: '#E8B84B' }]}>À propos de Braise Noire Studios</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={[styles.resetBtn, { borderColor: '#C0392B' }]} onPress={handleReset}>
               <Feather name="refresh-cw" size={15} color="#C0392B" />
               <Text style={[styles.resetBtnText, { color: '#C0392B' }]}>Réinitialiser la partie</Text>
