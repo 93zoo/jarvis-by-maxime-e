@@ -175,8 +175,10 @@ export default function StudioSplash({ onDone }: { onDone: () => void }) {
         Animated.timing(prodVal, { toValue: 0.15, duration: 90, useNativeDriver: true }),
         Animated.timing(prodVal, { toValue: 1, duration: 220, useNativeDriver: true }),
       ]),
-      // Le métal refroidit : blanc-or → doré
-      Animated.timing(cooled, { toValue: 1, duration: 900, easing: Easing.out(Easing.ease), useNativeDriver: false }),
+      // Le métal refroidit : blanc-or → doré (fondu croisé entre deux couches,
+      // 100 % native driver — ne jamais animer une couleur ici, ça fait planter
+      // le natif quand l'élément est déjà piloté par le driver natif)
+      Animated.timing(cooled, { toValue: 1, duration: 900, easing: Easing.out(Easing.ease), useNativeDriver: true }),
       Animated.delay(800),
       Animated.timing(rootOpacity, { toValue: 0, duration: 500, useNativeDriver: true }),
     ]).start(finish);
@@ -201,7 +203,7 @@ export default function StudioSplash({ onDone }: { onDone: () => void }) {
   }, []);
 
   const hammerRotate = hammerAngle.interpolate({ inputRange: [-1, 0], outputRange: ['-70deg', '6deg'] });
-  const letterColor = cooled.interpolate({ inputRange: [0, 1], outputRange: [HOT, GOLD] });
+  const stillHot = cooled.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
 
   return (
     <Animated.View style={[styles.root, { opacity: rootOpacity }]} pointerEvents="auto">
@@ -234,23 +236,32 @@ export default function StudioSplash({ onDone }: { onDone: () => void }) {
 
           {/* Lettres estampées dans le métal */}
           <View style={styles.lettersRow} pointerEvents="none">
-            {LETTERS.map((ch, i) => (
-              <Animated.Text
-                key={i}
-                style={[
-                  styles.letter,
-                  {
-                    color: letterColor,
-                    opacity: letterVals[i],
-                    transform: [
-                      { scale: letterVals[i].interpolate({ inputRange: [0, 1], outputRange: [2.4, 1] }) },
-                    ],
-                  },
-                ]}
-              >
-                {ch}
-              </Animated.Text>
-            ))}
+            {LETTERS.map((ch, i) => {
+              const scale = letterVals[i].interpolate({ inputRange: [0, 1], outputRange: [2.4, 1] });
+              return (
+                <View key={i}>
+                  {/* Couche « métal chauffé à blanc » */}
+                  <Animated.Text
+                    style={[
+                      styles.letter,
+                      { color: HOT, opacity: Animated.multiply(letterVals[i], stillHot), transform: [{ scale }] },
+                    ]}
+                  >
+                    {ch}
+                  </Animated.Text>
+                  {/* Couche « métal refroidi doré » superposée */}
+                  <Animated.Text
+                    style={[
+                      styles.letter,
+                      styles.letterOverlay,
+                      { color: GOLD, opacity: Animated.multiply(letterVals[i], cooled), transform: [{ scale }] },
+                    ]}
+                  >
+                    {ch}
+                  </Animated.Text>
+                </View>
+              );
+            })}
           </View>
           <Animated.View style={[styles.prodRow, { opacity: prodVal }]} pointerEvents="none">
             <View style={styles.prodLine} />
@@ -346,6 +357,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'flex-end',
   },
+  letterOverlay: { position: 'absolute', left: 0, top: 0 },
   letter: {
     fontSize: 38,
     fontWeight: '900',
