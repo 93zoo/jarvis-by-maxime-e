@@ -157,3 +157,10 @@ uri = "file://screenshots/skills-tab.jpg"
 type = "image"
 title = "Nouvel onglet Compétences"
 description = "L'onglet Compétences dans la barre du bas contient les compétences du forgeron et les arbres de talents."
+
+[[outputs]]
+id = "r8Ifv6VN8eqOuKf78rUkH"
+uri = "file://screenshots/forge-final.jpg"
+type = "image"
+title = "Forge — fond identique + effets"
+description = "La carte Compétences est retirée de la page Forge ; le fond est identique à ta capture avec seulement les effets de feu, fumée et lumière subtile."
