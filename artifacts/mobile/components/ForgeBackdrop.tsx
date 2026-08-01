@@ -225,11 +225,11 @@ const styles = StyleSheet.create({
   // Warm halo over the artwork's hearth (center-left, upper-middle of frame)
   hearthGlow: {
     position: 'absolute',
-    left: '14%',
-    right: '48%',
-    top: '20%',
-    height: '26%',
-    borderRadius: 260,
+    left: '22%',
+    right: '56%',
+    top: '25%',
+    height: '16%',
+    borderRadius: 160,
     backgroundColor: '#FF8A2A',
   },
   breath: {
