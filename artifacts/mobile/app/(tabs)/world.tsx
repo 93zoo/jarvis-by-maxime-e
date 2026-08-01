@@ -236,6 +236,7 @@ function ExploreView({
     if (rolled > 0 && maxQtyByWeight <= 0) {
       // Inventory genuinely full — hard fail, short cooldown, no XP
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      AudioManager.playError();
       setLastDrops(null);
       showDrop(null);
       setCooldowns((prev) => ({ ...prev, [key]: Date.now() + Math.round((RARITY_COOLDOWN[rarity] ?? 20000) / 4) }));
@@ -249,7 +250,8 @@ function ExploreView({
       setLastDrops({ resourceId: node.resourceId, qty: finalQty });
       AudioManager.playCollect();
     } else {
-      setLastDrops(null); // miss (rolled === 0)
+      AudioManager.playError(); // miss (rolled === 0)
+      setLastDrops(null);
     }
 
     // XP & exploration — always awarded when attempt completes normally
