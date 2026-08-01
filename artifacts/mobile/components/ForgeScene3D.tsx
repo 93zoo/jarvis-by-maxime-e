@@ -253,13 +253,17 @@ const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(
     // ── Phase → fire scale (native driver) ─────────────────────────────────
     const fireScale = useRef(new Animated.Value(1)).current;
 
+    // Non-linear boost table: each upgrade level visibly grows the fire.
+    // L0: +0   L1: +0.06  L2: +0.14  L3: +0.26  L4: +0.40  L5+: +0.55
+    const BOOST_TABLE = [0, 0.06, 0.14, 0.26, 0.40, 0.55];
+    const heatBoost = BOOST_TABLE[Math.min(upgradeLevel, BOOST_TABLE.length - 1)];
+
     useEffect(() => {
-      const boost = upgradeLevel * 0.05;
       const target =
-        craftPhase === 'HEATING'   ? 1.55 + boost :
-        craftPhase === 'HAMMERING' ? 1.20 + boost :
-        craftPhase === 'COOLING'   ? 0.65 + boost :
-        craftPhase === 'RESULT'    ? 1.70 + boost : 1.0 + boost;
+        craftPhase === 'HEATING'   ? 1.55 + heatBoost :
+        craftPhase === 'HAMMERING' ? 1.20 + heatBoost :
+        craftPhase === 'COOLING'   ? 0.65 + heatBoost :
+        craftPhase === 'RESULT'    ? 1.70 + heatBoost : 1.0 + heatBoost;
       Animated.timing(fireScale, { toValue: target, duration: 700, useNativeDriver: true, easing: Easing.out(Easing.cubic) }).start();
     }, [craftPhase, upgradeLevel]);
 
@@ -320,29 +324,40 @@ const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(
     }, []);
 
     // ── Spark seeds ─────────────────────────────────────────────────────────
+    // Spark count and intensity scale with upgrade level.
+    // L0: 20 sparks  L3: 35  L5+: 50
+    const sparkCount = 20 + Math.min(upgradeLevel * 6, 30);
+    const sparkSizeScale = 1 + upgradeLevel * 0.07; // up to ~1.35× at L5
+
     const ambientSparks = useMemo<SparkSeed[]>(() =>
-      Array.from({ length: 30 }, (_, i) => {
-        const angle = (Math.random() - 0.5) * Math.PI * 0.9; // spread cone
-        const speed = 80 + Math.random() * 180;
+      Array.from({ length: sparkCount }, (_, i) => {
+        const angle = (Math.random() - 0.5) * Math.PI * (0.9 + upgradeLevel * 0.04);
+        const speed = 80 + Math.random() * (180 + upgradeLevel * 20);
         const cat   = i % 3;
+        // At higher levels, more sparks in the bright/white category
+        const colorCat = upgradeLevel >= 3 ? (i % 4 === 3 ? 2 : cat) : cat;
         return {
           id: i,
-          ox: fireCX + (Math.random() - 0.5) * 40,
+          ox: fireCX + (Math.random() - 0.5) * (40 + upgradeLevel * 4),
           oy: fireCY - 10,
           dx: Math.sin(angle) * speed,
-          dy: -(Math.cos(angle) * speed + 40),
+          dy: -(Math.cos(angle) * speed + 40 + upgradeLevel * 8),
           dur: cat === 0 ? 500 + Math.random() * 400
              : cat === 1 ? 800 + Math.random() * 600
              :              1200 + Math.random() * 800,
-          delay: i * 120 + Math.random() * 300,
-          size:  cat === 0 ? 2.5 : cat === 1 ? 3.5 : 4.5,
-          color: cat === 0 ? '#FFFFFF'
-               : cat === 1 ? '#FFEE55'
-               :              '#FF8800',
+          delay: i * 100 + Math.random() * 300,
+          size:  (colorCat === 0 ? 2.5 : colorCat === 1 ? 3.5 : 4.5) * sparkSizeScale,
+          color: upgradeLevel >= 3
+            ? (colorCat === 0 ? '#FFFFFF'
+              : colorCat === 1 ? '#FFFFFF'
+              :                  '#FFAA00')
+            : (colorCat === 0 ? '#FFFFFF'
+              : colorCat === 1 ? '#FFEE55'
+              :                  '#FF8800'),
         };
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fireCX, fireCY]);
+    [fireCX, fireCY, upgradeLevel]);
 
     const strikeSparks = useMemo<(StrikeSeed & { ox: number; oy: number })[]>(() =>
       Array.from({ length: 22 }, (_, i) => {
@@ -432,6 +447,20 @@ const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(
           ))
         )}
 
+        {/* Level 5+ red-lit stone walls — fire glow paints the walls crimson */}
+        {upgradeLevel >= 5 && (
+          <>
+            <View style={[
+              styles.wallLeft,
+              { height: h, backgroundColor: `rgba(160,10,0,${Math.min((upgradeLevel - 4) * 0.055, 0.165)})` },
+            ]} />
+            <View style={[
+              styles.wallRight,
+              { height: h, backgroundColor: `rgba(160,10,0,${Math.min((upgradeLevel - 4) * 0.055, 0.165)})` },
+            ]} />
+          </>
+        )}
+
         {/* ── 4. Smoke wisps (behind forge body) ───────────────────────────── */}
         {smokeWisps.map(s => <SmokeWisp key={s.id} {...s} />)}
 
@@ -487,15 +516,17 @@ const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(
         />
 
         {/* ── 6. Forge opening (glowing mouth) ─────────────────────────────── */}
-        {/* Outer opening glow */}
+        {/* Outer opening glow — brightens with upgrade level */}
         <View
           style={{
             position: 'absolute',
-            left: openX - 8, top: openY - 8,
-            width: openW + 16, height: openH + 8,
+            left: openX - 8 - upgradeLevel * 2,
+            top:  openY - 8 - upgradeLevel * 2,
+            width: openW + 16 + upgradeLevel * 4,
+            height: openH + 8 + upgradeLevel * 4,
             borderTopLeftRadius:  (openW + 16) / 2,
             borderTopRightRadius: (openW + 16) / 2,
-            backgroundColor: 'rgba(255,80,0,0.30)',
+            backgroundColor: `rgba(255,80,0,${Math.min(0.30 + upgradeLevel * 0.06, 0.60)})`,
           }}
         />
         {/* Opening */}
@@ -506,17 +537,23 @@ const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(
             width: openW, height: openH,
             borderTopLeftRadius:  openW / 2,
             borderTopRightRadius: openW / 2,
-            backgroundColor: '#FF5500',
-            shadowColor: '#FF6600',
+            backgroundColor: upgradeLevel >= 3 ? '#FF6600' : '#FF5500',
+            shadowColor: upgradeLevel >= 3 ? '#FF8800' : '#FF6600',
             shadowOffset: { width: 0, height: 0 },
             shadowOpacity: 1,
-            shadowRadius: 20,
-            elevation: 10,
+            shadowRadius: 20 + upgradeLevel * 4,
+            elevation: 10 + upgradeLevel * 2,
           }}
         />
-        {/* Opening inner (brighter center) */}
+        {/* Opening inner (brighter center) — whiter core at higher levels */}
         <LinearGradient
-          colors={['#FFFAE0', '#FFD040', '#FF8800', '#FF4400']}
+          colors={
+            upgradeLevel >= 5
+              ? ['#FFFFFF', '#FFFAE0', '#FFE060', '#FF9900', '#FF4400']
+              : upgradeLevel >= 3
+              ? ['#FFFAE0', '#FFE060', '#FFAA00', '#FF6600', '#FF3300']
+              : ['#FFFAE0', '#FFD040', '#FF8800', '#FF4400']
+          }
           style={{
             position: 'absolute',
             left: openX + openW * 0.15,
@@ -529,6 +566,22 @@ const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(
         />
 
         {/* ── 7. Fire glow layers (all native driver — transform + opacity) ── */}
+
+        {/* Level 5+ deep crimson outer bloom that lights the stone walls */}
+        {upgradeLevel >= 5 && (
+          <FireLayer cx={fireCX} cy={fireCY} w={w * 1.10} h={h * 1.05}
+            color="rgba(180,0,0,0.06)"
+            opacity={Math.min((upgradeLevel - 4) * 0.22, 0.44)}
+            flicker={flkA} phaseScale={phaseScaleA} />
+        )}
+        {/* Level 3+ extra wide ember halo */}
+        {upgradeLevel >= 3 && (
+          <FireLayer cx={fireCX} cy={fireCY} w={w * 0.92} h={h * 0.95}
+            color="rgba(210,15,0,0.07)"
+            opacity={Math.min((upgradeLevel - 2) * 0.14, 0.42)}
+            flicker={flkB} phaseScale={phaseScaleB} />
+        )}
+
         {/* Layer 1: wide base glow */}
         <FireLayer cx={fireCX} cy={fireCY} w={w * 0.75} h={h * 0.80}
           color="rgba(255,40,0,0.09)"  opacity={1} flicker={flkA} phaseScale={phaseScaleA} />
@@ -547,9 +600,24 @@ const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(
         {/* Layer 6: hot core */}
         <FireLayer cx={fireCX} cy={fireCY} w={w * 0.10} h={h * 0.35}
           color="rgba(255,240,130,0.72)" opacity={1} flicker={flkF} phaseScale={phaseScaleF} />
-        {/* Layer 7: white-hot tip */}
+        {/* Layer 7: white-hot tip — deeper orange-white core at level 3+ */}
         <FireLayer cx={fireCX} cy={fireCY} w={w * 0.055} h={h * 0.18}
-          color="rgba(255,255,230,0.90)" opacity={1} flicker={flkG} phaseScale={phaseScaleG} />
+          color={upgradeLevel >= 3 ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,230,0.90)'}
+          opacity={1} flicker={flkG} phaseScale={phaseScaleG} />
+        {/* Level 3+ extra bright inner column */}
+        {upgradeLevel >= 3 && (
+          <FireLayer cx={fireCX} cy={fireCY} w={w * 0.07} h={h * 0.28}
+            color="rgba(255,220,80,0.55)"
+            opacity={Math.min((upgradeLevel - 2) * 0.18, 0.55)}
+            flicker={flkE} phaseScale={phaseScaleE} />
+        )}
+        {/* Level 5+ extra white-hot core spike */}
+        {upgradeLevel >= 5 && (
+          <FireLayer cx={fireCX} cy={fireCY} w={w * 0.04} h={h * 0.22}
+            color="rgba(255,255,255,0.90)"
+            opacity={Math.min((upgradeLevel - 4) * 0.35, 0.70)}
+            flicker={flkG} phaseScale={phaseScaleG} />
+        )}
 
         {/* ── 8. Ambient spark particles ────────────────────────────────────── */}
         {ambientSparks.map(s => <Spark key={s.id} {...s} />)}
