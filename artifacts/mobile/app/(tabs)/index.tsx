@@ -909,7 +909,6 @@ export default function ForgeScreen() {
 
   const sceneRef = useRef<ForgeScene3DRef>(null);
   const hitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const idleScrollRef = useRef<ScrollView>(null);
   const temperatureRef = useRef(0); // readable inside callbacks without stale closure
   // ── Quench gauge ──
   const [quenchProgress, setQuenchProgress] = useState(100); // 100=hot → 0=cold
@@ -1412,55 +1411,51 @@ export default function ForgeScreen() {
         style={[styles.bottomPanel, craftPhase !== 'IDLE' && { backgroundColor: 'rgba(10,7,5,0.85)' }, { pointerEvents: 'box-none' }]}
       >
         {craftPhase === 'IDLE' && (
-          <ScrollView
-            ref={idleScrollRef}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={[md.idlePanel, { paddingBottom: bottomPad + 4 }]}
-          >
-            {/* Main action row: AMÉLIORER / FORGER / COMMANDES */}
-            <View style={md.actionRow}>
-              <TouchableOpacity
-                style={md.sideBtn}
-                onPress={() => setShowUpgradesModal(true)}
-                activeOpacity={0.82}
-              >
-                <Feather name="trending-up" size={18} color={MEDIEVAL.textLight} />
-                <Text style={md.sideBtnText}>AMÉLIORER</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={md.forgeBtn}
-                onPress={() => setShowRecipeSheet(true)}
-                activeOpacity={0.82}
-              >
-                <LinearGradient
-                  colors={['#5A2E0E', '#8A4416', '#5A2E0E']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={md.forgeBtnInner}
+          <View style={md.centerActions} pointerEvents="box-none">
+            <View style={md.actionsBand}>
+              <View style={md.actionRow}>
+                <TouchableOpacity
+                  style={md.sideBtn}
+                  onPress={() => setShowUpgradesModal(true)}
+                  activeOpacity={0.82}
                 >
-                  <Feather name="tool" size={22} color={MEDIEVAL.ember} />
-                  <Text style={md.forgeBtnText}>FORGER</Text>
-                  <Text style={md.forgeBtnSub}>{availableRecipes.length} recettes</Text>
-                </LinearGradient>
-              </TouchableOpacity>
+                  <Feather name="trending-up" size={18} color={MEDIEVAL.textLight} />
+                  <Text style={md.sideBtnText}>AMÉLIORER</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={md.sideBtn}
-                onPress={() => setShowOrdersModal(true)}
-                activeOpacity={0.82}
-              >
-                <Feather name="inbox" size={18} color={MEDIEVAL.textLight} />
-                <Text style={md.sideBtnText}>COMMANDES</Text>
-                {pendingCount > 0 && (
-                  <View style={md.badge}>
-                    <Text style={md.badgeText}>{pendingCount}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={md.forgeBtn}
+                  onPress={() => setShowRecipeSheet(true)}
+                  activeOpacity={0.82}
+                >
+                  <LinearGradient
+                    colors={['#5A2E0E', '#8A4416', '#5A2E0E']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={md.forgeBtnInner}
+                  >
+                    <Feather name="tool" size={22} color={MEDIEVAL.ember} />
+                    <Text style={md.forgeBtnText}>FORGER</Text>
+                    <Text style={md.forgeBtnSub}>{availableRecipes.length} recettes</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={md.sideBtn}
+                  onPress={() => setShowOrdersModal(true)}
+                  activeOpacity={0.82}
+                >
+                  <Feather name="inbox" size={18} color={MEDIEVAL.textLight} />
+                  <Text style={md.sideBtnText}>COMMANDES</Text>
+                  {pendingCount > 0 && (
+                    <View style={md.badge}>
+                      <Text style={md.badgeText}>{pendingCount}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
-          </ScrollView>
+          </View>
         )}
 
         {craftPhase === 'HAMMERING' && (
@@ -2119,6 +2114,8 @@ const md = StyleSheet.create({
     gap: 8,
     marginTop: 4,
   },
+  centerActions: { ...StyleSheet.absoluteFillObject, justifyContent: 'center' },
+  actionsBand: { backgroundColor: 'rgba(0,0,0,0.88)', paddingVertical: 20, paddingHorizontal: 16 },
   sideBtn: {
     flex: 1,
     alignItems: 'center',
