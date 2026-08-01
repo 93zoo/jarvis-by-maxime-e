@@ -1035,9 +1035,46 @@ function SkillProgressChart({
   const drawProgress = useSharedValue(0);
   const reducedMotion = useReducedMotion();
 
+  // Incremental reveal: animates only the newest dot/segment when a snapshot
+  // is appended while the chart is already visible. Starts at 1 so no
+  // animation fires on mount.
+  const incrProgress = useSharedValue(1);
+
+  // Only snapshots that have skill data (defined early so effects can use it)
+  const skillSnapshots = useMemo(
+    () => snapshots.filter((s) => s.skills != null),
+    [snapshots],
+  );
+
+  // Detect snapshot growth and re-trigger the wipe-in animation
+  const prevSkillCountRef = useRef(skillSnapshots.length);
+  useEffect(() => {
+    if (prevSkillCountRef.current > 0 && skillSnapshots.length > prevSkillCountRef.current) {
+      incrProgress.value = 0;
+      drawProgress.value = 0;
+      if (!reducedMotion) {
+        incrProgress.value = withTiming(1, {
+          duration: 300,
+          easing: Easing.out(Easing.cubic),
+        });
+        drawProgress.value = withTiming(1, {
+          duration: 500,
+          easing: Easing.out(Easing.cubic),
+        });
+      } else {
+        incrProgress.value = 1;
+        drawProgress.value = 1;
+      }
+    }
+    prevSkillCountRef.current = skillSnapshots.length;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [skillSnapshots.length]);
+
   // Animate wipe-in on skill-tab change
   useEffect(() => {
     drawProgress.value = 0;
+    // Reset incremental progress so the last dot isn't hidden during wipe
+    incrProgress.value = 1;
     if (reducedMotion) {
       drawProgress.value = 1;
     } else {
@@ -1055,6 +1092,7 @@ function SkillProgressChart({
     if (chartWidth > 0 && !scHasAnimated.current) {
       scHasAnimated.current = true;
       drawProgress.value = 0;
+      incrProgress.value = 1;
       if (!reducedMotion) {
         drawProgress.value = withTiming(1, {
           duration: 500,
@@ -1076,12 +1114,6 @@ function SkillProgressChart({
     }).catch(() => {/* ignore */});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Only snapshots that have skill data
-  const skillSnapshots = useMemo(
-    () => snapshots.filter((s) => s.skills != null),
-    [snapshots],
-  );
 
   const dotColor = SKILL_CHART_COLORS[selectedSkill];
 
@@ -1220,20 +1252,31 @@ function SkillProgressChart({
           const dy = y2 - y1;
           const length = Math.sqrt(dx * dx + dy * dy);
           const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+          const isLastSegment = i === count - 1;
+          const lineStyle = {
+            position: 'absolute' as const,
+            left: (x1 + x2) / 2 - length / 2,
+            top: (y1 + y2) / 2 - 1,
+            width: length,
+            height: 2,
+            backgroundColor: dotColor,
+            transform: [{ rotate: `${angle}deg` }],
+          };
+          // The newest segment fades in via incrProgress on incremental updates
+          if (isLastSegment) {
+            return (
+              <AnimatedSparkLine
+                key={`line-${snap.timestamp}`}
+                lineStyle={lineStyle}
+                incrProgress={incrProgress}
+              />
+            );
+          }
           return (
             <View
               key={`line-${snap.timestamp}`}
               pointerEvents="none"
-              style={{
-                position: 'absolute',
-                left: (x1 + x2) / 2 - length / 2,
-                top: (y1 + y2) / 2 - 1,
-                width: length,
-                height: 2,
-                backgroundColor: dotColor,
-                opacity: 0.55,
-                transform: [{ rotate: `${angle}deg` }],
-              }}
+              style={[lineStyle, { opacity: 0.55 }]}
             />
           );
         })}
@@ -1262,6 +1305,7 @@ function SkillProgressChart({
               key={snap.timestamp}
               xFraction={xFraction}
               drawProgress={drawProgress}
+              incrProgress={isLast ? incrProgress : undefined}
               leftPct={leftPct}
               bottom={dotBottom - 12}
             >
