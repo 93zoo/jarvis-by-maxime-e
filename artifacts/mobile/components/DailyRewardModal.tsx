@@ -17,6 +17,7 @@ const STATE_KEY = '@fk_daily_login_v1';
 interface DailyState {
   lastClaimDay: string; // "YYYY-M-D"
   streak: number; // 1..7 (jour réclamé le plus récent dans le cycle)
+  credited?: boolean; // false = marqueur posé mais récompense pas encore créditée
 }
 
 function dayKey(d: Date): string {
@@ -57,6 +58,13 @@ export default function DailyRewardModal() {
   const [pendingDay, setPendingDay] = useState(1);
   const [claimed, setClaimed] = useState(false);
   const busyRef = useRef(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
 
   const burst = useRef(new Animated.Value(0)).current;
   const chestScale = useRef(new Animated.Value(1)).current;
@@ -73,7 +81,16 @@ export default function DailyRewardModal() {
           return;
         }
         const st = JSON.parse(raw) as DailyState;
-        if (st.lastClaimDay === today) return; // déjà réclamé aujourd'hui
+        if (st.lastClaimDay === today) {
+          // Récupération après crash : marqueur posé mais récompense jamais créditée.
+          if (st.credited === false) {
+            const reward = rewardForDay(st.streak, game.player.level);
+            if (reward.gold) game.addGold(reward.gold);
+            reward.resources?.forEach((r) => game.addResource(r.id, r.qty));
+            await AsyncStorage.setItem(STATE_KEY, JSON.stringify({ ...st, credited: true }));
+          }
+          return; // déjà réclamé aujourd'hui
+        }
         const nextDay = isYesterday(st.lastClaimDay, now) ? (st.streak % 7) + 1 : 1;
         setPendingDay(nextDay);
         setVisible(true);
@@ -88,12 +105,14 @@ export default function DailyRewardModal() {
     busyRef.current = true;
     try {
       const reward = rewardForDay(pendingDay, game.player.level);
-      // Créditer d'abord…
+      // Deux phases : 1) marquer le jour (credited:false) — bloque tout double-crédit ;
+      // 2) créditer ; 3) finaliser. En cas de crash entre 1 et 3, la récupération
+      // au prochain lancement crédite la récompense manquante exactement une fois.
+      const st: DailyState = { lastClaimDay: dayKey(new Date()), streak: pendingDay, credited: false };
+      await AsyncStorage.setItem(STATE_KEY, JSON.stringify(st));
       if (reward.gold) game.addGold(reward.gold);
       reward.resources?.forEach((r) => game.addResource(r.id, r.qty));
-      // …puis marquer le jour.
-      const st: DailyState = { lastClaimDay: dayKey(new Date()), streak: pendingDay };
-      await AsyncStorage.setItem(STATE_KEY, JSON.stringify(st));
+      await AsyncStorage.setItem(STATE_KEY, JSON.stringify({ ...st, credited: true }));
       setClaimed(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Animated.parallel([
@@ -103,7 +122,7 @@ export default function DailyRewardModal() {
         ]),
         Animated.timing(burst, { toValue: 1, duration: 700, easing: Easing.out(Easing.quad), useNativeDriver: true }),
       ]).start();
-      setTimeout(() => setVisible(false), 1600);
+      closeTimerRef.current = setTimeout(() => setVisible(false), 1600);
     } finally {
       busyRef.current = false;
     }

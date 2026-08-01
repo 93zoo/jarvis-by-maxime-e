@@ -48,7 +48,7 @@ export default function StudioSplash({ onDone }: { onDone: () => void }) {
   const glowOpacity = glow.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0, 0.7, 0.35] });
 
   return (
-    <Animated.View style={[styles.root, { opacity: rootOpacity }]} pointerEvents="none">
+    <Animated.View style={[styles.root, { opacity: rootOpacity }]} pointerEvents="auto">
       <View style={styles.center}>
         <Animated.View style={[styles.glow, { opacity: glowOpacity, transform: [{ scale: glowScale }] }]} />
         <Animated.View style={{ transform: [{ translateY: hammerDrop }] }}>
