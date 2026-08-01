@@ -75,10 +75,10 @@ function ClassicTabLayout() {
           shadowOffset: { width: 0, height: -4 },
           shadowOpacity: 0.15,
           shadowRadius: 12,
-          ...(isWeb ? { height: 84 } : { height: 65 }),
-          paddingBottom: isWeb ? 34 : (isIOS ? 20 : 10),
-          paddingTop: 8,
+          ...(isWeb ? { height: 84, paddingBottom: 24, paddingTop: 10 } : {}),
         },
+        tabBarItemStyle: { justifyContent: 'center' },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
         tabBarBackground: () =>
           isIOS ? (
             <BlurView

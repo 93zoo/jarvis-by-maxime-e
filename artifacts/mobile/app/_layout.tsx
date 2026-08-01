@@ -13,10 +13,8 @@ import {
 } from '@expo-google-fonts/inter';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GameProvider } from '@/context/GameContext';
 import { AchievementProvider } from '@/context/AchievementContext';
-import IntroCinematic from '@/components/IntroCinematic';
 import { initializeRevenueCat, SubscriptionProvider } from '@/lib/revenuecat';
 import GoldGrantReconciler from '@/components/GoldGrantReconciler';
 import { RewardedAdsProvider } from '@/lib/rewardedAds';
@@ -34,8 +32,6 @@ SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
-const INTRO_SEEN_KEY = '@fk_intro_seen_v1';
-
 function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerBackTitle: 'Back' }}>
@@ -47,9 +43,7 @@ function RootLayoutNav() {
   );
 }
 
-function AppWithCinematic() {
-  const [introChecked, setIntroChecked] = useState(false);
-  const [showIntro, setShowIntro] = useState(false);
+function AppWithSplash() {
   const [splashDone, setSplashDone] = useState(
     // Dev web uniquement : ?nosplash=1 saute l'intro (captures d'écran/tests)
     () =>
@@ -59,37 +53,10 @@ function AppWithCinematic() {
       window.location?.search?.includes('nosplash'),
   );
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const skipAll =
-          __DEV__ &&
-          require('react-native').Platform.OS === 'web' &&
-          typeof window !== 'undefined' &&
-          window.location?.search?.includes('nosplash');
-        const seen = await AsyncStorage.getItem(INTRO_SEEN_KEY);
-        setShowIntro(!seen && !skipAll);
-      } catch {
-        setShowIntro(false);
-      }
-      setIntroChecked(true);
-    })();
-  }, []);
-
-  const handleIntroFinish = async () => {
-    try {
-      await AsyncStorage.setItem(INTRO_SEEN_KEY, '1');
-    } catch {}
-    setShowIntro(false);
-  };
-
-  if (!introChecked) return null;
-
   return (
     <>
       <RootLayoutNav />
-      {splashDone && !showIntro && <DailyRewardModal />}
-      {showIntro && splashDone && <IntroCinematic onFinish={handleIntroFinish} />}
+      {splashDone && <DailyRewardModal />}
       {!splashDone && <StudioSplash onDone={() => setSplashDone(true)} />}
     </>
   );
@@ -122,7 +89,7 @@ export default function RootLayout() {
                   <RewardedAdsProvider>
                     <AchievementProvider>
                       <GoldGrantReconciler />
-                      <AppWithCinematic />
+                      <AppWithSplash />
                     </AchievementProvider>
                   </RewardedAdsProvider>
                 </GameProvider>
