@@ -332,3 +332,10 @@ uri = "file://screenshots/forge-btn-higher.jpg"
 type = "image"
 title = "Forge — bouton FORGER remonté"
 description = "Le bouton FORGER est remonté plus haut au-dessus du centre de l'écran, flottement et rebond conservés."
+
+[[outputs]]
+id = "dfIn429lG1B97buaGrlAn"
+uri = "file://screenshots/forge-btn-clean.jpg"
+type = "image"
+title = "Forge — bandes transparentes retirées"
+description = "Les restes semi-transparents du cadre ont été supprimés de l'image du bouton FORGER — seuls l'enclume et le texte restent visibles."
