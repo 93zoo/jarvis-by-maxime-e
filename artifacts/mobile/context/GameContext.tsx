@@ -35,6 +35,7 @@ import type {
   SessionSnapshot,
   SkillData,
   SkillType,
+  StatUpgradeDefinition,
   TalentData,
 } from '@/types/game';
 
@@ -50,6 +51,81 @@ const ALL_NPCS: NPCData[] = require('@/data/npcs.json');
 const ALL_QUESTS: Quest[] = require('@/data/quests.json');
 const ALL_TALENTS: TalentData[] = require('@/data/talents.json');
 const ALL_FORGE_UPGRADES: ForgeUpgradeData[] = require('@/data/forgeUpgrades.json');
+
+export const STAT_UPGRADE_DEFINITIONS: StatUpgradeDefinition[] = [
+  {
+    id: 'forge_xp',
+    name: 'Maîtrise de forge',
+    description: 'Augmente l\'XP de forge gagnée à chaque objet fabriqué.',
+    emoji: '🔥',
+    color: '#D4851A',
+    maxLevel: 5,
+    costs: [250, 500, 1000, 2000, 4000],
+    effectType: 'forgeXpBonus',
+    bonusPerLevel: 10,
+    unit: '%',
+  },
+  {
+    id: 'quality_bonus',
+    name: 'Précision du forgeron',
+    description: 'Ajoute des points au score de qualité final de chaque objet.',
+    emoji: '⚒️',
+    color: '#5C8BE5',
+    maxLevel: 5,
+    costs: [300, 700, 1500, 3000, 6000],
+    effectType: 'qualityScoreBonus',
+    bonusPerLevel: 3,
+    unit: ' pts',
+  },
+  {
+    id: 'inventory_capacity',
+    name: 'Capacité d\'inventaire',
+    description: 'Augmente le poids maximum que vous pouvez transporter.',
+    emoji: '📦',
+    color: '#8B6B3D',
+    maxLevel: 5,
+    costs: [400, 900, 1800, 3600, 7200],
+    effectType: 'inventoryWeightBonus',
+    bonusPerLevel: 100,
+    unit: ' kg',
+  },
+  {
+    id: 'sell_bonus',
+    name: 'Sens des affaires',
+    description: 'Augmente l\'or reçu lors de la vente d\'objets et ressources.',
+    emoji: '💰',
+    color: '#D4AF37',
+    maxLevel: 5,
+    costs: [350, 800, 1600, 3200, 6400],
+    effectType: 'statSellBonus',
+    bonusPerLevel: 4,
+    unit: '%',
+  },
+  {
+    id: 'melt_yield',
+    name: 'Récupération de fonte',
+    description: 'Augmente le nombre de matériaux récupérés lors de la fonte.',
+    emoji: '♻️',
+    color: '#4CAF50',
+    maxLevel: 3,
+    costs: [600, 1500, 4000],
+    effectType: 'meltYieldBonus',
+    bonusPerLevel: 10,
+    unit: '%',
+  },
+  {
+    id: 'order_deadline',
+    name: 'Négociateur habile',
+    description: 'Accorde plus de temps pour remplir les commandes des clients.',
+    emoji: '⏳',
+    color: '#7A7A8C',
+    maxLevel: 3,
+    costs: [500, 1200, 3500],
+    effectType: 'orderDeadlineBonus',
+    bonusPerLevel: 1,
+    unit: 'h',
+  },
+];
 const ALL_COLLECTIONS: ItemSet[] = require('@/data/collections.json');
 
 /** Pure helper — computes total bonus for a given type from all active collection tiers. */
@@ -232,7 +308,9 @@ type GameAction =
   | { type: 'APPRENTICE_FINISH_CRAFT'; item: Item }
   | { type: 'COLLECT_APPRENTICE_ITEM'; salaryCost: number }
   | { type: 'CLAIM_SET_REWARD'; setId: string; goldReward: number }
-  | { type: 'TRAIN_APPRENTICE'; goldCost: number };
+  | { type: 'TRAIN_APPRENTICE'; goldCost: number }
+  // Stat upgrades
+  | { type: 'BUY_STAT_UPGRADE'; upgradeId: string; goldCost: number };
 
 function buildInitialPlayer(): Player {
   const skills = SKILL_TYPES.reduce(
@@ -270,6 +348,7 @@ function buildInitialPlayer(): Player {
     lastPlayedDate: Date.now(),
     bestSalePrice: 0,
     bestQualityScore: 0,
+    statUpgrades: {},
   };
 }
 
@@ -362,7 +441,7 @@ function buildInitialState(): GameState {
 }
 
 /** Generate a random NPC order based on player level */
-function generateNpcOrder(playerLevel: number, forgeLevel: number): CraftOrder {
+function generateNpcOrder(playerLevel: number, forgeLevel: number, extraDeadlineHours = 0): CraftOrder {
   // High-tier NPCs can have requests that a new forge simply cannot fulfill.
   // Only introduce them once the player has the matching progression.
   const eligibleNpcs = ALL_NPCS.filter((npc) => {
@@ -389,8 +468,8 @@ function generateNpcOrder(playerLevel: number, forgeLevel: number): CraftOrder {
   const goldReward = Math.round(npc.budgetMin + Math.random() * budgetRange);
   const xpReward = Math.round(recipe.xpReward * (1.5 + Math.random()));
   const repReward = Math.round(5 + Math.random() * 15);
-  // Deadline: 6–18 hours from now (more generous than before)
-  const deadlineHours = 6 + Math.floor(Math.random() * 13);
+  // Deadline: 6–18 hours from now (more generous than before), plus any upgrade bonus
+  const deadlineHours = 6 + Math.floor(Math.random() * 13) + extraDeadlineHours;
   const deadline = Date.now() + deadlineHours * 60 * 60 * 1000;
 
   // Orders start with forgiving quality targets and rise only with actual forge
@@ -499,6 +578,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         avatarColor: s.player.avatarColor ?? undefined,
         avatarIcon: s.player.avatarIcon ?? undefined,
         avatarImage: s.player.avatarImage ?? null,
+        statUpgrades: s.player.statUpgrades ?? {},
       };
       return {
         isLoaded: true,
@@ -620,9 +700,13 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, player: updated };
     }
     case 'ADD_SKILL_XP': {
+      const forgeXpUpgBonus = action.skill === 'forge'
+        ? ((state.player.statUpgrades?.['forge_xp'] ?? 0) * 0.10)
+        : 0;
       const xpMultiplier = 1
         + computeTalentBonus(state.player.talentsUnlocked, 'allXPBonus')
-        + computeTalentBonus(state.player.talentsUnlocked, `${action.skill}XPBonus`);
+        + computeTalentBonus(state.player.talentsUnlocked, `${action.skill}XPBonus`)
+        + forgeXpUpgBonus;
       const boostedAmount = Math.round(action.amount * xpMultiplier);
       const updated = levelUpSkill(state.player, action.skill, boostedAmount);
       return { ...state, player: updated };
@@ -1105,6 +1189,28 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    case 'BUY_STAT_UPGRADE': {
+      const def = STAT_UPGRADE_DEFINITIONS.find((d) => d.id === action.upgradeId);
+      if (!def) return state;
+      const currentLevel = (state.player.statUpgrades ?? {})[action.upgradeId] ?? 0;
+      if (currentLevel >= def.maxLevel) return state;
+      // Compute expected cost authoritatively from state — never trust payload cost
+      const expectedCost = def.costs[currentLevel];
+      if (expectedCost === undefined) return state;
+      if (state.player.gold < expectedCost) return state;
+      return {
+        ...state,
+        player: {
+          ...state.player,
+          gold: state.player.gold - expectedCost,
+          statUpgrades: {
+            ...(state.player.statUpgrades ?? {}),
+            [action.upgradeId]: currentLevel + 1,
+          },
+        },
+      };
+    }
+
     case 'CLAIM_SET_REWARD': {
       if (state.completedSets.includes(action.setId)) return state;
       return {
@@ -1214,6 +1320,9 @@ interface GameContextType {
   assignApprenticeRecipe: (recipeId: string) => boolean;
   collectApprenticeItem: () => { success: boolean; item?: Item; message?: string };
   trainApprentice: () => { success: boolean; cost: number; message: string };
+  // Stat upgrades
+  buyStatUpgrade: (upgradeId: string) => { success: boolean; message: string; cost: number };
+  getStatUpgradeBonus: (effectType: string) => number;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -1347,19 +1456,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (!state.isLoaded) return;
     const pending = state.activeOrders.filter((o) => !o.completed).length;
     // Always seed at least one order immediately if the queue is empty
+    const deadlineExt = state.player.statUpgrades?.['order_deadline'] ?? 0;
     if (pending === 0) {
-      dispatch({ type: 'ADD_ORDER', order: generateNpcOrder(state.player.level, state.player.forgeLevel) });
+      dispatch({ type: 'ADD_ORDER', order: generateNpcOrder(state.player.level, state.player.forgeLevel, deadlineExt) });
     } else {
       // Generate on load if enough time has passed since last order
       const sinceLastOrder = Date.now() - state.lastOrderGeneratedAt;
       if (sinceLastOrder >= ORDER_INTERVAL_MS && pending < MAX_ORDERS) {
-        dispatch({ type: 'ADD_ORDER', order: generateNpcOrder(state.player.level, state.player.forgeLevel) });
+        dispatch({ type: 'ADD_ORDER', order: generateNpcOrder(state.player.level, state.player.forgeLevel, deadlineExt) });
       }
     }
     const t = setInterval(() => {
       const p = state.activeOrders.filter((o) => !o.completed).length;
       if (p < MAX_ORDERS) {
-        dispatch({ type: 'ADD_ORDER', order: generateNpcOrder(state.player.level, state.player.forgeLevel) });
+        dispatch({ type: 'ADD_ORDER', order: generateNpcOrder(state.player.level, state.player.forgeLevel, deadlineExt) });
       }
     }, ORDER_INTERVAL_MS);
     return () => clearInterval(t);
@@ -1646,7 +1756,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       }
 
       const talentQualityBonus = computeTalentBonus(state.player.talentsUnlocked, 'qualityBonus') * 100;
-      const clampedScore = Math.max(0, Math.min(100, Math.round(qualityScore + talentQualityBonus)));
+      const statQualityBonus = (state.player.statUpgrades?.['quality_bonus'] ?? 0) * 3;
+      const clampedScore = Math.max(0, Math.min(100, Math.round(qualityScore + talentQualityBonus + statQualityBonus)));
       const { quality, rarity } = qualityFromScore(clampedScore);
       const base = recipe.outputItemBase;
 
@@ -1884,11 +1995,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (!order || order.accepted) return { success: false, cost: 0 };
       const cost = Math.max(30, Math.round(state.player.level * 8));
       if (state.player.gold < cost) return { success: false, cost };
-      const newOrder = generateNpcOrder(state.player.level, state.player.forgeLevel);
+      const deadlineExt = state.player.statUpgrades?.['order_deadline'] ?? 0;
+      const newOrder = generateNpcOrder(state.player.level, state.player.forgeLevel, deadlineExt);
       dispatch({ type: 'REROLL_ORDER', orderId, newOrder, goldCost: cost });
       return { success: true, cost };
     },
-    [state.activeOrders, state.player.gold, state.player.level, state.player.forgeLevel],
+    [state.activeOrders, state.player.gold, state.player.level, state.player.forgeLevel, state.player.statUpgrades],
   );
 
   // -------------------------------------------------------------------------
@@ -1930,10 +2042,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const item = state.craftedItems.find((i) => i.instanceId === instanceId);
       if (!item) return 0;
       const marketValueBonus = computeCollectionBonus('marketValueBonus', everCraftedRecipeIds);
+      const statSellUpg = (state.player.statUpgrades?.['sell_bonus'] ?? 0) * 0.04;
       const sellBonus = 1
         + computeTalentBonus(state.player.talentsUnlocked, 'sellPriceBonus')
         + computeTalentBonus(state.player.talentsUnlocked, 'allGoldBonus')
-        + marketValueBonus / 100;
+        + marketValueBonus / 100
+        + statSellUpg;
       const goldAmount = Math.round(item.value * 0.85 * sellBonus);
       dispatch({ type: 'SELL_ITEM', instanceId, goldAmount });
       dispatch({ type: 'ADD_SKILL_XP', skill: 'commerce', amount: 5 });
@@ -1950,9 +2064,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (!inv || inv.quantity < qty) return 0;
       const res = ALL_RESOURCES.find((r) => r.id === resourceId);
       const pricePerUnit = Math.round((res?.baseValue ?? 10) * (state.marketPrices[resourceId] ?? 1.0) * 0.8);
+      const statSellUpg2 = (state.player.statUpgrades?.['sell_bonus'] ?? 0) * 0.04;
       const sellBonus = 1
         + computeTalentBonus(state.player.talentsUnlocked, 'sellPriceBonus')
-        + computeTalentBonus(state.player.talentsUnlocked, 'allGoldBonus');
+        + computeTalentBonus(state.player.talentsUnlocked, 'allGoldBonus')
+        + statSellUpg2;
       const goldAmount = Math.round(pricePerUnit * qty * sellBonus);
       dispatch({ type: 'SELL_RESOURCE', resourceId, qty, goldAmount });
       dispatch({ type: 'ADJUST_MARKET', resourceId, delta: -0.03 * qty }); // selling reduces price
@@ -1975,7 +2091,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         excellent: 0.82,
         legendary: 0.95,
       };
-      const yieldRate = qualityYield[item.quality] ?? 0.6;
+      const meltUpgBonus = (state.player.statUpgrades?.['melt_yield'] ?? 0) * 0.10;
+      const yieldRate = Math.min(0.99, (qualityYield[item.quality] ?? 0.6) * (1 + meltUpgBonus));
       const totals = new Map<string, number>();
       const requirements = recipe?.requirements ?? item.materials.map((resourceId) => ({ resourceId, quantity: 1 }));
       for (const requirement of requirements) {
@@ -2044,14 +2161,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     () => {
       const storageLv = state.forgeUpgrades['storage'] ?? 0;
       const storageBonus = STORAGE_BONUS[Math.min(storageLv, 5)] ?? 0;
+      const statInventoryBonus = (state.player.statUpgrades?.['inventory_capacity'] ?? 0) * 100;
       return (
         MAX_WEIGHT_BASE +
         state.player.level * MAX_WEIGHT_PER_LEVEL +
         computeTalentBonus(state.player.talentsUnlocked, 'weightBonus') +
-        storageBonus
+        storageBonus +
+        statInventoryBonus
       );
     },
-    [state.player.level, state.player.talentsUnlocked, state.forgeUpgrades],
+    [state.player.level, state.player.talentsUnlocked, state.forgeUpgrades, state.player.statUpgrades],
   );
 
   const saveGame = useCallback(async () => {
@@ -2248,6 +2367,36 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.isLoaded, state.apprentice]);
 
+  // -------------------------------------------------------------------------
+  // Stat upgrade actions
+  // -------------------------------------------------------------------------
+  const getStatUpgradeBonus = useCallback(
+    (effectType: string): number => {
+      const def = STAT_UPGRADE_DEFINITIONS.find((d) => d.effectType === effectType);
+      if (!def) return 0;
+      const level = (state.player.statUpgrades ?? {})[def.id] ?? 0;
+      return level * def.bonusPerLevel;
+    },
+    [state.player.statUpgrades],
+  );
+
+  const buyStatUpgrade = useCallback(
+    (upgradeId: string): { success: boolean; message: string; cost: number } => {
+      const def = STAT_UPGRADE_DEFINITIONS.find((d) => d.id === upgradeId);
+      if (!def) return { success: false, message: 'Amélioration introuvable.', cost: 0 };
+      const currentLevel = (state.player.statUpgrades ?? {})[upgradeId] ?? 0;
+      if (currentLevel >= def.maxLevel) return { success: false, message: 'Niveau maximum atteint.', cost: 0 };
+      const cost = def.costs[currentLevel];
+      if (cost === undefined) return { success: false, message: 'Coût introuvable.', cost: 0 };
+      if (state.player.gold < cost) {
+        return { success: false, message: `Or insuffisant (${cost}g requis, ${state.player.gold}g disponible).`, cost };
+      }
+      dispatch({ type: 'BUY_STAT_UPGRADE', upgradeId, goldCost: cost });
+      return { success: true, message: `${def.name} améliorée au niveau ${currentLevel + 1} !`, cost };
+    },
+    [state.player.statUpgrades, state.player.gold],
+  );
+
   const customizePlayer = useCallback(
     (name: string, forgeName: string, avatarColor?: string, avatarIcon?: string | null, avatarImage?: string | null): void => {
       const trimmedName = name.trim();
@@ -2372,6 +2521,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       getCollectionBonusTotal,
       getCollectionProgress,
       claimSetReward,
+      // Stat upgrades
+      buyStatUpgrade,
+      getStatUpgradeBonus,
     }),
     // Include cloud sync reactive state so status transitions propagate to consumers
     // eslint-disable-next-line react-hooks/exhaustive-deps

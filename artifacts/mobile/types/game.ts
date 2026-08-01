@@ -75,6 +75,11 @@ export interface Player {
   avatarIcon?: string | null;
   /** Preset avatar illustration key (e.g. 'knight', 'mage'). When set, overrides color+icon display. */
   avatarImage?: string | null;
+  /**
+   * Permanent stat upgrades purchased with gold.
+   * Keys match STAT_UPGRADE_DEFINITIONS ids in GameContext.
+   */
+  statUpgrades?: Record<string, number>;
 }
 
 // ── Achievement system ────────────────────────────────────────────────────────
@@ -433,9 +438,22 @@ export interface Apprentice {
   readyItem: Item | null;         // finished item waiting to be collected
 }
 
-// ---------------------------------------------------------------------------
-// Save file
-// ---------------------------------------------------------------------------
+export interface StatUpgradeDefinition {
+  id: string;
+  name: string;
+  description: string;
+  emoji: string;
+  color: string;
+  maxLevel: number;
+  /** Gold cost for each level (index 0 = cost to reach level 1). */
+  costs: number[];
+  /** Effect type used by getStatUpgradeBonus(). */
+  effectType: string;
+  /** Bonus per level (additive multiplied by level). */
+  bonusPerLevel: number;
+  /** Unit label shown in the UI (e.g. '%', 'kg', 'h'). */
+  unit: string;
+}
 export interface SaveData {
   version: number;
   player: Player;

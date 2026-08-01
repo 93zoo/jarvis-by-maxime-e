@@ -25,7 +25,7 @@ import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { useGame } from '@/context/GameContext';
+import { useGame, STAT_UPGRADE_DEFINITIONS } from '@/context/GameContext';
 import { useAchievements } from '@/context/AchievementContext';
 import { useColors } from '@/hooks/useColors';
 import AudioManager from '@/utils/AudioManager';
@@ -2309,13 +2309,161 @@ const cmStyles = StyleSheet.create({
   suggestionText: { fontSize: 12, fontWeight: '600' },
 });
 
+// ─── Stat Upgrades Tab ───────────────────────────────────────────────────────
+function StatUpgradesTabContent({ colors }: { colors: ReturnType<typeof useColors> }) {
+  const game = useGame();
+  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  // Per-upgrade purchasing lock: prevents double-tap race where two dispatches
+  // are enqueued before state updates (even though the reducer now validates
+  // costs authoritatively, the UX is confusing without this guard).
+  const [purchasing, setPurchasing] = useState<string | null>(null);
+
+  const handleBuy = (upgradeId: string) => {
+    if (purchasing !== null) return; // another purchase is in-flight
+    setPurchasing(upgradeId);
+    const result = game.buyStatUpgrade(upgradeId);
+    setMsg({ text: result.message, ok: result.success });
+    if (result.success) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+    setTimeout(() => {
+      setMsg(null);
+      setPurchasing(null);
+    }, 600);
+  };
+
+  return (
+    <>
+      {/* Header info */}
+      <View style={[upgStyles.infoCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Feather name="trending-up" size={16} color={colors.accent} />
+        <Text style={[upgStyles.infoText, { color: colors.mutedForeground }]}>
+          Améliorations permanentes achetables avec de l'or. Chaque amélioration a un niveau maximum et un coût croissant.
+        </Text>
+      </View>
+
+      {/* Gold indicator */}
+      <View style={[upgStyles.goldBadge, { backgroundColor: `${colors.accent}22`, borderColor: `${colors.accent}44` }]}>
+        <Feather name="dollar-sign" size={14} color={colors.accent} />
+        <Text style={[upgStyles.goldText, { color: colors.accent }]}>Or disponible : {game.player.gold.toLocaleString()} g</Text>
+      </View>
+
+      {/* Feedback message */}
+      {msg && (
+        <View style={[upgStyles.msgBanner, { backgroundColor: msg.ok ? '#1B5E20' : '#B71C1C' }]}>
+          <Text style={upgStyles.msgText}>{msg.text}</Text>
+        </View>
+      )}
+
+      {/* Upgrade cards */}
+      {STAT_UPGRADE_DEFINITIONS.map((def) => {
+        const level = (game.player.statUpgrades ?? {})[def.id] ?? 0;
+        const isMaxed = level >= def.maxLevel;
+        const nextCost = isMaxed ? null : def.costs[level];
+        const canAfford = nextCost !== null && game.player.gold >= nextCost;
+        const totalBonus = level * def.bonusPerLevel;
+
+        return (
+          <View key={def.id} style={[upgStyles.card, { backgroundColor: colors.card, borderColor: isMaxed ? def.color + '66' : colors.border }]}>
+            {/* Top row */}
+            <View style={upgStyles.cardTop}>
+              <View style={[upgStyles.emojiBox, { backgroundColor: def.color + '22' }]}>
+                <Text style={upgStyles.emoji}>{def.emoji}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[upgStyles.cardName, { color: colors.foreground }]}>{def.name}</Text>
+                <Text style={[upgStyles.cardDesc, { color: colors.mutedForeground }]}>{def.description}</Text>
+              </View>
+              {/* Level stars */}
+              <View style={{ alignItems: 'center', gap: 4 }}>
+                <Text style={[upgStyles.levelLabel, { color: isMaxed ? def.color : colors.mutedForeground }]}>
+                  {isMaxed ? 'MAX' : `${level}/${def.maxLevel}`}
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 3 }}>
+                  {Array.from({ length: def.maxLevel }).map((_, i) => (
+                    <View key={i} style={[upgStyles.star, { backgroundColor: i < level ? def.color : colors.muted }]} />
+                  ))}
+                </View>
+              </View>
+            </View>
+
+            {/* Current bonus */}
+            {level > 0 && (
+              <View style={[upgStyles.bonusRow, { backgroundColor: def.color + '18' }]}>
+                <Text style={[upgStyles.bonusText, { color: def.color }]}>
+                  Bonus actuel : +{totalBonus}{def.unit}
+                </Text>
+                {!isMaxed && (
+                  <Text style={[upgStyles.bonusNext, { color: colors.mutedForeground }]}>
+                    → +{(level + 1) * def.bonusPerLevel}{def.unit} au prochain niveau
+                  </Text>
+                )}
+              </View>
+            )}
+
+            {/* Buy button */}
+            {!isMaxed ? (
+              <TouchableOpacity
+                style={[
+                  upgStyles.buyBtn,
+                  {
+                    backgroundColor: canAfford && purchasing === null ? def.color : colors.muted,
+                    opacity: canAfford && purchasing === null ? 1 : 0.6,
+                  },
+                ]}
+                onPress={() => handleBuy(def.id)}
+                disabled={!canAfford || purchasing !== null}
+                activeOpacity={0.8}
+              >
+                <Feather name="arrow-up" size={13} color={canAfford ? '#fff' : colors.mutedForeground} />
+                <Text style={[upgStyles.buyBtnText, { color: canAfford ? '#fff' : colors.mutedForeground }]}>
+                  Niveau {level + 1} — {nextCost?.toLocaleString()}g
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={[upgStyles.buyBtn, { backgroundColor: def.color + '33' }]}>
+                <Feather name="check" size={13} color={def.color} />
+                <Text style={[upgStyles.buyBtnText, { color: def.color }]}>Amélioration maximale atteinte</Text>
+              </View>
+            )}
+          </View>
+        );
+      })}
+    </>
+  );
+}
+
+const upgStyles = StyleSheet.create({
+  infoCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderRadius: 12, padding: 14, borderWidth: 1, marginBottom: 12 },
+  infoText: { flex: 1, fontSize: 12, lineHeight: 17 },
+  goldBadge: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 10, padding: 10, borderWidth: 1, marginBottom: 12 },
+  goldText: { fontSize: 14, fontWeight: '700' },
+  msgBanner: { borderRadius: 8, padding: 10, marginBottom: 10 },
+  msgText: { fontSize: 13, fontWeight: '600', textAlign: 'center', color: '#fff' },
+  card: { borderRadius: 14, padding: 14, borderWidth: 1, marginBottom: 12 },
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  emojiBox: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  emoji: { fontSize: 22 },
+  cardName: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
+  cardDesc: { fontSize: 11, lineHeight: 15 },
+  levelLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
+  star: { width: 8, height: 8, borderRadius: 4 },
+  bonusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 8, padding: 8, marginBottom: 10, flexWrap: 'wrap', gap: 4 },
+  bonusText: { fontSize: 12, fontWeight: '700' },
+  bonusNext: { fontSize: 11 },
+  buyBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 11, borderRadius: 10 },
+  buyBtnText: { fontSize: 13, fontWeight: '700' },
+});
+
 // ─── Main Profile Screen ──────────────────────────────────────────────────────
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const game = useGame();
   const headerTopPad = Platform.OS === 'web' ? 67 : insets.top;
-  const [activeTab, setActiveTab] = useState<'skills' | 'talents' | 'stats' | 'achievements'>('skills');
+  const [activeTab, setActiveTab] = useState<'skills' | 'talents' | 'upgrades' | 'achievements' | 'stats'>('skills');
   const [selectedSkillId, setSelectedSkillId] = useState<SkillType | null>(null);
   const [selectedTree, setSelectedTree] = useState<TreeKey>('forge');
   const [showCustomize, setShowCustomize] = useState(false);
@@ -2438,9 +2586,9 @@ export default function ProfileScreen() {
       </LinearGradient>
 
       {/* Tab bar */}
-      <View style={[styles.tabBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        {(['skills', 'talents', 'achievements', 'stats'] as const).map((tab) => {
-          const labels = { skills: 'Compétences', talents: 'Talents', achievements: 'Succès', stats: 'Stats' };
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.tabBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]} contentContainerStyle={{ flexGrow: 1 }}>
+        {(['skills', 'talents', 'upgrades', 'achievements', 'stats'] as const).map((tab) => {
+          const labels: Record<string, string> = { skills: 'Compétences', talents: 'Talents', upgrades: 'Améliorations', achievements: 'Succès', stats: 'Stats' };
           return (
             <TouchableOpacity
               key={tab}
@@ -2453,7 +2601,7 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           );
         })}
-      </View>
+      </ScrollView>
 
       {/* Tab content */}
       <ScrollView
@@ -2544,6 +2692,9 @@ export default function ProfileScreen() {
             <TalentTreeView treeKey={selectedTree} game={game} colors={colors} />
           </>
         )}
+
+        {/* ── Upgrades tab ── */}
+        {activeTab === 'upgrades' && <StatUpgradesTabContent colors={colors} />}
 
         {/* ── Achievements tab ── */}
         {activeTab === 'achievements' && <AchievementsTabContent colors={colors} />}
