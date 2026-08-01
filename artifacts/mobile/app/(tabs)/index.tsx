@@ -1245,14 +1245,15 @@ export default function ForgeScreen() {
 
       {/* ── Header ── */}
       <View style={[styles.header, { paddingTop: headerTopPad + 10 }]}>
-        <View style={styles.headerLeft}>
-          <View style={md.levelRing}>
-            <View style={md.levelRingInner}>
-              <Text style={md.levelRingText}>{player.level}</Text>
+        <View style={styles.headerTopRow}>
+          <View style={styles.headerLeft}>
+            <View style={md.levelRing}>
+              <View style={md.levelRingInner}>
+                <Text style={md.levelRingText}>{player.level}</Text>
+              </View>
             </View>
-          </View>
-          <View>
-            <Text style={md.headerTitle}>FORGERON</Text>
+            <View>
+              <Text style={md.headerTitle}>FORGERON</Text>
             <Text style={md.headerXP}>
               {player.xp.toLocaleString()} / {player.xpToNextLevel.toLocaleString()} XP
             </Text>
@@ -1283,11 +1284,40 @@ export default function ForgeScreen() {
             <Feather name="settings" size={13} color={MEDIEVAL.textDim} />
           </TouchableOpacity>
         </View>
+        </View>
+
+        {/* Forge stats — same look as the FORGERON progress bar */}
+        <View style={md.headerStats}>
+          <View style={md.headerStatBox}>
+            <View style={md.headerStatTop}>
+              <Text style={md.statLabel}>FORGE</Text>
+              <Text style={[md.headerStatValue, { color: MEDIEVAL.emberSoft }]}>Niv.{forgeSkillLevel}</Text>
+            </View>
+            <View style={md.statTrack}>
+              <View style={[md.statFill, { width: `${forgeXPPct}%` as `${number}%`, backgroundColor: MEDIEVAL.ember }]} />
+            </View>
+          </View>
+          <View style={md.headerStatBox}>
+            <View style={md.headerStatTop}>
+              <Text style={md.statLabel}>JOUEUR</Text>
+              <Text style={md.headerStatValue}>Niv.{player.level}</Text>
+            </View>
+            <View style={md.statTrack}>
+              <View style={[md.statFill, { width: `${xpPct}%` as `${number}%`, backgroundColor: MEDIEVAL.oldGold }]} />
+            </View>
+          </View>
+          <View style={md.headerStatBox}>
+            <View style={md.headerStatTop}>
+              <Text style={md.statLabel}>FORGÉS</Text>
+              <Text style={md.headerStatValue}>{player.totalItemsCrafted}</Text>
+            </View>
+          </View>
+        </View>
       </View>
 
       {/* ── Left rail ── */}
       {craftPhase === 'IDLE' && (
-        <View style={[md.leftRail, { top: headerTopPad + 96 }]}>
+        <View style={[md.leftRail, { top: headerTopPad + 138 }]}>
           <RailButton
             icon="book-open"
             label="QUÊTES"
@@ -1309,7 +1339,7 @@ export default function ForgeScreen() {
 
       {/* ── Materials as ingots, floating on the backdrop (no panel) ── */}
       {craftPhase === 'IDLE' && game.inventory.length > 0 && (
-        <View style={[md.ingotRail, { top: headerTopPad + 100 }]} pointerEvents="none">
+        <View style={[md.ingotRail, { top: headerTopPad + 142 }]} pointerEvents="none">
           {game.inventory.slice(0, 7).map((inv) => {
             const res = game.getResourceById(inv.resourceId);
             const c = res?.color ?? '#8A7A6A';
@@ -1411,28 +1441,6 @@ export default function ForgeScreen() {
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={[md.idlePanel, { paddingBottom: bottomPad + 4 }]}
           >
-            {/* Forge stats strip */}
-            <View style={md.statsStrip}>
-              <View style={md.statBox}>
-                <Text style={md.statLabel}>FORGE</Text>
-                <Text style={[md.statValue, { color: MEDIEVAL.emberSoft }]}>Niv.{forgeSkillLevel}</Text>
-                <View style={md.statTrack}>
-                  <View style={[md.statFill, { width: `${forgeXPPct}%` as `${number}%`, backgroundColor: MEDIEVAL.ember }]} />
-                </View>
-              </View>
-              <View style={md.statBox}>
-                <Text style={md.statLabel}>JOUEUR</Text>
-                <Text style={md.statValue}>Niv.{player.level}</Text>
-                <View style={md.statTrack}>
-                  <View style={[md.statFill, { width: `${xpPct}%` as `${number}%`, backgroundColor: MEDIEVAL.oldGold }]} />
-                </View>
-              </View>
-              <View style={md.statBox}>
-                <Text style={md.statLabel}>FORGÉS</Text>
-                <Text style={md.statValue}>{player.totalItemsCrafted}</Text>
-              </View>
-            </View>
-
             {/* Apprentice card — always visible (hire or manage) */}
             <ApprenticeCard game={game} colors={colors} />
 
@@ -2114,6 +2122,10 @@ const md = StyleSheet.create({
     overflow: 'hidden',
   },
   statFill: { height: '100%', borderRadius: 2 },
+  headerStats: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  headerStatBox: { flex: 1 },
+  headerStatTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2 },
+  headerStatValue: { color: MEDIEVAL.textLight, fontSize: 11, fontWeight: '800' },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'stretch',
@@ -2191,12 +2203,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 12,
   },
+  headerTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   headerTitle: { fontSize: 17, fontWeight: '800', letterSpacing: 3 },
   headerForgeName: { fontSize: 11, fontWeight: '500', letterSpacing: 1, marginTop: 1 },
