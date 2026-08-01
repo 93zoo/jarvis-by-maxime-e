@@ -755,6 +755,71 @@ class AudioManagerClass {
   getAmbienceVolume(): number {
     return this.ambienceVolumeLevel;
   }
+
+  // ── Background / Foreground lifecycle (native only) ────────────────────────
+
+  /** Whether each loop was running before the last background transition. */
+  private ambienceWasPlaying = false;
+  private musicWasPlaying = false;
+  private ambienceLayersWerePlaying = false;
+  /**
+   * Guards against the iOS `active → inactive → background` double-fire.
+   * On iOS, AppState emits `inactive` first, then `background`. Without this
+   * flag, the second call would find all players already null and overwrite
+   * the snapshot with all-false — causing `handleForeground()` to restore nothing.
+   */
+  private _isInBackground = false;
+
+  /**
+   * Call when the app enters the background (AppState → 'inactive' or 'background').
+   * The first call snapshots which loops were live and stops all native playback;
+   * subsequent calls for the same background transition are ignored so the iOS
+   * `inactive → background` double-fire cannot overwrite the snapshot.
+   */
+  handleBackground(): void {
+    if (Platform.OS === 'web') return;
+    // Idempotent: only snapshot + stop once per background cycle.
+    if (this._isInBackground) return;
+    this._isInBackground = true;
+    // Snapshot what is currently running BEFORE stopping anything.
+    this.ambienceWasPlaying = this.nativeAmbiencePlayer !== null;
+    this.musicWasPlaying = this.nativeMusicPlayer !== null;
+    this.ambienceLayersWerePlaying = this.nativeAmbienceLayers.length > 0;
+    // Stop loops — sets player refs to null so foreground can restart cleanly.
+    this.stopForgeAmbience();
+    this.stopMusic();
+    this.stopAmbienceLayers();
+  }
+
+  /**
+   * Call when the app returns to the foreground (AppState → 'active').
+   * Disposes any lingering native players, re-initializes them fresh (expo-audio
+   * players can silently break after an OS audio-session interruption), then
+   * restarts any loops that were playing before backgrounding.
+   */
+  handleForeground(): void {
+    if (Platform.OS === 'web') return;
+    if (!this._isInBackground) return; // nothing to restore
+    this._isInBackground = false;
+    // Release existing native short-sound players before re-creating them so
+    // we don't accumulate orphaned instances across repeated background cycles.
+    for (const entry of Object.values(this.nativePlayers)) {
+      if (Array.isArray(entry)) {
+        entry.forEach((p) => { try { p.remove?.(); } catch { /* ignore */ } });
+      } else {
+        try { (entry as ExpoAudioPlayer).remove?.(); } catch { /* ignore */ }
+      }
+    }
+    this.nativePlayers = {};
+    this.nativePoolIndexes = {};
+    this.nativeLoaded = false;
+    // Re-load all short-sound players fresh.
+    this._loadNativeSounds();
+    // Restore loops that were active before backgrounding, respecting mute state.
+    if (this.ambienceWasPlaying && !this.muted) this.startForgeAmbience();
+    if (this.musicWasPlaying && !this.muted) this.startMusic();
+    if (this.ambienceLayersWerePlaying && !this.muted) this.startAmbienceLayers();
+  }
 }
 
 const AudioManager = new AudioManagerClass();

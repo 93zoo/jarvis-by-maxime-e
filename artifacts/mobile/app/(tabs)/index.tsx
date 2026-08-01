@@ -1082,14 +1082,17 @@ export default function ForgeScreen() {
       removeVisibility = () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }
 
-    // Native: pause/resume ambience when the app goes to the background.
+    // Native: reinitialize players and restore loops when the app returns from background.
+    // handleForeground() reloads all expo-audio players (which can silently break after
+    // an OS audio-session interruption) and restarts music/ambience that was live before.
+    // handleBackground() snapshots playback state then stops everything cleanly.
     // (On web AppState doesn't fire for tab switches — visibilitychange handles that above.)
     const appStateSub = AppState.addEventListener('change', (nextState) => {
       if (Platform.OS !== 'web') {
         if (nextState === 'active') {
-          AudioManager.startForgeAmbience();
-        } else {
-          AudioManager.stopForgeAmbience();
+          AudioManager.handleForeground();
+        } else if (nextState === 'background' || nextState === 'inactive') {
+          AudioManager.handleBackground();
         }
       }
     });
