@@ -1448,6 +1448,36 @@ export default function ForgeScreen() {
             {/* Apprentice card — always visible (hire or manage) */}
             <ApprenticeCard game={game} colors={colors} />
 
+            {/* ── Compétences du forgeron (progression visible sans quitter la forge) ── */}
+            <View style={md.skillsCard}>
+              <View style={md.skillsHeader}>
+                <Feather name="star" size={13} color={MEDIEVAL.oldGold} />
+                <Text style={md.skillsTitle}>COMPÉTENCES DU FORGERON</Text>
+              </View>
+              {game.allSkills.slice(0, 5).map((skill) => {
+                const lvl = player.skills[skill.id] ?? 1;
+                const curXP = player.skillXP[skill.id] ?? 0;
+                const needed = lvl * 50;
+                const pct = Math.min(100, Math.floor((curXP / needed) * 100));
+                return (
+                  <View key={skill.id} style={md.skillRow}>
+                    <View style={[md.skillIcon, { backgroundColor: `${skill.color}22` }]}>
+                      <Feather name="tool" size={12} color={skill.color} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <View style={md.skillTopRow}>
+                        <Text style={md.skillName} numberOfLines={1}>{skill.name}</Text>
+                        <Text style={[md.skillLevel, { color: skill.color }]}>Niv.{lvl}</Text>
+                      </View>
+                      <View style={md.skillTrack}>
+                        <View style={[md.skillFill, { width: `${pct}%` as `${number}%`, backgroundColor: skill.color }]} />
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+
             {/* Main action row: AMÉLIORER / FORGER / COMMANDES */}
             <View style={md.actionRow}>
               <TouchableOpacity
@@ -2063,6 +2093,23 @@ const md = StyleSheet.create({
   },
   materialsScroll: { flexGrow: 0 },
   materialsEmpty: { color: MEDIEVAL.textDim, fontSize: 10, textAlign: 'center', paddingVertical: 8 },
+  skillsCard: {
+    backgroundColor: 'rgba(16,10,6,0.88)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(200,140,60,0.35)',
+    padding: 12,
+    gap: 8,
+  },
+  skillsHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
+  skillsTitle: { color: MEDIEVAL.oldGold, fontSize: 10, fontWeight: '900', letterSpacing: 2 },
+  skillRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  skillIcon: { width: 26, height: 26, borderRadius: 13, justifyContent: 'center', alignItems: 'center' },
+  skillTopRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 },
+  skillName: { color: MEDIEVAL.textLight, fontSize: 11, fontWeight: '600', flex: 1, marginRight: 8 },
+  skillLevel: { fontSize: 11, fontWeight: '800' },
+  skillTrack: { height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' },
+  skillFill: { height: '100%', borderRadius: 2, minWidth: 3 },
   materialRow: {
     flexDirection: 'row',
     alignItems: 'center',

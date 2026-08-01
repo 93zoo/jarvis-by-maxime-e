@@ -28,13 +28,14 @@ function NativeTabLayout() {
         <Icon sf={{ default: 'trophy', selected: 'trophy.fill' }} />
         <Label>Sets</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="profile">
-        <Icon sf={{ default: 'person', selected: 'person.fill' }} />
-        <Label>Profil</Label>
-      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="codex">
         <Icon sf={{ default: 'books.vertical', selected: 'books.vertical.fill' }} />
         <Label>Codex</Label>
+      </NativeTabs.Trigger>
+      {/* Profil lives inside Codex — hidden trigger keeps the route alive */}
+      <NativeTabs.Trigger name="profile" hidden>
+        <Icon sf={{ default: 'person', selected: 'person.fill' }} />
+        <Label>Profil</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
@@ -127,13 +128,9 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
+          // Profil lives inside the Codex tab now — keep the route but hide the tab
+          href: null,
           title: 'Profil',
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="person" tintColor={color} size={22} />
-            ) : (
-              <Feather name="user" size={22} color={color} />
-            ),
         }}
       />
       <Tabs.Screen

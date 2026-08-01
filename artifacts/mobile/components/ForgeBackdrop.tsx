@@ -166,25 +166,28 @@ export default function ForgeBackdrop() {
     return () => { flicker.stop(); breathe.stop(); };
   }, [fireGlow, breath]);
 
-  const glowOpacity = fireGlow.interpolate({ inputRange: [0, 1], outputRange: [0.22, 0.55] });
-  const breathOpacity = breath.interpolate({ inputRange: [0, 1], outputRange: [0.03, 0.10] });
+  const glowOpacity = fireGlow.interpolate({ inputRange: [0, 1], outputRange: [0.10, 0.28] });
+  const breathOpacity = breath.interpolate({ inputRange: [0, 1], outputRange: [0.02, 0.06] });
 
   // Deterministic particle configs (stable across renders)
   const embers = useMemo(() => [
-    { x: '44%', size: 4, duration: 2600, delay: 0, drift: 18, color: '#FF9A3C' },
-    { x: '50%', size: 3, duration: 2200, delay: 500, drift: -14, color: '#FFC06A' },
-    { x: '47%', size: 5, duration: 3100, delay: 1100, drift: 26, color: '#FF7B24' },
-    { x: '53%', size: 3, duration: 2400, delay: 1600, drift: -22, color: '#FFB054' },
-    { x: '41%', size: 3, duration: 2900, delay: 800, drift: 12, color: '#FF9A3C' },
-    { x: '56%', size: 4, duration: 2700, delay: 2000, drift: -8, color: '#FFD08A' },
-    { x: '46%', size: 2, duration: 2000, delay: 2400, drift: 20, color: '#FFC06A' },
-    { x: '51%', size: 3, duration: 3300, delay: 300, drift: -18, color: '#FF7B24' },
+    { x: '44%', size: 6, duration: 2600, delay: 0, drift: 18, color: '#FF9A3C' },
+    { x: '50%', size: 5, duration: 2200, delay: 500, drift: -14, color: '#FFC06A' },
+    { x: '47%', size: 7, duration: 3100, delay: 1100, drift: 26, color: '#FF7B24' },
+    { x: '53%', size: 5, duration: 2400, delay: 1600, drift: -22, color: '#FFB054' },
+    { x: '41%', size: 5, duration: 2900, delay: 800, drift: 12, color: '#FF9A3C' },
+    { x: '56%', size: 6, duration: 2700, delay: 2000, drift: -8, color: '#FFD08A' },
+    { x: '46%', size: 4, duration: 2000, delay: 2400, drift: 20, color: '#FFC06A' },
+    { x: '51%', size: 5, duration: 3300, delay: 300, drift: -18, color: '#FF7B24' },
+    { x: '43%', size: 4, duration: 2500, delay: 1400, drift: -26, color: '#FFE0A0' },
+    { x: '54%', size: 6, duration: 3000, delay: 1900, drift: 16, color: '#FF9A3C' },
   ] as const, []);
 
   const wisps = useMemo(() => [
-    { x: '42%', size: 46, duration: 7000, delay: 0 },
-    { x: '52%', size: 38, duration: 8200, delay: 2600 },
-    { x: '47%', size: 54, duration: 7600, delay: 4800 },
+    { x: '40%', size: 60, duration: 7000, delay: 0 },
+    { x: '52%', size: 50, duration: 8200, delay: 2600 },
+    { x: '46%', size: 70, duration: 7600, delay: 4800 },
+    { x: '56%', size: 44, duration: 6800, delay: 1200 },
   ] as const, []);
 
   const dust = useMemo(() => [
@@ -218,23 +221,24 @@ export default function ForgeBackdrop() {
 }
 
 const styles = StyleSheet.create({
+  // Soft elliptical halo positioned over the artwork's hearth (center, mid-height)
   hearthGlow: {
     position: 'absolute',
-    left: '30%',
-    right: '30%',
-    bottom: '22%',
-    height: '34%',
-    borderRadius: 160,
+    left: '34%',
+    right: '34%',
+    top: '26%',
+    height: '22%',
+    borderRadius: 200,
     backgroundColor: '#FF8A2A',
   },
   heatBand: {
     position: 'absolute',
-    left: '36%',
-    right: '36%',
-    bottom: '46%',
-    height: '14%',
+    left: '40%',
+    right: '40%',
+    top: '20%',
+    height: '10%',
     borderRadius: 80,
-    backgroundColor: 'rgba(255,180,90,0.35)',
+    backgroundColor: 'rgba(255,180,90,0.22)',
   },
   breath: {
     ...StyleSheet.absoluteFillObject,

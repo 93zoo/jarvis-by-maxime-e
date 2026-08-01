@@ -17,8 +17,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGame } from '@/context/GameContext';
 import { useColors } from '@/hooks/useColors';
 import type { Quest, RegionData, ResourceData } from '@/types/game';
+import ProfileScreen from './profile';
 
-type CodexTab = 'resources' | 'recipes' | 'regions' | 'skills' | 'quests';
+type CodexTab = 'resources' | 'recipes' | 'regions' | 'skills' | 'quests' | 'profil';
 
 const RARITY_COLORS: Record<string, string> = {
   common: '#8A7A6A',
@@ -59,6 +60,7 @@ export default function CodexScreen() {
     { key: 'regions', label: 'Régions', icon: 'map' },
     { key: 'skills', label: 'Compétences', icon: 'star' },
     { key: 'quests', label: 'Quêtes', icon: 'flag' },
+    { key: 'profil', label: 'Profil', icon: 'user' },
   ];
 
   const activeQuests = game.getActiveQuests();
@@ -359,6 +361,12 @@ export default function CodexScreen() {
           );
         })}
       </View>
+
+      {activeTab === 'profil' && (
+        <View style={{ flex: 1 }}>
+          <ProfileScreen />
+        </View>
+      )}
 
       {activeTab === 'resources' && (
         <FlatList
