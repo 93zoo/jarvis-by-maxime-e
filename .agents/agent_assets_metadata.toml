@@ -206,3 +206,10 @@ uri = "file://screenshots/forge-bg-v3.jpg"
 type = "image"
 title = "Forge — nouvelle image, halo rétréci"
 description = "La nouvelle image est en fond et le halo du foyer est resserré sur la bouche de l'âtre."
+
+[[outputs]]
+id = "dmGwaOA0NUZedDkbT6yKd"
+uri = "file://screenshots/forge-v5-fixed.jpg"
+type = "image"
+title = "Forge — deux anneaux de niveau + bouton Apprenti"
+description = "Anneau de niveau forge centré sous celui du forgeron dans le header ; bouton COFFRES remplacé par APPRENTI dans le rail ; erreur de hooks corrigée."
