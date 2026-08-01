@@ -171,3 +171,10 @@ uri = "file://screenshots/forge-ingots.jpg"
 type = "image"
 title = "Forge — lingots intégrés au fond"
 description = "Bouton Classement retiré ; les matériaux s'affichent en lingots métalliques flottant directement sur le fond de la forge, avec leur quantité."
+
+[[outputs]]
+id = "6Axt4LtCIHtsiMkUT0_jB"
+uri = "file://screenshots/forge-header-stats.jpg"
+type = "image"
+title = "Header Forge avec stats"
+description = "FORGE, JOUEUR et FORGÉS sont maintenant dans le header du haut, avec le même style de barres de progression que FORGERON."
