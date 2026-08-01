@@ -206,6 +206,138 @@ function rollForgeEvent(): ForgeEvent | null {
   return FORGE_EVENTS[0];
 }
 
+// ─── Quality Info Sheet ───────────────────────────────────────────────────────
+const QUALITY_TIERS: { quality: Quality; minScore: number; maxScore: number }[] = [
+  { quality: 'legendary', minScore: 95, maxScore: 100 },
+  { quality: 'excellent', minScore: 80, maxScore: 94 },
+  { quality: 'good',      minScore: 60, maxScore: 79 },
+  { quality: 'normal',    minScore: 40, maxScore: 59 },
+  { quality: 'poor',      minScore: 0,  maxScore: 39 },
+];
+
+const qiStyles = StyleSheet.create({
+  overlay:      { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.72)' },
+  sheet:        { borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, paddingBottom: 28, borderWidth: 1, borderBottomWidth: 0 },
+  handle:       { width: 38, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 14 },
+  titleRow:     { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  title:        { fontSize: 16, fontWeight: '700', flex: 1 },
+  subtitle:     { fontSize: 12, marginBottom: 16 },
+  statsCard:    { borderRadius: 12, padding: 12, marginBottom: 16, flexDirection: 'row', gap: 16 },
+  statItem:     { flex: 1, alignItems: 'center', gap: 3 },
+  statValue:    { fontSize: 22, fontWeight: '800' },
+  statLabel:    { fontSize: 10, textAlign: 'center' },
+  divider:      { height: 1, marginBottom: 12 },
+  tierRow:      { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, marginBottom: 6, borderWidth: 1 },
+  tierDot:      { width: 10, height: 10, borderRadius: 5 },
+  tierLabel:    { flex: 1, fontSize: 13, fontWeight: '700' },
+  tierRange:    { fontSize: 11, fontWeight: '600' },
+  tierStatus:   { fontSize: 11, fontWeight: '700', marginLeft: 4 },
+  currentBar:   { height: 4, borderRadius: 2, marginTop: 3 },
+  closeBtn:     { marginTop: 16, paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
+  closeBtnText: { fontSize: 14, fontWeight: '700' },
+});
+
+function QualityInfoSheet({
+  visible,
+  onClose,
+  forgeSkill,
+  colors,
+  bottomPad,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  forgeSkill: number;
+  colors: ReturnType<typeof useColors>;
+  bottomPad: number;
+}) {
+  const typicalScore = 30 + Math.floor(forgeSkill * 0.7);
+  const maxPossibleScore = Math.min(100, typicalScore + 20); // good roll ceiling
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+      <View style={qiStyles.overlay}>
+        <View style={[qiStyles.sheet, { backgroundColor: colors.card, borderColor: colors.border, paddingBottom: 28 + bottomPad }]}>
+          <View style={[qiStyles.handle, { backgroundColor: colors.muted }]} />
+          <View style={qiStyles.titleRow}>
+            <Feather name="bar-chart-2" size={16} color={colors.accent} />
+            <Text style={[qiStyles.title, { color: colors.foreground }]}>Échelle de qualité</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Feather name="x" size={20} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          </View>
+          <Text style={[qiStyles.subtitle, { color: colors.mutedForeground }]}>
+            Les paliers de qualité et leur score requis
+          </Text>
+
+          {/* Player forge stats */}
+          <View style={[qiStyles.statsCard, { backgroundColor: colors.secondary, borderRadius: 12 }]}>
+            <View style={qiStyles.statItem}>
+              <Text style={[qiStyles.statValue, { color: colors.accent }]}>{forgeSkill}</Text>
+              <Text style={[qiStyles.statLabel, { color: colors.mutedForeground }]}>Niveau Forge</Text>
+            </View>
+            <View style={[{ width: 1, backgroundColor: colors.border }]} />
+            <View style={qiStyles.statItem}>
+              <Text style={[qiStyles.statValue, { color: MEDIEVAL.oldGold }]}>~{typicalScore}</Text>
+              <Text style={[qiStyles.statLabel, { color: colors.mutedForeground }]}>Score typique</Text>
+            </View>
+            <View style={[{ width: 1, backgroundColor: colors.border }]} />
+            <View style={qiStyles.statItem}>
+              <Text style={[qiStyles.statValue, { color: '#4CAF50' }]}>≤{maxPossibleScore}</Text>
+              <Text style={[qiStyles.statLabel, { color: colors.mutedForeground }]}>Meilleur roll</Text>
+            </View>
+          </View>
+
+          <View style={[qiStyles.divider, { backgroundColor: colors.border }]} />
+
+          {QUALITY_TIERS.map(({ quality, minScore, maxScore }) => {
+            const reach = qualityReachability(quality, forgeSkill);
+            const qColor = qualityColor(quality, colors);
+            const bgColor = reach === 'reachable'
+              ? '#1B5E2018'
+              : reach === 'stretch'
+              ? '#E6510012'
+              : 'transparent';
+            const borderColor = reach === 'reachable'
+              ? '#2E7D3240'
+              : reach === 'stretch'
+              ? '#E6510030'
+              : colors.border;
+
+            const isCurrent = typicalScore >= minScore && typicalScore <= maxScore;
+            const statusIcon = reach === 'reachable' ? '✓' : reach === 'stretch' ? '~' : '✗';
+            const statusColor = reachabilityColor(reach);
+
+            return (
+              <View key={quality} style={[qiStyles.tierRow, { backgroundColor: bgColor, borderColor }]}>
+                <View style={[qiStyles.tierDot, { backgroundColor: qColor }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[qiStyles.tierLabel, { color: colors.foreground }]}>
+                    {qualityLabel(quality)}
+                  </Text>
+                  {isCurrent && (
+                    <View style={[qiStyles.currentBar, { width: '60%', backgroundColor: qColor + '60' }]} />
+                  )}
+                </View>
+                <Text style={[qiStyles.tierRange, { color: colors.mutedForeground }]}>
+                  {minScore === 0 ? `< 40 pts` : `${minScore}–${maxScore === 100 ? '100' : maxScore} pts`}
+                </Text>
+                <Text style={[qiStyles.tierStatus, { color: statusColor }]}>{statusIcon}</Text>
+              </View>
+            );
+          })}
+
+          <TouchableOpacity
+            style={[qiStyles.closeBtn, { backgroundColor: colors.secondary }]}
+            onPress={onClose}
+          >
+            <Text style={[qiStyles.closeBtnText, { color: colors.foreground }]}>Fermer</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 // ─── Orders Modal ─────────────────────────────────────────────────────────────
 const QUALITY_ORDER_UI: Record<string, number> = { poor: 0, normal: 1, good: 2, excellent: 3, legendary: 4 };
 
@@ -289,6 +421,7 @@ function OrdersModal({
 }) {
   const [deliverMsg, setDeliverMsg] = useState<string | null>(null);
   const [nowTick, setNowTick] = useState(Date.now());
+  const [qualityInfoOpen, setQualityInfoOpen] = useState(false);
   useEffect(() => {
     if (!visible) return;
     const id = setInterval(() => setNowTick(Date.now()), 1000);
@@ -333,6 +466,7 @@ function OrdersModal({
   };
 
   return (
+    <>
     <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
       <View style={[oStyles.overlay, { backgroundColor: 'rgba(0,0,0,0.88)' }]}>
         <View style={[oStyles.sheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -475,16 +609,25 @@ function OrdersModal({
                           <Text style={[oStyles.orderMeta, { color: colors.mutedForeground, marginBottom: 0 }]}>
                             Qualité min. :
                           </Text>
-                          <View style={[oStyles.qualityBadge, { backgroundColor: bgColor }]}>
+                          <TouchableOpacity
+                            style={[oStyles.qualityBadge, { backgroundColor: bgColor }]}
+                            onPress={() => { setQualityInfoOpen(true); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                            activeOpacity={0.75}
+                          >
                             <Text style={[oStyles.qualityBadgeText, { color: fgColor }]}>
                               {qualityLabel(order.minQuality)}
                             </Text>
-                          </View>
-                          <View style={[oStyles.qualityBadge, { backgroundColor: bgColor + 'CC' }]}>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[oStyles.qualityBadge, { backgroundColor: bgColor + 'CC' }]}
+                            onPress={() => { setQualityInfoOpen(true); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                            activeOpacity={0.75}
+                          >
                             <Text style={[oStyles.qualityBadgeLabel, { color: fgColor }]}>
                               {reachabilityLabel(reach)}
                             </Text>
-                          </View>
+                            <Feather name="info" size={9} color={fgColor} style={{ marginLeft: 2 }} />
+                          </TouchableOpacity>
                         </View>
                       );
                     })()}
@@ -574,6 +717,14 @@ function OrdersModal({
         </View>
       </View>
     </Modal>
+    <QualityInfoSheet
+      visible={qualityInfoOpen}
+      onClose={() => setQualityInfoOpen(false)}
+      forgeSkill={game.player.skills.forge ?? 1}
+      colors={colors}
+      bottomPad={bottomPad}
+    />
+    </>
   );
 }
 
