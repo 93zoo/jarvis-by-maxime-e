@@ -178,3 +178,10 @@ uri = "file://screenshots/forge-header-stats.jpg"
 type = "image"
 title = "Header Forge avec stats"
 description = "FORGE, JOUEUR et FORGÉS sont maintenant dans le header du haut, avec le même style de barres de progression que FORGERON."
+
+[[outputs]]
+id = "VXz8BM7pVPkO0I4QRGmEI"
+uri = "file://screenshots/forge-incrusted.jpg"
+type = "image"
+title = "Forge — boutons incrustés"
+description = "AMÉLIORER / FORGER / COMMANDES flottent sur le fond comme les lingots ; la barre noire du bas est devenue transparente."
