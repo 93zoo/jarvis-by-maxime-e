@@ -899,6 +899,7 @@ export default function ForgeScreen() {
   const [showOrdersModal, setShowOrdersModal] = useState(false);
   const [deliverOrderId, setDeliverOrderId] = useState<string | null>(null);
   const [showUpgradesModal, setShowUpgradesModal] = useState(false);
+  const [showApprenticeModal, setShowApprenticeModal] = useState(false);
   const [weather, setWeather] = useState<WeatherType>('none');
   const [activeForgeEvent, setActiveForgeEvent] = useState<ForgeEvent | null>(null);
   const [showEventBanner, setShowEventBanner] = useState(false);
@@ -1227,22 +1228,7 @@ export default function ForgeScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: MEDIEVAL.steelDark }]}>
-      {/* ── Photorealistic forge backdrop ── */}
-      <ImageBackground source={FORGE_BG} resizeMode="cover" style={StyleSheet.absoluteFill}>
-        {/* Readability veils: darker at top (header) and bottom (actions) */}
-        <View style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}>
-          <LinearGradient
-            colors={['rgba(5,3,2,0.72)', 'rgba(5,3,2,0.18)', 'transparent']}
-            locations={[0, 0.22, 0.42]}
-            style={StyleSheet.absoluteFill}
-          />
-          <LinearGradient
-            colors={['transparent', 'rgba(5,3,2,0.38)', 'rgba(5,3,2,0.62)']}
-            locations={[0.5, 0.78, 1]}
-            style={StyleSheet.absoluteFill}
-          />
-        </View>
-      </ImageBackground>
+      {/* ── Photorealistic forge backdrop (ForgeBackdrop: image + effects) ── */}
 
       {/* ── Header ── */}
       <View style={[styles.header, { paddingTop: headerTopPad + 10 }]}>
@@ -1322,7 +1308,7 @@ export default function ForgeScreen() {
           <RailButton
             icon="user"
             label="APPRENTI"
-            onPress={() => idleScrollRef.current?.scrollTo({ y: 0, animated: true })}
+            onPress={() => setShowApprenticeModal(true)}
           />
         </View>
       )}
@@ -1432,17 +1418,14 @@ export default function ForgeScreen() {
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={[md.idlePanel, { paddingBottom: bottomPad + 4 }]}
           >
-            {/* Apprentice card — always visible (hire or manage) */}
-            <ApprenticeCard game={game} colors={colors} />
-
-            {/* Main action row: AMÉLIORER / FORGER / COMMANDES — floating on the backdrop */}
+            {/* Main action row: AMÉLIORER / FORGER / COMMANDES */}
             <View style={md.actionRow}>
               <TouchableOpacity
                 style={md.sideBtn}
                 onPress={() => setShowUpgradesModal(true)}
                 activeOpacity={0.82}
               >
-                <Feather name="trending-up" size={20} color={MEDIEVAL.oldGold} />
+                <Feather name="trending-up" size={18} color={MEDIEVAL.textLight} />
                 <Text style={md.sideBtnText}>AMÉLIORER</Text>
               </TouchableOpacity>
 
@@ -1451,11 +1434,16 @@ export default function ForgeScreen() {
                 onPress={() => setShowRecipeSheet(true)}
                 activeOpacity={0.82}
               >
-                <View style={md.forgeBtnInner}>
-                  <Feather name="tool" size={26} color={MEDIEVAL.oldGold} />
+                <LinearGradient
+                  colors={['#5A2E0E', '#8A4416', '#5A2E0E']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={md.forgeBtnInner}
+                >
+                  <Feather name="tool" size={22} color={MEDIEVAL.ember} />
                   <Text style={md.forgeBtnText}>FORGER</Text>
                   <Text style={md.forgeBtnSub}>{availableRecipes.length} recettes</Text>
-                </View>
+                </LinearGradient>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -1463,7 +1451,7 @@ export default function ForgeScreen() {
                 onPress={() => setShowOrdersModal(true)}
                 activeOpacity={0.82}
               >
-                <Feather name="inbox" size={20} color={MEDIEVAL.oldGold} />
+                <Feather name="inbox" size={18} color={MEDIEVAL.textLight} />
                 <Text style={md.sideBtnText}>COMMANDES</Text>
                 {pendingCount > 0 && (
                   <View style={md.badge}>
@@ -1472,16 +1460,6 @@ export default function ForgeScreen() {
                 )}
               </TouchableOpacity>
             </View>
-
-            {/* Inventory bar */}
-            <TouchableOpacity
-              style={md.inventoryBtn}
-              onPress={() => router.push('/inventory')}
-              activeOpacity={0.82}
-            >
-              <Feather name="briefcase" size={15} color={MEDIEVAL.textDim} />
-              <Text style={md.inventoryBtnText}>INVENTAIRE</Text>
-            </TouchableOpacity>
           </ScrollView>
         )}
 
@@ -1667,6 +1645,18 @@ export default function ForgeScreen() {
       </View>
 
       {/* ── Recipe Sheet ── */}
+      {/* ── Apprentice modal (hire / manage) ── */}
+      <Modal visible={showApprenticeModal} transparent animationType="slide" statusBarTranslucent onRequestClose={() => setShowApprenticeModal(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: '#171008', borderTopLeftRadius: 18, borderTopRightRadius: 18, borderWidth: 1, borderColor: 'rgba(200,140,60,0.35)', padding: 16, paddingBottom: bottomPad + 16, gap: 12 }}>
+            <ApprenticeCard game={game} colors={colors} />
+            <TouchableOpacity onPress={() => setShowApprenticeModal(false)} activeOpacity={0.8} style={{ alignSelf: 'center', paddingVertical: 8, paddingHorizontal: 24, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(200,140,60,0.35)' }}>
+              <Text style={{ color: MEDIEVAL.textDim, fontSize: 11, fontWeight: '800', letterSpacing: 2 }}>FERMER</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={showRecipeSheet} transparent animationType="slide" statusBarTranslucent>
         <View style={styles.overlay}>
           <View style={[styles.sheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -2133,26 +2123,34 @@ const md = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
+    gap: 4,
     paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: 'rgba(16,10,6,0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(200,140,60,0.35)',
   },
-  sideBtnText: { color: '#E8D9B0', fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
+  sideBtnText: { color: MEDIEVAL.textLight, fontSize: 9, fontWeight: '800', letterSpacing: 1 },
   forgeBtn: {
     flex: 1.6,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: MEDIEVAL.borderBright,
+    overflow: 'hidden',
   },
   forgeBtnInner: {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
   forgeBtnText: {
-    color: '#D4AF37',
-    fontSize: 20,
+    color: '#FFD9A0',
+    fontSize: 18,
     fontWeight: '900',
-    letterSpacing: 5,
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowRadius: 6,
+    letterSpacing: 4,
+    textShadowColor: 'rgba(255,122,26,0.6)',
+    textShadowRadius: 8,
   },
   forgeBtnSub: { color: MEDIEVAL.textDim, fontSize: 9, fontWeight: '600', letterSpacing: 1 },
   inventoryBtn: {

@@ -61,7 +61,7 @@ function ClassicTabLayout() {
         headerShown: false,
         tabBarStyle: {
           position: 'absolute',
-          backgroundColor: 'transparent',
+          backgroundColor: isIOS ? 'transparent' : colors.card,
           borderTopWidth: isWeb ? 1 : 0,
           borderTopColor: colors.border,
           elevation: 0,
