@@ -83,7 +83,7 @@ export default function StudioSplash({ onDone }: { onDone: () => void }) {
         <VideoView
           player={player}
           style={{ width, height }}
-          contentFit="cover"
+          contentFit="contain"
           nativeControls={false}
         />
       </Animated.View>
