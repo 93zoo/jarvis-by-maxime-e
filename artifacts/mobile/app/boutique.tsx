@@ -5,6 +5,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Linking,
   Modal,
   ScrollView,
   StyleSheet,
@@ -20,6 +21,7 @@ import type { PurchasesPackage } from 'react-native-purchases';
 import { useSubscription, GOLD_PRODUCTS } from '@/lib/revenuecat';
 import { useRewardedAds, ADS_UNLOCK_LEVEL } from '@/lib/rewardedAds';
 import { useGame } from '@/context/GameContext';
+import { getLeaderboardApiBase } from '@/lib/leaderboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors } from '@/hooks/useColors';
 
@@ -29,6 +31,18 @@ const CHEST_MATERIALS = ['silver', 'gold_ore', 'crystal', 'ruby', 'sapphire', 'e
 function todayKey(): string {
   const d = new Date();
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+/** URL de la politique de confidentialité, servie par l'API server (…/api/privacy). */
+function getPrivacyPolicyUrl(): string {
+  const base = getLeaderboardApiBase(); // ex. https://<domaine>/api-server/api
+  if (!base) return '';
+  return `${base}/privacy`;
+}
+
+function openPrivacyPolicy(): void {
+  const url = getPrivacyPolicyUrl();
+  if (url) Linking.openURL(url).catch(() => {});
 }
 
 function baseProductId(identifier: string): string {
@@ -255,6 +269,12 @@ export default function BoutiqueScreen() {
             d'abonnement de ton store, au moins 24 h avant la fin de la période en cours. Les packs
             d'or sont des achats uniques non remboursables une fois consommés.
           </Text>
+
+          <TouchableOpacity onPress={openPrivacyPolicy} style={styles.privacyLink}>
+            <Text style={[styles.restoreText, { color: colors.mutedForeground }]}>
+              Politique de confidentialité
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
       )}
 
@@ -302,6 +322,7 @@ const styles = StyleSheet.create({
   buyBtn: { borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
   buyBtnText: { fontSize: 13, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.5 },
   restore: { alignItems: 'center', paddingVertical: 14 },
+  privacyLink: { alignItems: 'center', paddingVertical: 12 },
   legal: { fontSize: 10, lineHeight: 15, opacity: 0.7, marginTop: 4 },
   restoreText: { fontSize: 12, textDecorationLine: 'underline' },
   feedback: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 10, padding: 10 },
