@@ -192,3 +192,10 @@ uri = "file://screenshots/forge-v4.jpg"
 type = "image"
 title = "Forge — v4 finale"
 description = "Boutons AMÉLIORER/FORGER/COMMANDES incrustés au fond sans cadre, anneau '1' retiré, barre de niveau FORGE identique à FORGERON dans le header, stat JOUEUR supprimée."
+
+[[outputs]]
+id = "1nqVP8ZY93a3q16FUT06c"
+uri = "file://screenshots/forge-new-bg.jpg"
+type = "image"
+title = "Forge — nouveau fond avec feu dynamique"
+description = "Ta nouvelle image est en fond ; le feu scintille de façon irrégulière comme un vrai foyer, avec braises et fumée repositionnées sur l'âtre."
