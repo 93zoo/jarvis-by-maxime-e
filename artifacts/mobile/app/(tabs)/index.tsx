@@ -1247,6 +1247,11 @@ export default function ForgeScreen() {
       <View style={[styles.header, { paddingTop: headerTopPad + 10 }]}>
         <View style={styles.headerTopRow}>
           <View style={styles.headerLeft}>
+            <View style={md.levelRing}>
+              <View style={md.levelRingInner}>
+                <Text style={md.levelRingText}>{player.level}</Text>
+              </View>
+            </View>
             <View>
               <Text style={md.headerTitle}>FORGERON</Text>
               <Text style={md.headerXP}>

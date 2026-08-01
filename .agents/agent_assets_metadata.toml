@@ -185,3 +185,10 @@ uri = "file://screenshots/forge-incrusted.jpg"
 type = "image"
 title = "Forge — boutons incrustés"
 description = "AMÉLIORER / FORGER / COMMANDES flottent sur le fond comme les lingots ; la barre noire du bas est devenue transparente."
+
+[[outputs]]
+id = "BmKbzjR7w59BzGsOT7h1L"
+uri = "file://screenshots/forge-v4.jpg"
+type = "image"
+title = "Forge — v4 finale"
+description = "Boutons AMÉLIORER/FORGER/COMMANDES incrustés au fond sans cadre, anneau '1' retiré, barre de niveau FORGE identique à FORGERON dans le header, stat JOUEUR supprimée."
