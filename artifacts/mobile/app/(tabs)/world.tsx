@@ -34,6 +34,16 @@ import type { ActiveHideout, CraftOrder, RegionData, RegionEnemy, RegionResource
 import GuildeSection from '@/components/GuildeSection';
 import WorkerReturnModal, { type WorkerReturnEntry } from '@/components/WorkerReturnModal';
 import { computeWorkerHarvest, MIN_RECAP_MS } from '@/data/workers';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// ─── Quick-collect progressive cooldown ──────────────────────────────────────
+/** Cooldown in seconds for each successive use. Stays at 300 s after step 4. */
+const QC_STEPS    = [25, 50, 100, 150, 300];
+/** After 10 min idle the step resets to 0 so the player starts fresh. */
+const QC_RESET_S  = 600;
+const QC_KEY_STEP = '@fk_qc_step';
+const QC_KEY_LAST = '@fk_qc_last';
+const QC_KEY_COOL = '@fk_qc_cool';
 
 // ─── Region metadata ──────────────────────────────────────────────────────────
 const REGION_COLORS: Record<string, string> = {
@@ -1228,6 +1238,45 @@ export default function WorldScreen() {
   const [showMarket, setShowMarket] = useState(false);
   const [workerReturnEntries, setWorkerReturnEntries] = useState<WorkerReturnEntry[]>([]);
 
+  // ── Quick-collect cooldown state ──────────────────────────────────────────
+  const [qcStep, setQcStep]       = useState(0);   // next step index (0-4)
+  const [qcLastAt, setQcLastAt]   = useState(0);   // ms timestamp of last use
+  const [qcCoolSec, setQcCoolSec] = useState(0);   // duration of active cooldown (s)
+  const [qcRemaining, setQcRemaining] = useState(0); // live countdown (s)
+
+  // Load persisted state on mount
+  useEffect(() => {
+    AsyncStorage.multiGet([QC_KEY_STEP, QC_KEY_LAST, QC_KEY_COOL]).then((pairs) => {
+      const step  = pairs[0][1] != null ? parseInt(pairs[0][1], 10) : 0;
+      const last  = pairs[1][1] != null ? parseInt(pairs[1][1], 10) : 0;
+      const cool  = pairs[2][1] != null ? parseInt(pairs[2][1], 10) : 0;
+      const elapsedS = last > 0 ? (Date.now() - last) / 1000 : Infinity;
+      // Step resets if the player was idle for more than QC_RESET_S
+      const effectiveStep = elapsedS > QC_RESET_S ? 0 : step;
+      setQcStep(effectiveStep);
+      setQcLastAt(last);
+      setQcCoolSec(cool);
+      if (effectiveStep !== step) {
+        AsyncStorage.setItem(QC_KEY_STEP, '0').catch(() => {});
+      }
+    }).catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 1-second ticker: recomputes remaining whenever lastAt or coolSec changes
+  useEffect(() => {
+    if (qcLastAt === 0 || qcCoolSec === 0) { setQcRemaining(0); return; }
+    const compute = () => Math.max(0, Math.ceil(qcCoolSec - (Date.now() - qcLastAt) / 1000));
+    setQcRemaining(compute());
+    const id = setInterval(() => {
+      const r = compute();
+      setQcRemaining(r);
+      if (r <= 0) clearInterval(id);
+    }, 1000);
+    return () => clearInterval(id);
+  }, [qcLastAt, qcCoolSec]);
+
+  const qcIsReady = qcRemaining <= 0;
+
   const headerTopPad = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPad = insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 96;
 
@@ -1274,7 +1323,7 @@ export default function WorldScreen() {
   }, [game]);
 
   const handleQuickCollect = useCallback(() => {
-    if (!selectedRegion) return;
+    if (!selectedRegion || qcRemaining > 0) return;
     AudioManager.playCollect();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const result = game.collectFromRegion(selectedRegion.id);
@@ -1285,7 +1334,23 @@ export default function WorldScreen() {
     if (result.regionCompleted) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-  }, [selectedRegion, game]);
+
+    // Apply the current cooldown step, then advance for next use
+    const thisStep  = Math.min(qcStep, QC_STEPS.length - 1);
+    const coolSec   = QC_STEPS[thisStep];
+    const nextStep  = Math.min(qcStep + 1, QC_STEPS.length - 1);
+    const now       = Date.now();
+
+    setQcStep(nextStep);
+    setQcLastAt(now);
+    setQcCoolSec(coolSec);
+
+    AsyncStorage.multiSet([
+      [QC_KEY_STEP, String(nextStep)],
+      [QC_KEY_LAST, String(now)],
+      [QC_KEY_COOL, String(coolSec)],
+    ]).catch(() => {});
+  }, [selectedRegion, game, qcStep, qcRemaining]);
 
   const handleExplore = useCallback(() => {
     if (!selectedRegion) return;
@@ -1588,11 +1653,34 @@ export default function WorldScreen() {
               {/* Buttons */}
               <View style={styles.sheetBtns}>
                 <TouchableOpacity
-                  style={[styles.btnSecondary, { backgroundColor: colors.secondary, borderColor: colors.border }]}
+                  style={[
+                    styles.btnSecondary,
+                    { backgroundColor: colors.secondary, borderColor: colors.border },
+                    !qcIsReady && { opacity: 0.55, borderColor: colors.mutedForeground },
+                  ]}
                   onPress={handleQuickCollect}
+                  disabled={!qcIsReady}
+                  activeOpacity={0.8}
                 >
-                  <Feather name="package" size={15} color={colors.accent} />
-                  <Text style={[styles.btnSecondaryText, { color: colors.accent }]}>Collecte rapide</Text>
+                  <Feather
+                    name={qcIsReady ? 'package' : 'clock'}
+                    size={15}
+                    color={qcIsReady ? colors.accent : colors.mutedForeground}
+                  />
+                  {qcIsReady ? (
+                    <Text style={[styles.btnSecondaryText, { color: colors.accent }]}>
+                      Collecte rapide
+                    </Text>
+                  ) : (
+                    <View style={{ alignItems: 'center' }}>
+                      <Text style={[styles.btnSecondaryText, { color: colors.mutedForeground, fontSize: 10 }]}>
+                        Collecte rapide
+                      </Text>
+                      <Text style={{ fontSize: 13, fontWeight: '800', color: colors.mutedForeground }}>
+                        {qcRemaining}s
+                      </Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.btnExplore, { backgroundColor: REGION_COLORS[selectedRegion.id] ?? colors.primary }]}

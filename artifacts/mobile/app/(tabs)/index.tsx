@@ -37,6 +37,7 @@ import LeaderboardRewardsModal from '@/components/LeaderboardRewardsModal';
 import ForgeGuidedOverlay from '@/components/ForgeGuidedOverlay';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BetaWelcomeModal, { BETA_RESOURCE_IDS } from '@/components/BetaWelcomeModal';
+import SettingsModal from '@/components/SettingsModal';
 import Reanimated, {
   cancelAnimation as cancelAnim,
   Easing as REasing,
@@ -1357,6 +1358,7 @@ export default function ForgeScreen() {
   const [showApprenticeModal, setShowApprenticeModal] = useState(false);
   const [showForgeInfo, setShowForgeInfo] = useState(false);
   const [showBetaWelcome, setShowBetaWelcome] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [weather, setWeather] = useState<WeatherType>('none');
   const [activeForgeEvent, setActiveForgeEvent] = useState<ForgeEvent | null>(null);
   const [showEventBanner, setShowEventBanner] = useState(false);
@@ -1610,6 +1612,11 @@ export default function ForgeScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   };
 
+  const handleQuit = () => {
+    resetCraft();
+    setShowSettings(false);
+  };
+
   const handleClaimBetaBoost = () => {
     // Grant 2 000 gold
     game.addGold(2000);
@@ -1804,6 +1811,14 @@ export default function ForgeScreen() {
             accessibilityLabel="Classement des joueurs"
           />
           <BoutiqueButton />
+          <TouchableOpacity
+            style={md.pill}
+            onPress={() => { setShowSettings(true); Haptics.selectionAsync(); }}
+            activeOpacity={0.8}
+            accessibilityLabel="Paramètres"
+          >
+            <Feather name="menu" size={13} color={MEDIEVAL.textDim} />
+          </TouchableOpacity>
           {upgradeLevel > 0 && (
             <View style={md.pill}>
               <Feather name="trending-up" size={12} color={MEDIEVAL.emberSoft} />
@@ -2265,6 +2280,14 @@ export default function ForgeScreen() {
           onResult={handleEnigmaResult}
         />
       )}
+
+      {/* ── Settings / pause modal ── */}
+      <SettingsModal
+        visible={showSettings}
+        onClose={() => setShowSettings(false)}
+        onGoToProfile={() => router.push('/(tabs)/profile')}
+        onQuit={handleQuit}
+      />
 
       {/* ── Beta welcome boost modal ── */}
       <BetaWelcomeModal
