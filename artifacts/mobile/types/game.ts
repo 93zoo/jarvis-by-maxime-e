@@ -584,6 +584,8 @@ export interface SaveData {
   hideoutLastCollected?: Record<string, number>;
   /** Guilde des Travailleurs idle workers. */
   workers?: Worker[];
+  /** True once the one-time beta-tester welcome boost has been claimed. Persisted so it survives reinstalls. */
+  betaBoostClaimed?: boolean;
   lastSaved: number;
 }
 

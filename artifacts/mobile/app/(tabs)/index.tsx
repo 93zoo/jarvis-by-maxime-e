@@ -35,6 +35,8 @@ import { applyStoredAudioSettings } from '@/utils/audioSettings';
 import CraftingEnigmaModal from '@/components/CraftingEnigma';
 import LeaderboardRewardsModal from '@/components/LeaderboardRewardsModal';
 import ForgeGuidedOverlay from '@/components/ForgeGuidedOverlay';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import BetaWelcomeModal, { BETA_RESOURCE_IDS } from '@/components/BetaWelcomeModal';
 import Reanimated, {
   cancelAnimation as cancelAnim,
   Easing as REasing,
@@ -1354,19 +1356,14 @@ export default function ForgeScreen() {
   const [showUpgradesModal, setShowUpgradesModal] = useState(false);
   const [showApprenticeModal, setShowApprenticeModal] = useState(false);
   const [showForgeInfo, setShowForgeInfo] = useState(false);
+  const [showBetaWelcome, setShowBetaWelcome] = useState(false);
   const [weather, setWeather] = useState<WeatherType>('none');
   const [activeForgeEvent, setActiveForgeEvent] = useState<ForgeEvent | null>(null);
   const [showEventBanner, setShowEventBanner] = useState(false);
-  // ── Temperature gauge ──
-  const [temperature, setTemperature] = useState(0);   // 0-100+ – label display only
-
   const sceneRef = useRef<ForgeScene3DRef>(null);
   const forgePressRef = useRef(new Animated.Value(1));
   const forgeFloatRef = useRef(new Animated.Value(0));
   const hitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const temperatureRef = useRef(0); // readable inside callbacks without stale closure
-  const tempWarnedRef = useRef(false); // true once the >75% warning has fired this session
-  const gaugeShakeAnim = useRef(new Animated.Value(0));
   // ── Quench gauge ──
   const [quenchProgress, setQuenchProgress] = useState(100); // 100=hot → 0=cold
   const [quenchTapped, setQuenchTapped] = useState(false);
@@ -1445,6 +1442,15 @@ export default function ForgeScreen() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Beta welcome boost — shown once on first game load
+  useEffect(() => {
+    if (!game.isLoaded) return;
+    if (game.betaBoostClaimed) return; // already claimed in this save — never show again
+    AsyncStorage.getItem('@fk_beta_boost_v1').then((val) => {
+      if (!val) setShowBetaWelcome(true);
+    }).catch(() => { setShowBetaWelcome(true); }); // if AsyncStorage fails, fall back to save flag only
+  }, [game.isLoaded]);
 
   // Web: page-visibility suspend/resume lives in its own effect below.
   useEffect(() => {
@@ -1587,23 +1593,6 @@ export default function ForgeScreen() {
     return () => { clearInterval(intervalId); runResultRef.current = null; };
   }, [craftPhase]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Temperature: cool while hammering or cooling; reset on any other phase ──
-  useEffect(() => {
-    if (craftPhase !== 'HAMMERING' && craftPhase !== 'COOLING') {
-      setTemperature(0);
-      temperatureRef.current = 0;
-      return;
-    }
-    const id = setInterval(() => {
-      setTemperature((prev) => {
-        const next = Math.max(0, prev - 6);
-        temperatureRef.current = next;
-        return next;
-      });
-    }, 300);
-    return () => clearInterval(id);
-  }, [craftPhase]);
-
   // ─── Actions ─────────────────────────────────────────────────────────────
   const startCraft = (recipe: RecipeData) => {
     if (!game.canCraftRecipe(recipe.id)) return;
@@ -1611,7 +1600,6 @@ export default function ForgeScreen() {
     setSession({ recipeId: recipe.id, strikesCompleted: 0, strikeScores: [] });
     heatingAnim.value = 0;
     setCraftedItem(null);
-    tempWarnedRef.current = false;
     activeRecipeRef.current = recipe;
     // Roll for a random forge event
     const evt = rollForgeEvent();
@@ -1622,15 +1610,15 @@ export default function ForgeScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   };
 
-  const triggerGaugeShake = () => {
-    gaugeShakeAnim.current.setValue(0);
-    Animated.sequence([
-      Animated.timing(gaugeShakeAnim.current, { toValue: -5, duration: 45, useNativeDriver: true }),
-      Animated.timing(gaugeShakeAnim.current, { toValue: 5,  duration: 45, useNativeDriver: true }),
-      Animated.timing(gaugeShakeAnim.current, { toValue: -4, duration: 45, useNativeDriver: true }),
-      Animated.timing(gaugeShakeAnim.current, { toValue: 4,  duration: 45, useNativeDriver: true }),
-      Animated.timing(gaugeShakeAnim.current, { toValue: 0,  duration: 35, useNativeDriver: true }),
-    ]).start();
+  const handleClaimBetaBoost = () => {
+    // Grant 2 000 gold
+    game.addGold(2000);
+    // Grant 20 of every resource
+    BETA_RESOURCE_IDS.forEach((id) => game.addResource(id, 20));
+    // Mark claimed in save data (survives reinstalls) + AsyncStorage (fast local check)
+    game.claimBetaBoost();
+    AsyncStorage.setItem('@fk_beta_boost_v1', 'claimed').catch(() => {});
+    setShowBetaWelcome(false);
   };
 
   const handleStrike = (score: number, label: HitLabel) => {
@@ -1638,30 +1626,15 @@ export default function ForgeScreen() {
     // These fire immediately so the tap feels instant even on slow devices.
     sceneRef.current?.triggerHammerStrike();
 
-    const prevTemp = temperatureRef.current;
-    const newTemp = Math.min(110, prevTemp + 25);
-    temperatureRef.current = newTemp; // ref only — no re-render yet
-
-    // Compute final score/label now (depends on temp) so the deferred block
-    // captures the right values via closure.
+    // Compute final score/label for the deferred block.
     let finalScore = score;
     let finalLabel = label;
-    // Temperature is now informational only — no RATÉ penalty for overheating.
-    // A warning plays when the metal gets very hot so the player has audio
-    // feedback, but the strike score is never zeroed out.
-    if (!tempWarnedRef.current && newTemp >= 75) {
-      tempWarnedRef.current = true;
-      AudioManager.playTempWarning();
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      triggerGaugeShake();
-    }
 
     // ── Deferred: all React setState calls ─────────────────────────────────
     // Pushing state updates to the next JS tick means the current press event
     // finishes and the gesture system can register the next tap immediately —
     // no lag between strikes on slower phones.
     setTimeout(() => {
-      setTemperature(newTemp);
       setLastHitLabel(finalLabel);
       if (hitTimerRef.current) clearTimeout(hitTimerRef.current);
       hitTimerRef.current = setTimeout(() => setLastHitLabel(null), 900);
@@ -1711,9 +1684,6 @@ export default function ForgeScreen() {
     setCraftedItem(null);
     heatingAnim.value = 0;
     setLastHitLabel(null);
-    setTemperature(0);
-    temperatureRef.current = 0;
-    tempWarnedRef.current = false;
     setQuenchProgress(100);
     setQuenchTapped(false);
     setQuenchLabel(null);
@@ -2037,43 +2007,6 @@ export default function ForgeScreen() {
               </View>
             )}
 
-            {/* ── Temperature gauge ── */}
-            <View style={styles.tempGauge}>
-              <MaterialCommunityIcons name="thermometer" size={18} color="#FFAA00" />
-              <Animated.View style={[styles.tempTrackWrap, { transform: [{ translateX: gaugeShakeAnim.current }] }]}>
-                <View style={styles.tempTrack}>
-                  <View
-                    style={[
-                      styles.tempFill,
-                      {
-                        width: `${Math.min(100, temperature)}%` as `${number}%`,
-                        backgroundColor:
-                          temperature >= 90 ? '#FF2200'
-                          : temperature >= 70 ? '#FF5500'
-                          : temperature >= 45 ? '#FF8800'
-                          : '#FFAA00',
-                      },
-                    ]}
-                  />
-                </View>
-                {temperature >= 80 ? (
-                  <Text style={[styles.tempWarning, { color: temperature >= 90 ? '#FF2200' : '#FF6600' }]}>
-                    Métal très chaud — bonne cadence !
-                  </Text>
-                ) : (
-                  <Text style={styles.tempHint}>Frappe régulièrement pour maintenir la chaleur</Text>
-                )}
-              </Animated.View>
-              <Text
-                style={[
-                  styles.tempValue,
-                  { color: temperature >= 90 ? '#FF2200' : temperature >= 70 ? '#FF8800' : '#FFAA00' },
-                ]}
-              >
-                {Math.min(100, Math.round(temperature))}°
-              </Text>
-            </View>
-
             <HammeringMiniGame
               strikesCompleted={session.strikesCompleted}
               strikeScores={session.strikeScores}
@@ -2099,37 +2032,6 @@ export default function ForgeScreen() {
             <Text style={styles.quenchSubtitle}>
               Retire l'acier quand la barre passe dans la zone verte
             </Text>
-
-            {/* ── Read-only temperature gauge (drains to 0 as metal cools) ── */}
-            {temperature > 0 && (
-              <View style={[styles.tempGauge, { marginBottom: 8 }]}>
-                <MaterialCommunityIcons name="thermometer" size={18} color="#FFAA00" />
-                <View style={[styles.tempTrackWrap]}>
-                  <View style={styles.tempTrack}>
-                    <View
-                      style={[
-                        styles.tempFill,
-                        {
-                          width: `${Math.min(100, temperature)}%` as `${number}%`,
-                          backgroundColor:
-                            temperature >= 70 ? '#FF5500'
-                            : temperature >= 45 ? '#FF8800'
-                            : '#FFAA00',
-                        },
-                      ]}
-                    />
-                  </View>
-                </View>
-                <Text
-                  style={[
-                    styles.tempValue,
-                    { color: temperature >= 70 ? '#FF8800' : '#FFAA00' },
-                  ]}
-                >
-                  {Math.min(100, Math.round(temperature))}°
-                </Text>
-              </View>
-            )}
 
             {/* Temperature bar */}
             <View style={styles.quenchTrack}>
@@ -2363,6 +2265,12 @@ export default function ForgeScreen() {
           onResult={handleEnigmaResult}
         />
       )}
+
+      {/* ── Beta welcome boost modal ── */}
+      <BetaWelcomeModal
+        visible={showBetaWelcome}
+        onClaim={handleClaimBetaBoost}
+      />
 
       {/* ── Forge XP info modal ── */}
       {showForgeInfo && (
@@ -3049,35 +2957,6 @@ const styles = StyleSheet.create({
   quenchBtnText: { fontSize: 15, fontWeight: '900', letterSpacing: 2 },
   quenchWaiting: { paddingVertical: 14, alignItems: 'center' },
   quenchWaitingText: { fontSize: 13, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic' },
-
-  // ── Temperature gauge ────────────────────────────────────────────────────
-  tempGauge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    marginBottom: 4,
-  },
-  tempIcon: { fontSize: 20 },
-  tempTrackWrap: { flex: 1, gap: 4 },
-  tempTrack: {
-    height: 12,
-    borderRadius: 6,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-  },
-  tempFill: {
-    height: '100%',
-    borderRadius: 6,
-    minWidth: 3,
-  },
-  tempHint: { fontSize: 10, color: 'rgba(255,255,255,0.35)', letterSpacing: 0.3 },
-  tempWarning: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
-  tempOverheatLabel: { fontSize: 11, fontWeight: '900', color: '#FF2200', letterSpacing: 1 },
-  tempValue: { fontSize: 15, fontWeight: '900', minWidth: 34, textAlign: 'right' },
 
   eventBanner: {
     flexDirection: 'row',

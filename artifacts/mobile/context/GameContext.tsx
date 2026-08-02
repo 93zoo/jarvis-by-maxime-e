@@ -361,6 +361,8 @@ interface GameState {
   hideoutLastCollected: Record<string, number>;
   /** Guilde des Travailleurs idle workers. */
   workers: Worker[];
+  /** True once the one-time beta boost has been claimed. Persisted in every save path. */
+  betaBoostClaimed: boolean;
 }
 
 type GameAction =
@@ -368,6 +370,7 @@ type GameAction =
   | { type: 'RESET' }
   | { type: 'COMPLETE_FIRST_FORGE_TUTORIAL' }
   | { type: 'COMPLETE_FIRST_FORGE' }
+  | { type: 'CLAIM_BETA_BOOST' }
   | { type: 'ADD_RESOURCE'; resourceId: string; qty: number }
   | { type: 'REMOVE_RESOURCE'; resourceId: string; qty: number }
   | { type: 'ADD_CRAFTED_ITEM'; item: Item }
@@ -583,6 +586,7 @@ function buildInitialState(): GameState {
     activeHideouts: [],
     hideoutLastCollected: {},
     workers: [],
+    betaBoostClaimed: false,
   };
 }
 
@@ -804,6 +808,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         activeHideouts: s.activeHideouts ?? [],
         hideoutLastCollected: s.hideoutLastCollected ?? {},
         workers: s.workers ?? [],
+        betaBoostClaimed: s.betaBoostClaimed ?? false,
       };
     }
     case 'RESET': {
@@ -1689,6 +1694,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    case 'CLAIM_BETA_BOOST':
+      return { ...state, betaBoostClaimed: true };
+
     default:
       return state;
   }
@@ -1787,6 +1795,8 @@ interface GameContextType {
   resetGame: () => void;
   completeFirstForgeTutorial: () => Promise<void>;
   completeFirstForge: () => Promise<void>;
+  betaBoostClaimed: boolean;
+  claimBetaBoost: () => void;
   // Progression
   allTalents: TalentData[];
   allForgeUpgrades: ForgeUpgradeData[];
@@ -2049,6 +2059,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           activeHideouts: state.activeHideouts ?? [],
           hideoutLastCollected: state.hideoutLastCollected ?? {},
           workers: state.workers ?? [],
+          betaBoostClaimed: state.betaBoostClaimed,
           lastSaved: now,
         };
         await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
@@ -2158,6 +2169,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         activeHideouts: state.activeHideouts ?? [],
         hideoutLastCollected: state.hideoutLastCollected ?? {},
         workers: state.workers ?? [],
+        betaBoostClaimed: state.betaBoostClaimed,
         lastSaved: Date.now(),
       };
       AsyncStorage.setItem(SAVE_KEY, JSON.stringify(immediteSave)).catch(() => {
@@ -2808,6 +2820,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       activeHideouts: state.activeHideouts ?? [],
       hideoutLastCollected: state.hideoutLastCollected ?? {},
       workers: state.workers ?? [],
+      betaBoostClaimed: state.betaBoostClaimed,
       lastSaved: now,
     };
     try {
@@ -2850,6 +2863,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         activeHideouts: state.activeHideouts ?? [],
         hideoutLastCollected: state.hideoutLastCollected ?? {},
         workers: state.workers ?? [],
+        betaBoostClaimed: state.betaBoostClaimed,
         lastSaved: Date.now(),
       };
       const res = await fetch(`${base}/save`, {
@@ -2922,6 +2936,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       activeHideouts: state.activeHideouts ?? [],
       hideoutLastCollected: state.hideoutLastCollected ?? {},
       workers: state.workers ?? [],
+      betaBoostClaimed: state.betaBoostClaimed,
       lastSaved: now,
     };
     dispatch({ type: 'COMPLETE_FIRST_FORGE_TUTORIAL' });
@@ -2946,6 +2961,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // In-memory dispatch keeps the flag true for the current session.
     }
+  }, []);
+
+  const claimBetaBoost = useCallback(() => {
+    dispatch({ type: 'CLAIM_BETA_BOOST' });
   }, []);
 
   // -------------------------------------------------------------------------
@@ -3369,6 +3388,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         hireWorker,
         upgradeWorker,
         collectWorker,
+        betaBoostClaimed: state.betaBoostClaimed,
+        claimBetaBoost,
       } as GameContextType;
 
       // Lazy getters – each JSON file is required (and cached) only the first
