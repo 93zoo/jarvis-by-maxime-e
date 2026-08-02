@@ -351,12 +351,18 @@ router.get("/leaderboard/rewards", async (req, res) => {
       return;
     }
     const awards = await db.select().from(leaderboardAwardsTable);
-    const pending = awards.filter((a) => a.playerId === selfId && !a.claimed);
+    const playerAwards = awards.filter((a) => a.playerId === selfId);
+    const pending = playerAwards.filter((a) => !a.claimed);
     const title = latestTitles(awards)[selfId] ?? null;
+    // Full history (newest first) so the client can display a titles earned list.
+    const history = [...playerAwards]
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .map((a) => ({ ...a, createdAt: a.createdAt.toISOString() }));
     res.json({
       success: true,
       pending: pending.map((a) => ({ ...a, createdAt: a.createdAt.toISOString() })),
       title,
+      history,
     });
   } catch (err) {
     logger.error(err, "leaderboard rewards read error");

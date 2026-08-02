@@ -34,6 +34,7 @@ import { useColors } from '@/hooks/useColors';
 import AudioManager from '@/utils/AudioManager';
 import { saveAudioSettings } from '@/utils/audioSettings';
 import type { Achievement, ForgeHistoryEntry, SessionSnapshot, SkillData, SkillType, TalentData } from '@/types/game';
+import { fetchLeaderboardRewards, isLeaderboardAvailable, type LeaderboardAward } from '@/lib/leaderboard';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const SKILL_ICONS: Record<SkillType, string> = {
@@ -1723,7 +1724,7 @@ const QUALITY_LABEL_FR: Record<string, string> = {
 
 const HISTORY_LIMIT = 20;
 
-function StatsTabContent({ colors, game }: { colors: ReturnType<typeof useColors>; game: ReturnType<typeof useGame> }) {
+function StatsTabContent({ colors, game, titleHistory }: { colors: ReturnType<typeof useColors>; game: ReturnType<typeof useGame>; titleHistory: LeaderboardAward[] }) {
   const { player } = game;
 
   // Session snapshots for sparkline
@@ -1764,6 +1765,47 @@ function StatsTabContent({ colors, game }: { colors: ReturnType<typeof useColors
 
   return (
     <>
+      {/* ── Titles history ── */}
+      {titleHistory.length > 0 && (
+        <>
+          <Text style={[stStyles.sectionHeader, { color: colors.foreground }]}>TITRES REMPORTÉS</Text>
+          <View style={[stStyles.infoCard, { backgroundColor: colors.card, borderColor: colors.border, marginBottom: 16 }]}>
+            {titleHistory.map((award, idx) => {
+              const periodLabel = award.period === 'weekly' ? 'Hebdomadaire' : 'Quotidien';
+              const rankLabel = award.rank === 1 ? '1er' : award.rank === 2 ? '2ème' : '3ème';
+              const rankColor = award.rank === 1 ? '#D4AF37' : award.rank === 2 ? '#C0C0C0' : '#CD7F32';
+              // Format the period key into a readable date
+              let periodDisplay = award.periodKey;
+              if (/^\d{4}-\d{2}-\d{2}$/.test(award.periodKey)) {
+                periodDisplay = new Date(award.periodKey).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+              } else if (/^\d{4}-W\d{2}$/.test(award.periodKey)) {
+                const [yr, wk] = award.periodKey.split('-W');
+                periodDisplay = `Semaine ${wk} · ${yr}`;
+              }
+              return (
+                <View key={award.id}>
+                  {idx > 0 && <View style={[stStyles.infoSep, { backgroundColor: colors.border }]} />}
+                  <View style={[stStyles.infoRow, { gap: 10 }]}>
+                    <Feather name="award" size={16} color={rankColor} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[stStyles.infoValue, { color: rankColor }]}>{award.title}</Text>
+                      <Text style={[stStyles.infoLabel, { color: colors.mutedForeground, fontSize: 11, flex: 0 }]}>
+                        {periodLabel} · {rankLabel} · {periodDisplay}
+                      </Text>
+                    </View>
+                    {award.claimed && (
+                      <View style={{ backgroundColor: '#4CAF5022', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3 }}>
+                        <Text style={{ color: '#4CAF50', fontSize: 9, fontWeight: '700' }}>RÉCLAMÉ</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </>
+      )}
+
       {/* ── Account info ── */}
       <Text style={[stStyles.sectionHeader, { color: colors.foreground }]}>COMPTE</Text>
       <View style={[stStyles.infoCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -2681,6 +2723,8 @@ export default function ProfileScreen({ tabs, title }: { tabs?: readonly Profile
   const [showCustomize, setShowCustomize] = useState(false);
   const [cardCollapsed, setCardCollapsed] = useState(true);
   const hasPromptedRef = useRef(false);
+  const [leaderboardTitle, setLeaderboardTitle] = useState<string | null>(null);
+  const [titleHistory, setTitleHistory] = useState<LeaderboardAward[]>([]);
 
   // Auto-prompt customization on first session (name still at default)
   useEffect(() => {
@@ -2691,6 +2735,19 @@ export default function ProfileScreen({ tabs, title }: { tabs?: readonly Profile
       setShowCustomize(true);
     }
   }, [game.isLoaded, game.player.name]);
+
+  // Fetch leaderboard title and history
+  useEffect(() => {
+    if (!game.isLoaded || !isLeaderboardAvailable()) return;
+    AsyncStorage.getItem('@fk_player_id').then((pid) => {
+      if (!pid) return;
+      return fetchLeaderboardRewards(pid).then(({ title, history }) => {
+        setLeaderboardTitle(title);
+        setTitleHistory(history);
+      });
+    }).catch(() => {/* silent — leaderboard is best-effort */});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game.isLoaded]);
 
   if (!game.isLoaded) {
     return (
@@ -2759,11 +2816,23 @@ export default function ProfileScreen({ tabs, title }: { tabs?: readonly Profile
           />
           <View style={[styles.playerInfo, { flex: 1 }]}>
             <Text style={[styles.playerName, { color: colors.foreground }]}>{player.name}</Text>
+            {cardCollapsed && leaderboardTitle ? (
+              <View style={styles.titleBadgeInline}>
+                <Feather name="award" size={9} color="#D4AF37" />
+                <Text style={styles.titleBadgeInlineText} numberOfLines={1}>{leaderboardTitle}</Text>
+              </View>
+            ) : null}
             {!cardCollapsed && (
               <>
                 <Text style={[styles.playerTitle, { color: colors.primary }]}>
                   {player.forgeLevel >= 8 ? 'Maître Forgeron' : player.forgeLevel >= 5 ? 'Forgeron Confirmé' : player.forgeLevel >= 3 ? 'Forgeron' : 'Apprenti Forgeron'}
                 </Text>
+                {leaderboardTitle && (
+                  <View style={styles.titleBadgeExpanded}>
+                    <Feather name="award" size={10} color="#D4AF37" />
+                    <Text style={styles.titleBadgeExpandedText}>{leaderboardTitle}</Text>
+                  </View>
+                )}
                 <Text style={[styles.playerSub, { color: colors.mutedForeground }]}>
                   {player.forgeName ?? 'La Forge du Débutant'} · Niv.{player.forgeLevel}
                 </Text>
@@ -2934,7 +3003,7 @@ export default function ProfileScreen({ tabs, title }: { tabs?: readonly Profile
           <>
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>AUDIO</Text>
             <AudioSettingsCard colors={colors} />
-            <StatsTabContent colors={colors} game={game} />
+            <StatsTabContent colors={colors} game={game} titleHistory={titleHistory} />
             <TouchableOpacity
               style={[styles.resetBtn, { borderColor: '#8A6A2A' }]}
               onPress={() => router.push('/a-propos')}
@@ -2999,6 +3068,10 @@ const styles = StyleSheet.create({
   customizeBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, borderWidth: 1 },
   customizeBtnText: { fontSize: 10, fontWeight: '700' },
   collapseBtn: { padding: 4, marginLeft: 4 },
+  titleBadgeInline: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 3 },
+  titleBadgeInlineText: { fontSize: 10, fontWeight: '700', color: '#D4AF37' },
+  titleBadgeExpanded: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3, marginBottom: 1 },
+  titleBadgeExpandedText: { fontSize: 11, fontWeight: '700', color: '#D4AF37' },
   xpSection: {},
   xpLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   xpLabel: { fontSize: 10 },

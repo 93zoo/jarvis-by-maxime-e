@@ -117,22 +117,22 @@ export async function reportLeaderboardScore(params: {
   }
 }
 
-/** Récupère les récompenses non réclamées du joueur. Silencieux en cas d'échec. */
+/** Récupère les récompenses du joueur (en attente + historique complet). Silencieux en cas d'échec. */
 export async function fetchLeaderboardRewards(
   playerId: string,
-): Promise<{ pending: LeaderboardAward[]; title: string | null }> {
+): Promise<{ pending: LeaderboardAward[]; title: string | null; history: LeaderboardAward[] }> {
   const base = getLeaderboardApiBase();
-  if (!base || !playerId) return { pending: [], title: null };
+  if (!base || !playerId) return { pending: [], title: null, history: [] };
   try {
     const token = await getPlayerToken();
     const res = await fetch(`${base}/leaderboard/rewards?playerId=${encodeURIComponent(playerId)}`, {
       headers: { 'x-player-token': token },
     });
-    if (!res.ok) return { pending: [], title: null };
+    if (!res.ok) return { pending: [], title: null, history: [] };
     const json = await res.json();
-    return { pending: json.pending ?? [], title: json.title ?? null };
+    return { pending: json.pending ?? [], title: json.title ?? null, history: json.history ?? [] };
   } catch {
-    return { pending: [], title: null };
+    return { pending: [], title: null, history: [] };
   }
 }
 
