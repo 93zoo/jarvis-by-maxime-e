@@ -14,11 +14,12 @@ import {
   View,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import type { PurchasesPackage } from 'react-native-purchases';
-import { useSubscription, GOLD_PRODUCTS } from '@/lib/revenuecat';
+import { useSubscription, GOLD_PRODUCTS, RESOURCE_PRODUCTS } from '@/lib/revenuecat';
 import { useRewardedAds, ADS_UNLOCK_LEVEL } from '@/lib/rewardedAds';
 import { useGame } from '@/context/GameContext';
 import { getLeaderboardApiBase } from '@/lib/leaderboard';
@@ -141,16 +142,22 @@ export default function BoutiqueScreen() {
   const premiumPackage = packages.find(
     (p) => baseProductId(p.product.identifier) === 'forge_premium',
   );
+  const resourcePackages = packages.filter(
+    (p) => RESOURCE_PRODUCTS[baseProductId(p.product.identifier)] !== undefined,
+  );
 
   const doPurchase = async (pkg: PurchasesPackage) => {
     setConfirmPkg(null);
     try {
       await purchase(pkg);
       const goldAmount = GOLD_PRODUCTS[baseProductId(pkg.product.identifier)];
+      const resourcePack = RESOURCE_PRODUCTS[baseProductId(pkg.product.identifier)];
       if (goldAmount) {
-        // Gold is granted idempotently by GoldGrantReconciler from the
-        // customer's transaction history — never directly here.
+        // Gold is granted idempotently by GoldGrantReconciler — never directly here.
         setFeedback(`Achat confirmé — +${goldAmount.toLocaleString()} or arrivent dans ta bourse !`);
+      } else if (resourcePack) {
+        // Resources granted idempotently by GoldGrantReconciler — never directly here.
+        setFeedback(`${resourcePack.name} reçu — matériaux ajoutés à ton inventaire !`);
       } else {
         setFeedback('Forge Premium activé — XP de forge doublée !');
       }
@@ -297,6 +304,42 @@ export default function BoutiqueScreen() {
             <Text style={[styles.cardDesc, { color: colors.mutedForeground }]}>Indisponible pour le moment.</Text>
           )}
 
+          {/* Resource packs */}
+          <Text style={[styles.sectionLabel, { color: colors.primary }]}>PACKS DE RESSOURCES</Text>
+          {resourcePackages.length > 0 ? resourcePackages.map((pkg) => {
+            const pack = RESOURCE_PRODUCTS[baseProductId(pkg.product.identifier)];
+            return (
+              <View key={pkg.identifier} style={[styles.card, { backgroundColor: colors.card, borderColor: '#C9A22755' }]}>
+                <View style={styles.cardRow}>
+                  <MaterialCommunityIcons name={pack.icon as any} size={22} color="#C9A227" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.cardTitle, { color: colors.foreground }]}>{pack.name}</Text>
+                    <Text style={[styles.cardDesc, { color: colors.mutedForeground }]}>{pack.tagline}</Text>
+                  </View>
+                </View>
+                <View style={styles.resourceList}>
+                  {pack.items.map(({ resourceId, qty }) => (
+                    <View key={resourceId} style={[styles.resourceChip, { backgroundColor: colors.secondary }]}>
+                      <Text style={[styles.resourceChipText, { color: colors.foreground }]}>
+                        {resourceId.replace(/_/g, ' ')} ×{qty}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+                <TouchableOpacity
+                  style={[styles.buyBtn, { backgroundColor: '#C9A227' }]}
+                  onPress={() => setConfirmPkg(pkg)}
+                  disabled={isPurchasing}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.buyBtnText, { color: '#1A1208' }]}>{pkg.product.priceString}</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          }) : (
+            <Text style={[styles.cardDesc, { color: colors.mutedForeground }]}>Aucun pack disponible.</Text>
+          )}
+
           {/* Gold packs */}
           <Text style={[styles.sectionLabel, { color: colors.primary }]}>PACKS D'OR</Text>
           {goldPackages.map((pkg) => {
@@ -400,6 +443,9 @@ const styles = StyleSheet.create({
   restoreText: { fontSize: 12, textDecorationLine: 'underline' },
   feedback: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 10, padding: 10 },
   feedbackText: { fontSize: 12, flex: 1 },
+  resourceList: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  resourceChip: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
+  resourceChipText: { fontSize: 11, fontWeight: '600' },
   modalBackdrop: { flex: 1, backgroundColor: '#000000AA', alignItems: 'center', justifyContent: 'center', padding: 24 },
   modalCard: { width: '100%', borderWidth: 1, borderRadius: 16, padding: 18, gap: 10 },
   modalTitle: { fontSize: 16, fontWeight: '800' },

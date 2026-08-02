@@ -1,14 +1,13 @@
 /**
- * GoldGrantReconciler — idempotent fulfillment of gold-pack consumables.
+ * GoldGrantReconciler — idempotent fulfillment of consumable IAPs.
  *
- * Instead of granting gold directly on purchase (double-grant / loss risk),
- * this component reconciles RevenueCat's nonSubscriptionTransactions against a
- * persisted set of already-granted transaction IDs, granting gold exactly once
+ * Reconciles RevenueCat's nonSubscriptionTransactions against a persisted set
+ * of already-granted transaction IDs, granting gold OR resources exactly once
  * per unique transaction — even if the app was closed mid-purchase.
  */
 import { useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useSubscription, GOLD_PRODUCTS } from '@/lib/revenuecat';
+import { useSubscription, GOLD_PRODUCTS, RESOURCE_PRODUCTS } from '@/lib/revenuecat';
 import { useGame } from '@/context/GameContext';
 
 const GRANTED_TX_KEY = '@fk_granted_gold_tx_v1';
@@ -37,21 +36,33 @@ export default function GoldGrantReconciler() {
         for (const tx of transactions) {
           const txId = tx.transactionIdentifier;
           if (!txId || granted.has(txId)) continue;
-          const gold = GOLD_PRODUCTS[baseProductId(tx.productIdentifier)];
-          if (!gold) continue;
+
+          const productId = baseProductId(tx.productIdentifier);
+          const gold = GOLD_PRODUCTS[productId];
+          const resourcePack = RESOURCE_PRODUCTS[productId];
+
+          if (!gold && !resourcePack) continue;
+
           // Persist the grant marker BEFORE granting so a crash between the
           // two never double-grants (losing one grant is recoverable via
           // support; double-granting silently corrupts the economy).
           granted.add(txId);
           await AsyncStorage.setItem(GRANTED_TX_KEY, JSON.stringify([...granted]));
-          game.addGold(gold);
+
+          if (gold) {
+            game.addGold(gold);
+          } else if (resourcePack) {
+            for (const { resourceId, qty } of resourcePack.items) {
+              game.addResource(resourceId, qty);
+            }
+          }
           changed = true;
         }
         if (!changed && raw === null && granted.size > 0) {
           await AsyncStorage.setItem(GRANTED_TX_KEY, JSON.stringify([...granted]));
         }
       } catch (e) {
-        console.warn('Gold grant reconciliation failed:', e);
+        console.warn('Consumable grant reconciliation failed:', e);
       } finally {
         busyRef.current = false;
       }

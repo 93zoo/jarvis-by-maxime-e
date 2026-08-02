@@ -21,6 +21,60 @@ export const GOLD_PRODUCTS: Record<string, number> = {
   gold_chest_large: 6000,
 };
 
+/** Contents of a resource pack consumable. */
+export interface ResourcePackContent {
+  name: string;
+  /** MaterialCommunityIcons icon name */
+  icon: string;
+  /** Short description shown in the boutique */
+  tagline: string;
+  items: Array<{ resourceId: string; qty: number }>;
+}
+
+/**
+ * Resource packs granted per consumable product identifier.
+ * Product IDs must be created in the RevenueCat dashboard (and App/Play Store)
+ * as consumable in-app purchases, then attached to the current Offering.
+ */
+export const RESOURCE_PRODUCTS: Record<string, ResourcePackContent> = {
+  resource_pack_forge: {
+    name: 'Pack Forgeron',
+    icon: 'hammer',
+    tagline: 'Matériaux de base en quantité',
+    items: [
+      { resourceId: 'iron',   qty: 20 },
+      { resourceId: 'copper', qty: 15 },
+      { resourceId: 'coal',   qty: 25 },
+      { resourceId: 'wood',   qty: 15 },
+      { resourceId: 'stone',  qty: 10 },
+    ],
+  },
+  resource_pack_rare: {
+    name: 'Pack Maître',
+    icon: 'anvil',
+    tagline: 'Alliages & métaux rares',
+    items: [
+      { resourceId: 'bronze', qty: 8 },
+      { resourceId: 'steel',  qty: 5 },
+      { resourceId: 'silver', qty: 4 },
+      { resourceId: 'topaz',  qty: 3 },
+      { resourceId: 'coal',   qty: 15 },
+    ],
+  },
+  resource_pack_gems: {
+    name: 'Pack Gemmes',
+    icon: 'diamond',
+    tagline: 'Pierres précieuses rares',
+    items: [
+      { resourceId: 'amethyst', qty: 5 },
+      { resourceId: 'ruby',     qty: 3 },
+      { resourceId: 'sapphire', qty: 3 },
+      { resourceId: 'emerald',  qty: 2 },
+      { resourceId: 'onyx',     qty: 3 },
+    ],
+  },
+};
+
 function getRevenueCatApiKey(): string | undefined {
   // Only require the key actually needed for the current environment.
   if (__DEV__ || Platform.OS === 'web' || Constants.executionEnvironment === 'storeClient') {
