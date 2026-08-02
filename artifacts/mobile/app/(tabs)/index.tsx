@@ -34,6 +34,7 @@ import WeatherEffect, { WeatherType } from '@/components/WeatherEffect';
 import AudioManager from '@/utils/AudioManager';
 import { applyStoredAudioSettings } from '@/utils/audioSettings';
 import CraftingEnigmaModal from '@/components/CraftingEnigma';
+import LeaderboardRewardsModal from '@/components/LeaderboardRewardsModal';
 
 // ─── Quality helpers ─────────────────────────────────────────────────────────
 function qualityColor(q: Quality, colors: ReturnType<typeof useColors>): string {
@@ -2378,6 +2379,9 @@ export default function ForgeScreen() {
           </View>
         )}
       </Modal>
+
+      {/* ── Récompenses du classement (top 3 jour/semaine) ── */}
+      <LeaderboardRewardsModal />
     </View>
   );
 }

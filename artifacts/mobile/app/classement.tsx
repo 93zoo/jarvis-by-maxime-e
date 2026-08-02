@@ -166,6 +166,12 @@ export default function ClassementScreen() {
                   <Text style={[styles.rowName, isSelf && { color: NEON }]} numberOfLines={1}>
                     {item.name}{isSelf ? ' (toi)' : ''}
                   </Text>
+                  {item.title ? (
+                    <View style={styles.titleBadge}>
+                      <Feather name="star" size={10} color={GOLD} />
+                      <Text style={styles.titleBadgeText} numberOfLines={1}>{item.title}</Text>
+                    </View>
+                  ) : null}
                   <Text style={styles.rowLevel}>Niveau {item.level}</Text>
                 </View>
                 <Text style={[styles.rowPoints, medal ? { color: medal } : null]}>
@@ -264,5 +270,7 @@ const styles = StyleSheet.create({
   rowInfo: { flex: 1 },
   rowName: { color: PARCH, fontSize: 15, fontFamily: 'Inter_600SemiBold' },
   rowLevel: { color: DIM, fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 1 },
+  titleBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  titleBadgeText: { color: GOLD, fontSize: 11, fontFamily: 'Inter_600SemiBold' },
   rowPoints: { color: GOLD, fontSize: 15, fontFamily: 'Inter_700Bold' },
 });

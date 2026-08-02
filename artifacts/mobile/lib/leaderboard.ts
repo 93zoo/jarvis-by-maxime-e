@@ -13,6 +13,28 @@
  */
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const PLAYER_TOKEN_KEY = '@fk_player_secret';
+
+/**
+ * Secret propre à cet appareil, lié au playerId côté serveur au premier
+ * rapport (trust on first use). Sans lui, impossible de signaler un score
+ * ou de réclamer une récompense au nom de ce joueur.
+ */
+async function getPlayerToken(): Promise<string> {
+  try {
+    let token = await AsyncStorage.getItem(PLAYER_TOKEN_KEY);
+    if (!token) {
+      const rand = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+      token = `tk_${rand()}${rand()}${rand()}`.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64);
+      await AsyncStorage.setItem(PLAYER_TOKEN_KEY, token);
+    }
+    return token;
+  } catch {
+    return '';
+  }
+}
 
 export interface LeaderboardEntry {
   playerId: string;
@@ -20,6 +42,22 @@ export interface LeaderboardEntry {
   level: number;
   points: number;
   rank: number;
+  /** Titre gagné au classement (ex. « Champion de la forge »), s'il y en a un. */
+  title?: string | null;
+}
+
+export interface LeaderboardAward {
+  id: string;
+  playerId: string;
+  name: string;
+  period: 'daily' | 'weekly';
+  periodKey: string;
+  rank: number;
+  gold: number;
+  materials: { id: string; qty: number }[];
+  title: string;
+  claimed: boolean;
+  createdAt: string;
 }
 
 export interface LeaderboardResult {
@@ -57,13 +95,60 @@ export async function reportLeaderboardScore(params: {
   const base = getLeaderboardApiBase();
   if (!base || !params.playerId) return;
   try {
+    const token = await getPlayerToken();
     await fetch(`${base}/leaderboard/report`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-player-token': token },
       body: JSON.stringify(params),
     });
   } catch {
     // best effort — le prochain rapport rattrapera le delta
+  }
+}
+
+/** Récupère les récompenses non réclamées du joueur. Silencieux en cas d'échec. */
+export async function fetchLeaderboardRewards(
+  playerId: string,
+): Promise<{ pending: LeaderboardAward[]; title: string | null }> {
+  const base = getLeaderboardApiBase();
+  if (!base || !playerId) return { pending: [], title: null };
+  try {
+    const token = await getPlayerToken();
+    const res = await fetch(`${base}/leaderboard/rewards?playerId=${encodeURIComponent(playerId)}`, {
+      headers: { 'x-player-token': token },
+    });
+    if (!res.ok) return { pending: [], title: null };
+    const json = await res.json();
+    return { pending: json.pending ?? [], title: json.title ?? null };
+  } catch {
+    return { pending: [], title: null };
+  }
+}
+
+/**
+ * Réclame une récompense. Retourne la récompense confirmée par le serveur,
+ * ou null si elle a déjà été réclamée / en cas d'échec réseau.
+ */
+export async function claimLeaderboardReward(
+  playerId: string,
+  awardId: string,
+): Promise<LeaderboardAward | null> {
+  const base = getLeaderboardApiBase();
+  if (!base || !playerId || !awardId) return null;
+  try {
+    const token = await getPlayerToken();
+    const res = await fetch(`${base}/leaderboard/rewards/claim`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-player-token': token },
+      body: JSON.stringify({ playerId, awardId }),
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    // Déjà réclamée (rejouée par le même joueur) : ne pas créditer une 2e fois.
+    if (json.alreadyClaimed) return null;
+    return json.reward ?? null;
+  } catch {
+    return null;
   }
 }
 

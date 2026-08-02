@@ -530,7 +530,8 @@ function buildInitialState(): GameState {
     completedSets: [],
     discoveredAlloyIds: [],
     showcasedItemIds: [],
-    hasCompletedFirstForgeTutorial: true,
+    // Les nouvelles parties doivent voir le tutoriel de première forge.
+    hasCompletedFirstForgeTutorial: false,
   };
 }
 
