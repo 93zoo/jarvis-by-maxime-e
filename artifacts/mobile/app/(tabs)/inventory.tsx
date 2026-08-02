@@ -65,13 +65,13 @@ function rarityColor(r: string, colors: ReturnType<typeof useColors>): string {
 
 function ResourceTypeIcon({ type, size = 18 }: { type: string, size?: number }) {
   switch (type) {
-    case 'metal': return <MaterialCommunityIcons name="gold" size={size} />;
-    case 'wood': return <MaterialCommunityIcons name="pine-tree" size={size} />;
-    case 'stone': return <MaterialCommunityIcons name="terrain" size={size} />;
-    case 'gem': return <MaterialCommunityIcons name="diamond-stone" size={size} />;
+    case 'metal': return <MaterialCommunityIcons name="hammer" size={size} />;
+    case 'wood': return <MaterialCommunityIcons name="tree" size={size} />;
+    case 'stone': return <MaterialCommunityIcons name="wall" size={size} />;
+    case 'gem': return <MaterialCommunityIcons name="diamond" size={size} />;
     case 'organic': return <MaterialCommunityIcons name="leaf" size={size} />;
-    case 'clay': return <MaterialCommunityIcons name="pot" size={size} />;
-    default: return <MaterialCommunityIcons name="shape-outline" size={size} />;
+    case 'clay': return <MaterialCommunityIcons name="flask" size={size} />;
+    default: return <MaterialCommunityIcons name="fire" size={size} />;
   }
 }
 
@@ -258,7 +258,7 @@ function CraftedItemCard({
           )}
           {gemsSlotted > 0 && (
             <View style={[styles.statPill, { backgroundColor: colors.secondary }]}>
-              <MaterialCommunityIcons name="diamond-stone" size={12} color="#9966CC" style={{ marginRight: 4 }} />
+              <MaterialCommunityIcons name="diamond" size={12} color="#9966CC" style={{ marginRight: 4 }} />
               <Text style={[styles.statPillText, { color: '#9966CC' }]}>×{gemsSlotted}</Text>
             </View>
           )}
@@ -330,20 +330,23 @@ function ShowcaseItemCard({ item, onPress, colors }: {
           {/* Badges */}
           <View style={scStyles.badgeRow}>
             {item.enigmaMastered && (
-              <View style={[scStyles.badge, { backgroundColor: '#5C00AA30' }]}>
-                <Text style={[scStyles.badgeText, { color: '#C084FC' }]}>⚗️ Énigme</Text>
+              <View style={[scStyles.badge, { backgroundColor: '#5C00AA30', flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+                <MaterialCommunityIcons name="flask" size={11} color="#C084FC" />
+                <Text style={[scStyles.badgeText, { color: '#C084FC' }]}>Énigme</Text>
               </View>
             )}
             {item.unique && (
-              <View style={[scStyles.badge, { backgroundColor: '#E8B84B20' }]}>
-                <Text style={[scStyles.badgeText, { color: '#E8B84B' }]}>✦ Unique</Text>
+              <View style={[scStyles.badge, { backgroundColor: '#E8B84B20', flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+                <MaterialCommunityIcons name="star" size={11} color="#E8B84B" />
+                <Text style={[scStyles.badgeText, { color: '#E8B84B' }]}>Unique</Text>
               </View>
             )}
           </View>
           {/* Forge stamp */}
-          <Text style={[scStyles.stamp, { color: colors.mutedForeground }]}>
-            🔨 {item.craftedBy} · {craftDate}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <MaterialCommunityIcons name="hammer" size={11} color={colors.mutedForeground} />
+            <Text style={[scStyles.stamp, { color: colors.mutedForeground }]}>{item.craftedBy} · {craftDate}</Text>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -400,7 +403,10 @@ function ShowcaseSection({ game, colors, bottomPad }: {
       {/* Header */}
       <View style={scStyles.sectionHeader}>
         <View>
-          <Text style={[scStyles.sectionTitle, { color: colors.foreground }]}>✦ VOTRE VITRINE</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <MaterialCommunityIcons name="star" size={14} color={colors.foreground} />
+            <Text style={[scStyles.sectionTitle, { color: colors.foreground }]}>VOTRE VITRINE</Text>
+          </View>
           <Text style={[scStyles.sectionSub, { color: colors.mutedForeground }]}>
             {showcasedItems.length}/{MAX_SHOWCASE_SLOTS} pièces exposées
           </Text>
@@ -447,7 +453,10 @@ function ShowcaseSection({ game, colors, bottomPad }: {
                     {/* Unique traits */}
                     {detailItem.unique && (
                       <View style={scStyles.traitsBox}>
-                        <Text style={[scStyles.traitTitle, { color: colors.accent }]}>✦ TRAITS UNIQUES</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                          <MaterialCommunityIcons name="star" size={13} color={colors.accent} />
+                          <Text style={[scStyles.traitTitle, { color: colors.accent }]}>TRAITS UNIQUES</Text>
+                        </View>
                         {[
                           { label: 'Forme', val: detailItem.unique.form },
                           { label: 'Monture', val: detailItem.unique.fitting },
@@ -473,15 +482,21 @@ function ShowcaseSection({ game, colors, bottomPad }: {
 
                     {/* Badges */}
                     <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-                      {detailItem.enigmaMastered && <View style={[scStyles.badge, { backgroundColor: '#5C00AA30' }]}><Text style={[scStyles.badgeText, { color: '#C084FC' }]}>⚗️ Défi d'énigme réussi</Text></View>}
-                      {detailItem.unique && <View style={[scStyles.badge, { backgroundColor: '#E8B84B20' }]}><Text style={[scStyles.badgeText, { color: '#E8B84B' }]}>✦ Arme unique</Text></View>}
+                      {detailItem.enigmaMastered && <View style={[scStyles.badge, { backgroundColor: '#5C00AA30', flexDirection: 'row', alignItems: 'center', gap: 4 }]}><MaterialCommunityIcons name="flask" size={11} color="#C084FC" /><Text style={[scStyles.badgeText, { color: '#C084FC' }]}>Défi d'énigme réussi</Text></View>}
+                      {detailItem.unique && <View style={[scStyles.badge, { backgroundColor: '#E8B84B20', flexDirection: 'row', alignItems: 'center', gap: 4 }]}><MaterialCommunityIcons name="star" size={11} color="#E8B84B" /><Text style={[scStyles.badgeText, { color: '#E8B84B' }]}>Arme unique</Text></View>}
                     </View>
 
                     {/* Forge stamp */}
                     <View style={[scStyles.stampBox, { backgroundColor: colors.secondary }]}>
                       <Text style={[scStyles.stampLabel, { color: colors.mutedForeground }]}>EMPREINTE DE FORGE</Text>
-                      <Text style={[scStyles.stampText, { color: colors.foreground }]}>🔨 Forgé par {detailItem.craftedBy}</Text>
-                      <Text style={[scStyles.stampText, { color: colors.mutedForeground }]}>📅 {craftDate}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <MaterialCommunityIcons name="hammer" size={12} color={colors.foreground} />
+                        <Text style={[scStyles.stampText, { color: colors.foreground }]}>Forgé par {detailItem.craftedBy}</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Feather name="calendar" size={12} color={colors.mutedForeground} />
+                        <Text style={[scStyles.stampText, { color: colors.mutedForeground }]}>{craftDate}</Text>
+                      </View>
                     </View>
 
                     {/* Unpin button */}
@@ -751,10 +766,10 @@ export default function InventoryScreen() {
       {/* ── Tab bar ── */}
       <View style={[styles.tabBar, { borderBottomColor: colors.border }]}>
         {([
-          { key: 'resources', label: 'Ressources', icon: 'diamond-stone', badge: game.inventory.length },
-          { key: 'items', label: 'Objets', icon: 'sword-cross', badge: game.craftedItems.length },
-          { key: 'alloys', label: 'Alliages', icon: 'merge', badge: game.discoveredAlloyIds.length },
-          { key: 'showcase', label: 'Vitrine', icon: 'star-four-points', badge: game.showcasedItemIds.length },
+          { key: 'resources', label: 'Ressources', icon: 'pickaxe', badge: game.inventory.length },
+          { key: 'items', label: 'Objets', icon: 'sword', badge: game.craftedItems.length },
+          { key: 'alloys', label: 'Alliages', icon: 'flask', badge: game.discoveredAlloyIds.length },
+          { key: 'showcase', label: 'Vitrine', icon: 'star', badge: game.showcasedItemIds.length },
         ] as { key: TabType; label: string; icon: string; badge: number }[]).map((tab) => (
           <TouchableOpacity
             key={tab.key}
