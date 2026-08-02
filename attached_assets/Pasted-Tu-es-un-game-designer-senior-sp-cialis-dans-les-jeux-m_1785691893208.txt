@@ -1,0 +1,95 @@
+Tu es un game designer senior spécialisé dans les jeux mobiles de gestion et d'artisanat.
+
+Ajoute au jeu un système de collecte de ressources hors ligne (Idle), moderne, équilibré et addictif.
+
+Concept
+
+Le joueur peut recruter et gérer des PNJ qui travaillent automatiquement pendant son absence.
+
+PNJ disponibles
+
+- Mineur → récolte du fer, charbon, cuivre, argent, or et autres minerais selon son niveau.
+- Bûcheron → récolte différents types de bois.
+- Plus tard, prévoir facilement d'autres métiers :
+  - Carrier (pierre)
+  - Chasseur
+  - Cueilleur
+  - Fermier
+  - Pêcheur
+
+Fonctionnement
+
+- Les PNJ continuent de travailler même lorsque l'application est fermée.
+- Au retour du joueur, un écran récapitulatif apparaît avec :
+  - durée d'absence ;
+  - ressources récoltées ;
+  - expérience gagnée ;
+  - bonus éventuels.
+- Limiter la collecte hors ligne à un maximum de 8 ou 12 heures afin de conserver un bon équilibre.
+
+Gestion des PNJ
+
+Chaque PNJ possède :
+
+- un niveau ;
+- une vitesse de récolte ;
+- une capacité de transport ;
+- une efficacité ;
+- un coût d'embauche.
+
+Le joueur peut :
+
+- recruter plusieurs PNJ ;
+- améliorer leurs compétences ;
+- leur attribuer une zone de travail ;
+- les remplacer ou les déplacer.
+
+Progression
+
+Les PNJ gagnent de l'expérience.
+À chaque montée de niveau :
+
+- récolte plus rapide ;
+- meilleures chances d'obtenir des ressources rares ;
+- capacité de transport augmentée.
+
+Interface
+
+Créer un bâtiment appelé Camp des Ouvriers ou Guilde des Travailleurs.
+
+Depuis ce bâtiment, le joueur peut :
+
+- voir tous ses PNJ ;
+- lancer une mission ;
+- récupérer les ressources ;
+- améliorer les travailleurs ;
+- débloquer de nouveaux métiers.
+
+Animations
+
+Lorsque le jeu est ouvert :
+
+- les mineurs frappent la roche avec leur pioche ;
+- les bûcherons coupent les arbres ;
+- de petites animations rendent le village vivant.
+
+Lorsque le jeu est fermé :
+
+- les calculs continuent en arrière-plan grâce à un système basé sur l'heure de fermeture et l'heure de réouverture.
+
+Récompenses
+
+Ajouter :
+
+- événements aléatoires (trouver une gemme, un coffre, un minerai rare) ;
+- objets légendaires très rares ;
+- bonus de rendement grâce aux compétences du joueur.
+
+Équilibrage
+
+Le système ne doit jamais remplacer le gameplay principal de la forge.
+Il doit uniquement fournir des ressources de base pour que le joueur ait envie de revenir régulièrement.
+
+Objectif
+
+Créer un système Idle très satisfaisant, fluide, optimisé pour mobile, sans bug, avec une interface premium digne d'un jeu AAA mobile et facilement extensible avec de nouveaux métiers et ressources.
