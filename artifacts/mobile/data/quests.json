@@ -433,7 +433,7 @@
       "xp": 350
     },
     "completed": false,
-    "unlockLevel": 15
+    "unlockLevel": 13
   },
   {
     "id": "quest_volcano_2",
@@ -455,7 +455,7 @@
       "xp": 280
     },
     "completed": false,
-    "unlockLevel": 15
+    "unlockLevel": 13
   },
   {
     "id": "quest_volcano_3",
@@ -477,7 +477,7 @@
       "xp": 450
     },
     "completed": false,
-    "unlockLevel": 15
+    "unlockLevel": 13
   },
   {
     "id": "quest_castle_1",
@@ -729,7 +729,7 @@
       "xp": 1200
     },
     "completed": false,
-    "unlockLevel": 15
+    "unlockLevel": 13
   },
   {
     "id": "quest_volcano_5",
@@ -751,7 +751,7 @@
       "xp": 2000
     },
     "completed": false,
-    "unlockLevel": 15
+    "unlockLevel": 13
   },
   {
     "id": "quest_volcano_6",
@@ -781,7 +781,7 @@
       "xp": 1800
     },
     "completed": false,
-    "unlockLevel": 15
+    "unlockLevel": 13
   },
   {
     "id": "quest_volcano_7",
@@ -811,7 +811,7 @@
       "xp": 3000
     },
     "completed": false,
-    "unlockLevel": 15
+    "unlockLevel": 13
   },
   {
     "id": "quest_epic_1",
@@ -887,7 +887,7 @@
       "xp": 5500
     },
     "completed": false,
-    "unlockLevel": 15
+    "unlockLevel": 13
   },
   {
     "id": "quest_epic_3",
