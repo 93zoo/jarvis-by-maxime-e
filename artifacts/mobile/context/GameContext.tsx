@@ -213,8 +213,10 @@ function recipeUnlockCost(recipe: RecipeData): number {
 const ORDER_INTERVAL_MS = 15 * 1000; // 15 seconds
 /** Maximum simultaneous pending orders */
 const MAX_ORDERS = 10;
-/** Fraction of auto-generated orders that carry a short urgent countdown (10–30 min real-time). */
+/** Fraction of auto-generated orders that carry a short urgent countdown (20–45 min real-time). */
 const URGENT_ORDER_CHANCE = 0.22;
+/** Fraction of auto-generated orders that are rare high-reward special orders (20–35 min). */
+const SPECIAL_ORDER_CHANCE = 0.07;
 
 /** Maximum inventory weight (kg) based on player level */
 const MAX_WEIGHT_BASE = 100;
@@ -592,16 +594,30 @@ function generateNpcOrder(playerLevel: number, forgeLevel: number, extraDeadline
   const baseXp = Math.round(recipe.xpReward * (1.5 + Math.random()));
   const repReward = Math.round(5 + Math.random() * 15);
 
-  // Determine if this order carries an urgent short-window timer
-  const isUrgent = Math.random() < URGENT_ORDER_CHANCE;
+  // Roll order tier: special (rare, big reward) > urgent > normal
+  const tierRoll = Math.random();
+  const isSpecial = tierRoll < SPECIAL_ORDER_CHANCE;
+  const isUrgent = !isSpecial && tierRoll < SPECIAL_ORDER_CHANCE + URGENT_ORDER_CHANCE;
 
   let deadline: number;
   let goldReward: number;
   let xpReward: number;
   let urgentBonusGold: number | undefined;
   let urgentBonusXp: number | undefined;
+  let specialBonusGold: number | undefined;
+  let specialBonusXp: number | undefined;
+  let specialBonusRep: number | undefined;
 
-  if (isUrgent) {
+  if (isSpecial) {
+    // Rare: 20–35 min countdown, very high base reward + large on-time bonus
+    const specialMinutes = 20 + Math.floor(Math.random() * 16);
+    deadline = Date.now() + specialMinutes * 60_000;
+    goldReward = Math.round(baseGold * 3.5);
+    xpReward = Math.round(baseXp * 1.8);
+    specialBonusGold = Math.round(baseGold * 3);
+    specialBonusXp = Math.round(baseXp * 2.5);
+    specialBonusRep = 30 + Math.floor(Math.random() * 21); // 30–50
+  } else if (isUrgent) {
     // Short countdown: 20–45 minutes of real time
     const urgentMinutes = 20 + Math.floor(Math.random() * 26);
     deadline = Date.now() + urgentMinutes * 60_000;
@@ -647,6 +663,7 @@ function generateNpcOrder(playerLevel: number, forgeLevel: number, extraDeadline
     accepted: false,
     completed: false,
     ...(isUrgent ? { isUrgent: true, urgentBonusGold, urgentBonusXp } : {}),
+    ...(isSpecial ? { isSpecial: true, specialBonusGold, specialBonusXp, specialBonusRep } : {}),
   };
 }
 
@@ -944,7 +961,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     }
     // ── NPC orders ──────────────────────────────────────────────────────────
     case 'ADD_ORDER': {
-      if (state.activeOrders.length >= MAX_ORDERS) return state;
+      // Count only non-completed orders — completed ones are hidden in the UI
+      // and must not block new order generation.
+      if (state.activeOrders.filter((o) => !o.completed).length >= MAX_ORDERS) return state;
       // Don't add duplicate orders for same npcId
       if (state.activeOrders.some((o) => o.npcId === action.order.npcId && !o.completed)) return state;
       return {
@@ -954,10 +973,10 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
     case 'SEED_ORDERS': {
-      // Add as many orders as fit under MAX_ORDERS, skipping npcId duplicates
+      // Add as many orders as fit under MAX_ORDERS (pending only), skipping npcId duplicates
       let orders = [...state.activeOrders];
       for (const order of action.orders) {
-        if (orders.length >= MAX_ORDERS) break;
+        if (orders.filter((o) => !o.completed).length >= MAX_ORDERS) break;
         if (orders.some((o) => o.npcId === order.npcId && !o.completed)) continue;
         orders = [...orders, order];
       }
@@ -980,7 +999,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'EXPIRE_URGENT_ORDERS': {
       const now = Date.now();
       const updated = state.activeOrders.filter(
-        (o) => !o.isUrgent || o.completed || o.deadline > now,
+        (o) => (!o.isUrgent && !o.isSpecial) || o.completed || o.deadline > now,
       );
       if (updated.length === state.activeOrders.length) return state;
       return { ...state, activeOrders: updated };
@@ -990,7 +1009,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const order = state.activeOrders.find((o) => o.id === action.orderId);
       if (!order) return state;
       const urgentBonus = action.onTime && order.isUrgent ? (order.urgentBonusGold ?? 0) : 0;
-      const gold = state.player.gold + order.goldReward + urgentBonus;
+      const specialBonus = action.onTime && order.isSpecial ? (order.specialBonusGold ?? 0) : 0;
+      const specialRepBonus = action.onTime && order.isSpecial ? (order.specialBonusRep ?? 0) : 0;
+      const gold = state.player.gold + order.goldReward + urgentBonus + specialBonus;
       const player = {
         ...state.player,
         gold,
@@ -998,9 +1019,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         totalOrdersDelivered: (state.player.totalOrdersDelivered ?? 0) + 1,
       };
       const items = state.craftedItems.filter((i) => i.instanceId !== action.itemInstanceId);
-      const orders = state.activeOrders.map((o) =>
-        o.id === action.orderId ? { ...o, completed: true } : o,
-      );
+      // Remove the delivered order entirely so it can never block the MAX_ORDERS
+      // slot count and cause new orders to stop generating.
+      const orders = state.activeOrders.filter((o) => o.id !== action.orderId);
       // Quest progress: deliver — update then check for completion
       const qp = { ...state.questProgress };
       const newCompletions: string[] = [];
@@ -1050,7 +1071,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       const rep = { ...state.npcReputation };
-      rep[order.npcId] = Math.min(100, (rep[order.npcId] ?? 50) + order.reputationReward);
+      rep[order.npcId] = Math.min(100, (rep[order.npcId] ?? 50) + order.reputationReward + specialRepBonus);
       return { ...state, player: questPlayer, craftedItems: items, activeOrders: orders, questProgress: qp, npcReputation: rep, unlockedRegions, regionExploration, completedQuestIds, activeQuestIds, showcasedItemIds: state.showcasedItemIds.filter((id) => id !== action.itemInstanceId) };
     }
 
@@ -2402,11 +2423,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       // Check minimum quality
       if (QUALITY_ORDER[item.quality] < QUALITY_ORDER[order.minQuality])
         return { success: false, message: `Qualité insuffisante (${item.quality} < ${order.minQuality} requis).` };
-      const onTime = !!(order.isUrgent && Date.now() <= order.deadline);
+      const onTime = !!((order.isUrgent || order.isSpecial) && Date.now() <= order.deadline);
       dispatch({ type: 'DELIVER_ORDER', orderId, itemInstanceId, onTime });
       dispatch({ type: 'ADD_PLAYER_XP', amount: order.xpReward });
       if (onTime && order.urgentBonusXp) {
         dispatch({ type: 'ADD_PLAYER_XP', amount: order.urgentBonusXp });
+      }
+      if (onTime && order.specialBonusXp) {
+        dispatch({ type: 'ADD_PLAYER_XP', amount: order.specialBonusXp });
       }
       dispatch({ type: 'ADD_SKILL_XP', skill: 'commerce', amount: Math.round(order.xpReward * 0.5) });
       // Collection bonuses: order gold and reputation
@@ -2415,7 +2439,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         const bonusGold = Math.round(order.goldReward * orderGoldBonus / 100);
         if (bonusGold > 0) dispatch({ type: 'ADD_GOLD', amount: bonusGold });
       }
-      const bonusLine = onTime
+      const bonusLine = onTime && order.isSpecial
+        ? ` ⭐ +${order.specialBonusGold ?? 0}g et +${order.specialBonusXp ?? 0} XP bonus !`
+        : onTime
         ? ` ⚡ +${order.urgentBonusGold ?? 0}g et +${order.urgentBonusXp ?? 0} XP bonus !`
         : '';
       return { success: true, message: `Livraison effectuée avec succès !${bonusLine}` };

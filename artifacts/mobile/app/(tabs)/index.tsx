@@ -481,7 +481,12 @@ function OrdersModal({
     return () => clearInterval(id);
   }, [visible]);
 
-  const pendingOrders = game.activeOrders.filter((o) => !o.completed);
+  const pendingOrders = game.activeOrders
+    .filter((o) => !o.completed)
+    .sort((a, b) => {
+      const tier = (o: typeof a) => (o.isSpecial ? 0 : o.isUrgent ? 1 : 2);
+      return tier(a) - tier(b);
+    });
   const selectedOrder = deliverOrderId ? pendingOrders.find((o) => o.id === deliverOrderId) : null;
 
   const handleDeliver = (itemInstanceId: string) => {
@@ -592,30 +597,52 @@ function OrdersModal({
                 <View style={[oStyles.emptyBox, { backgroundColor: colors.secondary }]}>
                   <Feather name="clock" size={24} color={colors.mutedForeground} />
                   <Text style={[oStyles.emptyText, { color: colors.mutedForeground }]}>
-                    Aucune commande en attente. De nouvelles commandes arrivent toutes les 3 minutes !
+                    Aucune commande en attente. De nouvelles commandes arrivent en continu !
                   </Text>
                 </View>
               }
               renderItem={({ item: order }) => {
                 const expired = order.deadline < nowTick;
                 const urgentTimerDone = order.isUrgent && expired;
-                const urgentBorderColor = order.isUrgent ? (expired ? '#B71C1C' : '#FF6D00') : order.accepted ? colors.primary : colors.border;
+                const specialExpired = order.isSpecial && expired;
+                const borderColor = order.isSpecial
+                  ? (specialExpired ? '#7B6200' : '#E8B84B')
+                  : order.isUrgent ? (expired ? '#B71C1C' : '#FF6D00')
+                  : order.accepted ? colors.primary : colors.border;
+                const borderWidth = order.isSpecial ? 3 : order.isUrgent ? 2 : 1;
                 return (
-                  <View style={[oStyles.orderCard, { backgroundColor: colors.secondary, borderColor: urgentBorderColor, borderWidth: order.isUrgent ? 2 : 1 }]}>
+                  <View style={[oStyles.orderCard, { backgroundColor: colors.secondary, borderColor, borderWidth }]}>
                     <View style={oStyles.orderCardTop}>
                       <Text style={{ fontSize: 24 }}>{order.npcEmoji}</Text>
                       <View style={{ flex: 1 }}>
                         <Text style={[oStyles.orderNPC, { color: colors.foreground }]}>{order.npcName}</Text>
                         <Text style={[oStyles.orderType, { color: colors.mutedForeground }]}>
                           {order.npcType}
-                          {!order.isUrgent && ` · ${deadlineLabel(order.deadline)}`}
-                          {!order.isUrgent && expired && <Text style={{ color: '#F44336' }}> EXPIRÉ</Text>}
+                          {!order.isUrgent && !order.isSpecial && ` · ${deadlineLabel(order.deadline)}`}
+                          {!order.isUrgent && !order.isSpecial && expired && <Text style={{ color: '#F44336' }}> EXPIRÉ</Text>}
                         </Text>
                       </View>
                       <View style={[oStyles.rewardBadge, { backgroundColor: colors.card }]}>
                         <Text style={[oStyles.rewardText, { color: colors.accent }]}>{order.goldReward}g</Text>
                       </View>
                     </View>
+
+                    {/* Special order badge + live countdown */}
+                    {order.isSpecial && (
+                      <View style={oStyles.urgentBadgeRow}>
+                        <View style={[oStyles.urgentBadge, { backgroundColor: specialExpired ? '#7B620022' : '#E8B84B22' }]}>
+                          <Text style={{ fontSize: 11 }}>⭐</Text>
+                          <Text style={[oStyles.urgentBadgeText, { color: specialExpired ? '#7B6200' : '#E8B84B' }]}>
+                            {specialExpired ? 'EXPIRÉE' : 'COMMANDE ROYALE'}
+                          </Text>
+                        </View>
+                        {!specialExpired && (
+                          <Text style={[oStyles.urgentTimer, { color: nowTick > order.deadline - 5 * 60_000 ? '#E65100' : '#E8B84B' }]}>
+                            {deadlineLabel(order.deadline, true)}
+                          </Text>
+                        )}
+                      </View>
+                    )}
 
                     {/* Urgent badge + live countdown */}
                     {order.isUrgent && (
@@ -638,6 +665,25 @@ function OrdersModal({
                     <Text style={[oStyles.orderMeta, { color: colors.mutedForeground }]}>
                       {order.requestedCategory} · +{order.xpReward} XP
                     </Text>
+
+                    {/* Special order bonus preview */}
+                    {order.isSpecial && !specialExpired && (
+                      <View style={oStyles.urgentBonusRow}>
+                        <Text style={[oStyles.urgentBonusText, { color: colors.mutedForeground }]}>Si livré à temps :</Text>
+                        <View style={[oStyles.urgentBonusChip, { backgroundColor: '#E8B84B20' }]}>
+                          <Text style={{ fontSize: 11 }}>⭐</Text>
+                          <Text style={[oStyles.urgentBonusText, { color: '#E8B84B' }]}>+{order.specialBonusGold ?? 0}g</Text>
+                        </View>
+                        <View style={[oStyles.urgentBonusChip, { backgroundColor: '#1565C020' }]}>
+                          <Text style={{ fontSize: 11 }}>✨</Text>
+                          <Text style={[oStyles.urgentBonusText, { color: '#1E88E5' }]}>+{order.specialBonusXp ?? 0} XP</Text>
+                        </View>
+                        <View style={[oStyles.urgentBonusChip, { backgroundColor: '#4CAF5020' }]}>
+                          <Text style={{ fontSize: 11 }}>💎</Text>
+                          <Text style={[oStyles.urgentBonusText, { color: '#4CAF50' }]}>+{order.specialBonusRep ?? 0} rép.</Text>
+                        </View>
+                      </View>
+                    )}
 
                     {/* Urgent bonus preview */}
                     {order.isUrgent && !urgentTimerDone && (
@@ -1753,7 +1799,7 @@ export default function ForgeScreen() {
               </Text>
             )}
             {(() => {
-              const urgentCount = pendingOrders.filter((o) => o.isUrgent && o.deadline > Date.now()).length;
+              const urgentCount = pendingOrders.filter((o) => (o.isUrgent || o.isSpecial) && o.deadline > Date.now()).length;
               return urgentCount > 0 ? (
                 <View style={oStyles.urgentHeaderBadge}>
                   <MaterialCommunityIcons name="lightning-bolt" size={9} color="#fff" />
