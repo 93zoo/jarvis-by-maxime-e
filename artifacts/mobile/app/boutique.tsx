@@ -53,6 +53,18 @@ function openPrivacyPolicy(): void {
   if (url) Linking.openURL(url).catch(() => {});
 }
 
+/** URL des conditions d'utilisation, servie par l'API server (…/api/terms). */
+function getTermsUrl(): string {
+  const base = getLeaderboardApiBase();
+  if (!base) return '';
+  return `${base}/terms`;
+}
+
+function openTermsOfUse(): void {
+  const url = getTermsUrl();
+  if (url) Linking.openURL(url).catch(() => {});
+}
+
 function baseProductId(identifier: string): string {
   // Play Store subscription ids look like "forge_premium:monthly"
   return identifier.split(':')[0];
@@ -438,11 +450,19 @@ export default function BoutiqueScreen() {
             d'or sont des achats uniques non remboursables une fois consommés.
           </Text>
 
-          <TouchableOpacity onPress={openPrivacyPolicy} style={styles.privacyLink}>
-            <Text style={[styles.restoreText, { color: colors.mutedForeground }]}>
-              Politique de confidentialité
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.legalLinks}>
+            <TouchableOpacity onPress={openTermsOfUse}>
+              <Text style={[styles.restoreText, { color: colors.mutedForeground }]}>
+                Conditions d'utilisation
+              </Text>
+            </TouchableOpacity>
+            <Text style={[styles.restoreText, { color: colors.mutedForeground }]}> · </Text>
+            <TouchableOpacity onPress={openPrivacyPolicy}>
+              <Text style={[styles.restoreText, { color: colors.mutedForeground }]}>
+                Politique de confidentialité
+              </Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       )}
 
@@ -490,7 +510,7 @@ const styles = StyleSheet.create({
   buyBtn: { borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
   buyBtnText: { fontSize: 13, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.5 },
   restore: { alignItems: 'center', paddingVertical: 14 },
-  privacyLink: { alignItems: 'center', paddingVertical: 12 },
+  legalLinks: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12 },
   legal: { fontSize: 10, lineHeight: 15, opacity: 0.7, marginTop: 4 },
   restoreText: { fontSize: 12, textDecorationLine: 'underline' },
   feedback: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 10, padding: 10 },
