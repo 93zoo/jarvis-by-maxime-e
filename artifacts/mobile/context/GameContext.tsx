@@ -210,9 +210,9 @@ function recipeUnlockCost(recipe: RecipeData): number {
 }
 
 /** How long (ms) between auto-generated NPC orders */
-const ORDER_INTERVAL_MS = 30 * 1000; // 30 seconds
+const ORDER_INTERVAL_MS = 15 * 1000; // 15 seconds
 /** Maximum simultaneous pending orders */
-const MAX_ORDERS = 8;
+const MAX_ORDERS = 10;
 /** Fraction of auto-generated orders that carry a short urgent countdown (10–30 min real-time). */
 const URGENT_ORDER_CHANCE = 0.22;
 
@@ -1828,7 +1828,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const deadlineExt = state.player.statUpgrades?.['order_deadline'] ?? 0;
     const makeOrder = () => generateNpcOrder(state.player.level, state.player.forgeLevel, deadlineExt, state.player.unlockedRecipeIds);
     // Seed 3 orders immediately so the player never starts with an empty queue
-    const SEED_COUNT = 3;
+    const SEED_COUNT = 5;
     if (pending < SEED_COUNT) {
       dispatch({
         type: 'SEED_ORDERS',

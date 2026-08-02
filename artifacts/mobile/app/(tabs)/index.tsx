@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -35,6 +35,14 @@ import { applyStoredAudioSettings } from '@/utils/audioSettings';
 import CraftingEnigmaModal from '@/components/CraftingEnigma';
 import LeaderboardRewardsModal from '@/components/LeaderboardRewardsModal';
 import ForgeGuidedOverlay from '@/components/ForgeGuidedOverlay';
+import Reanimated, {
+  cancelAnimation as cancelAnim,
+  Easing as REasing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 
 // ─── Quality helpers ─────────────────────────────────────────────────────────
 function qualityColor(q: Quality, colors: ReturnType<typeof useColors>): string {
@@ -1241,7 +1249,12 @@ export default function ForgeScreen() {
 
   const [craftPhase, setCraftPhase] = useState<CraftPhase>('IDLE');
   const [session, setSession] = useState<CraftSession>(EMPTY_SESSION);
-  const [heatingProgress, setHeatingProgress] = useState(0);
+  // heatingProgress is now a Reanimated shared value — runs on the native
+  // thread so 0 React re-renders fire during the heating animation.
+  const heatingAnim = useSharedValue(0);
+  const heatingBarStyle = useAnimatedStyle(() => ({
+    width: `${heatingAnim.value * 100}%` as `${number}%`,
+  }));
   const [craftedItem, setCraftedItem] = useState<Item | null>(null);
   const [showRecipeSheet, setShowRecipeSheet] = useState(false);
   const [lastHitLabel, setLastHitLabel] = useState<HitLabel | null>(null);
@@ -1253,8 +1266,7 @@ export default function ForgeScreen() {
   const [activeForgeEvent, setActiveForgeEvent] = useState<ForgeEvent | null>(null);
   const [showEventBanner, setShowEventBanner] = useState(false);
   // ── Temperature gauge ──
-  const [temperature, setTemperature] = useState(0);   // 0-100+
-  const [overheated, setOverheated] = useState(false); // flash state
+  const [temperature, setTemperature] = useState(0);   // 0-100+ – label display only
 
   const sceneRef = useRef<ForgeScene3DRef>(null);
   const forgePressRef = useRef(new Animated.Value(1));
@@ -1373,28 +1385,30 @@ export default function ForgeScreen() {
   }, []);
 
   // ─── Phase machine ───────────────────────────────────────────────────────
-  useEffect(() => {
-    if (craftPhase !== 'HEATING') return;
-    const start = Date.now();
-    setHeatingProgress(0);
+  // Heating runs as a native-thread Reanimated animation (withTiming).
+  // Zero React re-renders fire during the animation, so the JS thread
+  // stays free for touch handling — no more tap lag.
+  const onHeatingDone = useCallback(() => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    setShowEventBanner(true);
+    setCraftPhase('HAMMERING');
+  }, []);
 
+  useEffect(() => {
+    if (craftPhase !== 'HEATING') {
+      cancelAnim(heatingAnim);
+      return;
+    }
     // Furnace upgrade: -15% heating time per level (min 25% of base)
     const furnaceLevel = game.forgeUpgrades['furnace'] ?? 0;
     const heatingMs = Math.round(3200 * Math.max(0.25, 1 - furnaceLevel * 0.15));
-
-    const interval = setInterval(() => {
-      const elapsed = (Date.now() - start) / heatingMs;
-      const clamped = Math.min(1, elapsed);
-      setHeatingProgress(clamped);
-      if (clamped >= 1) {
-        clearInterval(interval);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        setShowEventBanner(true); // reveal event banner when hammering starts
-        setCraftPhase('HAMMERING');
-      }
-    }, 40);
-
-    return () => clearInterval(interval);
+    heatingAnim.value = 0;
+    heatingAnim.value = withTiming(1, { duration: heatingMs, easing: REasing.linear }, (finished) => {
+      'worklet';
+      if (finished) runOnJS(onHeatingDone)();
+    });
+    return () => { cancelAnim(heatingAnim); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [craftPhase]);
 
   useEffect(() => {
@@ -1485,7 +1499,6 @@ export default function ForgeScreen() {
   useEffect(() => {
     if (craftPhase !== 'HAMMERING') {
       setTemperature(0);
-      setOverheated(false);
       temperatureRef.current = 0;
       return;
     }
@@ -1504,7 +1517,7 @@ export default function ForgeScreen() {
     if (!game.canCraftRecipe(recipe.id)) return;
     setShowRecipeSheet(false);
     setSession({ recipeId: recipe.id, strikesCompleted: 0, strikeScores: [] });
-    setHeatingProgress(0);
+    heatingAnim.value = 0;
     setCraftedItem(null);
     tempWarnedRef.current = false;
     activeRecipeRef.current = recipe;
@@ -1541,21 +1554,14 @@ export default function ForgeScreen() {
     // captures the right values via closure.
     let finalScore = score;
     let finalLabel = label;
-    if (newTemp >= 100) {
-      finalScore = 0;
-      finalLabel = 'RATÉ';
-      AudioManager.playOverheatCrack();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    // Temperature is now informational only — no RATÉ penalty for overheating.
+    // A warning plays when the metal gets very hot so the player has audio
+    // feedback, but the strike score is never zeroed out.
+    if (!tempWarnedRef.current && newTemp >= 75) {
+      tempWarnedRef.current = true;
+      AudioManager.playTempWarning();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       triggerGaugeShake();
-    } else {
-      // First time crossing 75% this session → warning hiss + light haptic
-      if (!tempWarnedRef.current && newTemp >= 75) {
-        tempWarnedRef.current = true;
-        AudioManager.playTempWarning();
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        triggerGaugeShake();
-      }
-      // Note: normal strike sounds are played by HammeringMiniGame — no duplicate here.
     }
 
     // ── Deferred: all React setState calls ─────────────────────────────────
@@ -1564,10 +1570,6 @@ export default function ForgeScreen() {
     // no lag between strikes on slower phones.
     setTimeout(() => {
       setTemperature(newTemp);
-      if (newTemp >= 100) {
-        setOverheated(true);
-        setTimeout(() => setOverheated(false), 1100);
-      }
       setLastHitLabel(finalLabel);
       if (hitTimerRef.current) clearTimeout(hitTimerRef.current);
       hitTimerRef.current = setTimeout(() => setLastHitLabel(null), 900);
@@ -1615,10 +1617,9 @@ export default function ForgeScreen() {
     setCraftPhase('IDLE');
     setSession(EMPTY_SESSION);
     setCraftedItem(null);
-    setHeatingProgress(0);
+    heatingAnim.value = 0;
     setLastHitLabel(null);
     setTemperature(0);
-    setOverheated(false);
     temperatureRef.current = 0;
     tempWarnedRef.current = false;
     setQuenchProgress(100);
@@ -1851,19 +1852,11 @@ export default function ForgeScreen() {
                 </Text>
               )}
               <View style={[styles.heatingTrack, { backgroundColor: colors.muted }]}>
-                <View
-                  style={[
-                    styles.heatingFill,
-                    {
-                      width: `${heatingProgress * 100}%` as `${number}%`,
-                      backgroundColor: colors.primary,
-                    },
-                  ]}
+                {/* Reanimated view — updates on the native thread, no JS re-renders */}
+                <Reanimated.View
+                  style={[styles.heatingFill, { backgroundColor: colors.primary }, heatingBarStyle]}
                 />
               </View>
-              <Text style={[styles.heatingPct, { color: colors.primary }]}>
-                {Math.round(heatingProgress * 100)}%
-              </Text>
             </View>
           </View>
         )}
@@ -1959,11 +1952,9 @@ export default function ForgeScreen() {
                     ]}
                   />
                 </View>
-                {overheated ? (
-                  <Text style={styles.tempOverheatLabel}>SURCHAUFFE — objet endommagé!</Text>
-                ) : temperature >= 80 ? (
+                {temperature >= 80 ? (
                   <Text style={[styles.tempWarning, { color: temperature >= 90 ? '#FF2200' : '#FF6600' }]}>
-                    Ralentis — métal trop chaud!
+                    Métal très chaud — bonne cadence !
                   </Text>
                 ) : (
                   <Text style={styles.tempHint}>Frappe régulièrement pour maintenir la chaleur</Text>
