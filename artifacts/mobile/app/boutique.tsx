@@ -26,6 +26,11 @@ import { WORKER_DEFINITIONS } from '@/data/workers';
 import { getLeaderboardApiBase } from '@/lib/leaderboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors } from '@/hooks/useColors';
+import resourcesData from '@/data/resources.json';
+
+const resourceNameMap: Record<string, string> = Object.fromEntries(
+  (resourcesData as { id: string; name: string }[]).map((r) => [r.id, r.name])
+);
 
 const DAILY_CHEST_KEY = '@fk_daily_ad_chest_v1';
 const AD_GOLD_KEY = '@fk_ad_gold_v1';
@@ -385,7 +390,7 @@ export default function BoutiqueScreen() {
                   {pack.items.map(({ resourceId, qty }) => (
                     <View key={resourceId} style={[styles.resourceChip, { backgroundColor: colors.secondary }]}>
                       <Text style={[styles.resourceChipText, { color: colors.foreground }]}>
-                        {resourceId.replace(/_/g, ' ')} ×{qty}
+                        {resourceNameMap[resourceId] ?? resourceId.replace(/_/g, ' ')} ×{qty}
                       </Text>
                     </View>
                   ))}
