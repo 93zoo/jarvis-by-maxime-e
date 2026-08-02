@@ -34,6 +34,7 @@ import AudioManager from '@/utils/AudioManager';
 import { applyStoredAudioSettings } from '@/utils/audioSettings';
 import CraftingEnigmaModal from '@/components/CraftingEnigma';
 import LeaderboardRewardsModal from '@/components/LeaderboardRewardsModal';
+import ForgeGuidedOverlay from '@/components/ForgeGuidedOverlay';
 
 // ─── Quality helpers ─────────────────────────────────────────────────────────
 function qualityColor(q: Quality, colors: ReturnType<typeof useColors>): string {
@@ -2412,6 +2413,9 @@ export default function ForgeScreen() {
                 style={[styles.collectBtn, { backgroundColor: qualityColor(craftedItem.quality, colors) }]}
                 onPress={() => {
                   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  if (!game.hasCompletedFirstForge) {
+                    game.completeFirstForge();
+                  }
                   resetCraft();
                 }}
               >
@@ -2425,6 +2429,15 @@ export default function ForgeScreen() {
 
       {/* ── Récompenses du classement (top 3 jour/semaine) ── */}
       <LeaderboardRewardsModal />
+
+      {/* ── Guide de première forge (post-tutoriel) ── */}
+      {game.hasCompletedFirstForgeTutorial && !game.hasCompletedFirstForge && (
+        <ForgeGuidedOverlay
+          craftPhase={craftPhase}
+          showRecipeSheet={showRecipeSheet}
+          onDismiss={() => { game.completeFirstForge(); }}
+        />
+      )}
     </View>
   );
 }

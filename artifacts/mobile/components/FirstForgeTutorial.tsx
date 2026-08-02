@@ -31,9 +31,41 @@ interface TutorialStep {
   icon: ForgeIcon;
   color: string;
   actionLabel: string;
+  /** Optional custom illustration — replaces the default TutorialIllustration. */
+  renderIllustration?: () => React.ReactNode;
 }
 
 const STEPS: TutorialStep[] = [
+  {
+    eyebrow: 'NAVIGATION',
+    title: 'Les onglets',
+    description: "Six onglets au bas de l'écran pour tout explorer.",
+    detail: "Tu peux naviguer librement à tout moment.",
+    icon: 'view-grid',
+    color: '#7986CB',
+    actionLabel: 'SUIVANT',
+    renderIllustration: () => <TabsGrid />,
+  },
+  {
+    eyebrow: 'BARRE LATÉRALE',
+    title: 'Les outils du forgeron',
+    description: "Quatre boutons à gauche de la forge pour gérer ton atelier.",
+    detail: "Quêtes, Événements, Apprenti et Améliorations.",
+    icon: 'tools',
+    color: '#FFB74D',
+    actionLabel: 'SUIVANT',
+    renderIllustration: () => <SidebarGrid />,
+  },
+  {
+    eyebrow: 'CODEX · RECETTES',
+    title: 'Trouver une recette',
+    description: "Toutes les recettes se trouvent dans le Codex, onglet Recettes.",
+    detail: "Les recettes de départ sont gratuites ; les autres se débloquent avec de l'or.",
+    icon: 'book-open-variant',
+    color: STUDIO.gold,
+    actionLabel: 'SUIVANT',
+    renderIllustration: () => <RecipeIllustration />,
+  },
   {
     eyebrow: 'PREMIÈRE FORGE',
     title: 'Choisis une recette',
@@ -189,6 +221,122 @@ function TutorialIllustration({ step }: { step: TutorialStep }) {
   );
 }
 
+// ─── Orientation-slide illustrations ─────────────────────────────────────────
+// Pure render functions (no hooks) — safe to define anywhere in module scope.
+
+const mgStyles = StyleSheet.create({
+  grid:            { width: '100%', flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginVertical: 6 },
+  item:            { width: '47%', flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: 'rgba(245,239,226,0.05)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(245,239,226,0.09)', padding: 8 },
+  iconBox:         { width: 30, height: 30, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  label:           { color: '#F5EFE2', fontSize: 11, fontWeight: '800' },
+  role:            { color: '#AFA492', fontSize: 9, fontWeight: '600' },
+  recipeContainer: { width: '100%', marginVertical: 6 },
+  navRow:          { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 8 },
+  navChip:         { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 8, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 4 },
+  navChipText:     { fontSize: 11, fontWeight: '700' },
+  recipeCard:      { backgroundColor: 'rgba(245,239,226,0.05)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(245,239,226,0.1)', padding: 10 },
+  recipeRow:       { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  recipeName:      { color: '#F5EFE2', fontSize: 12, fontWeight: '700' },
+  recipeMeta:      { color: '#AFA492', fontSize: 10, fontWeight: '600' },
+  badge:           { flexDirection: 'row', alignItems: 'center', borderRadius: 6, borderWidth: 1, paddingHorizontal: 6, paddingVertical: 3 },
+  badgeText:       { fontSize: 9, fontWeight: '800' },
+});
+
+function MenuGridItem({ icon, label, role, color, useFeather }: {
+  icon: string; label: string; role: string; color: string; useFeather?: boolean;
+}) {
+  return (
+    <View style={mgStyles.item}>
+      <View style={[mgStyles.iconBox, { backgroundColor: color + '22', borderColor: color + '55' }]}>
+        {useFeather
+          ? <Feather name={icon as any} size={16} color={color} />
+          : <MaterialCommunityIcons name={icon as any} size={16} color={color} />
+        }
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={mgStyles.label}>{label}</Text>
+        <Text style={mgStyles.role}>{role}</Text>
+      </View>
+    </View>
+  );
+}
+
+const TABS_DATA = [
+  { icon: 'hammer',            label: 'Forge',      role: 'Forger',      color: STUDIO.gold, feather: false },
+  { icon: 'map-marker-radius', label: 'Monde',      role: 'Explorer',    color: '#72BC75',   feather: false },
+  { icon: 'package-variant',   label: 'Inventaire', role: 'Ressources',  color: '#56B9DE',   feather: false },
+  { icon: 'layers',            label: 'Sets',       role: 'Collections', color: '#CE93D8',   feather: true  },
+  { icon: 'book-open',         label: 'Codex',      role: 'Recettes',    color: '#FFB74D',   feather: true  },
+  { icon: 'star',              label: 'Compét.',    role: 'Talents',     color: '#F06A2B',   feather: true  },
+] as const;
+
+function TabsGrid() {
+  return (
+    <View style={mgStyles.grid}>
+      {TABS_DATA.map((t) => (
+        <MenuGridItem key={t.label} icon={t.icon} label={t.label} role={t.role} color={t.color} useFeather={t.feather} />
+      ))}
+    </View>
+  );
+}
+
+const TOOLS_DATA = [
+  { icon: 'book-open',   label: 'Quêtes',     role: 'Missions actives', color: '#72BC75'   },
+  { icon: 'zap',         label: 'Événements', role: 'Bonus de forge',   color: '#FFB74D'   },
+  { icon: 'user',        label: 'Apprenti',   role: 'Aide forgeron',    color: '#56B9DE'   },
+  { icon: 'trending-up', label: 'Améliorer',  role: 'Upgrades',         color: STUDIO.gold },
+] as const;
+
+function SidebarGrid() {
+  return (
+    <View style={mgStyles.grid}>
+      {TOOLS_DATA.map((t) => (
+        <MenuGridItem key={t.label} icon={t.icon} label={t.label} role={t.role} color={t.color} useFeather />
+      ))}
+    </View>
+  );
+}
+
+function RecipeIllustration() {
+  return (
+    <View style={mgStyles.recipeContainer}>
+      <View style={mgStyles.navRow}>
+        <View style={[mgStyles.navChip, { backgroundColor: STUDIO.gold + '18', borderColor: STUDIO.gold + '40' }]}>
+          <Feather name="book-open" size={11} color={STUDIO.gold} />
+          <Text style={[mgStyles.navChipText, { color: STUDIO.gold }]}>Codex</Text>
+        </View>
+        <MaterialCommunityIcons name="chevron-right" size={14} color="#756B5E" />
+        <View style={[mgStyles.navChip, { backgroundColor: STUDIO.gold + '18', borderColor: STUDIO.gold + '40' }]}>
+          <MaterialCommunityIcons name="clipboard-list" size={11} color={STUDIO.gold} />
+          <Text style={[mgStyles.navChipText, { color: STUDIO.gold }]}>Recettes</Text>
+        </View>
+      </View>
+      <View style={mgStyles.recipeCard}>
+        <View style={mgStyles.recipeRow}>
+          <MaterialCommunityIcons name="hammer" size={18} color={STUDIO.gold} />
+          <View style={{ flex: 1 }}>
+            <Text style={mgStyles.recipeName}>Épée en Fer</Text>
+            <Text style={mgStyles.recipeMeta}>Niveau Forge 1</Text>
+          </View>
+          <View style={[mgStyles.badge, { backgroundColor: '#72BC7522', borderColor: '#72BC7555' }]}>
+            <Text style={[mgStyles.badgeText, { color: '#72BC75' }]}>GRATUITE</Text>
+          </View>
+        </View>
+        <View style={[mgStyles.recipeRow, { marginTop: 8, opacity: 0.65 }]}>
+          <MaterialCommunityIcons name="lock" size={16} color="#FFB74D" />
+          <View style={{ flex: 1 }}>
+            <Text style={mgStyles.recipeName}>Épée en Acier</Text>
+            <Text style={mgStyles.recipeMeta}>Niveau Forge 5</Text>
+          </View>
+          <View style={[mgStyles.badge, { backgroundColor: '#FFB74D22', borderColor: '#FFB74D55' }]}>
+            <Text style={[mgStyles.badgeText, { color: '#FFB74D' }]}>À DÉBLOQUER</Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 export default function FirstForgeTutorial({ onDone }: { onDone: () => void }) {
   const insets = useSafeAreaInsets();
   const [stepIndex, setStepIndex] = useState(0);
@@ -248,7 +396,7 @@ export default function FirstForgeTutorial({ onDone }: { onDone: () => void }) {
           ]}
         >
           <Text style={[styles.eyebrow, { color: step.color }]}>{step.eyebrow}</Text>
-          <TutorialIllustration step={step} />
+          {step.renderIllustration ? step.renderIllustration() : <TutorialIllustration step={step} />}
           <Text style={styles.title}>{step.title}</Text>
           <Text style={styles.description}>{step.description}</Text>
           <View style={styles.detailRow}>

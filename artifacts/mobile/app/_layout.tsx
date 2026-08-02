@@ -42,12 +42,17 @@ function RootLayoutNav() {
 }
 
 function AppWithSplash() {
-  const { isLoaded, hasCompletedFirstForgeTutorial, completeFirstForgeTutorial } = useGame();
+  const { isLoaded, hasCompletedFirstForgeTutorial, completeFirstForgeTutorial, saveGame } = useGame();
 
   // Global AppState handler — lives here so it stays mounted across all tabs.
   // The forge tab used to own this, but if the player navigated away before
   // backgrounding, the listener was gone and audio never recovered on return.
   const appStateRef = useRef(AppState.currentState);
+  // Keep a stable ref so the AppState listener always calls the latest saveGame
+  // (saveGame is a useCallback that depends on state, so it changes every update).
+  const saveGameRef = useRef(saveGame);
+  useEffect(() => { saveGameRef.current = saveGame; }, [saveGame]);
+
   useEffect(() => {
     if (Platform.OS === 'web') return; // web uses visibilitychange, handled per-tab
     const sub = AppState.addEventListener('change', (nextState) => {
@@ -58,6 +63,7 @@ function AppWithSplash() {
         appStateRef.current === 'active'
       ) {
         AudioManager.handleBackground();
+        saveGameRef.current();
       }
       appStateRef.current = nextState;
     });

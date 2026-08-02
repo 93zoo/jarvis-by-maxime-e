@@ -329,6 +329,12 @@ interface GameState {
    * this to true so established players are not interrupted by onboarding.
    */
   hasCompletedFirstForgeTutorial: boolean;
+  /**
+   * True once the player completes their first real forge (post-tutorial guided
+   * overlay). False for new games; defaults to true for pre-existing saves that
+   * already have crafted items, so they never see the overlay.
+   */
+  hasCompletedFirstForge: boolean;
   /** Currently active (spawned) hideouts across all regions. */
   activeHideouts: ActiveHideout[];
   /** Per-slot last-collected timestamps for spawn rate calculation. */
@@ -339,6 +345,7 @@ type GameAction =
   | { type: 'LOAD'; payload: SaveData }
   | { type: 'RESET' }
   | { type: 'COMPLETE_FIRST_FORGE_TUTORIAL' }
+  | { type: 'COMPLETE_FIRST_FORGE' }
   | { type: 'ADD_RESOURCE'; resourceId: string; qty: number }
   | { type: 'REMOVE_RESOURCE'; resourceId: string; qty: number }
   | { type: 'ADD_CRAFTED_ITEM'; item: Item }
@@ -545,6 +552,7 @@ function buildInitialState(): GameState {
     showcasedItemIds: [],
     // Les nouvelles parties doivent voir le tutoriel de première forge.
     hasCompletedFirstForgeTutorial: false,
+    hasCompletedFirstForge: false,
     activeHideouts: [],
     hideoutLastCollected: {},
   };
@@ -747,6 +755,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         discoveredAlloyIds: s.discoveredAlloyIds ?? [],
         showcasedItemIds: s.showcasedItemIds ?? [],
         hasCompletedFirstForgeTutorial: s.hasCompletedFirstForgeTutorial ?? true,
+        hasCompletedFirstForge: s.hasCompletedFirstForge ?? ((s.craftedItems?.length ?? 0) > 0),
         activeHideouts: s.activeHideouts ?? [],
         hideoutLastCollected: s.hideoutLastCollected ?? {},
       };
@@ -756,6 +765,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     }
     case 'COMPLETE_FIRST_FORGE_TUTORIAL': {
       return { ...state, hasCompletedFirstForgeTutorial: true };
+    }
+    case 'COMPLETE_FIRST_FORGE': {
+      return { ...state, hasCompletedFirstForge: true };
     }
     case 'ADD_RESOURCE': {
       const inv = [...state.inventory];
@@ -1552,6 +1564,7 @@ interface GameContextType {
   // State
   isLoaded: boolean;
   hasCompletedFirstForgeTutorial: boolean;
+  hasCompletedFirstForge: boolean;
   player: Player;
   inventory: InventoryItem[];
   craftedItems: Item[];
@@ -1631,6 +1644,7 @@ interface GameContextType {
   saveGame: () => Promise<'ok' | 'error'>;
   resetGame: () => void;
   completeFirstForgeTutorial: () => Promise<void>;
+  completeFirstForge: () => Promise<void>;
   // Progression
   allTalents: TalentData[];
   allForgeUpgrades: ForgeUpgradeData[];
@@ -1882,6 +1896,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           completedSets: state.completedSets,
           discoveredAlloyIds: state.discoveredAlloyIds,
           showcasedItemIds: state.showcasedItemIds,
+          hasCompletedFirstForgeTutorial: state.hasCompletedFirstForgeTutorial,
+          hasCompletedFirstForge: state.hasCompletedFirstForge,
           activeHideouts: state.activeHideouts ?? [],
           hideoutLastCollected: state.hideoutLastCollected ?? {},
           lastSaved: now,
@@ -1988,6 +2004,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         completedSets: state.completedSets,
         discoveredAlloyIds: state.discoveredAlloyIds,
         showcasedItemIds: state.showcasedItemIds,
+        hasCompletedFirstForgeTutorial: state.hasCompletedFirstForgeTutorial,
+        hasCompletedFirstForge: state.hasCompletedFirstForge,
         activeHideouts: state.activeHideouts ?? [],
         hideoutLastCollected: state.hideoutLastCollected ?? {},
         lastSaved: Date.now(),
@@ -2620,6 +2638,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       discoveredAlloyIds: state.discoveredAlloyIds,
       showcasedItemIds: state.showcasedItemIds,
       hasCompletedFirstForgeTutorial: state.hasCompletedFirstForgeTutorial,
+      hasCompletedFirstForge: state.hasCompletedFirstForge,
       activeHideouts: state.activeHideouts ?? [],
       hideoutLastCollected: state.hideoutLastCollected ?? {},
       lastSaved: now,
@@ -2660,6 +2679,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         discoveredAlloyIds: state.discoveredAlloyIds,
         showcasedItemIds: state.showcasedItemIds,
         hasCompletedFirstForgeTutorial: state.hasCompletedFirstForgeTutorial,
+        hasCompletedFirstForge: state.hasCompletedFirstForge,
         activeHideouts: state.activeHideouts ?? [],
         hideoutLastCollected: state.hideoutLastCollected ?? {},
         lastSaved: Date.now(),
@@ -2730,6 +2750,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       discoveredAlloyIds: state.discoveredAlloyIds,
       showcasedItemIds: state.showcasedItemIds,
       hasCompletedFirstForgeTutorial: true,
+      hasCompletedFirstForge: state.hasCompletedFirstForge,
       activeHideouts: state.activeHideouts ?? [],
       hideoutLastCollected: state.hideoutLastCollected ?? {},
       lastSaved: now,
@@ -2741,6 +2762,22 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       // The in-memory state still prevents an overlay remount this session.
     }
   }, [state]);
+
+  const completeFirstForge = useCallback(async (): Promise<void> => {
+    dispatch({ type: 'COMPLETE_FIRST_FORGE' });
+    try {
+      const raw = await AsyncStorage.getItem(SAVE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Record<string, unknown>;
+        await AsyncStorage.setItem(
+          SAVE_KEY,
+          JSON.stringify({ ...parsed, hasCompletedFirstForge: true }),
+        );
+      }
+    } catch {
+      // In-memory dispatch keeps the flag true for the current session.
+    }
+  }, []);
 
   // -------------------------------------------------------------------------
   // Progression helpers
@@ -3002,6 +3039,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     () => ({
       isLoaded: state.isLoaded,
       hasCompletedFirstForgeTutorial: state.hasCompletedFirstForgeTutorial,
+      hasCompletedFirstForge: state.hasCompletedFirstForge,
       player: state.player,
       inventory: state.inventory,
       craftedItems: state.craftedItems,
@@ -3058,6 +3096,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       saveGame,
       resetGame,
       completeFirstForgeTutorial,
+      completeFirstForge,
       allTalents: ALL_TALENTS,
       allForgeUpgrades: ALL_FORGE_UPGRADES,
       forgeUpgrades: state.forgeUpgrades,

@@ -554,6 +554,12 @@ export interface SaveData {
    * Those established games must never receive the tutorial retroactively.
    */
   hasCompletedFirstForgeTutorial?: boolean;
+  /**
+   * True once the player has completed their first real forge (post-tutorial
+   * guided overlay). Undefined/false in old saves → defaults to craftedItems
+   * count > 0 so established players skip the overlay.
+   */
+  hasCompletedFirstForge?: boolean;
   /** Currently active (spawned) hideouts across all regions. */
   activeHideouts?: ActiveHideout[];
   /** Per-slot last-collected timestamps for hideout spawn rate calculation. */
