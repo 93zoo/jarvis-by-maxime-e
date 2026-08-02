@@ -390,7 +390,7 @@ type GameAction =
   // Session snapshot
   | { type: 'ADD_SESSION_SNAPSHOT'; snapshot: SessionSnapshot }
   // Region completion
-  | { type: 'REGION_COMPLETE'; regionId: string; goldReward: number; playerXp: number; harvestXp: number; talentPoint: number }
+  | { type: 'REGION_COMPLETE'; regionId: string; goldReward: number; playerXp: number; harvestXp: number; extractionXp?: number; talentPoint: number }
   // Apprentice
   | { type: 'HIRE_APPRENTICE'; name: string }
   | { type: 'DISMISS_APPRENTICE' }
@@ -1628,7 +1628,7 @@ interface GameContextType {
   spendGold: (amount: number) => boolean;
   addPlayerXP: (amount: number) => void;
   addSkillXP: (skill: SkillType, amount: number) => void;
-  collectFromRegion: (regionId: string) => { drops: { resourceId: string; quantity: number }[]; regionCompleted: boolean; completionRewards?: { gold: number; playerXp: number; harvestXp: number; talentPoint: number } };
+  collectFromRegion: (regionId: string) => { drops: { resourceId: string; quantity: number }[]; regionCompleted: boolean; completionRewards?: { gold: number; playerXp: number; harvestXp: number; extractionXp: number; talentPoint: number } };
   completedRegions: string[];
   unlockRegion: (regionId: string) => void;
   addExploration: (regionId: string, gain: number) => void;
@@ -2255,7 +2255,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const collectFromRegion = useCallback(
-    (regionId: string): { drops: { resourceId: string; quantity: number }[]; regionCompleted: boolean; completionRewards?: { gold: number; playerXp: number; harvestXp: number; talentPoint: number } } => {
+    (regionId: string): { drops: { resourceId: string; quantity: number }[]; regionCompleted: boolean; completionRewards?: { gold: number; playerXp: number; harvestXp: number; extractionXp: number; talentPoint: number } } => {
       const region = ALL_REGIONS.find((r) => r.id === regionId);
       if (!region || !state.unlockedRegions.includes(regionId)) return { drops: [], regionCompleted: false };
 
@@ -2295,10 +2295,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         const goldReward    = Math.round(lv * 150 + 300);
         const playerXp      = Math.round(lv * 40 + 100);
         const harvestXp     = Math.round(lv * 25 + 50);
+        const extractionXp  = harvestXp;
         const talentPoint   = lv >= 5 ? 1 : 0;
-        dispatch({ type: 'REGION_COMPLETE', regionId, goldReward, playerXp, harvestXp, talentPoint });
+        dispatch({ type: 'REGION_COMPLETE', regionId, goldReward, playerXp, harvestXp, extractionXp, talentPoint });
         dispatch({ type: 'ADD_SKILL_XP', skill: 'harvest', amount: harvestXp });
-        return { drops, regionCompleted: true, completionRewards: { gold: goldReward, playerXp, harvestXp, talentPoint } };
+        dispatch({ type: 'ADD_SKILL_XP', skill: 'extraction', amount: extractionXp });
+        return { drops, regionCompleted: true, completionRewards: { gold: goldReward, playerXp, harvestXp, extractionXp, talentPoint } };
       }
 
       return { drops, regionCompleted: false };
