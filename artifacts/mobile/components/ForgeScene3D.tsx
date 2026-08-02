@@ -309,11 +309,9 @@ const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(
       triggerHammerStrike: () => {
         triggerAnim.setValue(0);
         Animated.timing(triggerAnim, { toValue: 1, duration: 20, useNativeDriver: true }).start();
-        // Flash (JS driver — backgroundColor)
-        Animated.sequence([
-          Animated.timing(anvilFlash, { toValue: 1, duration: 40,  useNativeDriver: false }),
-          Animated.timing(anvilFlash, { toValue: 0, duration: 300, useNativeDriver: false }),
-        ]).start();
+        // Flash via opacity — native driver (no JS-thread block on tap)
+        anvilFlash.setValue(1);
+        Animated.timing(anvilFlash, { toValue: 0, duration: 320, useNativeDriver: true }).start();
       },
     }));
 
@@ -670,7 +668,17 @@ const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(
             backgroundColor: '#303030',
           }}
         />
-        {/* Anvil face — flash on strike (JS driver) */}
+        {/* Anvil face — base + flash overlay (native driver) */}
+        <View
+          style={{
+            position: 'absolute',
+            left:  anvilCX - w * 0.10,
+            top:   anvilCY,
+            width: w * 0.20, height: h * 0.025,
+            borderRadius: 3,
+            backgroundColor: '#686860',
+          }}
+        />
         <Animated.View
           style={{
             position: 'absolute',
@@ -678,9 +686,8 @@ const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(
             top:   anvilCY,
             width: w * 0.20, height: h * 0.025,
             borderRadius: 3,
-            backgroundColor: anvilFlash.interpolate({
-              inputRange: [0, 1], outputRange: ['#686860', '#FFEE88'],
-            }),
+            backgroundColor: '#FFEE88',
+            opacity: anvilFlash,
           }}
         />
         {/* Metal piece on anvil when heating/hammering (JS driver) */}

@@ -10,8 +10,7 @@ import {
   Inter_700Bold,
   useFonts,
 } from '@expo-google-fonts/inter';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as Font from 'expo-font';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { GameProvider, useGame } from '@/context/GameContext';
@@ -107,13 +106,11 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    // Preload icon fonts before any render — prevents □ glyphs on Android.
+    // The studio splash covers this extra loading time.
+    ...MaterialCommunityIcons.font,
+    ...Feather.font,
   });
-
-  // Load MCI font asynchronously — does NOT block the initial render so
-  // the game starts fast. Icons snap to correct glyphs within one frame.
-  useEffect(() => {
-    Font.loadAsync(MaterialCommunityIcons.font).catch(() => {});
-  }, []);
 
   // Defer RevenueCat init off the synchronous module-load hot path.
   useEffect(() => {

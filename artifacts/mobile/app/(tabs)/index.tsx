@@ -1511,10 +1511,7 @@ export default function ForgeScreen() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         triggerGaugeShake();
       }
-      // Normal sound feedback
-      if (score === 25) AudioManager.playPerfectStrike();
-      else if (score > 0)  AudioManager.playHammerStrike();
-      else                 AudioManager.playError();
+      // Note: normal strike sounds are played by HammeringMiniGame — no duplicate here.
     }
 
     setLastHitLabel(finalLabel);
