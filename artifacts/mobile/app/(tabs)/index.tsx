@@ -1019,6 +1019,7 @@ function ApprenticeCard({
   const ap = game.apprentice;
   const [msg, setMsg] = React.useState<string | null>(null);
   const [pickingRecipe, setPickingRecipe] = React.useState(false);
+  const [filterSpecialty, setFilterSpecialty] = React.useState(false);
   const [now, setNow] = React.useState(Date.now());
 
   // Show auto-dismiss toast when the apprentice leaves due to unpaid salary
@@ -1210,22 +1211,63 @@ function ApprenticeCard({
       {/* Recipe picker */}
       {pickingRecipe && (
         <View style={[apStyles.pickerBox, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
-          <Text style={[apStyles.pickerTitle, { color: colors.mutedForeground }]}>Choisir une recette :</Text>
-          {availableForApprenticeship.map((r) => (
-            <TouchableOpacity
-              key={r.id}
-              style={[apStyles.pickerRow, { borderBottomColor: colors.border }]}
-              onPress={() => {
-                game.assignApprenticeRecipe(r.id);
-                setPickingRecipe(false);
-                showMsg(`${ap.name} forge maintenant : ${r.name}`);
-              }}
-              activeOpacity={0.8}
-            >
-              <Text style={[apStyles.pickerName, { color: colors.foreground }]}>{r.name}</Text>
-              <Text style={[apStyles.pickerMeta, { color: colors.mutedForeground }]}>Niv.{r.levelRequired}</Text>
-            </TouchableOpacity>
-          ))}
+          <View style={apStyles.pickerHeader}>
+            <Text style={[apStyles.pickerTitle, { color: colors.mutedForeground }]}>Choisir une recette :</Text>
+            {ap.specialty && (
+              <TouchableOpacity
+                style={[apStyles.specialtyToggle, {
+                  backgroundColor: filterSpecialty ? colors.accent + '25' : 'transparent',
+                  borderColor: filterSpecialty ? colors.accent : colors.border,
+                }]}
+                onPress={() => setFilterSpecialty((f) => !f)}
+                activeOpacity={0.8}
+              >
+                <Text style={[apStyles.specialtyToggleText, { color: filterSpecialty ? colors.accent : colors.mutedForeground }]}>
+                  ★ Spécialité seulement
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          {(filterSpecialty
+            ? availableForApprenticeship.filter((r) => r.category === ap.specialty)
+            : availableForApprenticeship
+          ).map((r) => {
+            const isSpecialty = ap.specialty && r.category === ap.specialty;
+            return (
+              <TouchableOpacity
+                key={r.id}
+                style={[
+                  apStyles.pickerRow,
+                  { borderBottomColor: colors.border },
+                  isSpecialty && { backgroundColor: colors.accent + '18' },
+                ]}
+                onPress={() => {
+                  game.assignApprenticeRecipe(r.id);
+                  setPickingRecipe(false);
+                  setFilterSpecialty(false);
+                  showMsg(`${ap.name} forge maintenant : ${r.name}`);
+                }}
+                activeOpacity={0.8}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1 }}>
+                  {isSpecialty && (
+                    <Text style={{ color: colors.accent, fontSize: 12, lineHeight: 16 }}>★</Text>
+                  )}
+                  <Text style={[
+                    apStyles.pickerName,
+                    { color: colors.foreground },
+                    isSpecialty && { fontWeight: '700' },
+                  ]}>{r.name}</Text>
+                </View>
+                <Text style={[apStyles.pickerMeta, { color: colors.mutedForeground }]}>Niv.{r.levelRequired}</Text>
+              </TouchableOpacity>
+            );
+          })}
+          {filterSpecialty && availableForApprenticeship.filter((r) => r.category === ap.specialty).length === 0 && (
+            <Text style={[apStyles.pickerTitle, { color: colors.mutedForeground, paddingBottom: 10 }]}>
+              Aucune recette de spécialité disponible.
+            </Text>
+          )}
         </View>
       )}
     </View>
@@ -1249,11 +1291,14 @@ const apStyles = StyleSheet.create({
   btnText:     { fontWeight: '700', fontSize: 14 },
   btnSm:       { borderWidth: 1, borderRadius: 10, paddingVertical: 8, alignItems: 'center', gap: 4 },
   btnSmText:   { fontSize: 12, fontWeight: '600' },
-  pickerBox:   { borderWidth: 1, borderRadius: 10, marginTop: 4, maxHeight: 200, overflow: 'hidden' },
-  pickerTitle: { fontSize: 11, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 4 },
-  pickerRow:   { borderBottomWidth: StyleSheet.hairlineWidth, paddingHorizontal: 10, paddingVertical: 8, flexDirection: 'row', justifyContent: 'space-between' },
-  pickerName:  { fontSize: 13 },
-  pickerMeta:  { fontSize: 11 },
+  pickerBox:            { borderWidth: 1, borderRadius: 10, marginTop: 4, maxHeight: 220, overflow: 'hidden' },
+  pickerHeader:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 10, paddingTop: 8, paddingBottom: 4 },
+  pickerTitle:          { fontSize: 11 },
+  pickerRow:            { borderBottomWidth: StyleSheet.hairlineWidth, paddingHorizontal: 10, paddingVertical: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  pickerName:           { fontSize: 13 },
+  pickerMeta:           { fontSize: 11 },
+  specialtyToggle:      { borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  specialtyToggleText:  { fontSize: 11, fontWeight: '700' },
 });
 
 // ─── Rail button (left sidebar) — defined BEFORE ForgeScreen (Hermes rule) ──
