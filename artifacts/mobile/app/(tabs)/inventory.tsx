@@ -63,16 +63,47 @@ function rarityColor(r: string, colors: ReturnType<typeof useColors>): string {
   }
 }
 
-function ResourceTypeIcon({ type, size = 18 }: { type: string, size?: number }) {
-  switch (type) {
-    case 'metal': return <MaterialCommunityIcons name="hammer" size={size} />;
-    case 'wood': return <MaterialCommunityIcons name="tree" size={size} />;
-    case 'stone': return <MaterialCommunityIcons name="wall" size={size} />;
-    case 'gem': return <MaterialCommunityIcons name="diamond" size={size} />;
-    case 'organic': return <MaterialCommunityIcons name="leaf" size={size} />;
-    case 'clay': return <MaterialCommunityIcons name="flask" size={size} />;
-    default: return <MaterialCommunityIcons name="fire" size={size} />;
-  }
+// ─── Icône par ressource ──────────────────────────────────────────────────────
+const RESOURCE_ICONS: Record<string, React.ComponentProps<typeof MaterialCommunityIcons>['name']> = {
+  // Métaux communs
+  iron:         'nail',
+  copper:       'pipe',
+  bronze:       'shield-half-full',
+  steel:        'sword',
+  silver:       'circle-slice-8',
+  gold_ore:     'gold',
+  platinum:     'medal',
+  brass:        'wrench',
+  electrum:     'lightning-bolt',
+  // Métaux rares / magiques
+  mithril:      'star-four-points',
+  darksteel:    'sword-cross',
+  mithrilite:   'star-circle',
+  dragonite:    'fire-circle',
+  adamantium:   'shield-sword',
+  staralloy:    'star-shooting',
+  // Minéraux
+  stone:        'diamond-stone',
+  obsidian:     'hexagon-slice-6',
+  coal:         'fire',
+  clay:         'beaker',
+  // Gemmes
+  crystal:      'crystal-ball',
+  ruby:         'diamond',
+  sapphire:     'rhombus',
+  emerald:      'rhombus-outline',
+  diamond:      'diamond-outline',
+  topaz:        'hexagon',
+  amethyst:     'hexagon-outline',
+  onyx:         'dots-hexagon',
+  // Organique
+  wood:         'pine-tree',
+  dragon_scale: 'skull-crossbones',
+};
+
+function ResourceIcon({ id, color, size = 20 }: { id: string; color: string; size?: number }) {
+  const icon = RESOURCE_ICONS[id] ?? 'cube-outline';
+  return <MaterialCommunityIcons name={icon} size={size} color={color} />;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -146,7 +177,9 @@ function ResourceCard({
         <View style={[styles.resourceStrip, { backgroundColor: res.color }]} />
         <View style={styles.resourceBody}>
           <View style={styles.resourceTop}>
-            <Text style={[styles.resourceIcon, { color: res.color }]}><ResourceTypeIcon type={res.type} size={20} /></Text>
+            <View style={styles.resourceIcon}>
+              <ResourceIcon id={res.id} color={res.color} size={20} />
+            </View>
           <View style={styles.resourceNameRow}>
             <Text style={[styles.resourceName, { color: colors.foreground }]}>{res.name}</Text>
             {isGem && (
@@ -997,7 +1030,7 @@ const styles = StyleSheet.create({
   resourceStrip: { width: 4 },
   resourceBody: { flex: 1, paddingHorizontal: 12, paddingVertical: 10 },
   resourceTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  resourceIcon: { fontSize: 18, width: 24 },
+  resourceIcon: { width: 24, alignItems: 'center', justifyContent: 'center' },
   resourceNameRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
   resourceName: { fontSize: 14, fontWeight: '600' },
   gemBadge: { fontSize: 9, fontWeight: '800', letterSpacing: 1 },
