@@ -56,14 +56,16 @@ const TREE_INFO: Record<TreeKey, { label: string; icon: string; color: string }>
 const NODE_R = 26;
 const COL0_X = 70;
 const COL1_X = 190;
+const COL2_X = 310;
 const TIER0_Y = 70;
 const TIER_STEP = 110;
-const CANVAS_W = 320;
+const CANVAS_W = 380;
 const CANVAS_H = TIER0_Y + 4 * TIER_STEP + NODE_R + 40;
 
 function nodePosForTalent(t: TalentData) {
+  const colX = t.col === 0 ? COL0_X : t.col === 1 ? COL1_X : COL2_X;
   return {
-    x: t.col === 0 ? COL0_X : COL1_X,
+    x: colX,
     y: TIER0_Y + t.tier * TIER_STEP,
   };
 }
