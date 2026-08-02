@@ -60,18 +60,28 @@ import { computeMicroComboBonus } from '@/utils/microCombos';
 import { reportLeaderboardScore } from '@/lib/leaderboard';
 
 // ---------------------------------------------------------------------------
-// Static data (loaded once)
+// Static data – lazily loaded on first access to avoid blocking the JS thread
 // ---------------------------------------------------------------------------
-const ALL_RESOURCES: ResourceData[] = require('@/data/resources.json');
-const ALL_RECIPES: RecipeData[] = require('@/data/recipes.json');
-const ALL_REGIONS: RegionData[] = require('@/data/regions.json');
-const ALL_SKILLS: SkillData[] = require('@/data/skills.json');
-const ALL_GEMS: GemData[] = require('@/data/gems.json');
-const ALL_NPCS: NPCData[] = require('@/data/npcs.json');
-const ALL_QUESTS: Quest[] = require('@/data/quests.json');
-const ALL_TALENTS: TalentData[] = require('@/data/talents.json');
-const ALL_FORGE_UPGRADES: ForgeUpgradeData[] = require('@/data/forgeUpgrades.json');
-const ALL_ALLOYS: AlloyData[] = require('@/data/alloys.json');
+let _cache_ALL_RESOURCES: ResourceData[] | undefined;
+const getResources = (): ResourceData[] => (_cache_ALL_RESOURCES ??= require('@/data/resources.json') as ResourceData[]);
+let _cache_ALL_RECIPES: RecipeData[] | undefined;
+const getRecipes = (): RecipeData[] => (_cache_ALL_RECIPES ??= require('@/data/recipes.json') as RecipeData[]);
+let _cache_ALL_REGIONS: RegionData[] | undefined;
+const getRegions = (): RegionData[] => (_cache_ALL_REGIONS ??= require('@/data/regions.json') as RegionData[]);
+let _cache_ALL_SKILLS: SkillData[] | undefined;
+const getSkills = (): SkillData[] => (_cache_ALL_SKILLS ??= require('@/data/skills.json') as SkillData[]);
+let _cache_ALL_GEMS: GemData[] | undefined;
+const getGems = (): GemData[] => (_cache_ALL_GEMS ??= require('@/data/gems.json') as GemData[]);
+let _cache_ALL_NPCS: NPCData[] | undefined;
+const getNpcs = (): NPCData[] => (_cache_ALL_NPCS ??= require('@/data/npcs.json') as NPCData[]);
+let _cache_ALL_QUESTS: Quest[] | undefined;
+const getQuests = (): Quest[] => (_cache_ALL_QUESTS ??= require('@/data/quests.json') as Quest[]);
+let _cache_ALL_TALENTS: TalentData[] | undefined;
+const getTalents = (): TalentData[] => (_cache_ALL_TALENTS ??= require('@/data/talents.json') as TalentData[]);
+let _cache_ALL_FORGE_UPGRADES: ForgeUpgradeData[] | undefined;
+const getForgeUpgrades = (): ForgeUpgradeData[] => (_cache_ALL_FORGE_UPGRADES ??= require('@/data/forgeUpgrades.json') as ForgeUpgradeData[]);
+let _cache_ALL_ALLOYS: AlloyData[] | undefined;
+const getAlloys = (): AlloyData[] => (_cache_ALL_ALLOYS ??= require('@/data/alloys.json') as AlloyData[]);
 
 export const STAT_UPGRADE_DEFINITIONS: StatUpgradeDefinition[] = [
   {
@@ -260,7 +270,7 @@ function makeId(): string {
 function computeTalentBonus(unlocked: string[], bonusType: string): number {
   let total = 0;
   for (const id of unlocked) {
-    const t = ALL_TALENTS.find((x) => x.id === id);
+    const t = getTalents().find((x) => x.id === id);
     if (!t) continue;
     const [type, value] = t.effect.split(':');
     if (type === bonusType) total += parseFloat(value);
@@ -580,31 +590,31 @@ function buildInitialState(): GameState {
 function generateNpcOrder(playerLevel: number, forgeLevel: number, extraDeadlineHours = 0, unlockedRecipeIds: string[] = STARTER_RECIPE_IDS): CraftOrder {
   // High-tier NPCs can have requests that a new forge simply cannot fulfill.
   // Only introduce them once the player has the matching progression.
-  const eligibleNpcs = ALL_NPCS.filter((npc) => {
+  const eligibleNpcs = getNpcs().filter((npc) => {
     if (npc.type === 'king') return playerLevel >= 20 && forgeLevel >= 5;
     if (npc.type === 'noble') return playerLevel >= 12 && forgeLevel >= 3;
     if (npc.type === 'corsair') return playerLevel >= 11;
     if (npc.type === 'mage') return playerLevel >= 18 && forgeLevel >= 4;
     return true;
   });
-  const npcPool = eligibleNpcs.length > 0 ? eligibleNpcs : ALL_NPCS;
+  const npcPool = eligibleNpcs.length > 0 ? eligibleNpcs : getNpcs();
   const npc = npcPool[Math.floor(Math.random() * npcPool.length)];
 
   // Pick a recipe matching NPC preferences and player level.
   // Only request recipes the player has already unlocked — ordering a locked recipe
   // would leave the player with no way to fulfill it.
   const maxRecipeLevel = Math.max(1, Math.min(playerLevel, forgeLevel));
-  const eligible = ALL_RECIPES.filter((r) => {
+  const eligible = getRecipes().filter((r) => {
     const matchesCategory = npc.preferredCategories.includes(r.category);
     return matchesCategory && r.levelRequired <= maxRecipeLevel && unlockedRecipeIds.includes(r.id);
   });
   // Fallback: any unlocked recipe at the player's level (ignores NPC category preference)
-  const fallback = ALL_RECIPES.filter((r) =>
+  const fallback = getRecipes().filter((r) =>
     r.levelRequired <= Math.max(1, playerLevel) && unlockedRecipeIds.includes(r.id),
   );
   const recipe = eligible.length > 0
     ? eligible[Math.floor(Math.random() * eligible.length)]
-    : fallback[0] ?? ALL_RECIPES[0];
+    : fallback[0] ?? getRecipes()[0];
 
   const budgetRange = npc.budgetMax - npc.budgetMin;
   const baseGold = Math.round(npc.budgetMin + Math.random() * budgetRange);
@@ -723,7 +733,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       // Normalize player for backward-compat: any field added after initial release
       // must be defaulted here so legacy saves don't produce undefined/NaN.
       const spentTalentPoints = (s.player.talentsUnlocked ?? []).reduce(
-        (total, talentId) => total + (ALL_TALENTS.find((talent) => talent.id === talentId)?.cost ?? 0),
+        (total, talentId) => total + (getTalents().find((talent) => talent.id === talentId)?.cost ?? 0),
         0,
       );
       // Saves created before player-level talent points existed may contain
@@ -1050,7 +1060,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       let activeQuestIds = state.activeQuestIds;
 
       for (const qid of state.activeQuestIds) {
-        const quest = ALL_QUESTS.find((q) => q.id === qid);
+        const quest = getQuests().find((q) => q.id === qid);
         if (!quest) continue;
         const qProgress = { ...(qp[qid] ?? {}) };
         let anyUpdated = false;
@@ -1072,7 +1082,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
       // Apply quest completions
       for (const qid of newCompletions) {
-        const quest = ALL_QUESTS.find((q) => q.id === qid);
+        const quest = getQuests().find((q) => q.id === qid);
         if (!quest) continue;
         questPlayer = levelUpPlayer({
           ...questPlayer,
@@ -1104,7 +1114,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, activeQuestIds: [...state.activeQuestIds, action.questId], player };
     }
     case 'COMPLETE_QUEST': {
-      const quest = ALL_QUESTS.find((q) => q.id === action.questId);
+      const quest = getQuests().find((q) => q.id === action.questId);
       const player = quest
         ? levelUpPlayer({
             ...state.player,
@@ -1141,7 +1151,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       let activeQuestIds = state.activeQuestIds;
 
       for (const qid of state.activeQuestIds) {
-        const quest = ALL_QUESTS.find((q) => q.id === qid);
+        const quest = getQuests().find((q) => q.id === qid);
         if (!quest) continue;
         let anyUpdated = false;
         const qProgress = { ...(qp[qid] ?? {}) };
@@ -1171,7 +1181,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
       // Apply completions
       for (const qid of newCompletions) {
-        const quest = ALL_QUESTS.find((q) => q.id === qid);
+        const quest = getQuests().find((q) => q.id === qid);
         if (!quest) continue;
         player = levelUpPlayer({
           ...player,
@@ -1265,7 +1275,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case 'UNLOCK_TALENT': {
-      const talent = ALL_TALENTS.find((t) => t.id === action.talentId);
+      const talent = getTalents().find((t) => t.id === action.talentId);
       const [effectType, effectValue] = (talent?.effect ?? ':0').split(':');
       const bonusPoints = effectType === 'bonusTalentPoint' ? parseInt(effectValue, 10) : 0;
       const player = {
@@ -1277,7 +1287,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case 'UNLOCK_RECIPE': {
-      const recipe = ALL_RECIPES.find((candidate) => candidate.id === action.recipeId);
+      const recipe = getRecipes().find((candidate) => candidate.id === action.recipeId);
       if (!recipe || state.player.unlockedRecipeIds.includes(action.recipeId)) return state;
       const skillLevel = state.player.skills[recipe.skillRequired] ?? 0;
       const expectedCost = recipeUnlockCost(recipe);
@@ -1406,7 +1416,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         : (state.apprentice.missedPayments ?? 0);
       // Auto-restart the craft immediately so the timer can fire again for the next cycle.
       const restartRecipe = state.apprentice.assignedRecipeId
-        ? ALL_RECIPES.find((r) => r.id === state.apprentice!.assignedRecipeId) ?? null
+        ? getRecipes().find((r) => r.id === state.apprentice!.assignedRecipeId) ?? null
         : null;
       const restartDuration = restartRecipe
         ? apprenticeCraftDuration(restartRecipe, state.apprentice.level)
@@ -1439,7 +1449,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       // Auto-restart craft if recipe still assigned
       const now = Date.now();
       const recipe = state.apprentice.assignedRecipeId
-        ? ALL_RECIPES.find((r) => r.id === state.apprentice!.assignedRecipeId)
+        ? getRecipes().find((r) => r.id === state.apprentice!.assignedRecipeId)
         : null;
       const newDuration = recipe ? apprenticeCraftDuration(recipe, newLevel) : 0;
       // Route accounting through the same path as normal crafting so
@@ -2056,12 +2066,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   // Helpers
   // -------------------------------------------------------------------------
   const getResourceById = useCallback(
-    (id: string) => ALL_RESOURCES.find((r) => r.id === id),
+    (id: string) => getResources().find((r) => r.id === id),
     [],
   );
 
   const getRecipeById = useCallback(
-    (id: string) => ALL_RECIPES.find((r) => r.id === id),
+    (id: string) => getRecipes().find((r) => r.id === id),
     [],
   );
 
@@ -2073,7 +2083,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const canCraftRecipe = useCallback(
     (recipeId: string) => {
-      const recipe = ALL_RECIPES.find((r) => r.id === recipeId);
+      const recipe = getRecipes().find((r) => r.id === recipeId);
       if (!recipe) return false;
       if (!state.player.unlockedRecipeIds.includes(recipeId)) return false;
       const skillLevel = state.player.skills[recipe.skillRequired] ?? 0;
@@ -2088,7 +2098,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   );
 
   const getAvailableRecipes = useCallback(() => {
-    return ALL_RECIPES.filter((r) => {
+    return getRecipes().filter((r) => {
       const skillLevel = state.player.skills[r.skillRequired] ?? 0;
       return state.player.unlockedRecipeIds.includes(r.id) && skillLevel >= r.levelRequired;
     });
@@ -2096,7 +2106,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const getRecipeUnlockCost = useCallback(
     (recipeId: string) => {
-      const recipe = ALL_RECIPES.find((candidate) => candidate.id === recipeId);
+      const recipe = getRecipes().find((candidate) => candidate.id === recipeId);
       return recipe ? recipeUnlockCost(recipe) : 0;
     },
     [],
@@ -2104,7 +2114,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const unlockRecipe = useCallback(
     (recipeId: string): boolean => {
-      const recipe = ALL_RECIPES.find((candidate) => candidate.id === recipeId);
+      const recipe = getRecipes().find((candidate) => candidate.id === recipeId);
       if (!recipe || state.player.unlockedRecipeIds.includes(recipeId)) return false;
       const skillLevel = state.player.skills[recipe.skillRequired] ?? 0;
       const cost = recipeUnlockCost(recipe);
@@ -2179,7 +2189,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const craftItem = useCallback(
     (recipeId: string): Item | null => {
-      const recipe = ALL_RECIPES.find((r) => r.id === recipeId);
+      const recipe = getRecipes().find((r) => r.id === recipeId);
       if (!recipe) return null;
       if (!canCraftRecipe(recipeId)) return null;
 
@@ -2292,7 +2302,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const craftItemWithScore = useCallback(
     (recipeId: string, qualityScore: number, enigmaBonus?: boolean): Item | null => {
-      const recipe = ALL_RECIPES.find((r) => r.id === recipeId);
+      const recipe = getRecipes().find((r) => r.id === recipeId);
       if (!recipe) return null;
       if (!canCraftRecipe(recipeId)) return null;
 
@@ -2379,7 +2389,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const collectFromRegion = useCallback(
     (regionId: string): { drops: { resourceId: string; quantity: number }[]; regionCompleted: boolean; completionRewards?: { gold: number; playerXp: number; harvestXp: number; extractionXp: number; talentPoint: number } } => {
-      const region = ALL_REGIONS.find((r) => r.id === regionId);
+      const region = getRegions().find((r) => r.id === regionId);
       if (!region || !state.unlockedRegions.includes(regionId)) return { drops: [], regionCompleted: false };
 
       const collectBonus = Math.floor(computeTalentBonus(state.player.talentsUnlocked, 'collectBonus'));
@@ -2441,7 +2451,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const fightForMaterials = useCallback(
     (regionId: string, playerTotal: number, enemyTotal: number, enemyId?: string): CombatResult => {
-      const region = ALL_REGIONS.find((candidate) => candidate.id === regionId);
+      const region = getRegions().find((candidate) => candidate.id === regionId);
       if (!region || !state.unlockedRegions.includes(regionId)) {
         return {
           won: false,
@@ -2553,7 +2563,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const buyResource = useCallback(
     (resourceId: string, qty: number): boolean => {
-      const res = ALL_RESOURCES.find((r) => r.id === resourceId);
+      const res = getResources().find((r) => r.id === resourceId);
       if (!res) return false;
       const unitPrice = Math.round(res.baseValue * 1.35);
       const goldCost = unitPrice * qty;
@@ -2587,7 +2597,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const getActiveQuests = useCallback((): (Quest & { progress: Record<string, number> })[] => {
     return state.activeQuestIds.map((qid) => {
-      const q = ALL_QUESTS.find((x) => x.id === qid);
+      const q = getQuests().find((x) => x.id === qid);
       if (!q) return null;
       return { ...q, progress: state.questProgress[qid] ?? {} };
     }).filter(Boolean) as (Quest & { progress: Record<string, number> })[];
@@ -2605,7 +2615,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   // -------------------------------------------------------------------------
   const getMarketPrice = useCallback(
     (resourceId: string): number => {
-      const res = ALL_RESOURCES.find((r) => r.id === resourceId);
+      const res = getResources().find((r) => r.id === resourceId);
       const mult = state.marketPrices[resourceId] ?? 1.0;
       return Math.round((res?.baseValue ?? 10) * mult);
     },
@@ -2637,7 +2647,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     (resourceId: string, qty: number): number => {
       const inv = state.inventory.find((i) => i.resourceId === resourceId);
       if (!inv || inv.quantity < qty) return 0;
-      const res = ALL_RESOURCES.find((r) => r.id === resourceId);
+      const res = getResources().find((r) => r.id === resourceId);
       const pricePerUnit = Math.round((res?.baseValue ?? 10) * (state.marketPrices[resourceId] ?? 1.0) * 0.8);
       const statSellUpg2 = (state.player.statUpgrades?.['sell_bonus'] ?? 0) * 0.04;
       const sellBonus = 1
@@ -2658,7 +2668,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const item = state.craftedItems.find((candidate) => candidate.instanceId === instanceId);
       if (!item) return { success: false, message: 'Objet introuvable.', recovered: [] };
 
-      const recipe = ALL_RECIPES.find((candidate) => candidate.id === item.recipeId);
+      const recipe = getRecipes().find((candidate) => candidate.id === item.recipeId);
       const qualityYield: Record<Quality, number> = {
         poor: 0.45,
         normal: 0.6,
@@ -2690,7 +2700,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   // Gem socket actions
   // -------------------------------------------------------------------------
   const getSocketableGems = useCallback((): GemData[] => {
-    return ALL_GEMS.filter(
+    return getGems().filter(
       (gem) => (state.inventory.find((i) => i.resourceId === gem.type)?.quantity ?? 0) > 0,
     );
   }, [state.inventory]);
@@ -2731,7 +2741,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   /** Current total inventory weight (resources + crafted items). */
   const currentWeight = useMemo(() => {
     const rw = state.inventory.reduce((acc, inv) => {
-      const res = ALL_RESOURCES.find((r) => r.id === inv.resourceId);
+      const res = getResources().find((r) => r.id === inv.resourceId);
       return acc + (res?.weight ?? 0) * inv.quantity;
     }, 0);
     const iw = state.craftedItems.reduce((acc, item) => acc + item.weight, 0);
@@ -2949,7 +2959,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const upgradeForgeElement = useCallback(
     (element: string): { success: boolean; message: string } => {
-      const upgradeData = ALL_FORGE_UPGRADES.find((u) => u.id === element);
+      const upgradeData = getForgeUpgrades().find((u) => u.id === element);
       if (!upgradeData) return { success: false, message: 'Élément introuvable.' };
       const currentLevel = state.forgeUpgrades[element] ?? 0;
       if (currentLevel >= 5) return { success: false, message: 'Déjà au niveau maximum.' };
@@ -2963,7 +2973,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       for (const rc of tier.resourceCosts) {
         const have = state.inventory.find((i) => i.resourceId === rc.resourceId)?.quantity ?? 0;
         if (have < rc.qty) {
-          const res = ALL_RESOURCES.find((r) => r.id === rc.resourceId);
+          const res = getResources().find((r) => r.id === rc.resourceId);
           return { success: false, message: `${res?.name ?? rc.resourceId} insuffisant (${rc.qty} requis, ${have} disponible).` };
         }
       }
@@ -2991,7 +3001,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const assignApprenticeRecipe = useCallback((recipeId: string): boolean => {
     if (!state.apprentice) return false;
-    const recipe = ALL_RECIPES.find((r) => r.id === recipeId);
+    const recipe = getRecipes().find((r) => r.id === recipeId);
     if (!recipe) return false;
     const durationMs = apprenticeCraftDuration(recipe, state.apprentice.level);
     dispatch({ type: 'ASSIGN_APPRENTICE_RECIPE', recipeId, durationMs });
@@ -3028,7 +3038,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       // so the timer must keep firing even when an uncollected item is waiting.
       if (!ap || !ap.craftStartedAt || !ap.assignedRecipeId) return;
       if (Date.now() - ap.craftStartedAt >= ap.craftDurationMs) {
-        const recipe = ALL_RECIPES.find((r) => r.id === ap.assignedRecipeId);
+        const recipe = getRecipes().find((r) => r.id === ap.assignedRecipeId);
         if (recipe) {
           // 3rd missed payment: fire the apprentice instead of producing another item
           if (ap.readyItem !== null && (ap.missedPayments ?? 0) >= 2) {
@@ -3053,7 +3063,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const s = hideoutStateRef.current;
       const now = Date.now();
       dispatch({ type: 'EXPIRE_HIDEOUTS' });
-      for (const region of ALL_REGIONS) {
+      for (const region of getRegions()) {
         if (!s.unlockedRegions.includes(region.id)) continue;
         for (const slot of (region.hideouts ?? [])) {
           const isActive = (s.activeHideouts ?? []).some((h) => h.slotId === slot.id);
@@ -3111,7 +3121,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const fuseAlloy = useCallback(
     (alloyId: string): { success: boolean; message: string } => {
-      const alloy = ALL_ALLOYS.find((a) => a.id === alloyId);
+      const alloy = getAlloys().find((a) => a.id === alloyId);
       if (!alloy) return { success: false, message: 'Alliage introuvable.' };
       if (state.player.level < alloy.levelRequired) {
         return { success: false, message: `Niveau ${alloy.levelRequired} requis.` };
@@ -3119,7 +3129,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       for (const ing of alloy.ingredients) {
         const qty = state.inventory.find((i) => i.resourceId === ing.resourceId)?.quantity ?? 0;
         if (qty < ing.quantity) {
-          const res = ALL_RESOURCES.find((r) => r.id === ing.resourceId);
+          const res = getResources().find((r) => r.id === ing.resourceId);
           return { success: false, message: `${res?.name ?? ing.resourceId} insuffisant (${ing.quantity} requis, vous en avez ${qty}).` };
         }
       }
@@ -3130,7 +3140,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         outputResourceId: alloy.outputResourceId,
         outputQuantity: alloy.outputQuantity,
       });
-      const outRes = ALL_RESOURCES.find((r) => r.id === alloy.outputResourceId);
+      const outRes = getResources().find((r) => r.id === alloy.outputResourceId);
       return {
         success: true,
         message: `+${alloy.outputQuantity} ${outRes?.name ?? alloy.outputResourceId} obtenu !`,
@@ -3141,7 +3151,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const collectHideout = useCallback(
     (slotId: string, regionId: string): { success: boolean; rewards: { resourceId: string; qty: number }[] } => {
-      const region = ALL_REGIONS.find((r) => r.id === regionId);
+      const region = getRegions().find((r) => r.id === regionId);
       const hideout = (state.activeHideouts ?? []).find(
         (h) => h.slotId === slotId && h.regionId === regionId,
       );
@@ -3173,7 +3183,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const unlockTalent = useCallback(
     (talentId: string): boolean => {
-      const talent = ALL_TALENTS.find((t) => t.id === talentId);
+      const talent = getTalents().find((t) => t.id === talentId);
       if (!talent) return false;
       if (state.player.talentsUnlocked.includes(talentId)) return false;
       if (state.player.talentPoints < talent.cost) return false;
@@ -3248,124 +3258,143 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   // Context value (memoized to avoid re-renders)
   // -------------------------------------------------------------------------
   const value = useMemo<GameContextType>(
-    () => ({
-      isLoaded: state.isLoaded,
-      hasCompletedFirstForgeTutorial: state.hasCompletedFirstForgeTutorial,
-      hasCompletedFirstForge: state.hasCompletedFirstForge,
-      player: state.player,
-      inventory: state.inventory,
-      craftedItems: state.craftedItems,
-      activeOrders: state.activeOrders,
-      unlockedRegions: state.unlockedRegions,
-      regionExploration: state.regionExploration,
-      npcReputation: state.npcReputation,
-      marketPrices: state.marketPrices,
-      activeQuestIds: state.activeQuestIds,
-      completedQuestIds: state.completedQuestIds,
-      questProgress: state.questProgress,
-      allResources: ALL_RESOURCES,
-      allRecipes: ALL_RECIPES,
-      allRegions: ALL_REGIONS,
-      allSkills: ALL_SKILLS,
-      allGems: ALL_GEMS,
-      allNPCs: ALL_NPCS,
-      allQuests: ALL_QUESTS,
-      maxWeight,
-      getResourceById,
-      getRecipeById,
-       getRecipeUnlockCost,
-      getInventoryQty,
-      canCraftRecipe,
-      getAvailableRecipes,
-       unlockRecipe,
-      getSocketableGems,
-      getActiveQuests,
-      getMarketPrice,
-      addResource,
-      harvestResource,
-      removeResource,
-      craftItem,
-      craftItemWithScore,
-      socketGem,
-      removeGem,
-      acceptOrder,
-      refuseOrder,
-      deliverOrder,
-      acceptQuest,
-      updateQuestProgress,
-      sellItem,
-      sellResource,
-      buyResource,
-      rerollOrder,
-      addGold,
-      spendGold,
-      addPlayerXP,
-      addSkillXP,
-      collectFromRegion,
-      unlockRegion,
-      addExploration,
-      fightForMaterials,
-      saveGame,
-      resetGame,
-      completeFirstForgeTutorial,
-      completeFirstForge,
-      allTalents: ALL_TALENTS,
-      allForgeUpgrades: ALL_FORGE_UPGRADES,
-      forgeUpgrades: state.forgeUpgrades,
-      upgradeForgeElement,
-      unlockTalent,
-      meltItem,
-      getTalentBonus,
-      // Forge history
-      forgeHistory: state.forgeHistory,
-      // Session snapshots
-      sessionSnapshots: state.sessionSnapshots,
-      // Cloud sync
-      cloudSyncStatus,
-      lastCloudSync,
-      syncToCloud,
-      // Customization
-      customizePlayer,
-      // Regions
-      completedRegions: state.completedRegions,
-      // Apprentice
-      apprentice: state.apprentice,
-      hireApprentice,
-      dismissApprentice,
-      assignApprenticeRecipe,
-      collectApprenticeItem,
-      trainApprentice,
-      apprenticeToast,
-      clearApprenticeToast: () => setApprenticeToast(null),
-      // Collections
-      allCollections: ALL_COLLECTIONS,
-      completedSets: state.completedSets,
-      craftedRecipeIds,
-      getCollectionBonusTotal,
-      getCollectionProgress,
-      getActiveEvent,
-      getEventProgress,
-      claimSetReward,
-      // Stat upgrades
-      buyStatUpgrade,
-      getStatUpgradeBonus,
-      // Alloy / fusion
-      allAlloys: ALL_ALLOYS,
-      discoveredAlloyIds: state.discoveredAlloyIds,
-      fuseAlloy,
-      // Showcase vitrine
-      showcasedItemIds: state.showcasedItemIds,
-      pinToShowcase,
-      unpinFromShowcase,
-      // Hideouts
-      activeHideouts: state.activeHideouts ?? [],
-      collectHideout,
-      // Guilde des Travailleurs
-      workers: state.workers ?? [],
-      hireWorker,
-      upgradeWorker,
-      collectWorker,
-    }),
+    () => {
+      // Build the value object without the static JSON arrays – those are
+      // attached below as Object.defineProperty lazy getters so each JSON
+      // file is parsed on first access by a consumer, not eagerly here.
+      const v = {
+        isLoaded: state.isLoaded,
+        hasCompletedFirstForgeTutorial: state.hasCompletedFirstForgeTutorial,
+        hasCompletedFirstForge: state.hasCompletedFirstForge,
+        player: state.player,
+        inventory: state.inventory,
+        craftedItems: state.craftedItems,
+        activeOrders: state.activeOrders,
+        unlockedRegions: state.unlockedRegions,
+        regionExploration: state.regionExploration,
+        npcReputation: state.npcReputation,
+        marketPrices: state.marketPrices,
+        activeQuestIds: state.activeQuestIds,
+        completedQuestIds: state.completedQuestIds,
+        questProgress: state.questProgress,
+        maxWeight,
+        getResourceById,
+        getRecipeById,
+         getRecipeUnlockCost,
+        getInventoryQty,
+        canCraftRecipe,
+        getAvailableRecipes,
+         unlockRecipe,
+        getSocketableGems,
+        getActiveQuests,
+        getMarketPrice,
+        addResource,
+        harvestResource,
+        removeResource,
+        craftItem,
+        craftItemWithScore,
+        socketGem,
+        removeGem,
+        acceptOrder,
+        refuseOrder,
+        deliverOrder,
+        acceptQuest,
+        updateQuestProgress,
+        sellItem,
+        sellResource,
+        buyResource,
+        rerollOrder,
+        addGold,
+        spendGold,
+        addPlayerXP,
+        addSkillXP,
+        collectFromRegion,
+        unlockRegion,
+        addExploration,
+        fightForMaterials,
+        saveGame,
+        resetGame,
+        completeFirstForgeTutorial,
+        completeFirstForge,
+        forgeUpgrades: state.forgeUpgrades,
+        upgradeForgeElement,
+        unlockTalent,
+        meltItem,
+        getTalentBonus,
+        // Forge history
+        forgeHistory: state.forgeHistory,
+        // Session snapshots
+        sessionSnapshots: state.sessionSnapshots,
+        // Cloud sync
+        cloudSyncStatus,
+        lastCloudSync,
+        syncToCloud,
+        // Customization
+        customizePlayer,
+        // Regions
+        completedRegions: state.completedRegions,
+        // Apprentice
+        apprentice: state.apprentice,
+        hireApprentice,
+        dismissApprentice,
+        assignApprenticeRecipe,
+        collectApprenticeItem,
+        trainApprentice,
+        apprenticeToast,
+        clearApprenticeToast: () => setApprenticeToast(null),
+        // Collections
+        allCollections: ALL_COLLECTIONS,
+        completedSets: state.completedSets,
+        craftedRecipeIds,
+        getCollectionBonusTotal,
+        getCollectionProgress,
+        getActiveEvent,
+        getEventProgress,
+        claimSetReward,
+        // Stat upgrades
+        buyStatUpgrade,
+        getStatUpgradeBonus,
+        // Alloy / fusion
+        discoveredAlloyIds: state.discoveredAlloyIds,
+        fuseAlloy,
+        // Showcase vitrine
+        showcasedItemIds: state.showcasedItemIds,
+        pinToShowcase,
+        unpinFromShowcase,
+        // Hideouts
+        activeHideouts: state.activeHideouts ?? [],
+        collectHideout,
+        // Guilde des Travailleurs
+        workers: state.workers ?? [],
+        hireWorker,
+        upgradeWorker,
+        collectWorker,
+      } as GameContextType;
+
+      // Lazy getters – each JSON file is required (and cached) only the first
+      // time a consumer reads the corresponding field from the context value.
+      const lazyData: Array<[keyof GameContextType, () => unknown]> = [
+        ['allResources', getResources],
+        ['allRecipes', getRecipes],
+        ['allRegions', getRegions],
+        ['allSkills', getSkills],
+        ['allGems', getGems],
+        ['allNPCs', getNpcs],
+        ['allQuests', getQuests],
+        ['allTalents', getTalents],
+        ['allForgeUpgrades', getForgeUpgrades],
+        ['allAlloys', getAlloys],
+      ];
+      for (const [key, loader] of lazyData) {
+        Object.defineProperty(v, key, {
+          get: loader,
+          enumerable: true,
+          configurable: true,
+        });
+      }
+
+      return v;
+    },
     // Include cloud sync reactive state so status transitions propagate to consumers
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [state, cloudSyncStatus, lastCloudSync, apprenticeToast],
