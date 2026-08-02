@@ -58,13 +58,13 @@ export default function CodexScreen() {
   // Resource IDs that can be produced via the alloy fusion system
   const alloyOutputIds = new Set(game.allAlloys.map((a) => a.outputResourceId));
 
-  const TABS: { key: CodexTab; label: string; icon: string }[] = [
-    { key: 'resources', label: 'Matériaux', icon: 'diamond-stone' },
-    { key: 'recipes', label: 'Recettes', icon: 'book-open-page-variant' },
+  const TABS: { key: CodexTab; label: string; icon: React.ComponentProps<typeof Feather>['name'] }[] = [
+    { key: 'resources', label: 'Matériaux', icon: 'layers' },
+    { key: 'recipes', label: 'Recettes', icon: 'book' },
     { key: 'regions', label: 'Régions', icon: 'map' },
-    { key: 'skills', label: 'Talents', icon: 'auto-fix' },
-    { key: 'quests', label: 'Quêtes', icon: 'flag-triangle' },
-    { key: 'profil', label: 'Profil', icon: 'account' },
+    { key: 'skills', label: 'Talents', icon: 'star' },
+    { key: 'quests', label: 'Quêtes', icon: 'flag' },
+    { key: 'profil', label: 'Profil', icon: 'user' },
   ];
 
   const activeQuests = game.getActiveQuests();
@@ -371,8 +371,8 @@ export default function CodexScreen() {
               onPress={() => setActiveTab(tab.key)}
               activeOpacity={0.7}
             >
-              <MaterialCommunityIcons
-                name={tab.icon as any}
+              <Feather
+                name={tab.icon}
                 size={20}
                 color={isActive ? colors.primary : colors.mutedForeground}
               />
