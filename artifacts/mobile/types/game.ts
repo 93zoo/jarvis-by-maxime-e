@@ -202,6 +202,14 @@ export interface RegionBoss {
   description: string;
 }
 
+export interface RegionEnemy {
+  id: string;
+  name: string;
+  level: number;
+  description: string;
+  drops: RegionResourceNode[];
+}
+
 export interface RegionHideoutReward {
   resourceId: string;
   minQty: number;
@@ -221,6 +229,8 @@ export interface RegionData {
   lore?: string[];
   /** Hideout slots that spawn periodically in this region. */
   hideouts?: RegionHideoutSlot[];
+  /** Secondary enemies (guards, mini-bosses) encountered while exploring. */
+  enemies?: RegionEnemy[];
 }
 
 export interface SkillUnlock {

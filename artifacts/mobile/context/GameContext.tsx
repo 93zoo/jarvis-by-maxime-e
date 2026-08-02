@@ -1640,7 +1640,7 @@ interface GameContextType {
   // Hideouts
   activeHideouts: ActiveHideout[];
   collectHideout: (slotId: string, regionId: string) => { success: boolean; rewards: { resourceId: string; qty: number }[] };
-  fightForMaterials: (regionId: string, playerTotal: number, enemyTotal: number) => CombatResult;
+  fightForMaterials: (regionId: string, playerTotal: number, enemyTotal: number, enemyId?: string) => CombatResult;
   saveGame: () => Promise<'ok' | 'error'>;
   resetGame: () => void;
   completeFirstForgeTutorial: () => Promise<void>;
@@ -2298,7 +2298,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const fightForMaterials = useCallback(
-    (regionId: string, playerTotal: number, enemyTotal: number): CombatResult => {
+    (regionId: string, playerTotal: number, enemyTotal: number, enemyId?: string): CombatResult => {
       const region = ALL_REGIONS.find((candidate) => candidate.id === regionId);
       if (!region || !state.unlockedRegions.includes(regionId)) {
         return {
@@ -2306,19 +2306,28 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           playerRoll: playerTotal,
           enemyRoll: enemyTotal,
           drops: [],
-          message: 'Cette région n’est pas accessible.',
+          message: "Cette région n'est pas accessible.",
         };
       }
+
+      // Resolve secondary enemy if provided, otherwise fall back to boss
+      const secondaryEnemy = enemyId
+        ? region.enemies?.find((e) => e.id === enemyId)
+        : undefined;
+      const enemyName = secondaryEnemy ? secondaryEnemy.name : region.boss.name;
+      const dropNodes = secondaryEnemy ? secondaryEnemy.drops : region.resourceNodes;
+      // XP scales with the enemy level (secondary enemy) or region level (boss)
+      const enemyLevel = secondaryEnemy ? secondaryEnemy.level : region.levelRequired;
 
       const won = playerTotal > enemyTotal;
       const drops: CombatDrop[] = [];
       if (won) {
-        // Combat rewards favour the region’s own materials. Two independent
+        // Combat rewards favour the enemy's own drop table. Two independent
         // rolls make a win useful without flooding the inventory.
-        const candidates = region.resourceNodes
+        const candidates = dropNodes
           .filter((node) => Math.random() <= Math.min(1, node.dropRate + 0.15))
           .slice(0, 2);
-        for (const node of candidates.length > 0 ? candidates : region.resourceNodes.slice(0, 1)) {
+        for (const node of candidates.length > 0 ? candidates : dropNodes.slice(0, 1)) {
           const quantity = Math.max(
             1,
             Math.floor(Math.random() * (node.maxQty - node.minQty + 1) + node.minQty),
@@ -2332,8 +2341,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             amount: quantity,
           });
         }
-        dispatch({ type: 'ADD_SKILL_XP', skill: 'combat', amount: 12 + region.levelRequired });
-        dispatch({ type: 'ADD_PLAYER_XP', amount: 8 + region.levelRequired });
+        dispatch({ type: 'ADD_SKILL_XP', skill: 'combat', amount: 12 + enemyLevel });
+        dispatch({ type: 'ADD_PLAYER_XP', amount: 8 + enemyLevel });
         dispatch({ type: 'ADD_EXPLORATION', regionId, gain: 2 });
       } else {
         dispatch({ type: 'ADD_SKILL_XP', skill: 'combat', amount: 3 });
@@ -2346,8 +2355,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         enemyRoll: enemyTotal,
         drops,
         message: won
-          ? `Victoire contre ${region.boss.name} !`
-          : `${region.boss.name} vous repousse. Revenez plus fort !`,
+          ? `Victoire contre ${enemyName} !`
+          : `${enemyName} vous repousse. Revenez plus fort !`,
       };
     },
     [state.unlockedRegions],

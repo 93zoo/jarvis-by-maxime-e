@@ -30,7 +30,7 @@ import Animated, {
 import { useGame } from '@/context/GameContext';
 import { useColors } from '@/hooks/useColors';
 import AudioManager from '@/utils/AudioManager';
-import type { ActiveHideout, CraftOrder, RegionData, RegionResourceNode } from '@/types/game';
+import type { ActiveHideout, CraftOrder, RegionData, RegionEnemy, RegionResourceNode } from '@/types/game';
 
 // ─── Region metadata ──────────────────────────────────────────────────────────
 const REGION_COLORS: Record<string, string> = {
@@ -221,6 +221,7 @@ function ExploreView({
   const [lastDrops, setLastDrops] = useState<{ resourceId: string; qty: number } | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [showCombat, setShowCombat] = useState(false);
+  const [combatEnemy, setCombatEnemy] = useState<RegionEnemy | null>(null);
   const [combatRound, setCombatRound] = useState(0);
   const [combatPlayerScore, setCombatPlayerScore] = useState(0);
   const [combatEnemyScore, setCombatEnemyScore] = useState(0);
@@ -326,7 +327,8 @@ function ExploreView({
     });
   };
 
-  const openCombat = () => {
+  const openCombat = (enemy: RegionEnemy | null = null) => {
+    setCombatEnemy(enemy);
     setCombatRound(0);
     setCombatPlayerScore(0);
     setCombatEnemyScore(0);
@@ -338,7 +340,8 @@ function ExploreView({
   const rollCombatDice = () => {
     if (combatResult) return;
     const playerRoll = Math.floor(Math.random() * 6) + 1 + Math.floor((game.player.skills.combat ?? 1) / 5);
-    const enemyRoll = Math.floor(Math.random() * 6) + 1 + Math.floor(region.boss.level / 5);
+    const enemyLevel = combatEnemy ? combatEnemy.level : region.boss.level;
+    const enemyRoll = Math.floor(Math.random() * 6) + 1 + Math.floor(enemyLevel / 5);
     const nextPlayerScore = combatPlayerScore + playerRoll;
     const nextEnemyScore = combatEnemyScore + enemyRoll;
     const nextRound = combatRound + 1;
@@ -357,7 +360,7 @@ function ExploreView({
       }
     }, 120);
     if (nextRound >= 3) {
-      const result = game.fightForMaterials(region.id, nextPlayerScore, nextEnemyScore);
+      const result = game.fightForMaterials(region.id, nextPlayerScore, nextEnemyScore, combatEnemy?.id);
       setCombatResult(result);
       if (result.won) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -417,11 +420,33 @@ function ExploreView({
         <Text style={[styles.bossStripText, { color: colors.destructive, flex: 1 }]}>
           Boss: {region.boss.name} · Niv.{region.boss.level}
         </Text>
-        <TouchableOpacity style={[styles.fightBtn, { backgroundColor: colors.destructive }]} onPress={openCombat}>
+        <TouchableOpacity style={[styles.fightBtn, { backgroundColor: colors.destructive }]} onPress={() => openCombat(null)}>
           <MaterialCommunityIcons name="sword-cross" size={14} color="#fff" />
           <Text style={styles.fightBtnText}>Combattre</Text>
         </TouchableOpacity>
       </LinearGradient>
+
+      {/* Secondary enemies strip */}
+      {region.enemies && region.enemies.length > 0 && (
+        <View style={[styles.enemiesStrip, { backgroundColor: colors.card + 'CC', borderBottomColor: colors.border }]}>
+          <Text style={[styles.enemiesLabel, { color: colors.mutedForeground }]}>GARDES</Text>
+          {region.enemies.map((enemy) => (
+            <TouchableOpacity
+              key={enemy.id}
+              style={[styles.enemyRow, { borderColor: colors.border }]}
+              onPress={() => openCombat(enemy)}
+            >
+              <MaterialCommunityIcons name="shield-sword" size={14} color="#FF6F00" />
+              <Text style={[styles.enemyRowName, { color: colors.foreground }]}>{enemy.name}</Text>
+              <Text style={[styles.enemyRowLevel, { color: '#FF6F00' }]}>Niv.{enemy.level}</Text>
+              <View style={[styles.fightBtn, { backgroundColor: '#FF6F00' }]}>
+                <MaterialCommunityIcons name="sword-cross" size={12} color="#fff" />
+                <Text style={styles.fightBtnText}>Attaquer</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       {/* Resource nodes */}
       <ScrollView
@@ -636,7 +661,7 @@ function ExploreView({
             <View style={styles.combatHeader}>
               <View>
                 <Text style={[styles.combatEyebrow, { color: colors.destructive }]}>DUEL DE DÉS</Text>
-                <Text style={[styles.combatTitle, { color: colors.foreground }]}>{region.boss.name}</Text>
+                <Text style={[styles.combatTitle, { color: colors.foreground }]}>{combatEnemy ? combatEnemy.name : region.boss.name}</Text>
               </View>
               <TouchableOpacity onPress={() => setShowCombat(false)} disabled={combatRound > 0 && !combatResult}>
                 <Feather name="x" size={21} color={colors.mutedForeground} />
@@ -1497,6 +1522,23 @@ export default function WorldScreen() {
                 })}
               </View>
 
+              {/* Secondary enemies */}
+              {selectedRegion.enemies && selectedRegion.enemies.length > 0 && (
+                <>
+                  <Text style={[styles.sheetLabel, { color: colors.primary }]}>GARDES</Text>
+                  {selectedRegion.enemies.map((enemy) => (
+                    <View key={enemy.id} style={[styles.bossCard, { backgroundColor: colors.secondary, borderColor: '#FF6F0040', marginBottom: 6 }]}>
+                      <MaterialCommunityIcons name="shield-sword" size={20} color="#FF6F00" />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.bossName, { color: colors.foreground }]}>{enemy.name}</Text>
+                        <Text style={[styles.bossDesc, { color: colors.mutedForeground }]}>{enemy.description}</Text>
+                      </View>
+                      <Text style={[styles.bossLevel, { color: '#FF6F00' }]}>Niv.{enemy.level}</Text>
+                    </View>
+                  ))}
+                </>
+              )}
+
               {/* Boss */}
               <Text style={[styles.sheetLabel, { color: colors.primary }]}>BOSS</Text>
               <View style={[styles.bossCard, { backgroundColor: colors.secondary, borderColor: colors.destructive + '40' }]}>
@@ -1706,6 +1748,11 @@ const styles = StyleSheet.create({
   bossStripText: { fontSize: 12, fontWeight: '600' },
   fightBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 6, borderRadius: 8 },
   fightBtnText: { color: '#fff', fontSize: 10, fontWeight: '800' },
+  enemiesStrip: { paddingHorizontal: 16, paddingTop: 6, paddingBottom: 8, borderBottomWidth: 1, gap: 5 },
+  enemiesLabel: { fontSize: 9, fontWeight: '800', letterSpacing: 2, marginBottom: 2 },
+  enemyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 5, borderBottomWidth: StyleSheet.hairlineWidth },
+  enemyRowName: { flex: 1, fontSize: 12, fontWeight: '600' },
+  enemyRowLevel: { fontSize: 12, fontWeight: '700' },
   nodesContent: { paddingHorizontal: 16, paddingTop: 14 },
   nodesTitle: { fontSize: 10, fontWeight: '800', letterSpacing: 2, marginBottom: 12 },
   nodeCard: { borderRadius: 12, borderWidth: 1, marginBottom: 8, overflow: 'hidden' },

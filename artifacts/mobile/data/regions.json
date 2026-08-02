@@ -18,23 +18,54 @@
         "id": "village_h1",
         "spawnIntervalHours": 2,
         "rewardTable": [
-          { "resourceId": "iron", "minQty": 2, "maxQty": 5 },
-          { "resourceId": "copper", "minQty": 2, "maxQty": 4 }
+          {
+            "resourceId": "iron",
+            "minQty": 2,
+            "maxQty": 5
+          },
+          {
+            "resourceId": "copper",
+            "minQty": 2,
+            "maxQty": 4
+          }
         ]
       }
     ],
     "resourceNodes": [
-      { "resourceId": "wood", "dropRate": 0.9, "minQty": 2, "maxQty": 5 },
-      { "resourceId": "stone", "dropRate": 0.8, "minQty": 1, "maxQty": 4 },
-      { "resourceId": "clay", "dropRate": 0.7, "minQty": 1, "maxQty": 3 },
-      { "resourceId": "iron", "dropRate": 0.4, "minQty": 1, "maxQty": 2 }
+      {
+        "resourceId": "wood",
+        "dropRate": 0.9,
+        "minQty": 2,
+        "maxQty": 5
+      },
+      {
+        "resourceId": "stone",
+        "dropRate": 0.8,
+        "minQty": 1,
+        "maxQty": 4
+      },
+      {
+        "resourceId": "clay",
+        "dropRate": 0.7,
+        "minQty": 1,
+        "maxQty": 3
+      },
+      {
+        "resourceId": "iron",
+        "dropRate": 0.4,
+        "minQty": 1,
+        "maxQty": 2
+      }
     ],
     "boss": {
       "name": "Bandit des Routes",
       "level": 3,
       "description": "Un voleur opportuniste qui rôde près du village."
     },
-    "questIds": ["quest_village_1", "quest_village_2"]
+    "questIds": [
+      "quest_village_1",
+      "quest_village_2"
+    ]
   },
   {
     "id": "forest",
@@ -54,30 +85,63 @@
         "id": "forest_h1",
         "spawnIntervalHours": 2,
         "rewardTable": [
-          { "resourceId": "wood", "minQty": 4, "maxQty": 8 },
-          { "resourceId": "crystal", "minQty": 1, "maxQty": 2 }
+          {
+            "resourceId": "wood",
+            "minQty": 4,
+            "maxQty": 8
+          },
+          {
+            "resourceId": "crystal",
+            "minQty": 1,
+            "maxQty": 2
+          }
         ]
       },
       {
         "id": "forest_h2",
         "spawnIntervalHours": 3,
         "rewardTable": [
-          { "resourceId": "coal", "minQty": 3, "maxQty": 6 },
-          { "resourceId": "crystal", "minQty": 1, "maxQty": 1 }
+          {
+            "resourceId": "coal",
+            "minQty": 3,
+            "maxQty": 6
+          },
+          {
+            "resourceId": "crystal",
+            "minQty": 1,
+            "maxQty": 1
+          }
         ]
       }
     ],
     "resourceNodes": [
-      { "resourceId": "wood", "dropRate": 0.95, "minQty": 3, "maxQty": 8 },
-      { "resourceId": "coal", "dropRate": 0.5, "minQty": 2, "maxQty": 5 },
-      { "resourceId": "crystal", "dropRate": 0.05, "minQty": 1, "maxQty": 1 }
+      {
+        "resourceId": "wood",
+        "dropRate": 0.95,
+        "minQty": 3,
+        "maxQty": 8
+      },
+      {
+        "resourceId": "coal",
+        "dropRate": 0.5,
+        "minQty": 2,
+        "maxQty": 5
+      },
+      {
+        "resourceId": "crystal",
+        "dropRate": 0.05,
+        "minQty": 1,
+        "maxQty": 1
+      }
     ],
     "boss": {
       "name": "Loup Alpha",
       "level": 8,
       "description": "Un loup géant qui règne sur la forêt."
     },
-    "questIds": ["quest_forest_1"]
+    "questIds": [
+      "quest_forest_1"
+    ]
   },
   {
     "id": "mountains",
@@ -98,31 +162,69 @@
         "id": "mountains_h1",
         "spawnIntervalHours": 2,
         "rewardTable": [
-          { "resourceId": "iron", "minQty": 3, "maxQty": 6 },
-          { "resourceId": "copper", "minQty": 2, "maxQty": 5 }
+          {
+            "resourceId": "iron",
+            "minQty": 3,
+            "maxQty": 6
+          },
+          {
+            "resourceId": "copper",
+            "minQty": 2,
+            "maxQty": 5
+          }
         ]
       },
       {
         "id": "mountains_h2",
         "spawnIntervalHours": 3,
         "rewardTable": [
-          { "resourceId": "crystal", "minQty": 1, "maxQty": 2 },
-          { "resourceId": "coal", "minQty": 3, "maxQty": 6 }
+          {
+            "resourceId": "crystal",
+            "minQty": 1,
+            "maxQty": 2
+          },
+          {
+            "resourceId": "coal",
+            "minQty": 3,
+            "maxQty": 6
+          }
         ]
       }
     ],
     "resourceNodes": [
-      { "resourceId": "stone", "dropRate": 0.9, "minQty": 3, "maxQty": 7 },
-      { "resourceId": "iron", "dropRate": 0.7, "minQty": 2, "maxQty": 6 },
-      { "resourceId": "copper", "dropRate": 0.6, "minQty": 2, "maxQty": 5 },
-      { "resourceId": "coal", "dropRate": 0.6, "minQty": 2, "maxQty": 6 }
+      {
+        "resourceId": "stone",
+        "dropRate": 0.9,
+        "minQty": 3,
+        "maxQty": 7
+      },
+      {
+        "resourceId": "iron",
+        "dropRate": 0.7,
+        "minQty": 2,
+        "maxQty": 6
+      },
+      {
+        "resourceId": "copper",
+        "dropRate": 0.6,
+        "minQty": 2,
+        "maxQty": 5
+      },
+      {
+        "resourceId": "coal",
+        "dropRate": 0.6,
+        "minQty": 2,
+        "maxQty": 6
+      }
     ],
     "boss": {
       "name": "Géant de Pierre",
       "level": 12,
       "description": "Un colosse de roc défendant les sommets."
     },
-    "questIds": ["quest_mountains_1"]
+    "questIds": [
+      "quest_mountains_1"
+    ]
   },
   {
     "id": "mines",
@@ -142,31 +244,69 @@
         "id": "mines_h1",
         "spawnIntervalHours": 2,
         "rewardTable": [
-          { "resourceId": "silver", "minQty": 1, "maxQty": 3 },
-          { "resourceId": "bronze", "minQty": 2, "maxQty": 4 }
+          {
+            "resourceId": "silver",
+            "minQty": 1,
+            "maxQty": 3
+          },
+          {
+            "resourceId": "bronze",
+            "minQty": 2,
+            "maxQty": 4
+          }
         ]
       },
       {
         "id": "mines_h2",
         "spawnIntervalHours": 2,
         "rewardTable": [
-          { "resourceId": "copper", "minQty": 3, "maxQty": 6 },
-          { "resourceId": "iron", "minQty": 3, "maxQty": 7 }
+          {
+            "resourceId": "copper",
+            "minQty": 3,
+            "maxQty": 6
+          },
+          {
+            "resourceId": "iron",
+            "minQty": 3,
+            "maxQty": 7
+          }
         ]
       }
     ],
     "resourceNodes": [
-      { "resourceId": "iron", "dropRate": 0.85, "minQty": 3, "maxQty": 8 },
-      { "resourceId": "copper", "dropRate": 0.75, "minQty": 2, "maxQty": 6 },
-      { "resourceId": "bronze", "dropRate": 0.3, "minQty": 1, "maxQty": 3 },
-      { "resourceId": "silver", "dropRate": 0.1, "minQty": 1, "maxQty": 2 }
+      {
+        "resourceId": "iron",
+        "dropRate": 0.85,
+        "minQty": 3,
+        "maxQty": 8
+      },
+      {
+        "resourceId": "copper",
+        "dropRate": 0.75,
+        "minQty": 2,
+        "maxQty": 6
+      },
+      {
+        "resourceId": "bronze",
+        "dropRate": 0.3,
+        "minQty": 1,
+        "maxQty": 3
+      },
+      {
+        "resourceId": "silver",
+        "dropRate": 0.1,
+        "minQty": 1,
+        "maxQty": 2
+      }
     ],
     "boss": {
       "name": "Roi des Gobelins",
       "level": 15,
       "description": "Un gobelin vieux et puissant gardant les trésors des mines."
     },
-    "questIds": ["quest_mines_1"]
+    "questIds": [
+      "quest_mines_1"
+    ]
   },
   {
     "id": "swamp",
@@ -187,22 +327,47 @@
         "id": "swamp_h1",
         "spawnIntervalHours": 3,
         "rewardTable": [
-          { "resourceId": "crystal", "minQty": 1, "maxQty": 3 },
-          { "resourceId": "emerald", "minQty": 1, "maxQty": 1 }
+          {
+            "resourceId": "crystal",
+            "minQty": 1,
+            "maxQty": 3
+          },
+          {
+            "resourceId": "emerald",
+            "minQty": 1,
+            "maxQty": 1
+          }
         ]
       }
     ],
     "resourceNodes": [
-      { "resourceId": "clay", "dropRate": 0.9, "minQty": 3, "maxQty": 8 },
-      { "resourceId": "crystal", "dropRate": 0.15, "minQty": 1, "maxQty": 2 },
-      { "resourceId": "emerald", "dropRate": 0.05, "minQty": 1, "maxQty": 1 }
+      {
+        "resourceId": "clay",
+        "dropRate": 0.9,
+        "minQty": 3,
+        "maxQty": 8
+      },
+      {
+        "resourceId": "crystal",
+        "dropRate": 0.15,
+        "minQty": 1,
+        "maxQty": 2
+      },
+      {
+        "resourceId": "emerald",
+        "dropRate": 0.05,
+        "minQty": 1,
+        "maxQty": 1
+      }
     ],
     "boss": {
       "name": "Hydre des Marais",
       "level": 18,
       "description": "Une créature serpentine à sept têtes qui empoisonne tout."
     },
-    "questIds": ["quest_swamp_1"]
+    "questIds": [
+      "quest_swamp_1"
+    ]
   },
   {
     "id": "desert",
@@ -222,30 +387,63 @@
         "id": "desert_h1",
         "spawnIntervalHours": 3,
         "rewardTable": [
-          { "resourceId": "gold_ore", "minQty": 1, "maxQty": 3 },
-          { "resourceId": "ruby", "minQty": 1, "maxQty": 1 }
+          {
+            "resourceId": "gold_ore",
+            "minQty": 1,
+            "maxQty": 3
+          },
+          {
+            "resourceId": "ruby",
+            "minQty": 1,
+            "maxQty": 1
+          }
         ]
       },
       {
         "id": "desert_h2",
         "spawnIntervalHours": 2,
         "rewardTable": [
-          { "resourceId": "stone", "minQty": 3, "maxQty": 7 },
-          { "resourceId": "gold_ore", "minQty": 1, "maxQty": 2 }
+          {
+            "resourceId": "stone",
+            "minQty": 3,
+            "maxQty": 7
+          },
+          {
+            "resourceId": "gold_ore",
+            "minQty": 1,
+            "maxQty": 2
+          }
         ]
       }
     ],
     "resourceNodes": [
-      { "resourceId": "stone", "dropRate": 0.8, "minQty": 2, "maxQty": 6 },
-      { "resourceId": "gold_ore", "dropRate": 0.2, "minQty": 1, "maxQty": 2 },
-      { "resourceId": "ruby", "dropRate": 0.08, "minQty": 1, "maxQty": 1 }
+      {
+        "resourceId": "stone",
+        "dropRate": 0.8,
+        "minQty": 2,
+        "maxQty": 6
+      },
+      {
+        "resourceId": "gold_ore",
+        "dropRate": 0.2,
+        "minQty": 1,
+        "maxQty": 2
+      },
+      {
+        "resourceId": "ruby",
+        "dropRate": 0.08,
+        "minQty": 1,
+        "maxQty": 1
+      }
     ],
     "boss": {
       "name": "Serpent de Sable",
       "level": 22,
       "description": "Un serpent colossal enfoui sous les dunes."
     },
-    "questIds": ["quest_desert_1"]
+    "questIds": [
+      "quest_desert_1"
+    ]
   },
   {
     "id": "ruins",
@@ -266,22 +464,47 @@
         "id": "ruins_h1",
         "spawnIntervalHours": 3,
         "rewardTable": [
-          { "resourceId": "obsidian", "minQty": 1, "maxQty": 3 },
-          { "resourceId": "sapphire", "minQty": 1, "maxQty": 1 }
+          {
+            "resourceId": "obsidian",
+            "minQty": 1,
+            "maxQty": 3
+          },
+          {
+            "resourceId": "sapphire",
+            "minQty": 1,
+            "maxQty": 1
+          }
         ]
       }
     ],
     "resourceNodes": [
-      { "resourceId": "obsidian", "dropRate": 0.3, "minQty": 1, "maxQty": 3 },
-      { "resourceId": "crystal", "dropRate": 0.2, "minQty": 1, "maxQty": 2 },
-      { "resourceId": "sapphire", "dropRate": 0.1, "minQty": 1, "maxQty": 1 }
+      {
+        "resourceId": "obsidian",
+        "dropRate": 0.3,
+        "minQty": 1,
+        "maxQty": 3
+      },
+      {
+        "resourceId": "crystal",
+        "dropRate": 0.2,
+        "minQty": 1,
+        "maxQty": 2
+      },
+      {
+        "resourceId": "sapphire",
+        "dropRate": 0.1,
+        "minQty": 1,
+        "maxQty": 1
+      }
     ],
     "boss": {
       "name": "Liche Ancienne",
       "level": 28,
       "description": "Un sorcier non-mort d'une puissance terrifiante."
     },
-    "questIds": ["quest_ruins_1"]
+    "questIds": [
+      "quest_ruins_1"
+    ]
   },
   {
     "id": "port",
@@ -301,30 +524,63 @@
         "id": "port_h1",
         "spawnIntervalHours": 2,
         "rewardTable": [
-          { "resourceId": "silver", "minQty": 1, "maxQty": 3 },
-          { "resourceId": "sapphire", "minQty": 1, "maxQty": 1 }
+          {
+            "resourceId": "silver",
+            "minQty": 1,
+            "maxQty": 3
+          },
+          {
+            "resourceId": "sapphire",
+            "minQty": 1,
+            "maxQty": 1
+          }
         ]
       },
       {
         "id": "port_h2",
         "spawnIntervalHours": 3,
         "rewardTable": [
-          { "resourceId": "wood", "minQty": 4, "maxQty": 8 },
-          { "resourceId": "silver", "minQty": 1, "maxQty": 2 }
+          {
+            "resourceId": "wood",
+            "minQty": 4,
+            "maxQty": 8
+          },
+          {
+            "resourceId": "silver",
+            "minQty": 1,
+            "maxQty": 2
+          }
         ]
       }
     ],
     "resourceNodes": [
-      { "resourceId": "wood", "dropRate": 0.7, "minQty": 2, "maxQty": 6 },
-      { "resourceId": "silver", "dropRate": 0.15, "minQty": 1, "maxQty": 2 },
-      { "resourceId": "sapphire", "dropRate": 0.07, "minQty": 1, "maxQty": 1 }
+      {
+        "resourceId": "wood",
+        "dropRate": 0.7,
+        "minQty": 2,
+        "maxQty": 6
+      },
+      {
+        "resourceId": "silver",
+        "dropRate": 0.15,
+        "minQty": 1,
+        "maxQty": 2
+      },
+      {
+        "resourceId": "sapphire",
+        "dropRate": 0.07,
+        "minQty": 1,
+        "maxQty": 1
+      }
     ],
     "boss": {
       "name": "Capitaine Pirate",
       "level": 20,
       "description": "Un pirate légendaire qui terrorise les côtes."
     },
-    "questIds": ["quest_port_1"]
+    "questIds": [
+      "quest_port_1"
+    ]
   },
   {
     "id": "volcano",
@@ -345,22 +601,47 @@
         "id": "volcano_h1",
         "spawnIntervalHours": 3,
         "rewardTable": [
-          { "resourceId": "obsidian", "minQty": 2, "maxQty": 4 },
-          { "resourceId": "mithril", "minQty": 1, "maxQty": 2 }
+          {
+            "resourceId": "obsidian",
+            "minQty": 2,
+            "maxQty": 4
+          },
+          {
+            "resourceId": "mithril",
+            "minQty": 1,
+            "maxQty": 2
+          }
         ]
       }
     ],
     "resourceNodes": [
-      { "resourceId": "obsidian", "dropRate": 0.5, "minQty": 2, "maxQty": 5 },
-      { "resourceId": "mithril", "dropRate": 0.15, "minQty": 1, "maxQty": 2 },
-      { "resourceId": "diamond", "dropRate": 0.03, "minQty": 1, "maxQty": 1 }
+      {
+        "resourceId": "obsidian",
+        "dropRate": 0.5,
+        "minQty": 2,
+        "maxQty": 5
+      },
+      {
+        "resourceId": "mithril",
+        "dropRate": 0.15,
+        "minQty": 1,
+        "maxQty": 2
+      },
+      {
+        "resourceId": "diamond",
+        "dropRate": 0.03,
+        "minQty": 1,
+        "maxQty": 1
+      }
     ],
     "boss": {
       "name": "Drake de Lave",
       "level": 35,
       "description": "Un dragon mineur né des flammes du volcan."
     },
-    "questIds": ["quest_volcano_1"]
+    "questIds": [
+      "quest_volcano_1"
+    ]
   },
   {
     "id": "castle",
@@ -380,22 +661,47 @@
         "id": "castle_h1",
         "spawnIntervalHours": 4,
         "rewardTable": [
-          { "resourceId": "platinum", "minQty": 1, "maxQty": 2 },
-          { "resourceId": "dragon_scale", "minQty": 1, "maxQty": 1 }
+          {
+            "resourceId": "platinum",
+            "minQty": 1,
+            "maxQty": 2
+          },
+          {
+            "resourceId": "dragon_scale",
+            "minQty": 1,
+            "maxQty": 1
+          }
         ]
       }
     ],
     "resourceNodes": [
-      { "resourceId": "platinum", "dropRate": 0.3, "minQty": 1, "maxQty": 3 },
-      { "resourceId": "adamantium", "dropRate": 0.1, "minQty": 1, "maxQty": 2 },
-      { "resourceId": "dragon_scale", "dropRate": 0.05, "minQty": 1, "maxQty": 1 }
+      {
+        "resourceId": "platinum",
+        "dropRate": 0.3,
+        "minQty": 1,
+        "maxQty": 3
+      },
+      {
+        "resourceId": "adamantium",
+        "dropRate": 0.1,
+        "minQty": 1,
+        "maxQty": 2
+      },
+      {
+        "resourceId": "dragon_scale",
+        "dropRate": 0.05,
+        "minQty": 1,
+        "maxQty": 1
+      }
     ],
     "boss": {
       "name": "Dragon du Roi",
       "level": 50,
       "description": "Le protecteur du château, une créature mythique d'une puissance absolue."
     },
-    "questIds": ["quest_castle_1"]
+    "questIds": [
+      "quest_castle_1"
+    ]
   },
   {
     "id": "dragon_lair",
@@ -416,30 +722,112 @@
         "id": "dragon_lair_h1",
         "spawnIntervalHours": 4,
         "rewardTable": [
-          { "resourceId": "dragon_scale", "minQty": 1, "maxQty": 2 },
-          { "resourceId": "adamantium", "minQty": 1, "maxQty": 2 }
+          {
+            "resourceId": "dragon_scale",
+            "minQty": 1,
+            "maxQty": 2
+          },
+          {
+            "resourceId": "adamantium",
+            "minQty": 1,
+            "maxQty": 2
+          }
         ]
       },
       {
         "id": "dragon_lair_h2",
         "spawnIntervalHours": 4,
         "rewardTable": [
-          { "resourceId": "diamond", "minQty": 1, "maxQty": 1 },
-          { "resourceId": "mithril", "minQty": 1, "maxQty": 3 }
+          {
+            "resourceId": "diamond",
+            "minQty": 1,
+            "maxQty": 1
+          },
+          {
+            "resourceId": "mithril",
+            "minQty": 1,
+            "maxQty": 3
+          }
         ]
       }
     ],
     "resourceNodes": [
-      { "resourceId": "dragon_scale", "dropRate": 0.40, "minQty": 1, "maxQty": 3 },
-      { "resourceId": "adamantium", "dropRate": 0.30, "minQty": 1, "maxQty": 2 },
-      { "resourceId": "diamond", "dropRate": 0.20, "minQty": 1, "maxQty": 2 },
-      { "resourceId": "mithril", "dropRate": 0.55, "minQty": 1, "maxQty": 4 }
+      {
+        "resourceId": "dragon_scale",
+        "dropRate": 0.4,
+        "minQty": 1,
+        "maxQty": 3
+      },
+      {
+        "resourceId": "adamantium",
+        "dropRate": 0.3,
+        "minQty": 1,
+        "maxQty": 2
+      },
+      {
+        "resourceId": "diamond",
+        "dropRate": 0.2,
+        "minQty": 1,
+        "maxQty": 2
+      },
+      {
+        "resourceId": "mithril",
+        "dropRate": 0.55,
+        "minQty": 1,
+        "maxQty": 4
+      }
     ],
     "boss": {
       "name": "Dragon Ancestral",
       "level": 65,
       "description": "Le maître incontesté du repaire, une créature draconique d'une puissance légendaire qui garde jalousement ses trésors."
     },
-    "questIds": ["quest_volcano_5", "quest_epic_2", "quest_epic_4"]
+    "questIds": [
+      "quest_volcano_5",
+      "quest_epic_2",
+      "quest_epic_4"
+    ],
+    "enemies": [
+      {
+        "id": "draconic_guard",
+        "name": "Garde Draconique",
+        "level": 40,
+        "description": "Un soldat reptilien qui protège l'entrée du repaire. Ses écailles sont dures comme l'acier.",
+        "drops": [
+          {
+            "resourceId": "dragon_scale",
+            "dropRate": 0.5,
+            "minQty": 1,
+            "maxQty": 2
+          },
+          {
+            "resourceId": "mithril",
+            "dropRate": 0.6,
+            "minQty": 1,
+            "maxQty": 3
+          }
+        ]
+      },
+      {
+        "id": "mini_dragon",
+        "name": "Mini-Dragon",
+        "level": 52,
+        "description": "Un jeune dragon qui n'a pas encore atteint sa pleine puissance, mais dont les flammes restent redoutables.",
+        "drops": [
+          {
+            "resourceId": "dragon_scale",
+            "dropRate": 0.65,
+            "minQty": 1,
+            "maxQty": 3
+          },
+          {
+            "resourceId": "mithril",
+            "dropRate": 0.4,
+            "minQty": 2,
+            "maxQty": 4
+          }
+        ]
+      }
+    ]
   }
 ]
