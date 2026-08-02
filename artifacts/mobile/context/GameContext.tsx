@@ -583,6 +583,8 @@ function generateNpcOrder(playerLevel: number, forgeLevel: number, extraDeadline
   const eligibleNpcs = ALL_NPCS.filter((npc) => {
     if (npc.type === 'king') return playerLevel >= 20 && forgeLevel >= 5;
     if (npc.type === 'noble') return playerLevel >= 12 && forgeLevel >= 3;
+    if (npc.type === 'corsair') return playerLevel >= 11;
+    if (npc.type === 'mage') return playerLevel >= 18 && forgeLevel >= 4;
     return true;
   });
   const npcPool = eligibleNpcs.length > 0 ? eligibleNpcs : ALL_NPCS;

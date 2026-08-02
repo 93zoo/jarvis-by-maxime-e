@@ -266,6 +266,34 @@
     }
   },
   {
+    "id": "npc_corsair_1", "name": "Le Capitaine Roran", "type": "corsair",
+    "emoji": "🏴‍☠️", "personality": "impatient",
+    "budgetMin": 280, "budgetMax": 750,
+    "preferredCategories": ["dagger", "sword", "ring"],
+    "minQuality": "good",
+    "dialogues": {
+      "greeting": "Vite, matelot ! J'ai besoin d'une lame avant la prochaine marée.",
+      "satisfied": "Pas mal pour un terrien. Ça fera l'affaire en mer !",
+      "excellent": "Par les abysses, quelle lame ! Je paie le double sans marchander !",
+      "disappointed": "C'est flasque comme une voile par temps calme...",
+      "angry": "Avec ça je finirais poisson ! Recommencez ou gardez votre camelote !"
+    }
+  },
+  {
+    "id": "npc_mage_1", "name": "Maîtresse Sylara", "type": "mage",
+    "emoji": "🧙‍♀️", "personality": "demanding",
+    "budgetMin": 450, "budgetMax": 1400,
+    "preferredCategories": ["amulet", "decoration"],
+    "minQuality": "good",
+    "dialogues": {
+      "greeting": "Forgeron, les arcanes exigent un canal digne de leur puissance. Pouvez-vous forger cela ?",
+      "satisfied": "Le flux arcanigue circule correctement. C'est... acceptable.",
+      "excellent": "Remarquable ! Ce canal amplifie les sorts comme je n'aurais osé l'espérer.",
+      "disappointed": "La résonance est imparfaite. Je l'accepte, mais n'y prenez pas l'habitude.",
+      "angry": "Cet objet ne conduirait même pas une bougie ! Recommencez !"
+    }
+  },
+  {
     "id": "npc_knight_4", "name": "Sir Tancred", "type": "knight",
     "emoji": "🐴", "personality": "impatient",
     "budgetMin": 300, "budgetMax": 650,

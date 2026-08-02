@@ -331,7 +331,7 @@ export interface Quest {
 export interface NPCData {
   id: string;
   name: string;
-  type: 'merchant' | 'knight' | 'adventurer' | 'soldier' | 'noble' | 'king';
+  type: 'merchant' | 'knight' | 'adventurer' | 'soldier' | 'noble' | 'king' | 'corsair' | 'mage';
   emoji: string;
   personality: 'demanding' | 'generous' | 'casual' | 'impatient';
   budgetMin: number;
