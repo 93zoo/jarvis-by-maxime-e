@@ -368,6 +368,18 @@ const tStyles = StyleSheet.create({
 });
 
 // ─── Skill Detail Modal ───────────────────────────────────────────────────────
+/** One-line explanation of what actions grant XP for each skill. */
+const SKILL_XP_SOURCES: Partial<Record<SkillType, string>> = {
+  forge:        'Forgez des objets et livrez des commandes pour gagner de l\'XP de forge. Plus l\'objet est rare et de qualité, plus le gain est élevé.',
+  extraction:   'Récoltez des ressources dans les régions (pierre, bois, minerais…) pour gagner de l\'XP d\'extraction.',
+  commerce:     'Vendez des objets ou des ressources aux PNJ et sur le marché pour gagner de l\'XP de commerce.',
+  construction: 'Améliorez votre forge et vos équipements pour gagner de l\'XP de construction.',
+  enchantment:  'Enchantez des objets craftés pour gagner de l\'XP d\'enchantement.',
+  cooking:      'Cuisinez des recettes au feu de camp pour gagner de l\'XP de cuisine.',
+  harvest:      'Ramassez des plantes et champignons lors de vos expéditions pour gagner de l\'XP de cueillette.',
+  combat:       'Affrontez les ennemis dans les régions pour gagner de l\'XP de combat.',
+};
+
 function SkillDetailModal({
   skill, level, xp, onClose, colors,
 }: {
@@ -403,6 +415,16 @@ function SkillDetailModal({
             <View style={[sdStyles.xpFill, { width: `${pct}%` as `${number}%`, backgroundColor: skill.color }]} />
           </View>
           <Text style={[sdStyles.xpText, { color: colors.mutedForeground }]}>{xp} / {xpNeeded} XP</Text>
+
+          {/* How to earn XP for this skill */}
+          {SKILL_XP_SOURCES[skill.id] && (
+            <View style={[sdStyles.sourcesBox, { backgroundColor: `${skill.color}14`, borderColor: `${skill.color}33` }]}>
+              <Feather name="info" size={13} color={skill.color} />
+              <Text style={[sdStyles.sourcesText, { color: colors.foreground }]}>
+                {SKILL_XP_SOURCES[skill.id]}
+              </Text>
+            </View>
+          )}
 
           <Text style={[sdStyles.unlocksTitle, { color: colors.foreground }]}>PALIERS DE MAÎTRISE</Text>
           <ScrollView style={sdStyles.unlockList} showsVerticalScrollIndicator={false}>
@@ -447,7 +469,9 @@ const sdStyles = StyleSheet.create({
   levelLbl: { fontSize: 9, fontWeight: '600', letterSpacing: 1 },
   xpBar: { height: 8, borderRadius: 4, overflow: 'hidden', marginBottom: 6 },
   xpFill: { height: '100%', borderRadius: 4 },
-  xpText: { fontSize: 11, textAlign: 'right', marginBottom: 16 },
+  xpText: { fontSize: 11, textAlign: 'right', marginBottom: 10 },
+  sourcesBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 14 },
+  sourcesText: { fontSize: 12, lineHeight: 17, flex: 1 },
   unlocksTitle: { fontSize: 11, fontWeight: '800', letterSpacing: 2, marginBottom: 10 },
   unlockList: { flex: 1 },
   unlockRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 10 },

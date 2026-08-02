@@ -1353,6 +1353,7 @@ export default function ForgeScreen() {
   const [deliverOrderId, setDeliverOrderId] = useState<string | null>(null);
   const [showUpgradesModal, setShowUpgradesModal] = useState(false);
   const [showApprenticeModal, setShowApprenticeModal] = useState(false);
+  const [showForgeInfo, setShowForgeInfo] = useState(false);
   const [weather, setWeather] = useState<WeatherType>('none');
   const [activeForgeEvent, setActiveForgeEvent] = useState<ForgeEvent | null>(null);
   const [showEventBanner, setShowEventBanner] = useState(false);
@@ -1787,13 +1788,25 @@ export default function ForgeScreen() {
               <View style={md.headerXPTrack}>
                 <View style={[md.headerXPFill, { width: `${xpPct}%` as `${number}%` }]} />
               </View>
-              <Text style={[md.headerTitle, { marginTop: 8, color: MEDIEVAL.emberSoft }]}>FORGE</Text>
-              <Text style={md.headerXP}>
-                {forgeXP.toLocaleString()} / {forgeXPNeeded.toLocaleString()} XP
-              </Text>
-              <View style={md.headerXPTrack}>
-                <View style={[md.headerXPFill, { width: `${forgeXPPct}%` as `${number}%`, backgroundColor: MEDIEVAL.ember }]} />
-              </View>
+              <TouchableOpacity
+                onPress={() => setShowForgeInfo(true)}
+                activeOpacity={0.7}
+                style={{ marginTop: 8 }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                  <Text style={[md.headerTitle, { color: MEDIEVAL.emberSoft }]}>FORGE</Text>
+                  <Feather name="info" size={11} color={MEDIEVAL.emberSoft} style={{ opacity: 0.7 }} />
+                </View>
+                <Text style={md.headerXP}>
+                  {forgeXP.toLocaleString()} / {forgeXPNeeded.toLocaleString()} XP
+                </Text>
+                <View style={md.headerXPTrack}>
+                  <View style={[md.headerXPFill, { width: `${forgeXPPct}%` as `${number}%`, backgroundColor: MEDIEVAL.ember }]} />
+                </View>
+                <Text style={{ fontSize: 9, color: MEDIEVAL.emberSoft, opacity: 0.65, marginTop: 2 }}>
+                  Forgez des objets pour progresser
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         <View style={styles.headerRight}>
@@ -2349,6 +2362,74 @@ export default function ForgeScreen() {
           }
           onResult={handleEnigmaResult}
         />
+      )}
+
+      {/* ── Forge XP info modal ── */}
+      {showForgeInfo && (
+        <Modal visible transparent animationType="fade" onRequestClose={() => setShowForgeInfo(false)}>
+          <TouchableOpacity
+            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.80)', justifyContent: 'center', alignItems: 'center', padding: 24 }}
+            activeOpacity={1}
+            onPress={() => setShowForgeInfo(false)}
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
+              style={{ width: '100%', backgroundColor: '#241C14', borderRadius: 18, padding: 20, gap: 12, borderWidth: 1, borderColor: MEDIEVAL.ember + '55' }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Feather name="tool" size={20} color={MEDIEVAL.ember} />
+                <Text style={{ fontSize: 16, fontWeight: '800', color: '#FFF', letterSpacing: 1 }}>
+                  Compétence Forge · Niv.{forgeSkillLevel}
+                </Text>
+              </View>
+
+              <Text style={{ fontSize: 12, color: MEDIEVAL.textDim, lineHeight: 18 }}>
+                La compétence de forge monte en{' '}
+                <Text style={{ color: MEDIEVAL.ember, fontWeight: '700' }}>forgeant des objets</Text>.
+                Plus l'objet est de qualité et rare, plus vous gagnez d'XP.
+              </Text>
+
+              {([
+                { icon: 'zap'     as const, label: 'Forger n\'importe quel objet' },
+                { icon: 'star'    as const, label: 'Bonus qualité : Bon · Parfait · Légendaire' },
+                { icon: 'package' as const, label: 'Livrer une commande de PNJ' },
+                { icon: 'award'   as const, label: 'Compléter des quêtes de forge' },
+              ]).map(({ icon, label }) => (
+                <View key={label} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: MEDIEVAL.ember + '22', justifyContent: 'center', alignItems: 'center' }}>
+                    <Feather name={icon} size={13} color={MEDIEVAL.ember} />
+                  </View>
+                  <Text style={{ fontSize: 12, color: '#DDD', flex: 1 }}>{label}</Text>
+                </View>
+              ))}
+
+              {(() => {
+                const forgeSkill = game.allSkills.find((s) => s.id === 'forge');
+                const next = forgeSkill?.unlocks.find((u) => u.level > forgeSkillLevel);
+                if (!next) return null;
+                return (
+                  <View style={{ backgroundColor: MEDIEVAL.ember + '18', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: MEDIEVAL.ember + '33' }}>
+                    <Text style={{ fontSize: 10, color: MEDIEVAL.emberSoft, fontWeight: '800', letterSpacing: 1, marginBottom: 3 }}>
+                      PROCHAIN PALIER · NIV.{next.level}
+                    </Text>
+                    <Text style={{ fontSize: 13, color: '#FFF', fontWeight: '600' }}>{next.reward}</Text>
+                    <Text style={{ fontSize: 10, color: MEDIEVAL.textDim, marginTop: 4 }}>
+                      {forgeXP} / {forgeXPNeeded} XP — encore {Math.max(0, forgeXPNeeded - forgeXP)} XP à gagner
+                    </Text>
+                  </View>
+                );
+              })()}
+
+              <TouchableOpacity
+                style={{ backgroundColor: MEDIEVAL.ember, borderRadius: 10, paddingVertical: 13, alignItems: 'center', marginTop: 4 }}
+                onPress={() => setShowForgeInfo(false)}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '800', color: '#1A0A00' }}>Compris, au travail !</Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
       )}
 
       {/* ── Orders Modal ── */}

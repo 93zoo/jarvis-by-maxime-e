@@ -1255,9 +1255,12 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           .filter((i) => i.quantity > 0);
       }
       const currentLevel = state.forgeUpgrades[action.element] ?? 0;
-      const forgeUpgrades = { ...state.forgeUpgrades, [action.element]: currentLevel + 1 };
-      // Add skill XP to construction skill
-      const updatedPlayer = levelUpSkill(player, 'construction', 20);
+      const newLevel = currentLevel + 1;
+      const forgeUpgrades = { ...state.forgeUpgrades, [action.element]: newLevel };
+      // Construction XP (flat) + Forge XP scaling with the level reached (more XP for higher upgrades)
+      const forgeXpGain = newLevel * 20; // level 1→2: 40, 2→3: 60, 3→4: 80, 4→5: 100 …
+      const playerWithConstruction = levelUpSkill(player, 'construction', 20);
+      const updatedPlayer = levelUpSkill(playerWithConstruction, 'forge', forgeXpGain);
       return { ...state, player: updatedPlayer, inventory, forgeUpgrades };
     }
 
@@ -2965,7 +2968,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         }
       }
       dispatch({ type: 'UPGRADE_FORGE_ELEMENT', element, goldCost, resourceCosts: tier.resourceCosts });
-      return { success: true, message: `${upgradeData.name} améliorée au niveau ${currentLevel + 1} !` };
+      const forgeXpGain = (currentLevel + 1) * 20;
+      return { success: true, message: `${upgradeData.name} → Niv.${currentLevel + 1} ! +${forgeXpGain} XP Forge` };
     },
     [state.forgeUpgrades, state.player.gold, state.player.talentsUnlocked, state.inventory],
   );
