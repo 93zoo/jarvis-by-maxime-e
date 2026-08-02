@@ -18,7 +18,8 @@
       "gold": 100,
       "xp": 50
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 0
   },
   {
     "id": "quest_village_2",
@@ -47,7 +48,8 @@
       "gold": 80,
       "xp": 40
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 0
   },
   {
     "id": "quest_village_3",
@@ -68,7 +70,8 @@
       "gold": 150,
       "xp": 75
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 0
   },
   {
     "id": "quest_forest_1",
@@ -89,7 +92,8 @@
       "gold": 120,
       "xp": 60
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 3
   },
   {
     "id": "quest_forest_2",
@@ -110,7 +114,8 @@
       "gold": 200,
       "xp": 100
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 3
   },
   {
     "id": "quest_mountains_1",
@@ -131,7 +136,8 @@
       "gold": 200,
       "xp": 100
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 5
   },
   {
     "id": "quest_mountains_2",
@@ -160,7 +166,8 @@
       "gold": 180,
       "xp": 90
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 5
   },
   {
     "id": "quest_mines_1",
@@ -189,7 +196,8 @@
       "gold": 250,
       "xp": 120
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 5
   },
   {
     "id": "quest_mines_2",
@@ -210,7 +218,8 @@
       "gold": 300,
       "xp": 140
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 5
   },
   {
     "id": "quest_swamp_1",
@@ -231,7 +240,8 @@
       "gold": 280,
       "xp": 130
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 8
   },
   {
     "id": "quest_swamp_2",
@@ -252,7 +262,8 @@
       "gold": 160,
       "xp": 80
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 8
   },
   {
     "id": "quest_desert_1",
@@ -273,7 +284,8 @@
       "gold": 400,
       "xp": 180
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 10
   },
   {
     "id": "quest_desert_2",
@@ -302,7 +314,8 @@
       "gold": 350,
       "xp": 160
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 10
   },
   {
     "id": "quest_ruins_1",
@@ -323,7 +336,8 @@
       "gold": 500,
       "xp": 220
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 12
   },
   {
     "id": "quest_ruins_2",
@@ -344,7 +358,8 @@
       "gold": 420,
       "xp": 190
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 12
   },
   {
     "id": "quest_port_1",
@@ -365,7 +380,8 @@
       "gold": 350,
       "xp": 160
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 7
   },
   {
     "id": "quest_port_2",
@@ -394,7 +410,8 @@
       "gold": 450,
       "xp": 200
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 7
   },
   {
     "id": "quest_volcano_1",
@@ -415,7 +432,8 @@
       "gold": 800,
       "xp": 350
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 15
   },
   {
     "id": "quest_volcano_2",
@@ -436,7 +454,8 @@
       "gold": 600,
       "xp": 280
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 15
   },
   {
     "id": "quest_volcano_3",
@@ -457,7 +476,8 @@
       "gold": 1000,
       "xp": 450
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 15
   },
   {
     "id": "quest_castle_1",
@@ -486,7 +506,8 @@
       "gold": 2000,
       "xp": 1000
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 20
   },
   {
     "id": "quest_castle_2",
@@ -507,7 +528,8 @@
       "gold": 3000,
       "xp": 1500
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 20
   },
   {
     "id": "quest_extra_craft_1",
@@ -528,7 +550,8 @@
       "gold": 200,
       "xp": 100
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 0
   },
   {
     "id": "quest_extra_sell_1",
@@ -549,7 +572,8 @@
       "gold": 500,
       "xp": 200
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 7
   },
   {
     "id": "quest_extra_deliver_1",
@@ -570,7 +594,8 @@
       "gold": 300,
       "xp": 150
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 0
   },
   {
     "id": "quest_castle_3",
@@ -599,7 +624,8 @@
       "gold": 4000,
       "xp": 2200
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 20
   },
   {
     "id": "quest_castle_4",
@@ -628,7 +654,8 @@
       "gold": 5000,
       "xp": 2800
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 20
   },
   {
     "id": "quest_castle_5",
@@ -649,7 +676,8 @@
       "gold": 8000,
       "xp": 4000
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 20
   },
   {
     "id": "quest_castle_6",
@@ -678,7 +706,8 @@
       "gold": 12000,
       "xp": 6000
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 20
   },
   {
     "id": "quest_volcano_4",
@@ -699,7 +728,8 @@
       "gold": 2500,
       "xp": 1200
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 15
   },
   {
     "id": "quest_volcano_5",
@@ -720,7 +750,8 @@
       "gold": 4000,
       "xp": 2000
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 15
   },
   {
     "id": "quest_volcano_6",
@@ -749,7 +780,8 @@
       "gold": 3500,
       "xp": 1800
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 15
   },
   {
     "id": "quest_volcano_7",
@@ -778,7 +810,8 @@
       "gold": 5500,
       "xp": 3000
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 15
   },
   {
     "id": "quest_epic_1",
@@ -815,7 +848,8 @@
       "gold": 9000,
       "xp": 5000
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 20
   },
   {
     "id": "quest_epic_2",
@@ -852,7 +886,8 @@
       "gold": 10000,
       "xp": 5500
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 15
   },
   {
     "id": "quest_epic_3",
@@ -873,7 +908,8 @@
       "gold": 7500,
       "xp": 4500
     },
-    "completed": false
+    "completed": false,
+    "unlockLevel": 20
   },
   {
     "id": "quest_epic_4",
@@ -901,6 +937,223 @@
     "rewards": {
       "gold": 20000,
       "xp": 10000
+    },
+    "completed": false,
+    "unlockLevel": 20
+  },
+  {
+    "id": "quest_forest_z1",
+    "regionId": "forest",
+    "unlockLevel": 3,
+    "title": "Charbon de Bois",
+    "description": "Les habitants de la forêt brûlent du charbon de bois pour se chauffer. Aidez-les en récoltant des réserves.",
+    "objectives": [
+      {
+        "id": "obj_fz1_coal",
+        "description": "Collecter 15 charbon",
+        "type": "collect",
+        "targetId": "coal",
+        "required": 15,
+        "current": 0
+      }
+    ],
+    "rewards": {
+      "gold": 130,
+      "xp": 65
+    },
+    "completed": false
+  },
+  {
+    "id": "quest_mountains_z1",
+    "regionId": "mountains",
+    "unlockLevel": 5,
+    "title": "Veine de Cuivre",
+    "description": "Un vieux mineur des montagnes a repéré une veine de cuivre prometteuse et cherche un forgeron pour en tirer profit.",
+    "objectives": [
+      {
+        "id": "obj_mz1_copper",
+        "description": "Collecter 12 cuivre",
+        "type": "collect",
+        "targetId": "copper",
+        "required": 12,
+        "current": 0
+      },
+      {
+        "id": "obj_mz1_deliver",
+        "description": "Honorer 1 commande NPC",
+        "type": "deliver",
+        "targetId": "any",
+        "required": 1,
+        "current": 0
+      }
+    ],
+    "rewards": {
+      "gold": 210,
+      "xp": 105
+    },
+    "completed": false
+  },
+  {
+    "id": "quest_mines_z1",
+    "regionId": "mines",
+    "unlockLevel": 5,
+    "title": "Bronze des Profondeurs",
+    "description": "Les nains ont découvert un filon de bronze à grande profondeur. Récoltez ce précieux alliage.",
+    "objectives": [
+      {
+        "id": "obj_mnz1_bronze",
+        "description": "Collecter 6 bronze",
+        "type": "collect",
+        "targetId": "bronze",
+        "required": 6,
+        "current": 0
+      }
+    ],
+    "rewards": {
+      "gold": 270,
+      "xp": 130
+    },
+    "completed": false
+  },
+  {
+    "id": "quest_swamp_z1",
+    "regionId": "swamp",
+    "unlockLevel": 8,
+    "title": "Cristal du Marais",
+    "description": "De mystérieux cristaux poussent dans les eaux stagnantes du marais. Le mage des runes en a grand besoin.",
+    "objectives": [
+      {
+        "id": "obj_swz1_crystal",
+        "description": "Collecter 3 cristaux",
+        "type": "collect",
+        "targetId": "crystal",
+        "required": 3,
+        "current": 0
+      },
+      {
+        "id": "obj_swz1_deliver",
+        "description": "Honorer 1 commande NPC",
+        "type": "deliver",
+        "targetId": "any",
+        "required": 1,
+        "current": 0
+      }
+    ],
+    "rewards": {
+      "gold": 290,
+      "xp": 140
+    },
+    "completed": false
+  },
+  {
+    "id": "quest_port_z1",
+    "regionId": "port",
+    "unlockLevel": 7,
+    "title": "Contrebande d'Argent",
+    "description": "Un capitaine de navire a récupéré de l'argent dans une cargaison mystérieuse. Il cherche un forgeron discret.",
+    "objectives": [
+      {
+        "id": "obj_pz1_silver",
+        "description": "Collecter 3 argent",
+        "type": "collect",
+        "targetId": "silver",
+        "required": 3,
+        "current": 0
+      },
+      {
+        "id": "obj_pz1_sell",
+        "description": "Vendre 4 objets au marché",
+        "type": "sell",
+        "targetId": "any",
+        "required": 4,
+        "current": 0
+      }
+    ],
+    "rewards": {
+      "gold": 400,
+      "xp": 185
+    },
+    "completed": false
+  },
+  {
+    "id": "quest_desert_z1",
+    "regionId": "desert",
+    "unlockLevel": 10,
+    "title": "Rubis des Sables",
+    "description": "Des nomades du désert ont trouvé des rubis bruts dans les dunes. Ils cherchent un forgeron pour les tailler.",
+    "objectives": [
+      {
+        "id": "obj_dz1_ruby",
+        "description": "Collecter 2 rubis",
+        "type": "collect",
+        "targetId": "ruby",
+        "required": 2,
+        "current": 0
+      }
+    ],
+    "rewards": {
+      "gold": 450,
+      "xp": 200
+    },
+    "completed": false
+  },
+  {
+    "id": "quest_ruins_z1",
+    "regionId": "ruins",
+    "unlockLevel": 12,
+    "title": "Saphirs Oubliés",
+    "description": "Un archéologue a repéré des saphirs enchâssés dans les murs des ruines. Récupérez-les avant que les pillards n'arrivent.",
+    "objectives": [
+      {
+        "id": "obj_rz1_sapphire",
+        "description": "Collecter 2 saphirs",
+        "type": "collect",
+        "targetId": "sapphire",
+        "required": 2,
+        "current": 0
+      },
+      {
+        "id": "obj_rz1_craft",
+        "description": "Forger 1 anneau ou amulette",
+        "type": "craft",
+        "targetId": "ring",
+        "required": 1,
+        "current": 0
+      }
+    ],
+    "rewards": {
+      "gold": 520,
+      "xp": 240
+    },
+    "completed": false
+  },
+  {
+    "id": "quest_dragon_1",
+    "regionId": "dragon_lair",
+    "unlockLevel": 25,
+    "title": "Éclats du Repaire",
+    "description": "Le repaire du dragon ancestral est jonché d'écailles et de minerais draconiques. Récoltez ces matériaux légendaires.",
+    "objectives": [
+      {
+        "id": "obj_dr1_scale",
+        "description": "Collecter 2 écailles de dragon",
+        "type": "collect",
+        "targetId": "dragon_scale",
+        "required": 2,
+        "current": 0
+      },
+      {
+        "id": "obj_dr1_ada",
+        "description": "Collecter 2 adamantium",
+        "type": "collect",
+        "targetId": "adamantium",
+        "required": 2,
+        "current": 0
+      }
+    ],
+    "rewards": {
+      "gold": 5000,
+      "xp": 2500
     },
     "completed": false
   }

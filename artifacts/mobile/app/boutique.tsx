@@ -229,7 +229,7 @@ export default function BoutiqueScreen() {
                   <Text style={[styles.buyBtnText, { color: '#1A1208' }]}>
                     {adGoldBusy
                       ? 'Publicité en cours…'
-                      : `🎬 +${adGoldAmount(game.player.level)} or contre une pub (${adGoldCount ?? 0}/${AD_GOLD_MAX_PER_DAY})`}
+                      : `+${adGoldAmount(game.player.level)} or contre une pub (${adGoldCount ?? 0}/${AD_GOLD_MAX_PER_DAY})`}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -256,7 +256,7 @@ export default function BoutiqueScreen() {
                   activeOpacity={0.85}
                 >
                   <Text style={[styles.buyBtnText, { color: '#1A1208' }]}>
-                    {chestBusy ? 'Ouverture…' : '🎬 Ouvrir gratuitement'}
+                    {chestBusy ? 'Ouverture…' : 'Ouvrir gratuitement'}
                   </Text>
                 </TouchableOpacity>
               )}

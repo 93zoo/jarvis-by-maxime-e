@@ -303,7 +303,7 @@ function TalentTreeView({
             <Text style={[tStyles.reqText, { color: colors.mutedForeground }]}>
               Prérequis : {selectedTalent.prerequisiteIds.map((id) => {
                 const t = game.allTalents.find((x) => x.id === id);
-                return (isTalentUnlocked(id) ? '✅ ' : '❌ ') + (t?.name ?? id);
+                return (isTalentUnlocked(id) ? '(ok) ' : '(non) ') + (t?.name ?? id);
               }).join(', ')}
             </Text>
           )}
@@ -2790,7 +2790,7 @@ export default function ProfileScreen({ tabs, title }: { tabs?: readonly Profile
       {/* Tab bar */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.tabBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]} contentContainerStyle={{ flexGrow: 1 }}>
         {visibleTabs.map((tab) => {
-          const labels: Record<string, string> = { skills: '⭐ Compétences', talents: 'Talents', upgrades: 'Améliorations', achievements: 'Succès', stats: 'Stats' };
+          const labels: Record<string, string> = { skills: 'Compétences', talents: 'Talents', upgrades: 'Améliorations', achievements: 'Succès', stats: 'Stats' };
           return (
             <TouchableOpacity
               key={tab}

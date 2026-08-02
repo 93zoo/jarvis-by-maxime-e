@@ -30,6 +30,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -211,7 +212,7 @@ function ForgeIcon({ delay }: { delay: number }) {
 
   return (
     <Animated.View style={[styles.iconWrap, style]}>
-      <Text style={styles.iconEmoji}>⚒</Text>
+      <MaterialCommunityIcons name="anvil" size={48} color="#D4851A" />
       {/* Inner glow ring */}
       <View style={styles.iconGlow} />
     </Animated.View>

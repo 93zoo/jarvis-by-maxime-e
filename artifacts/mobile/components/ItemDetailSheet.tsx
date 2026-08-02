@@ -14,7 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -127,7 +127,7 @@ function GemPicker({
 
           {socketable.length === 0 ? (
             <View style={styles.pickerEmpty}>
-              <Text style={{ fontSize: 32 }}>💎</Text>
+              <MaterialCommunityIcons name="diamond" size={32} color={colors.mutedForeground} />
               <Text style={[styles.pickerEmptyText, { color: colors.mutedForeground }]}>
                 Aucune gemme dans l'inventaire.{'\n'}Explorez le monde pour en trouver.
               </Text>

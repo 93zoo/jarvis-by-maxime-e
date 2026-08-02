@@ -4,7 +4,8 @@
  * PanResponder drives Y/X rotation. Falls back to a 2D colored shape when WebGL unavailable.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { PanResponder, StyleSheet, View, Text } from 'react-native';
+import { PanResponder, StyleSheet, Text, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { GLView, ExpoWebGLRenderingContext } from 'expo-gl';
 import * as THREE from 'three';
 import { Platform } from 'react-native';
@@ -151,14 +152,19 @@ function colorForMaterial(matId: string): number {
 
 // ─── 2D fallback ─────────────────────────────────────────────────────────────
 function CategoryFallback({ category, color }: { category: ItemCategory; color: string }) {
-  const shapes: Record<ItemCategory, string> = {
-    sword: '⚔', axe: '🪓', hammer: '⚒', lance: '🔱',
-    shield: '🛡', armor: '🥋', helmet: '⛑', ring: '💍',
-    amulet: '📿', dagger: '🗡', crown: '👑', tool: '🔧', decoration: '✨',
+  const icons: Record<ItemCategory, string> = {
+    sword: 'sword', axe: 'axe', hammer: 'hammer', lance: 'spear',
+    shield: 'shield', armor: 'shield-half-full', helmet: 'hard-hat',
+    ring: 'ring', amulet: 'necklace', dagger: 'knife', crown: 'crown',
+    tool: 'wrench', decoration: 'star-four-points',
   };
   return (
     <View style={[styles.fallback, { backgroundColor: `${color}18` }]}>
-      <Text style={styles.fallbackEmoji}>{shapes[category] ?? '⚙'}</Text>
+      <MaterialCommunityIcons
+        name={(icons[category] ?? 'hammer') as any}
+        size={36}
+        color={color}
+      />
     </View>
   );
 }

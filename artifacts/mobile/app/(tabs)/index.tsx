@@ -16,7 +16,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -132,7 +132,7 @@ const EMPTY_SESSION: CraftSession = { recipeId: '', strikesCompleted: 0, strikeS
 // ─── Forge Events ─────────────────────────────────────────────────────────────
 interface ForgeEvent {
   id: string;
-  emoji: string;
+  icon: string;
   name: string;
   description: string;
   effect: 'bonus_score' | 'min_score' | 'strike_multiplier';
@@ -144,7 +144,7 @@ interface ForgeEvent {
 const FORGE_EVENTS: ForgeEvent[] = [
   {
     id: 'metal_en_fusion',
-    emoji: '🔥',
+    icon: 'fire',
     name: 'Métal en fusion',
     description: '+12 au score de qualité final',
     effect: 'bonus_score',
@@ -154,7 +154,7 @@ const FORGE_EVENTS: ForgeEvent[] = [
   },
   {
     id: 'inspiration',
-    emoji: '⚡',
+    icon: 'lightning-bolt',
     name: 'Inspiration !',
     description: 'Les frappes comptent ×1.5',
     effect: 'strike_multiplier',
@@ -164,7 +164,7 @@ const FORGE_EVENTS: ForgeEvent[] = [
   },
   {
     id: 'metal_elu',
-    emoji: '🌟',
+    icon: 'star-circle',
     name: 'Métal élu',
     description: 'Score de qualité minimum 65',
     effect: 'min_score',
@@ -174,7 +174,7 @@ const FORGE_EVENTS: ForgeEvent[] = [
   },
   {
     id: 'grace_divine',
-    emoji: '💎',
+    icon: 'diamond',
     name: 'Grâce divine',
     description: 'Score de qualité minimum 82 (Excellent garanti)',
     effect: 'min_score',
@@ -184,7 +184,7 @@ const FORGE_EVENTS: ForgeEvent[] = [
   },
   {
     id: 'fievre',
-    emoji: '🌪',
+    icon: 'weather-tornado',
     name: 'Fièvre du forgeron',
     description: '+28 au score de qualité final',
     effect: 'bonus_score',
@@ -569,7 +569,7 @@ function OrdersModal({
                     {order.isUrgent && (
                       <View style={oStyles.urgentBadgeRow}>
                         <View style={[oStyles.urgentBadge, { backgroundColor: urgentTimerDone ? '#B71C1C22' : '#FF6D0022' }]}>
-                          <Text style={{ fontSize: 12 }}>⚡</Text>
+                          <MaterialCommunityIcons name="lightning-bolt" size={12} color={urgentTimerDone ? '#FF5252' : '#FF6D00'} />
                           <Text style={[oStyles.urgentBadgeText, { color: urgentTimerDone ? '#FF5252' : '#FF6D00' }]}>
                             {urgentTimerDone ? 'EXPIRÉ' : 'URGENT'}
                           </Text>
@@ -592,7 +592,7 @@ function OrdersModal({
                       <View style={oStyles.urgentBonusRow}>
                         <Text style={[oStyles.urgentBonusText, { color: colors.mutedForeground }]}>Si livré à temps :</Text>
                         <View style={[oStyles.urgentBonusChip, { backgroundColor: '#FF6D0020' }]}>
-                          <Text style={{ fontSize: 11 }}>⚡</Text>
+                          <MaterialCommunityIcons name="lightning-bolt" size={11} color="#FF8F00" />
                           <Text style={[oStyles.urgentBonusText, { color: '#FF8F00' }]}>+{order.urgentBonusGold ?? 0}g</Text>
                         </View>
                         <View style={[oStyles.urgentBonusChip, { backgroundColor: '#1565C020' }]}>
@@ -730,8 +730,9 @@ function OrdersModal({
 }
 
 // ─── Forge Upgrades Modal ─────────────────────────────────────────────────────
-const ELEMENT_EMOJI: Record<string, string> = {
-  forge_main: '🔥', furnace: '🏭', anvil: '⚒️', workbench: '🪵', decoration: '🎨', storage: '📦',
+const ELEMENT_ICONS: Record<string, string> = {
+  forge_main: 'fire', furnace: 'factory', anvil: 'anvil',
+  workbench: 'table-furniture', decoration: 'palette', storage: 'package-variant',
 };
 
 const fuStyles = StyleSheet.create({
@@ -814,7 +815,7 @@ function ForgeUpgradesModal({
                   style={[fuStyles.elementCard, { backgroundColor: colors.secondary, borderColor: canAfford ? colors.primary : colors.border }]}
                 >
                   <View style={fuStyles.elementTop}>
-                    <Text style={fuStyles.elementEmoji}>{ELEMENT_EMOJI[upgradeData.id] ?? '🔧'}</Text>
+                    <MaterialCommunityIcons name={(ELEMENT_ICONS[upgradeData.id] ?? 'hammer') as any} size={22} color={colors.accent} style={{ width: 36, textAlign: 'center' } as any} />
                     <View style={fuStyles.elementInfo}>
                       <Text style={[fuStyles.elementName, { color: colors.foreground }]}>{upgradeData.name}</Text>
                       <Text style={[fuStyles.elementBonus, { color: colors.mutedForeground }]}>
@@ -834,7 +835,7 @@ function ForgeUpgradesModal({
                       </Text>
                       <View style={fuStyles.costRow}>
                         <View style={[fuStyles.costChip, { backgroundColor: `${colors.accent}22` }]}>
-                          <Text style={[fuStyles.costText, { color: colors.accent }]}>💰 {goldCost.toLocaleString()}g</Text>
+                          <Text style={[fuStyles.costText, { color: colors.accent }]}>{goldCost.toLocaleString()}g</Text>
                         </View>
                         {nextTier.resourceCosts.map((rc) => {
                           const res = game.allResources.find((r) => r.id === rc.resourceId);
@@ -945,7 +946,7 @@ function ApprenticeCard({
   if (!ap) {
     return (
       <View style={[apStyles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Text style={[apStyles.title, { color: colors.foreground }]}>🔨 Apprenti Forgeron</Text>
+        <Text style={[apStyles.title, { color: colors.foreground }]}>Apprenti Forgeron</Text>
         <Text style={[apStyles.sub, { color: colors.mutedForeground }]}>
           Recrutez un apprenti pour qu'il forge des objets pendant que vous vous occupez des commandes.
         </Text>
@@ -992,19 +993,19 @@ function ApprenticeCard({
   const missed = ap.missedPayments ?? 0;
 
   const SPECIALTY_LABEL: Record<string, string> = {
-    sword:      '⚔️ Épée',
-    axe:        '🪓 Hache',
-    hammer:     '🔨 Marteau',
-    lance:      '🏹 Lance',
-    shield:     '🛡️ Bouclier',
-    armor:      '🥋 Armure',
-    helmet:     '⛑️ Casque',
-    ring:       '💍 Anneau',
-    amulet:     '📿 Amulette',
-    dagger:     '🗡️ Dague',
-    crown:      '👑 Couronne',
-    tool:       '🔧 Outil',
-    decoration: '🎨 Décoration',
+    sword:      'Épée',
+    axe:        'Hache',
+    hammer:     'Marteau',
+    lance:      'Lance',
+    shield:     'Bouclier',
+    armor:      'Armure',
+    helmet:     'Casque',
+    ring:       'Anneau',
+    amulet:     'Amulette',
+    dagger:     'Dague',
+    crown:      'Couronne',
+    tool:       'Outil',
+    decoration: 'Décoration',
   };
   const specialtyLabel = ap.specialty ? (SPECIALTY_LABEL[ap.specialty] ?? ap.specialty) : null;
 
@@ -1013,14 +1014,14 @@ function ApprenticeCard({
       {/* Header */}
       <View style={apStyles.row}>
         <Text style={[apStyles.title, { color: colors.foreground }]}>
-          🔨 {ap.name}
+          {ap.name}
         </Text>
         <View style={[apStyles.badge, { backgroundColor: colors.secondary }]}>
           <Text style={[apStyles.badgeText, { color: colors.accent }]}>Niv. {ap.level}</Text>
         </View>
         {missed >= 1 && (
           <View style={[apStyles.badge, { backgroundColor: '#E6510022', borderWidth: 1, borderColor: '#E65100' }]}>
-            <Text style={[apStyles.badgeText, { color: '#E65100' }]}>⚠ {missed}/3 salaires impayés</Text>
+            <Text style={[apStyles.badgeText, { color: '#E65100' }]}>{missed}/3 salaires impayés</Text>
           </View>
         )}
       </View>
@@ -1091,7 +1092,7 @@ function ApprenticeCard({
           onPress={() => setPickingRecipe(true)}
           activeOpacity={0.8}
         >
-          <Text style={[apStyles.btnSmText, { color: colors.foreground }]}>📋 Recette</Text>
+          <Text style={[apStyles.btnSmText, { color: colors.foreground }]}>Recette</Text>
         </TouchableOpacity>
         {trainCost !== null && (
           <TouchableOpacity
@@ -1103,7 +1104,7 @@ function ApprenticeCard({
             }}
             activeOpacity={0.8}
           >
-            <Text style={[apStyles.btnSmText, { color: colors.accent }]}>⬆ Former ({trainCost}g)</Text>
+            <Text style={[apStyles.btnSmText, { color: colors.accent }]}>Former ({trainCost}g)</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -1554,19 +1555,19 @@ export default function ForgeScreen() {
     let mod = 0;
     let label = '';
     if (p >= 42 && p <= 58) {
-      mod = 10; label = '💎 PARFAIT! +10 qualité';
+      mod = 10; label = 'PARFAIT! +10 qualité';
       AudioManager.playPerfectStrike();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else if (p >= 30 && p <= 70) {
-      mod = 5; label = '💧 BIEN! +5 qualité';
+      mod = 5; label = 'BIEN! +5 qualité';
       AudioManager.playHammerStrike();
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } else if (p > 70) {
-      mod = -8; label = '🔥 TROP TÔT! -8 qualité';
+      mod = -8; label = 'TROP TOT! -8 qualité';
       AudioManager.playError();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } else {
-      mod = -5; label = '❄️ TROP TARD! -5 qualité';
+      mod = -5; label = 'TROP TARD! -5 qualité';
       AudioManager.playError();
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     }
@@ -1711,7 +1712,7 @@ export default function ForgeScreen() {
               const urgentCount = pendingOrders.filter((o) => o.isUrgent && o.deadline > Date.now()).length;
               return urgentCount > 0 ? (
                 <View style={oStyles.urgentHeaderBadge}>
-                  <Text style={oStyles.urgentHeaderBadgeText}>⚡</Text>
+                  <MaterialCommunityIcons name="lightning-bolt" size={9} color="#fff" />
                 </View>
               ) : null;
             })()}
@@ -1799,7 +1800,7 @@ export default function ForgeScreen() {
             />
             <View style={styles.heatingContent}>
               <Text style={[styles.phaseTitle, { color: colors.accent }]}>
-                🔥 Chauffe le métal…
+                Chauffe le métal…
               </Text>
               {selectedRecipe && (
                 <Text style={[styles.recipeNameSmall, { color: colors.mutedForeground }]}>
@@ -1833,7 +1834,7 @@ export default function ForgeScreen() {
             />
             <View style={styles.heatingContent}>
               <Text style={[styles.phaseTitle, { color: '#48A0D0' }]}>
-                💧 Refroidissement…
+                Refroidissement…
               </Text>
             </View>
           </View>
@@ -1888,7 +1889,7 @@ export default function ForgeScreen() {
           <View style={{ paddingBottom: bottomPad }}>
             {showEventBanner && activeForgeEvent && (
               <View style={[styles.eventBanner, { borderColor: activeForgeEvent.color + '80', backgroundColor: activeForgeEvent.color + '18' }]}>
-                <Text style={styles.eventEmoji}>{activeForgeEvent.emoji}</Text>
+                <MaterialCommunityIcons name={activeForgeEvent.icon as any} size={22} color={activeForgeEvent.color} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.eventName, { color: activeForgeEvent.color }]}>{activeForgeEvent.name}</Text>
                   <Text style={[styles.eventDesc, { color: colors.mutedForeground }]}>{activeForgeEvent.description}</Text>
@@ -1898,7 +1899,7 @@ export default function ForgeScreen() {
 
             {/* ── Temperature gauge ── */}
             <View style={styles.tempGauge}>
-              <Text style={styles.tempIcon}>🌡️</Text>
+              <MaterialCommunityIcons name="thermometer" size={18} color="#FFAA00" />
               <Animated.View style={[styles.tempTrackWrap, { transform: [{ translateX: gaugeShakeAnim.current }] }]}>
                 <View style={styles.tempTrack}>
                   <View
@@ -1916,10 +1917,10 @@ export default function ForgeScreen() {
                   />
                 </View>
                 {overheated ? (
-                  <Text style={styles.tempOverheatLabel}>💀 SURCHAUFFE — objet endommagé!</Text>
+                  <Text style={styles.tempOverheatLabel}>SURCHAUFFE — objet endommagé!</Text>
                 ) : temperature >= 80 ? (
                   <Text style={[styles.tempWarning, { color: temperature >= 90 ? '#FF2200' : '#FF6600' }]}>
-                    ⚠️ Ralentis — métal trop chaud!
+                    Ralentis — métal trop chaud!
                   </Text>
                 ) : (
                   <Text style={styles.tempHint}>Frappe régulièrement pour maintenir la chaleur</Text>
@@ -1956,7 +1957,7 @@ export default function ForgeScreen() {
         {/* ── Quench gauge ── */}
         {craftPhase === 'COOLING' && (
           <View style={[styles.quenchPanel, { paddingBottom: bottomPad + 8 }]}>
-            <Text style={styles.quenchTitle}>💧 TREMPAGE</Text>
+            <Text style={styles.quenchTitle}>TREMPAGE</Text>
             <Text style={styles.quenchSubtitle}>
               Retire l'acier quand la barre passe dans la zone verte
             </Text>
@@ -1999,9 +2000,9 @@ export default function ForgeScreen() {
               />
               {/* Zone labels row */}
               <View style={[StyleSheet.absoluteFill, styles.quenchZoneLabels]}>
-                <Text style={styles.quenchZoneHot}>🔥</Text>
-                <Text style={styles.quenchZoneSweet}>✦ ZONE</Text>
-                <Text style={styles.quenchZoneCold}>❄️</Text>
+                <MaterialCommunityIcons name="fire" size={12} color="#E53935" style={{ opacity: 0.8 }} />
+                <Text style={styles.quenchZoneSweet}>ZONE</Text>
+                <MaterialCommunityIcons name="snowflake" size={12} color="#48A0D0" style={{ opacity: 0.8 }} />
               </View>
             </View>
 
@@ -2053,7 +2054,7 @@ export default function ForgeScreen() {
                     },
                   ]}
                 >
-                  💧 SORTIR DU BAIN
+                  SORTIR DU BAIN
                 </Text>
               </TouchableOpacity>
             ) : (
@@ -2252,7 +2253,7 @@ export default function ForgeScreen() {
               {/* Active forge event */}
               {activeForgeEvent && (
                 <View style={[styles.resultEventRow, { backgroundColor: activeForgeEvent.color + '22', borderColor: activeForgeEvent.color + '66' }]}>
-                  <Text style={{ fontSize: 16 }}>{activeForgeEvent.emoji}</Text>
+                  <MaterialCommunityIcons name={activeForgeEvent.icon as any} size={16} color={activeForgeEvent.color} />
                   <Text style={[styles.resultEventText, { color: activeForgeEvent.color }]}>
                     {activeForgeEvent.name} — {activeForgeEvent.description}
                   </Text>

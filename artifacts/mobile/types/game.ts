@@ -300,6 +300,8 @@ export interface QuestObjective {
 export interface Quest {
   id: string;
   regionId: string;
+  /** Minimum player level required to see and accept this quest (defaults to 0). */
+  unlockLevel?: number;
   title: string;
   description: string;
   objectives: QuestObjective[];

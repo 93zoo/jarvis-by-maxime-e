@@ -472,10 +472,13 @@ export default function CodexScreen() {
             <Text style={[styles.questGroupLabel, { color: colors.primary }]}>EN COURS</Text>
           )}
           {activeQuests.map((q) => renderQuestEntry(q))}
-          {/* Available quests */}
+          {/* Available quests (only those matching the player's current level) */}
           {(() => {
             const available = game.allQuests.filter(
-              (q) => !game.activeQuestIds.includes(q.id) && !game.completedQuestIds.includes(q.id),
+              (q) =>
+                !game.activeQuestIds.includes(q.id) &&
+                !game.completedQuestIds.includes(q.id) &&
+                (q.unlockLevel ?? 0) <= game.player.level,
             );
             return available.length > 0 ? (
               <>

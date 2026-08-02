@@ -466,6 +466,89 @@ function ExploreView({
           <Text style={[styles.descLabel, { color: colors.primary }]}>À PROPOS</Text>
           <Text style={[styles.descText, { color: colors.mutedForeground }]}>{region.description}</Text>
         </View>
+
+        {/* Region Quests */}
+        {(() => {
+          const regionQuests = game.allQuests.filter(
+            (q) => q.regionId === region.id && (q.unlockLevel ?? 0) <= game.player.level,
+          );
+          if (regionQuests.length === 0) return null;
+          return (
+            <View style={[styles.descCard, { backgroundColor: colors.card, borderColor: rc + '44', marginTop: 10 }]}>
+              <Text style={[styles.descLabel, { color: rc }]}>QUÊTES DE ZONE</Text>
+              {regionQuests.map((quest) => {
+                const isActive = game.activeQuestIds.includes(quest.id);
+                const isDone = game.completedQuestIds.includes(quest.id);
+                const progress = game.questProgress[quest.id] ?? {};
+                return (
+                  <View
+                    key={quest.id}
+                    style={[
+                      styles.zoneQuestRow,
+                      {
+                        borderColor: isDone ? '#4CAF5066' : isActive ? rc + '66' : colors.border,
+                        backgroundColor: isDone ? '#4CAF5012' : isActive ? rc + '18' : colors.secondary,
+                      },
+                    ]}
+                  >
+                    <View style={styles.zoneQuestTop}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.zoneQuestTitle, { color: isDone ? '#4CAF50' : colors.foreground }]}>
+                          {quest.title}
+                        </Text>
+                        {!isDone && (
+                          <Text style={[styles.zoneQuestDesc, { color: colors.mutedForeground }]} numberOfLines={2}>
+                            {quest.description}
+                          </Text>
+                        )}
+                      </View>
+                      {isDone ? (
+                        <Feather name="check-circle" size={17} color="#4CAF50" />
+                      ) : !isActive ? (
+                        <TouchableOpacity
+                          style={[styles.zoneAcceptBtn, { backgroundColor: rc }]}
+                          onPress={() => { game.acceptQuest(quest.id); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={[styles.zoneAcceptText, { color: '#fff' }]}>Accepter</Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <View style={[styles.zoneActiveBadge, { backgroundColor: rc + '28', borderColor: rc + '55' }]}>
+                          <Text style={[styles.zoneActiveBadgeText, { color: rc }]}>EN COURS</Text>
+                        </View>
+                      )}
+                    </View>
+                    {/* Objective progress bars for active quests */}
+                    {isActive && !isDone && quest.objectives.map((obj) => {
+                      const cur = progress[obj.id] ?? 0;
+                      const pct = Math.min(100, Math.floor((cur / obj.required) * 100));
+                      return (
+                        <View key={obj.id} style={styles.zoneObjRow}>
+                          <Text style={[styles.zoneObjText, { color: colors.mutedForeground }]} numberOfLines={1}>
+                            {obj.description}
+                          </Text>
+                          <Text style={[styles.zoneObjCount, { color: rc }]}>{cur}/{obj.required}</Text>
+                          <View style={[styles.zoneObjTrack, { backgroundColor: colors.muted }]}>
+                            <View style={[styles.zoneObjFill, { width: `${pct}%` as `${number}%`, backgroundColor: rc }]} />
+                          </View>
+                        </View>
+                      );
+                    })}
+                    {/* Rewards */}
+                    {!isDone && (
+                      <View style={styles.zoneRewards}>
+                        <MaterialCommunityIcons name="gold" size={12} color="#C9A227" />
+                        <Text style={[styles.zoneRewardText, { color: '#C9A227' }]}>{quest.rewards.gold}</Text>
+                        <MaterialCommunityIcons name="star-circle" size={12} color={colors.accent} style={{ marginLeft: 8 }} />
+                        <Text style={[styles.zoneRewardText, { color: colors.accent }]}>{quest.rewards.xp} XP</Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          );
+        })()}
       </ScrollView>
 
       {/* Weight bar */}
@@ -767,7 +850,7 @@ function MarketModal({ visible, onClose, game, colors, bottomPad }: {
       ? game.sellResource(pendingSale.resourceId, pendingSale.qty)
       : game.sellItem(pendingSale.instanceId);
     if (earned > 0) {
-      setLastSellMsg(`+${earned} 🪙 reçus`);
+      setLastSellMsg(`+${earned} or reçus`);
       setTimeout(() => setLastSellMsg(null), 1800);
       AudioManager.playCoin();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -797,7 +880,7 @@ function MarketModal({ visible, onClose, game, colors, bottomPad }: {
   const TABS: { key: MarketTab; label: string }[] = [
     { key: 'sell_res', label: 'Vendre res.' },
     { key: 'sell_items', label: 'Vendre objets' },
-    { key: 'buy', label: '🛒 Acheter' },
+    { key: 'buy', label: 'Acheter' },
   ];
 
   return (
@@ -899,7 +982,7 @@ function MarketModal({ visible, onClose, game, colors, bottomPad }: {
                     const sellPrice = Math.round(item.value * 0.85);
                     return (
                       <View key={item.instanceId} style={[mStyles.marketRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                        <Text style={{ fontSize: 20 }}>⚒️</Text>
+                        <MaterialCommunityIcons name="hammer" size={20} color={colors.mutedForeground} />
                         <View style={mStyles.resInfo}>
                           <Text style={[mStyles.resName, { color: colors.foreground }]}>{item.name}</Text>
                           <Text style={[mStyles.resStock, { color: colors.mutedForeground }]}>{item.category} · {item.quality} · {item.value}g</Text>
@@ -1206,7 +1289,7 @@ export default function WorldScreen() {
                     </Text>
                     {isUnlocked && game.completedRegions.includes(region.id) && (
                       <View style={[styles.unlockedBadge, { backgroundColor: '#FFD70028' }]}>
-                        <Text style={[styles.unlockedText, { color: '#FFD700' }]}>🏆 COMPLÉTÉ</Text>
+                        <MaterialCommunityIcons name="trophy" size={10} color="#FFD700" style={{ marginRight: 2 }} /><Text style={[styles.unlockedText, { color: '#FFD700' }]}>COMPLÉTÉ</Text>
                       </View>
                     )}
                     {isUnlocked && !game.completedRegions.includes(region.id) && (
@@ -1306,7 +1389,7 @@ export default function WorldScreen() {
               {/* Boss */}
               <Text style={[styles.sheetLabel, { color: colors.primary }]}>BOSS</Text>
               <View style={[styles.bossCard, { backgroundColor: colors.secondary, borderColor: colors.destructive + '40' }]}>
-                <Text style={{ fontSize: 20 }}>👹</Text>
+                <MaterialCommunityIcons name="skull-crossbones" size={22} color={colors.destructive} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.bossName, { color: colors.foreground }]}>{selectedRegion.boss.name}</Text>
                   <Text style={[styles.bossDesc, { color: colors.mutedForeground }]}>{selectedRegion.boss.description}</Text>
@@ -1350,7 +1433,7 @@ export default function WorldScreen() {
             {/* Region completion banner */}
             {collectResult.regionCompleted && collectResult.completionRewards && (
               <View style={[styles.completionBanner, { backgroundColor: '#FFD70022', borderColor: '#FFD70066' }]}>
-                <Text style={{ fontSize: 28, textAlign: 'center' }}>🏆</Text>
+                <MaterialCommunityIcons name="trophy" size={28} color="#FFD700" style={{ alignSelf: 'center' }} />
                 <Text style={[styles.completionTitle, { color: '#FFD700' }]}>Région explorée à 100 % !</Text>
                 <View style={styles.completionRewards}>
                   <Text style={[styles.completionRewardText, { color: colors.foreground }]}>
@@ -1368,7 +1451,7 @@ export default function WorldScreen() {
               </View>
             )}
 
-            <Text style={{ fontSize: 32, textAlign: 'center' }}>🎒</Text>
+            <MaterialCommunityIcons name="bag-personal" size={32} color={colors.accent} style={{ alignSelf: 'center' }} />
             <Text style={[styles.resultTitle, { color: colors.foreground }]}>Ressources collectées !</Text>
             {collectResult.drops.length === 0 ? (
               <Text style={[styles.resultEmpty, { color: colors.mutedForeground }]}>Rien trouvé… réessayez !</Text>
@@ -1394,7 +1477,7 @@ export default function WorldScreen() {
               }}
             >
               <Text style={[styles.resultBtnText, { color: colors.primaryForeground }]}>
-                {collectResult.regionCompleted ? '🎉 Incroyable !' : 'Super !'}
+                {collectResult.regionCompleted ? 'Incroyable !' : 'Super !'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -1528,6 +1611,23 @@ const styles = StyleSheet.create({
   descCard: { borderRadius: 12, padding: 14, borderWidth: 1, marginTop: 10 },
   descLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 2, marginBottom: 8 },
   descText: { fontSize: 13, lineHeight: 19 },
+
+  // Zone quest section
+  zoneQuestRow: { borderRadius: 10, borderWidth: 1, padding: 11, marginBottom: 8 },
+  zoneQuestTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  zoneQuestTitle: { fontSize: 13, fontWeight: '700', marginBottom: 2 },
+  zoneQuestDesc: { fontSize: 11, lineHeight: 15 },
+  zoneAcceptBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 7 },
+  zoneAcceptText: { fontSize: 11, fontWeight: '800' },
+  zoneActiveBadge: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
+  zoneActiveBadgeText: { fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+  zoneObjRow: { marginTop: 6, gap: 2 },
+  zoneObjText: { fontSize: 11, flex: 1 },
+  zoneObjCount: { fontSize: 11, fontWeight: '700' },
+  zoneObjTrack: { height: 3, borderRadius: 2, marginTop: 2, overflow: 'hidden' },
+  zoneObjFill: { height: '100%', borderRadius: 2, minWidth: 2 },
+  zoneRewards: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 8, opacity: 0.75 },
+  zoneRewardText: { fontSize: 11, fontWeight: '700' },
   weightBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: 1 },
   weightTrack: { flex: 1, height: 4, borderRadius: 2, overflow: 'hidden' },
   weightFill: { height: '100%', borderRadius: 2, minWidth: 3 },
