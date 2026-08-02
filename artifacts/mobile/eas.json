@@ -18,10 +18,16 @@
       },
       "ios": {
         "simulator": false
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://code-architecture-development.replit.app/api"
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://code-architecture-development.replit.app/api"
+      }
     }
   },
   "submit": {
