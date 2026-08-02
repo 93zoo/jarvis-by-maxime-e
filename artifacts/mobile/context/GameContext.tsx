@@ -11,6 +11,7 @@ import React, {
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {
+  ActiveHideout,
   AlloyData,
   Apprentice,
   CraftOrder,
@@ -323,6 +324,10 @@ interface GameState {
    * this to true so established players are not interrupted by onboarding.
    */
   hasCompletedFirstForgeTutorial: boolean;
+  /** Currently active (spawned) hideouts across all regions. */
+  activeHideouts: ActiveHideout[];
+  /** Per-slot last-collected timestamps for spawn rate calculation. */
+  hideoutLastCollected: Record<string, number>;
 }
 
 type GameAction =
@@ -385,7 +390,10 @@ type GameAction =
   | { type: 'BUY_STAT_UPGRADE'; upgradeId: string; goldCost: number }
   | { type: 'FUSE_ALLOY'; alloyId: string; ingredients: { resourceId: string; quantity: number }[]; outputResourceId: string; outputQuantity: number }
   | { type: 'PIN_TO_SHOWCASE'; instanceId: string }
-  | { type: 'UNPIN_FROM_SHOWCASE'; instanceId: string };
+  | { type: 'UNPIN_FROM_SHOWCASE'; instanceId: string }
+  | { type: 'SPAWN_HIDEOUT'; hideout: ActiveHideout }
+  | { type: 'COLLECT_HIDEOUT'; slotId: string; regionId: string; resources: { resourceId: string; qty: number }[] }
+  | { type: 'EXPIRE_HIDEOUTS' };
 
 function buildInitialPlayer(): Player {
   const skills = SKILL_TYPES.reduce(
@@ -532,6 +540,8 @@ function buildInitialState(): GameState {
     showcasedItemIds: [],
     // Les nouvelles parties doivent voir le tutoriel de première forge.
     hasCompletedFirstForgeTutorial: false,
+    activeHideouts: [],
+    hideoutLastCollected: {},
   };
 }
 
@@ -728,6 +738,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         discoveredAlloyIds: s.discoveredAlloyIds ?? [],
         showcasedItemIds: s.showcasedItemIds ?? [],
         hasCompletedFirstForgeTutorial: s.hasCompletedFirstForgeTutorial ?? true,
+        activeHideouts: s.activeHideouts ?? [],
+        hideoutLastCollected: s.hideoutLastCollected ?? {},
       };
     }
     case 'RESET': {
@@ -1451,6 +1463,37 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, showcasedItemIds: state.showcasedItemIds.filter((id) => id !== action.instanceId) };
     }
 
+    case 'SPAWN_HIDEOUT': {
+      const existing = state.activeHideouts ?? [];
+      if (existing.some((h) => h.slotId === action.hideout.slotId)) return state;
+      return { ...state, activeHideouts: [...existing, action.hideout] };
+    }
+
+    case 'COLLECT_HIDEOUT': {
+      const inv = [...state.inventory];
+      for (const r of action.resources) {
+        const idx = inv.findIndex((i) => i.resourceId === r.resourceId);
+        if (idx >= 0) {
+          inv[idx] = { ...inv[idx], quantity: inv[idx].quantity + r.qty };
+        } else {
+          inv.push({ resourceId: r.resourceId, quantity: r.qty });
+        }
+      }
+      return {
+        ...state,
+        activeHideouts: (state.activeHideouts ?? []).filter((h) => h.slotId !== action.slotId),
+        hideoutLastCollected: { ...(state.hideoutLastCollected ?? {}), [action.slotId]: Date.now() },
+        inventory: inv,
+      };
+    }
+
+    case 'EXPIRE_HIDEOUTS': {
+      const now = Date.now();
+      const filtered = (state.activeHideouts ?? []).filter((h) => h.expiresAt > now);
+      if (filtered.length === (state.activeHideouts ?? []).length) return state;
+      return { ...state, activeHideouts: filtered };
+    }
+
     default:
       return state;
   }
@@ -1534,6 +1577,9 @@ interface GameContextType {
   pinToShowcase: (instanceId: string) => void;
   unpinFromShowcase: (instanceId: string) => void;
   claimSetReward: (setId: string) => { success: boolean; gold: number };
+  // Hideouts
+  activeHideouts: ActiveHideout[];
+  collectHideout: (slotId: string, regionId: string) => { success: boolean; rewards: { resourceId: string; qty: number }[] };
   fightForMaterials: (regionId: string, playerTotal: number, enemyTotal: number) => CombatResult;
   saveGame: () => Promise<'ok' | 'error'>;
   resetGame: () => void;
@@ -1789,6 +1835,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           completedSets: state.completedSets,
           discoveredAlloyIds: state.discoveredAlloyIds,
           showcasedItemIds: state.showcasedItemIds,
+          activeHideouts: state.activeHideouts ?? [],
+          hideoutLastCollected: state.hideoutLastCollected ?? {},
           lastSaved: now,
         };
         await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
@@ -1893,6 +1941,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         completedSets: state.completedSets,
         discoveredAlloyIds: state.discoveredAlloyIds,
         showcasedItemIds: state.showcasedItemIds,
+        activeHideouts: state.activeHideouts ?? [],
+        hideoutLastCollected: state.hideoutLastCollected ?? {},
         lastSaved: Date.now(),
       };
       AsyncStorage.setItem(SAVE_KEY, JSON.stringify(immediteSave)).catch(() => {
@@ -2515,6 +2565,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       discoveredAlloyIds: state.discoveredAlloyIds,
       showcasedItemIds: state.showcasedItemIds,
       hasCompletedFirstForgeTutorial: state.hasCompletedFirstForgeTutorial,
+      activeHideouts: state.activeHideouts ?? [],
+      hideoutLastCollected: state.hideoutLastCollected ?? {},
       lastSaved: now,
     };
     try {
@@ -2553,6 +2605,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         discoveredAlloyIds: state.discoveredAlloyIds,
         showcasedItemIds: state.showcasedItemIds,
         hasCompletedFirstForgeTutorial: state.hasCompletedFirstForgeTutorial,
+        activeHideouts: state.activeHideouts ?? [],
+        hideoutLastCollected: state.hideoutLastCollected ?? {},
         lastSaved: Date.now(),
       };
       const res = await fetch(`${base}/save`, {
@@ -2621,6 +2675,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       discoveredAlloyIds: state.discoveredAlloyIds,
       showcasedItemIds: state.showcasedItemIds,
       hasCompletedFirstForgeTutorial: true,
+      activeHideouts: state.activeHideouts ?? [],
+      hideoutLastCollected: state.hideoutLastCollected ?? {},
       lastSaved: now,
     };
     dispatch({ type: 'COMPLETE_FIRST_FORGE_TUTORIAL' });
@@ -2736,6 +2792,41 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.isLoaded, state.apprentice]);
 
+  // Hideout spawning: check every minute whether new hideouts should spawn
+  const hideoutStateRef = useRef(state);
+  useEffect(() => { hideoutStateRef.current = state; }, [state]);
+  useEffect(() => {
+    if (!state.isLoaded) return;
+    const check = () => {
+      const s = hideoutStateRef.current;
+      const now = Date.now();
+      dispatch({ type: 'EXPIRE_HIDEOUTS' });
+      for (const region of ALL_REGIONS) {
+        if (!s.unlockedRegions.includes(region.id)) continue;
+        for (const slot of (region.hideouts ?? [])) {
+          const isActive = (s.activeHideouts ?? []).some((h) => h.slotId === slot.id);
+          if (isActive) continue;
+          const lastCollected = (s.hideoutLastCollected ?? {})[slot.id] ?? 0;
+          const spawnAfter = lastCollected + slot.spawnIntervalHours * 3_600_000;
+          if (now >= spawnAfter) {
+            dispatch({
+              type: 'SPAWN_HIDEOUT',
+              hideout: {
+                regionId: region.id,
+                slotId: slot.id,
+                spawnedAt: now,
+                expiresAt: now + 4 * 3_600_000,
+              },
+            });
+          }
+        }
+      }
+    };
+    check();
+    const t = setInterval(check, 60_000);
+    return () => clearInterval(t);
+  }, [state.isLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // -------------------------------------------------------------------------
   // Stat upgrade actions
   // -------------------------------------------------------------------------
@@ -2794,6 +2885,25 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       };
     },
     [state.inventory, state.player.level],
+  );
+
+  const collectHideout = useCallback(
+    (slotId: string, regionId: string): { success: boolean; rewards: { resourceId: string; qty: number }[] } => {
+      const region = ALL_REGIONS.find((r) => r.id === regionId);
+      const hideout = (state.activeHideouts ?? []).find(
+        (h) => h.slotId === slotId && h.regionId === regionId,
+      );
+      if (!hideout || !region) return { success: false, rewards: [] };
+      if (Date.now() > hideout.expiresAt) return { success: false, rewards: [] };
+      const slot = (region.hideouts ?? []).find((s) => s.id === slotId);
+      if (!slot || slot.rewardTable.length === 0) return { success: false, rewards: [] };
+      const reward = slot.rewardTable[Math.floor(Math.random() * slot.rewardTable.length)];
+      const qty = reward.minQty + Math.floor(Math.random() * (reward.maxQty - reward.minQty + 1));
+      const resources = [{ resourceId: reward.resourceId, qty }];
+      dispatch({ type: 'COLLECT_HIDEOUT', slotId, regionId, resources });
+      return { success: true, rewards: resources };
+    },
+    [state.activeHideouts],
   );
 
   const customizePlayer = useCallback(
@@ -2938,6 +3048,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       showcasedItemIds: state.showcasedItemIds,
       pinToShowcase,
       unpinFromShowcase,
+      // Hideouts
+      activeHideouts: state.activeHideouts ?? [],
+      collectHideout,
     }),
     // Include cloud sync reactive state so status transitions propagate to consumers
     // eslint-disable-next-line react-hooks/exhaustive-deps

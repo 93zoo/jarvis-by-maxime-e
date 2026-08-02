@@ -111,6 +111,11 @@
     "effect": "epicGuarantee:1", "tree": "extraction", "tier": 4, "col": 1,
     "requiredSkill": "extraction", "requiredSkillLevel": 50, "prerequisiteIds": ["ext_master_1", "ext_rare_3"], "icon": "diamond", "cost": 3
   },
+  {
+    "id": "ext_fouilleur_1", "name": "Fouilleur", "description": "Fenêtre de collecte des cachettes étendue de 3 s à 6 s",
+    "effect": "hideoutWindowBonus:3000", "tree": "extraction", "tier": 2, "col": 2,
+    "requiredSkill": "extraction", "requiredSkillLevel": 10, "prerequisiteIds": ["ext_rare_2"], "icon": "archive", "cost": 2
+  },
 
   {
     "id": "com_price_1", "name": "Bon Négociant", "description": "Prix de vente +5%",

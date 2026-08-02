@@ -202,6 +202,11 @@ export interface RegionBoss {
   description: string;
 }
 
+export interface RegionHideoutReward {
+  resourceId: string;
+  minQty: number;
+  maxQty: number;
+}
 export interface RegionData {
   id: string;
   name: string;
@@ -212,6 +217,10 @@ export interface RegionData {
   resourceNodes: RegionResourceNode[];
   boss: RegionBoss;
   questIds: string[];
+  /** Short lore snippets shown as toasts while exploring the region. */
+  lore?: string[];
+  /** Hideout slots that spawn periodically in this region. */
+  hideouts?: RegionHideoutSlot[];
 }
 
 export interface SkillUnlock {
@@ -545,5 +554,24 @@ export interface SaveData {
    * Those established games must never receive the tutorial retroactively.
    */
   hasCompletedFirstForgeTutorial?: boolean;
+  /** Currently active (spawned) hideouts across all regions. */
+  activeHideouts?: ActiveHideout[];
+  /** Per-slot last-collected timestamps for hideout spawn rate calculation. */
+  hideoutLastCollected?: Record<string, number>;
   lastSaved: number;
+}
+
+export interface RegionHideoutSlot {
+  id: string;
+  spawnIntervalHours: number;
+  rewardTable: RegionHideoutReward[];
+}
+
+/** A currently active (spawned) hideout on the world map. */
+export interface ActiveHideout {
+  regionId: string;
+  slotId: string;
+  spawnedAt: number;
+  /** Timestamp after which the hideout expires and is removed. */
+  expiresAt: number;
 }

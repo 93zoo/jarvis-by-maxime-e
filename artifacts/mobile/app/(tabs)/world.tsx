@@ -30,7 +30,7 @@ import Animated, {
 import { useGame } from '@/context/GameContext';
 import { useColors } from '@/hooks/useColors';
 import AudioManager from '@/utils/AudioManager';
-import type { CraftOrder, RegionData, RegionResourceNode } from '@/types/game';
+import type { ActiveHideout, CraftOrder, RegionData, RegionResourceNode } from '@/types/game';
 
 // ─── Region metadata ──────────────────────────────────────────────────────────
 const REGION_COLORS: Record<string, string> = {
@@ -117,7 +117,40 @@ function MapLine({ x1, y1, x2, y2, color }: { x1: number; y1: number; x2: number
   );
 }
 
-// ─── Region node on the map ───────────────────────────────────────────────────
+function useLoreToast(lore: string[] | undefined) {
+  const [toastText, setToastText] = useState<string | null>(null);
+  const opacity = useSharedValue(0);
+  const toastStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  const loreRef = useRef(lore);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hideRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => { loreRef.current = lore; }, [lore]);
+
+  useEffect(() => {
+    const schedule = () => {
+      if (!loreRef.current || loreRef.current.length === 0) return;
+      const delay = 30_000 + Math.floor(Math.random() * 60_001);
+      timerRef.current = setTimeout(() => {
+        const texts = loreRef.current!;
+        const text = texts[Math.floor(Math.random() * texts.length)];
+        setToastText(text);
+        opacity.value = withTiming(1, { duration: 500 });
+        hideRef.current = setTimeout(() => {
+          opacity.value = withTiming(0, { duration: 600 });
+          timerRef.current = setTimeout(schedule, 700);
+        }, 6_000);
+      }, delay);
+    };
+    schedule();
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (hideRef.current) clearTimeout(hideRef.current);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return { toastText, toastStyle };
+}
 function RegionNode({
   region, isUnlocked, canUnlock, exploration, x, y, nodeSize, onPress, colors,
 }: {
@@ -182,6 +215,7 @@ function ExploreView({
   colors: ReturnType<typeof useColors>; insets: ReturnType<typeof useSafeAreaInsets>;
 }) {
   const game = useGame();
+  const { toastText: loreText, toastStyle: loreStyle } = useLoreToast(region.lore);
   const [cooldowns, setCooldowns] = useState<Record<string, number>>({});
   const [collecting, setCollecting] = useState<string | null>(null);
   const [lastDrops, setLastDrops] = useState<{ resourceId: string; qty: number } | null>(null);
@@ -551,6 +585,14 @@ function ExploreView({
         })()}
       </ScrollView>
 
+      {/* Lore toast */}
+      {loreText && (
+        <Animated.View style={[styles.loreToast, loreStyle]} pointerEvents="none">
+          <MaterialCommunityIcons name="book-open-variant" size={13} color="#D4851A" style={{ marginRight: 6 }} />
+          <Text style={[styles.loreToastText, { color: '#F2E4C4' }]} numberOfLines={3}>{loreText}</Text>
+        </Animated.View>
+      )}
+
       {/* Weight bar */}
       <View style={[styles.weightBar, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
         <MaterialCommunityIcons name="weight" size={14} color={colors.mutedForeground} />
@@ -661,12 +703,14 @@ function ExploreView({
 // ─── World Map Canvas ─────────────────────────────────────────────────────────
 function WorldMapCanvas({
   mapWidth, mapHeight, gameHour, game, colors,
-  onRegionPress,
+  onRegionPress, activeHideouts, onHideoutPress,
 }: {
   mapWidth: number; mapHeight: number; gameHour: number;
   game: ReturnType<typeof useGame>;
   colors: ReturnType<typeof useColors>;
   onRegionPress: (region: RegionData) => void;
+  activeHideouts: ActiveHideout[];
+  onHideoutPress: (hideout: ActiveHideout) => void;
 }) {
   const phase = getPhase(gameHour);
   const phaseConf = PHASE_CONFIG[phase];
@@ -736,6 +780,22 @@ function WorldMapCanvas({
             onPress={() => onRegionPress(region)}
             colors={colors}
           />
+        );
+      })}
+
+      {/* Hideout chest badges */}
+      {activeHideouts.filter((h) => game.unlockedRegions.includes(h.regionId)).map((hideout) => {
+        const pos = posPx[hideout.regionId];
+        if (!pos) return null;
+        return (
+          <Pressable
+            key={hideout.slotId}
+            style={[styles.hideoutBadgeBtn, { left: pos.x + nodeSize * 0.28, top: pos.y - nodeSize * 0.6 }]}
+            onPress={() => onHideoutPress(hideout)}
+            hitSlop={10}
+          >
+            <Text style={{ fontSize: 16 }}>📦</Text>
+          </Pressable>
         );
       })}
 
@@ -1107,7 +1167,14 @@ function MarketModal({ visible, onClose, game, colors, bottomPad }: {
   );
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+const mmStyles = StyleSheet.create({
+  wrap: { paddingVertical: 6 },
+  row: { paddingHorizontal: 12, paddingBottom: 4, gap: 8 },
+  tile: { width: 68, alignItems: 'center', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 4, gap: 3, position: 'relative' },
+  chestBadge: { position: 'absolute', top: -5, right: -5, zIndex: 2 },
+  tileLabel: { fontSize: 9, fontWeight: '700', textAlign: 'center' },
+  reqLabel: { fontSize: 8, fontWeight: '600', textAlign: 'center' },
+});
 export default function WorldScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -1117,6 +1184,7 @@ export default function WorldScreen() {
   const [selectedRegion, setSelectedRegion] = useState<RegionData | null>(null);
   const [exploringRegion, setExploringRegion] = useState<RegionData | null>(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [fouilleTarget, setFouilleTarget] = useState<ActiveHideout | null>(null);
   const [gameHour, setGameHour] = useState(() => new Date().getHours());
   const [collectResult, setCollectResult] = useState<{ drops: { resourceId: string; quantity: number }[]; regionCompleted: boolean; completionRewards?: { gold: number; playerXp: number; harvestXp: number; talentPoint: number } }>({ drops: [], regionCompleted: false });
   const [showCollectResult, setShowCollectResult] = useState(false);
@@ -1172,6 +1240,19 @@ export default function WorldScreen() {
     setExploringRegion(selectedRegion);
     setSelectedRegion(null);
   }, [selectedRegion]);
+
+  const collectWindowMs = 3000 + game.getTalentBonus('hideoutWindowBonus');
+
+  // Only show hideouts that haven't expired yet (purge loop fires every 60 s,
+  // so stale entries can linger briefly — filter them out at render time).
+  const validHideouts = useMemo(
+    () => (game.activeHideouts ?? []).filter((h) => h.expiresAt > Date.now()),
+    [game.activeHideouts],
+  );
+
+  const handleHideoutPress = useCallback((h: ActiveHideout) => {
+    setFouilleTarget(h);
+  }, []);
 
   if (!game.isLoaded) {
     return (
@@ -1236,6 +1317,16 @@ export default function WorldScreen() {
         </View>
       </LinearGradient>
 
+      {/* ── Minimap strip ── */}
+      <RegionMinimap
+        regions={game.allRegions}
+        unlockedRegions={game.unlockedRegions}
+        activeHideouts={validHideouts}
+        playerLevel={game.player.level}
+        onRegionPress={handleRegionPress}
+        colors={colors}
+      />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: bottomPad }}
@@ -1249,6 +1340,8 @@ export default function WorldScreen() {
             game={game}
             colors={colors}
             onRegionPress={handleRegionPress}
+            activeHideouts={validHideouts}
+            onHideoutPress={handleHideoutPress}
           />
         </View>
 
@@ -1331,6 +1424,15 @@ export default function WorldScreen() {
         </View>
 
       </ScrollView>
+
+      <FouilleModal
+        visible={fouilleTarget !== null}
+        hideout={fouilleTarget}
+        region={fouilleTarget ? (game.allRegions.find((r) => r.id === fouilleTarget.regionId) ?? null) : null}
+        collectWindowMs={collectWindowMs}
+        onCollect={() => fouilleTarget ? game.collectHideout(fouilleTarget.slotId, fouilleTarget.regionId) : { success: false, rewards: [] }}
+        onClose={() => setFouilleTarget(null)}
+      />
 
       <MarketModal visible={showMarket} onClose={() => setShowMarket(false)} game={game} colors={colors} bottomPad={bottomPad} />
 
@@ -1655,4 +1757,209 @@ const styles = StyleSheet.create({
   combatDropText: { fontSize: 13, fontWeight: '800' },
   combatAction: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, paddingVertical: 14, borderRadius: 12, marginTop: 18 },
   combatActionText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+
+  // Hideout badges on map canvas
+  hideoutBadgeBtn: { position: 'absolute', zIndex: 10, justifyContent: 'center', alignItems: 'center', width: 28, height: 28 },
+
+  // Lore toast in ExploreView
+  loreToast: { position: 'absolute', bottom: 130, left: 16, right: 16, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(200,140,60,0.3)', backgroundColor: 'rgba(20,14,8,0.92)', padding: 12, flexDirection: 'row', alignItems: 'flex-start', zIndex: 20 },
+  loreToastText: { fontSize: 12, lineHeight: 18, flex: 1, fontStyle: 'italic' },
 });
+
+function RegionMinimap({
+  regions, unlockedRegions, activeHideouts, playerLevel, onRegionPress, colors,
+}: {
+  regions: RegionData[];
+  unlockedRegions: string[];
+  activeHideouts: ActiveHideout[];
+  playerLevel: number;
+  onRegionPress: (region: RegionData) => void;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const sorted = useMemo(
+    () => [...regions].sort((a, b) => a.levelRequired - b.levelRequired),
+    [regions],
+  );
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={mmStyles.wrap} contentContainerStyle={mmStyles.row}>
+      {sorted.map((region) => {
+        const isUnlocked = unlockedRegions.includes(region.id);
+        const hasHideout = activeHideouts.some((h) => h.regionId === region.id);
+        const canAccess = playerLevel >= region.levelRequired;
+        const rc = REGION_COLORS[region.id] ?? '#D4851A';
+        return (
+          <TouchableOpacity
+            key={region.id}
+            style={[
+              mmStyles.tile,
+              {
+                backgroundColor: isUnlocked ? rc + '20' : 'rgba(20,14,8,0.7)',
+                borderWidth: hasHideout ? 2 : 1,
+                borderColor: hasHideout ? '#FFD700' : isUnlocked ? rc + '70' : colors.border,
+              },
+            ]}
+            onPress={() => onRegionPress(region)}
+            activeOpacity={0.75}
+          >
+            {hasHideout && (
+              <View style={mmStyles.chestBadge}>
+                <Text style={{ fontSize: 11 }}>📦</Text>
+              </View>
+            )}
+            <MaterialCommunityIcons
+              name={isUnlocked ? (REGION_ICONS[region.id] ?? 'map-marker') : 'lock'}
+              size={20}
+              color={isUnlocked ? rc : canAccess ? colors.accent : colors.mutedForeground}
+            />
+            <Text style={[mmStyles.tileLabel, { color: isUnlocked ? '#F2E4C4' : colors.mutedForeground }]} numberOfLines={1}>
+              {region.name}
+            </Text>
+            {!isUnlocked && (
+              <Text style={[mmStyles.reqLabel, { color: canAccess ? colors.accent : colors.mutedForeground }]}>
+                Niv.{region.levelRequired}
+              </Text>
+            )}
+          </TouchableOpacity>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+const fouStyles = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', justifyContent: 'center', alignItems: 'center' },
+  box: { width: '82%', maxWidth: 320, borderRadius: 22, padding: 26, alignItems: 'center', gap: 10, borderWidth: 1 },
+  chest: { fontSize: 52, lineHeight: 60, textAlign: 'center' },
+  title: { fontSize: 18, fontWeight: '800', textAlign: 'center' },
+  subtitle: { fontSize: 12, textAlign: 'center' },
+  timerTrack: { width: '100%', height: 8, borderRadius: 4, overflow: 'hidden', marginTop: 6 },
+  timerFill: { height: '100%', borderRadius: 4 },
+  collectBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14, marginTop: 4, width: '100%', justifyContent: 'center' },
+  collectBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  resultReward: { fontSize: 15, fontWeight: '700', textAlign: 'center' },
+  missText: { fontSize: 15, fontWeight: '700', textAlign: 'center' },
+  closeBtn: { paddingHorizontal: 24, paddingVertical: 11, borderRadius: 12, borderWidth: 1, marginTop: 4 },
+  closeBtnText: { fontSize: 14, fontWeight: '700' },
+});
+
+function FouilleModal({
+  visible, hideout, region, collectWindowMs, onCollect, onClose,
+}: {
+  visible: boolean;
+  hideout: ActiveHideout | null;
+  region: RegionData | null;
+  collectWindowMs: number;
+  onCollect: () => { success: boolean; rewards: { resourceId: string; qty: number }[] };
+  onClose: () => void;
+}) {
+  const colors = useColors();
+  const game = useGame();
+  const [collected, setCollected] = useState(false);
+  const [expired, setExpired] = useState(false);
+  const [rewards, setRewards] = useState<{ resourceId: string; qty: number }[]>([]);
+  const progress = useSharedValue(1);
+  const progressStyle = useAnimatedStyle(() => ({
+    width: `${Math.round(progress.value * 100)}%` as `${number}%`,
+  }));
+  const expiredRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!visible) {
+      setCollected(false);
+      setExpired(false);
+      setRewards([]);
+      expiredRef.current = false;
+      progress.value = 1;
+      if (timerRef.current) clearTimeout(timerRef.current);
+      return;
+    }
+    setCollected(false);
+    setExpired(false);
+    setRewards([]);
+    expiredRef.current = false;
+    progress.value = 1;
+    progress.value = withTiming(0, { duration: collectWindowMs, easing: Easing.linear });
+    timerRef.current = setTimeout(() => {
+      if (!expiredRef.current) {
+        expiredRef.current = true;
+        setExpired(true);
+      }
+    }, collectWindowMs);
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [visible]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCollect = () => {
+    if (collected || expired) return;
+    expiredRef.current = true;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    const result = onCollect();
+    if (result.success) {
+      setRewards(result.rewards);
+      setCollected(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      AudioManager.playCollect();
+    } else {
+      // Hideout expired between render and tap — show closable "trop tard" state
+      setExpired(true);
+    }
+  };
+
+  if (!visible || !hideout || !region) return null;
+  const rc = REGION_COLORS[region.id] ?? colors.primary;
+  const done = collected || expired;
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
+      <View style={fouStyles.overlay}>
+        <View style={[fouStyles.box, { backgroundColor: colors.card, borderColor: rc + '80' }]}>
+          <Text style={fouStyles.chest}>📦</Text>
+          <Text style={[fouStyles.title, { color: colors.foreground }]}>
+            {done ? (collected ? 'Trésor trouvé !' : 'Trop tard…') : 'Cachette découverte !'}
+          </Text>
+          <Text style={[fouStyles.subtitle, { color: colors.mutedForeground }]}>{region.name}</Text>
+
+          {!done && (
+            <>
+              <View style={[fouStyles.timerTrack, { backgroundColor: colors.muted }]}>
+                <Animated.View style={[fouStyles.timerFill, progressStyle, { backgroundColor: rc }]} />
+              </View>
+              <TouchableOpacity
+                style={[fouStyles.collectBtn, { backgroundColor: rc }]}
+                onPress={handleCollect}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons name="bag-personal" size={18} color="#fff" />
+                <Text style={fouStyles.collectBtnText}>Fouiller !</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {collected && rewards.length > 0 && rewards.map((r) => {
+            const res = game.getResourceById(r.resourceId);
+            return (
+              <Text key={r.resourceId} style={[fouStyles.resultReward, { color: colors.accent }]}>
+                +{r.qty} {res?.name ?? r.resourceId}
+              </Text>
+            );
+          })}
+
+          {expired && !collected && (
+            <Text style={[fouStyles.missText, { color: colors.mutedForeground }]}>
+              La cachette s'est refermée avant votre arrivée.
+            </Text>
+          )}
+
+          {done && (
+            <TouchableOpacity
+              style={[fouStyles.closeBtn, { backgroundColor: colors.secondary, borderColor: colors.border }]}
+              onPress={onClose}
+            >
+              <Text style={[fouStyles.closeBtnText, { color: colors.foreground }]}>Fermer</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}

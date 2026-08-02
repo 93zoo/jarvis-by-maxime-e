@@ -6,41 +6,35 @@
     "levelRequired": 0,
     "biome": "plaine",
     "icon": "home-group",
-    "resourceNodes": [
+    "lore": [
+      "Les anciens racontent qu'un forgeron légendaire façonna jadis l'épée du premier roi en ces lieux mêmes.",
+      "La fontaine du village aurait des vertus magiques selon les vieux — nul n'y plonge la main sans y songer deux fois.",
+      "On murmure que des fragments de métal céleste furent trouvés autrefois dans les champs au nord du bourg.",
+      "Chaque soir de plein lune, une lumière bleutée émane de la vieille forge abandonnée au bout de la ruelle.",
+      "Le marteau du vieux Pierre a martelé assez de métal pour construire une tour entière, dit-on au cabaret."
+    ],
+    "hideouts": [
       {
-        "resourceId": "wood",
-        "dropRate": 0.9,
-        "minQty": 2,
-        "maxQty": 5
-      },
-      {
-        "resourceId": "stone",
-        "dropRate": 0.8,
-        "minQty": 1,
-        "maxQty": 4
-      },
-      {
-        "resourceId": "clay",
-        "dropRate": 0.7,
-        "minQty": 1,
-        "maxQty": 3
-      },
-      {
-        "resourceId": "iron",
-        "dropRate": 0.4,
-        "minQty": 1,
-        "maxQty": 2
+        "id": "village_h1",
+        "spawnIntervalHours": 2,
+        "rewardTable": [
+          { "resourceId": "iron", "minQty": 2, "maxQty": 5 },
+          { "resourceId": "copper", "minQty": 2, "maxQty": 4 }
+        ]
       }
+    ],
+    "resourceNodes": [
+      { "resourceId": "wood", "dropRate": 0.9, "minQty": 2, "maxQty": 5 },
+      { "resourceId": "stone", "dropRate": 0.8, "minQty": 1, "maxQty": 4 },
+      { "resourceId": "clay", "dropRate": 0.7, "minQty": 1, "maxQty": 3 },
+      { "resourceId": "iron", "dropRate": 0.4, "minQty": 1, "maxQty": 2 }
     ],
     "boss": {
       "name": "Bandit des Routes",
       "level": 3,
       "description": "Un voleur opportuniste qui rôde près du village."
     },
-    "questIds": [
-      "quest_village_1",
-      "quest_village_2"
-    ]
+    "questIds": ["quest_village_1", "quest_village_2"]
   },
   {
     "id": "forest",
@@ -49,34 +43,41 @@
     "levelRequired": 3,
     "biome": "forêt",
     "icon": "pine-tree",
-    "resourceNodes": [
+    "lore": [
+      "Les arbres les plus anciens de la forêt portent des runes gravées par des elfes disparus il y a mille ans.",
+      "Par nuit de pleine lune, des feux follets guident les plus braves vers des gisements de cristal cachés.",
+      "Un chasseur perdu y trouva jadis une épée d'argent plantée dans un chêne millénaire, que personne n'a pu retirer depuis.",
+      "Les champignons lumineux qui poussent près du lac central sont dits toxiques... et vénérés par les druides des bois."
+    ],
+    "hideouts": [
       {
-        "resourceId": "wood",
-        "dropRate": 0.95,
-        "minQty": 3,
-        "maxQty": 8
+        "id": "forest_h1",
+        "spawnIntervalHours": 2,
+        "rewardTable": [
+          { "resourceId": "wood", "minQty": 4, "maxQty": 8 },
+          { "resourceId": "crystal", "minQty": 1, "maxQty": 2 }
+        ]
       },
       {
-        "resourceId": "coal",
-        "dropRate": 0.5,
-        "minQty": 2,
-        "maxQty": 5
-      },
-      {
-        "resourceId": "crystal",
-        "dropRate": 0.05,
-        "minQty": 1,
-        "maxQty": 1
+        "id": "forest_h2",
+        "spawnIntervalHours": 3,
+        "rewardTable": [
+          { "resourceId": "coal", "minQty": 3, "maxQty": 6 },
+          { "resourceId": "crystal", "minQty": 1, "maxQty": 1 }
+        ]
       }
+    ],
+    "resourceNodes": [
+      { "resourceId": "wood", "dropRate": 0.95, "minQty": 3, "maxQty": 8 },
+      { "resourceId": "coal", "dropRate": 0.5, "minQty": 2, "maxQty": 5 },
+      { "resourceId": "crystal", "dropRate": 0.05, "minQty": 1, "maxQty": 1 }
     ],
     "boss": {
       "name": "Loup Alpha",
       "level": 8,
       "description": "Un loup géant qui règne sur la forêt."
     },
-    "questIds": [
-      "quest_forest_1"
-    ]
+    "questIds": ["quest_forest_1"]
   },
   {
     "id": "mountains",
@@ -85,40 +86,43 @@
     "levelRequired": 5,
     "biome": "montagne",
     "icon": "summit",
-    "resourceNodes": [
+    "lore": [
+      "Les nains appellent ces sommets 'Karak Dûm' — la forge du ciel, là où les dieux battaient le métal des étoiles.",
+      "On raconte que le Géant de Pierre dormait paisiblement ici avant que la magie des hommes l'éveille.",
+      "Des cristaux de roche, taillés par le vent pendant des millénaires, valent une fortune sur les marchés du sud.",
+      "Le vent hurle si fort parfois qu'il porte des voix — les vieux mineurs disent que c'est l'écho des anciens forgerons.",
+      "Une veine d'or pur court sous le pic le plus élevé ; nul n'y a accédé sans être perdu corps et âme."
+    ],
+    "hideouts": [
       {
-        "resourceId": "stone",
-        "dropRate": 0.9,
-        "minQty": 3,
-        "maxQty": 7
+        "id": "mountains_h1",
+        "spawnIntervalHours": 2,
+        "rewardTable": [
+          { "resourceId": "iron", "minQty": 3, "maxQty": 6 },
+          { "resourceId": "copper", "minQty": 2, "maxQty": 5 }
+        ]
       },
       {
-        "resourceId": "iron",
-        "dropRate": 0.7,
-        "minQty": 2,
-        "maxQty": 6
-      },
-      {
-        "resourceId": "copper",
-        "dropRate": 0.6,
-        "minQty": 2,
-        "maxQty": 5
-      },
-      {
-        "resourceId": "coal",
-        "dropRate": 0.6,
-        "minQty": 2,
-        "maxQty": 6
+        "id": "mountains_h2",
+        "spawnIntervalHours": 3,
+        "rewardTable": [
+          { "resourceId": "crystal", "minQty": 1, "maxQty": 2 },
+          { "resourceId": "coal", "minQty": 3, "maxQty": 6 }
+        ]
       }
+    ],
+    "resourceNodes": [
+      { "resourceId": "stone", "dropRate": 0.9, "minQty": 3, "maxQty": 7 },
+      { "resourceId": "iron", "dropRate": 0.7, "minQty": 2, "maxQty": 6 },
+      { "resourceId": "copper", "dropRate": 0.6, "minQty": 2, "maxQty": 5 },
+      { "resourceId": "coal", "dropRate": 0.6, "minQty": 2, "maxQty": 6 }
     ],
     "boss": {
       "name": "Géant de Pierre",
       "level": 12,
       "description": "Un colosse de roc défendant les sommets."
     },
-    "questIds": [
-      "quest_mountains_1"
-    ]
+    "questIds": ["quest_mountains_1"]
   },
   {
     "id": "mines",
@@ -127,40 +131,42 @@
     "levelRequired": 5,
     "biome": "souterrain",
     "icon": "pickaxe",
-    "resourceNodes": [
+    "lore": [
+      "Les nains creusèrent ici pendant trois générations avant de trouver la Veine d'Or Profond — et de ne jamais remonter.",
+      "Les galeries les plus basses sont condamnées. Personne ne sait ce qui y gît, mais les marchands paient cher pour des fragments.",
+      "Un ancien foreman aurait cartographié une chambre secrète remplie d'orichalque brut. La carte est perdue depuis.",
+      "Les flammes des torches vacillent sans raison dans le couloir nord — signe de courants d'air... ou d'autre chose."
+    ],
+    "hideouts": [
       {
-        "resourceId": "iron",
-        "dropRate": 0.85,
-        "minQty": 3,
-        "maxQty": 8
+        "id": "mines_h1",
+        "spawnIntervalHours": 2,
+        "rewardTable": [
+          { "resourceId": "silver", "minQty": 1, "maxQty": 3 },
+          { "resourceId": "bronze", "minQty": 2, "maxQty": 4 }
+        ]
       },
       {
-        "resourceId": "copper",
-        "dropRate": 0.75,
-        "minQty": 2,
-        "maxQty": 6
-      },
-      {
-        "resourceId": "bronze",
-        "dropRate": 0.3,
-        "minQty": 1,
-        "maxQty": 3
-      },
-      {
-        "resourceId": "silver",
-        "dropRate": 0.1,
-        "minQty": 1,
-        "maxQty": 2
+        "id": "mines_h2",
+        "spawnIntervalHours": 2,
+        "rewardTable": [
+          { "resourceId": "copper", "minQty": 3, "maxQty": 6 },
+          { "resourceId": "iron", "minQty": 3, "maxQty": 7 }
+        ]
       }
+    ],
+    "resourceNodes": [
+      { "resourceId": "iron", "dropRate": 0.85, "minQty": 3, "maxQty": 8 },
+      { "resourceId": "copper", "dropRate": 0.75, "minQty": 2, "maxQty": 6 },
+      { "resourceId": "bronze", "dropRate": 0.3, "minQty": 1, "maxQty": 3 },
+      { "resourceId": "silver", "dropRate": 0.1, "minQty": 1, "maxQty": 2 }
     ],
     "boss": {
       "name": "Roi des Gobelins",
       "level": 15,
       "description": "Un gobelin vieux et puissant gardant les trésors des mines."
     },
-    "questIds": [
-      "quest_mines_1"
-    ]
+    "questIds": ["quest_mines_1"]
   },
   {
     "id": "swamp",
@@ -169,34 +175,34 @@
     "levelRequired": 8,
     "biome": "marais",
     "icon": "water",
-    "resourceNodes": [
+    "lore": [
+      "L'eau noire du marais dissout le métal ordinaire, mais tremper l'acier dans ses profondeurs le rend plus dur.",
+      "Une sorcière des marais, dit-on, échange des gemmes contre des secrets. Nul ne sait comment la trouver.",
+      "Les bulles qui remontent à la surface ne sont pas de gaz — elles portent des bribes de mots dans une langue oubliée.",
+      "Une armure de l'ancien empire gît quelque part sous la boue noire. Plusieurs aventuriers l'ont cherchée. Aucun n'est revenu.",
+      "Les grenouilles géantes qui peuplent ce lieu refusent de s'approcher du centre du marais — même les bêtes ont leurs raisons."
+    ],
+    "hideouts": [
       {
-        "resourceId": "clay",
-        "dropRate": 0.9,
-        "minQty": 3,
-        "maxQty": 8
-      },
-      {
-        "resourceId": "crystal",
-        "dropRate": 0.15,
-        "minQty": 1,
-        "maxQty": 2
-      },
-      {
-        "resourceId": "emerald",
-        "dropRate": 0.05,
-        "minQty": 1,
-        "maxQty": 1
+        "id": "swamp_h1",
+        "spawnIntervalHours": 3,
+        "rewardTable": [
+          { "resourceId": "crystal", "minQty": 1, "maxQty": 3 },
+          { "resourceId": "emerald", "minQty": 1, "maxQty": 1 }
+        ]
       }
+    ],
+    "resourceNodes": [
+      { "resourceId": "clay", "dropRate": 0.9, "minQty": 3, "maxQty": 8 },
+      { "resourceId": "crystal", "dropRate": 0.15, "minQty": 1, "maxQty": 2 },
+      { "resourceId": "emerald", "dropRate": 0.05, "minQty": 1, "maxQty": 1 }
     ],
     "boss": {
       "name": "Hydre des Marais",
       "level": 18,
       "description": "Une créature serpentine à sept têtes qui empoisonne tout."
     },
-    "questIds": [
-      "quest_swamp_1"
-    ]
+    "questIds": ["quest_swamp_1"]
   },
   {
     "id": "desert",
@@ -205,34 +211,41 @@
     "levelRequired": 10,
     "biome": "désert",
     "icon": "cactus",
-    "resourceNodes": [
+    "lore": [
+      "Les dunes ne seraient pas de sable mais de poussière d'os des guerriers d'une armée engloutie il y a dix siècles.",
+      "Les marchands nomades parlent d'une oasis secrète où les pierres précieuses poussent comme des fleurs au printemps.",
+      "À l'aube, quand le soleil rasant frappe la roche, des filons d'or pur brillent — mais ils disparaissent à l'heure suivante.",
+      "Le Serpent de Sable ne mange pas ses proies — il les emporte dans sa tanière souterraine remplie de trésors anciens."
+    ],
+    "hideouts": [
       {
-        "resourceId": "stone",
-        "dropRate": 0.8,
-        "minQty": 2,
-        "maxQty": 6
+        "id": "desert_h1",
+        "spawnIntervalHours": 3,
+        "rewardTable": [
+          { "resourceId": "gold_ore", "minQty": 1, "maxQty": 3 },
+          { "resourceId": "ruby", "minQty": 1, "maxQty": 1 }
+        ]
       },
       {
-        "resourceId": "gold_ore",
-        "dropRate": 0.2,
-        "minQty": 1,
-        "maxQty": 2
-      },
-      {
-        "resourceId": "ruby",
-        "dropRate": 0.08,
-        "minQty": 1,
-        "maxQty": 1
+        "id": "desert_h2",
+        "spawnIntervalHours": 2,
+        "rewardTable": [
+          { "resourceId": "stone", "minQty": 3, "maxQty": 7 },
+          { "resourceId": "gold_ore", "minQty": 1, "maxQty": 2 }
+        ]
       }
+    ],
+    "resourceNodes": [
+      { "resourceId": "stone", "dropRate": 0.8, "minQty": 2, "maxQty": 6 },
+      { "resourceId": "gold_ore", "dropRate": 0.2, "minQty": 1, "maxQty": 2 },
+      { "resourceId": "ruby", "dropRate": 0.08, "minQty": 1, "maxQty": 1 }
     ],
     "boss": {
       "name": "Serpent de Sable",
       "level": 22,
       "description": "Un serpent colossal enfoui sous les dunes."
     },
-    "questIds": [
-      "quest_desert_1"
-    ]
+    "questIds": ["quest_desert_1"]
   },
   {
     "id": "ruins",
@@ -241,34 +254,34 @@
     "levelRequired": 12,
     "biome": "ruines",
     "icon": "pillar",
-    "resourceNodes": [
+    "lore": [
+      "Ces ruines appartenaient au Peuple de l'Éclipse, des mages qui fondirent leur âme dans leurs forges pour obtenir le métal parfait.",
+      "Chaque pierre ici gronde d'une magie comprimée depuis des siècles. Les instruments de mesure deviennent fous à proximité.",
+      "La Liche qui hante ces couloirs fut jadis la Grande Forgeronne du Royaume. Elle cherche encore son chef-d'œuvre perdu.",
+      "Des fragments d'obsidienne enchantée voltigent parfois seuls dans les airs — reliques d'un sort de forge millénaire.",
+      "On raconte que les ruines se réorganisent chaque nuit, déplaçant couloirs et chambres selon une logique incompréhensible."
+    ],
+    "hideouts": [
       {
-        "resourceId": "obsidian",
-        "dropRate": 0.3,
-        "minQty": 1,
-        "maxQty": 3
-      },
-      {
-        "resourceId": "crystal",
-        "dropRate": 0.2,
-        "minQty": 1,
-        "maxQty": 2
-      },
-      {
-        "resourceId": "sapphire",
-        "dropRate": 0.1,
-        "minQty": 1,
-        "maxQty": 1
+        "id": "ruins_h1",
+        "spawnIntervalHours": 3,
+        "rewardTable": [
+          { "resourceId": "obsidian", "minQty": 1, "maxQty": 3 },
+          { "resourceId": "sapphire", "minQty": 1, "maxQty": 1 }
+        ]
       }
+    ],
+    "resourceNodes": [
+      { "resourceId": "obsidian", "dropRate": 0.3, "minQty": 1, "maxQty": 3 },
+      { "resourceId": "crystal", "dropRate": 0.2, "minQty": 1, "maxQty": 2 },
+      { "resourceId": "sapphire", "dropRate": 0.1, "minQty": 1, "maxQty": 1 }
     ],
     "boss": {
       "name": "Liche Ancienne",
       "level": 28,
       "description": "Un sorcier non-mort d'une puissance terrifiante."
     },
-    "questIds": [
-      "quest_ruins_1"
-    ]
+    "questIds": ["quest_ruins_1"]
   },
   {
     "id": "port",
@@ -277,34 +290,41 @@
     "levelRequired": 7,
     "biome": "côte",
     "icon": "anchor",
-    "resourceNodes": [
+    "lore": [
+      "Les contrebandiers du port cachent leurs marchandises les plus précieuses dans des filets immergés sous la jetée principale.",
+      "Le capitaine pirate fut autrefois un noble forgeron reconverti. Son navire est clouté d'or et de saphirs arrachés aux fonds.",
+      "Les marées ramènent parfois des épaves chargées de métaux exotiques des terres au-delà des océans du sud.",
+      "On dit qu'un coffre de dragon repose au fond du port depuis cent ans — nul plongeur ne revient après l'avoir touché."
+    ],
+    "hideouts": [
       {
-        "resourceId": "wood",
-        "dropRate": 0.7,
-        "minQty": 2,
-        "maxQty": 6
+        "id": "port_h1",
+        "spawnIntervalHours": 2,
+        "rewardTable": [
+          { "resourceId": "silver", "minQty": 1, "maxQty": 3 },
+          { "resourceId": "sapphire", "minQty": 1, "maxQty": 1 }
+        ]
       },
       {
-        "resourceId": "silver",
-        "dropRate": 0.15,
-        "minQty": 1,
-        "maxQty": 2
-      },
-      {
-        "resourceId": "sapphire",
-        "dropRate": 0.07,
-        "minQty": 1,
-        "maxQty": 1
+        "id": "port_h2",
+        "spawnIntervalHours": 3,
+        "rewardTable": [
+          { "resourceId": "wood", "minQty": 4, "maxQty": 8 },
+          { "resourceId": "silver", "minQty": 1, "maxQty": 2 }
+        ]
       }
+    ],
+    "resourceNodes": [
+      { "resourceId": "wood", "dropRate": 0.7, "minQty": 2, "maxQty": 6 },
+      { "resourceId": "silver", "dropRate": 0.15, "minQty": 1, "maxQty": 2 },
+      { "resourceId": "sapphire", "dropRate": 0.07, "minQty": 1, "maxQty": 1 }
     ],
     "boss": {
       "name": "Capitaine Pirate",
       "level": 20,
       "description": "Un pirate légendaire qui terrorise les côtes."
     },
-    "questIds": [
-      "quest_port_1"
-    ]
+    "questIds": ["quest_port_1"]
   },
   {
     "id": "volcano",
@@ -313,34 +333,34 @@
     "levelRequired": 15,
     "biome": "volcanique",
     "icon": "volcano",
-    "resourceNodes": [
+    "lore": [
+      "Les flammes du volcan sont alimentées par le cœur d'un dragon ancestral endormi depuis dix mille ans.",
+      "La lave ici n'est pas ordinaire — elle contient des traces d'adamantium fondu, révèlent les forgerons d'élite.",
+      "Un ordre secret de forgerons venait tremper leurs lames dans la lave même. Seuls trois d'entre eux survécurent.",
+      "Le Drake de Lave n'attaque pas les forgerons portant l'emblème royal — il en est lui-même l'artisan, jadis.",
+      "On entend parfois un battement sourd venu des profondeurs, comme un cœur gigantesque frappant son enclume."
+    ],
+    "hideouts": [
       {
-        "resourceId": "obsidian",
-        "dropRate": 0.5,
-        "minQty": 2,
-        "maxQty": 5
-      },
-      {
-        "resourceId": "mithril",
-        "dropRate": 0.15,
-        "minQty": 1,
-        "maxQty": 2
-      },
-      {
-        "resourceId": "diamond",
-        "dropRate": 0.03,
-        "minQty": 1,
-        "maxQty": 1
+        "id": "volcano_h1",
+        "spawnIntervalHours": 3,
+        "rewardTable": [
+          { "resourceId": "obsidian", "minQty": 2, "maxQty": 4 },
+          { "resourceId": "mithril", "minQty": 1, "maxQty": 2 }
+        ]
       }
+    ],
+    "resourceNodes": [
+      { "resourceId": "obsidian", "dropRate": 0.5, "minQty": 2, "maxQty": 5 },
+      { "resourceId": "mithril", "dropRate": 0.15, "minQty": 1, "maxQty": 2 },
+      { "resourceId": "diamond", "dropRate": 0.03, "minQty": 1, "maxQty": 1 }
     ],
     "boss": {
       "name": "Drake de Lave",
       "level": 35,
       "description": "Un dragon mineur né des flammes du volcan."
     },
-    "questIds": [
-      "quest_volcano_1"
-    ]
+    "questIds": ["quest_volcano_1"]
   },
   {
     "id": "castle",
@@ -349,34 +369,33 @@
     "levelRequired": 20,
     "biome": "royal",
     "icon": "castle",
-    "resourceNodes": [
+    "lore": [
+      "La crypte du château abrite les armures des cent plus grands forgerons du royaume, préservées par enchantement royal.",
+      "Le roi actuel ne touche jamais un métal commun — toutes ses décorations sont en alliages que nul autre ne connaît.",
+      "Des rumeurs persistent d'une salle secrète remplie de recettes de forge classifiées, scellées par un sceau royal.",
+      "La garde royale porte des lames forgées une fois par siècle par le Grand Forgeron — une tradition immuable depuis la fondation."
+    ],
+    "hideouts": [
       {
-        "resourceId": "platinum",
-        "dropRate": 0.3,
-        "minQty": 1,
-        "maxQty": 3
-      },
-      {
-        "resourceId": "adamantium",
-        "dropRate": 0.1,
-        "minQty": 1,
-        "maxQty": 2
-      },
-      {
-        "resourceId": "dragon_scale",
-        "dropRate": 0.05,
-        "minQty": 1,
-        "maxQty": 1
+        "id": "castle_h1",
+        "spawnIntervalHours": 4,
+        "rewardTable": [
+          { "resourceId": "platinum", "minQty": 1, "maxQty": 2 },
+          { "resourceId": "dragon_scale", "minQty": 1, "maxQty": 1 }
+        ]
       }
+    ],
+    "resourceNodes": [
+      { "resourceId": "platinum", "dropRate": 0.3, "minQty": 1, "maxQty": 3 },
+      { "resourceId": "adamantium", "dropRate": 0.1, "minQty": 1, "maxQty": 2 },
+      { "resourceId": "dragon_scale", "dropRate": 0.05, "minQty": 1, "maxQty": 1 }
     ],
     "boss": {
       "name": "Dragon du Roi",
       "level": 50,
       "description": "Le protecteur du château, une créature mythique d'une puissance absolue."
     },
-    "questIds": [
-      "quest_castle_1"
-    ]
+    "questIds": ["quest_castle_1"]
   },
   {
     "id": "dragon_lair",
@@ -385,41 +404,42 @@
     "levelRequired": 25,
     "biome": "légendaire",
     "icon": "fire",
-    "resourceNodes": [
+    "lore": [
+      "Le Dragon Ancestral était autrefois allié des hommes. La trahison d'un roi le transforma en gardien solitaire de ses trésors.",
+      "Les écailles du Dragon valent autant que dix châteaux — chaque forgeron qui en obtient une devient une légende.",
+      "Des aventuriers parlent d'une chambre secrète dans le repaire, remplie d'armes d'un autre âge que le Dragon lui-même ne peut toucher.",
+      "Le feu du Dragon Ancestral ne brûle pas le métal pur — il le purifie. Les forgerons qui le savent cherchent à le canaliser.",
+      "On murmure que le Dragon parle à ceux qu'il juge dignes, dans une langue que seul un Grand Forgeron peut comprendre."
+    ],
+    "hideouts": [
       {
-        "resourceId": "dragon_scale",
-        "dropRate": 0.40,
-        "minQty": 1,
-        "maxQty": 3
+        "id": "dragon_lair_h1",
+        "spawnIntervalHours": 4,
+        "rewardTable": [
+          { "resourceId": "dragon_scale", "minQty": 1, "maxQty": 2 },
+          { "resourceId": "adamantium", "minQty": 1, "maxQty": 2 }
+        ]
       },
       {
-        "resourceId": "adamantium",
-        "dropRate": 0.30,
-        "minQty": 1,
-        "maxQty": 2
-      },
-      {
-        "resourceId": "diamond",
-        "dropRate": 0.20,
-        "minQty": 1,
-        "maxQty": 2
-      },
-      {
-        "resourceId": "mithril",
-        "dropRate": 0.55,
-        "minQty": 1,
-        "maxQty": 4
+        "id": "dragon_lair_h2",
+        "spawnIntervalHours": 4,
+        "rewardTable": [
+          { "resourceId": "diamond", "minQty": 1, "maxQty": 1 },
+          { "resourceId": "mithril", "minQty": 1, "maxQty": 3 }
+        ]
       }
+    ],
+    "resourceNodes": [
+      { "resourceId": "dragon_scale", "dropRate": 0.40, "minQty": 1, "maxQty": 3 },
+      { "resourceId": "adamantium", "dropRate": 0.30, "minQty": 1, "maxQty": 2 },
+      { "resourceId": "diamond", "dropRate": 0.20, "minQty": 1, "maxQty": 2 },
+      { "resourceId": "mithril", "dropRate": 0.55, "minQty": 1, "maxQty": 4 }
     ],
     "boss": {
       "name": "Dragon Ancestral",
       "level": 65,
       "description": "Le maître incontesté du repaire, une créature draconique d'une puissance légendaire qui garde jalousement ses trésors."
     },
-    "questIds": [
-      "quest_volcano_5",
-      "quest_epic_2",
-      "quest_epic_4"
-    ]
+    "questIds": ["quest_volcano_5", "quest_epic_2", "quest_epic_4"]
   }
 ]
