@@ -371,6 +371,28 @@ class AudioManagerClass {
     this.note(659, now + 0.24, 0.2, 0.4);
   }
 
+  /**
+   * Victory fanfare — triumphant arpeggio played when the player wins a boss fight.
+   * Distinct from playAchievement (longer, heavier) and playCraftComplete (shorter, crafting-themed).
+   * Web: synthesized via Web Audio API.
+   * Native: reuses the quest_complete mp3 which has the closest fanfare feel.
+   */
+  playVictory(): void {
+    if (Platform.OS !== 'web') { this._playNative('quest_complete'); return; }
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    // Triumphant ascending arpeggio with a bold root chord at the end
+    // C4 – E4 – G4 – C5 – E5 → held root C5 octave swell
+    this.note(262, now,        0.10, 0.4);   // C4
+    this.note(330, now + 0.10, 0.10, 0.4);   // E4
+    this.note(392, now + 0.20, 0.10, 0.4);   // G4
+    this.note(523, now + 0.30, 0.14, 0.45);  // C5
+    this.note(659, now + 0.44, 0.20, 0.5);   // E5 — held resolution
+    // Parallel low power chord on the final note for weight
+    this.note(262, now + 0.44, 0.20, 0.35);  // C4 octave-low
+    this.note(392, now + 0.44, 0.20, 0.30);  // G4 fifth
+  }
+
   /** Short percussive sound for rolling dice */
   playDiceRoll(): void {
     if (Platform.OS !== 'web') { this._playNative('click'); return; }

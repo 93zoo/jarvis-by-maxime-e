@@ -361,10 +361,14 @@ function ExploreView({
       setCombatResult(result);
       if (result.won) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        // Victory fanfare plays after the last hammer-strike sound (120 ms) settles
+        setTimeout(() => {
+          AudioManager.playVictory();
+        }, 200);
         if (result.drops.length > 0) {
           setTimeout(() => {
             AudioManager.playCollect();
-          }, 400);
+          }, 900);
         }
       } else {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
