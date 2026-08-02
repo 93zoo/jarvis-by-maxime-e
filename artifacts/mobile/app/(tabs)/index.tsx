@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
-  AppState,
   Easing,
   FlatList,
   Image,
@@ -1316,21 +1315,6 @@ export default function ForgeScreen() {
       removeVisibility = () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }
 
-    // Native: reinitialize players and restore loops when the app returns from background.
-    // handleForeground() reloads all expo-audio players (which can silently break after
-    // an OS audio-session interruption) and restarts music/ambience that was live before.
-    // handleBackground() snapshots playback state then stops everything cleanly.
-    // (On web AppState doesn't fire for tab switches — visibilitychange handles that above.)
-    const appStateSub = AppState.addEventListener('change', (nextState) => {
-      if (Platform.OS !== 'web') {
-        if (nextState === 'active') {
-          AudioManager.handleForeground();
-        } else if (nextState === 'background' || nextState === 'inactive') {
-          AudioManager.handleBackground();
-        }
-      }
-    });
-
     // Randomly assign atmospheric weather — changes every 5–10 minutes
     const WEATHER_TYPES: WeatherType[] = ['none', 'none', 'none', 'rain', 'fog', 'rain', 'snow'];
     const pick = () => WEATHER_TYPES[Math.floor(Math.random() * WEATHER_TYPES.length)];
@@ -1338,7 +1322,6 @@ export default function ForgeScreen() {
     const weatherTimer = setInterval(() => setWeather(pick()), 7 * 60 * 1000); // 7 min
     return () => {
       removeVisibility?.();
-      appStateSub.remove();
       clearInterval(weatherTimer);
       AudioManager.stopForgeAmbience();
     };

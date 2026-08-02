@@ -1,5 +1,3 @@
-import React, { useEffect, useState } from 'react';
-import { Modal } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -26,6 +24,9 @@ import FirstForgeTutorial from '@/components/FirstForgeTutorial';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+import React, { useEffect, useRef, useState } from 'react';
+import { AppState, Modal, Platform } from 'react-native';
+import AudioManager from '@/utils/AudioManager';
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,27 @@ function RootLayoutNav() {
 
 function AppWithSplash() {
   const { isLoaded, hasCompletedFirstForgeTutorial, completeFirstForgeTutorial } = useGame();
+
+  // Global AppState handler — lives here so it stays mounted across all tabs.
+  // The forge tab used to own this, but if the player navigated away before
+  // backgrounding, the listener was gone and audio never recovered on return.
+  const appStateRef = useRef(AppState.currentState);
+  useEffect(() => {
+    if (Platform.OS === 'web') return; // web uses visibilitychange, handled per-tab
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active' && appStateRef.current !== 'active') {
+        AudioManager.handleForeground();
+      } else if (
+        (nextState === 'background' || nextState === 'inactive') &&
+        appStateRef.current === 'active'
+      ) {
+        AudioManager.handleBackground();
+      }
+      appStateRef.current = nextState;
+    });
+    return () => sub.remove();
+  }, []);
+
   const [splashDone, setSplashDone] = useState(
     // Dev web uniquement : ?nosplash=1 saute l'intro (captures d'écran/tests)
     () =>
