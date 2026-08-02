@@ -127,8 +127,13 @@ function StatCard({
   );
 }
 
-function StatSection({ title }: { title: string }) {
-  return <Text style={ss.statSection}>{title}</Text>;
+function StatSection({ icon, label }: { icon: React.ComponentProps<typeof MaterialCommunityIcons>['name']; label: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+      <MaterialCommunityIcons name={icon} size={13} color="rgba(200,160,80,0.7)" />
+      <Text style={ss.statSection}>{label}</Text>
+    </View>
+  );
 }
 
 // ── Bouton d'action ───────────────────────────────────────────────────────────
@@ -343,9 +348,12 @@ export default function SettingsModal({ visible, onClose, onGoToProfile, onQuit 
                 </View>
                 <View style={ss.playerInfo}>
                   <Text style={ss.playerName}>{player.forgeName ?? player.name ?? 'Forgeron'}</Text>
-                  <Text style={ss.playerSub}>
-                    Niv. {player.level} · Forge Niv. {forgeLevel} · {currentGold.toLocaleString('fr-FR')} 🪙
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Text style={ss.playerSub}>
+                      Niv. {player.level} · Forge Niv. {forgeLevel} · {currentGold.toLocaleString('fr-FR')}
+                    </Text>
+                    <MaterialCommunityIcons name="gold" size={12} color={C.gold} />
+                  </View>
                   <View style={ss.xpRow}>
                     <View style={ss.xpTrack}>
                       <View style={[ss.xpFill, {
@@ -420,7 +428,7 @@ export default function SettingsModal({ visible, onClose, onGoToProfile, onQuit 
           {tab === 'stats' && (
             <View style={ss.section}>
 
-              <StatSection title="⚒️  FORGERON" />
+              <StatSection icon="hammer-wrench" label="FORGERON" />
               <View style={ss.statGrid}>
                 <StatCard icon="user"    label="Niveau joueur"   value={player.level}    color={C.ember} />
                 <StatCard icon="award"   label="Niveau forge"    value={forgeLevel}       color={C.gold} />
@@ -431,7 +439,7 @@ export default function SettingsModal({ visible, onClose, onGoToProfile, onQuit 
               </View>
 
               <View style={ss.divider} />
-              <StatSection title="🔥  PRODUCTION" />
+              <StatSection icon="fire" label="PRODUCTION" />
               <View style={ss.statGrid}>
                 <StatCard icon="package"    label="Forgés au total"   value={totalCrafted}    color={C.ember} />
                 <StatCard icon="trending-up" label="Légendaires"      value={legendaryCount}  color="#9966CC" />
@@ -440,31 +448,31 @@ export default function SettingsModal({ visible, onClose, onGoToProfile, onQuit 
               </View>
 
               <View style={ss.divider} />
-              <StatSection title="💰  COMMERCE" />
+              <StatSection icon="gold" label="COMMERCE" />
               <View style={ss.statGrid}>
-                <StatCard icon="dollar-sign" label="Or total gagné"     value={`${goldEarned.toLocaleString('fr-FR')} 🪙`} color={C.gold} wide />
+                <StatCard icon="dollar-sign" label="Or total gagné"     value={goldEarned} color={C.gold} wide />
               </View>
               <View style={ss.statGrid}>
                 <StatCard icon="inbox"       label="Commandes livrées"  value={ordersDelivered}  color={C.blue} />
-                <StatCard icon="tag"         label="Meilleur prix"      value={`${bestPrice.toLocaleString('fr-FR')} 🪙`}   color={C.gold} />
+                <StatCard icon="tag"         label="Meilleur prix"      value={bestPrice}   color={C.gold} />
               </View>
 
               <View style={ss.divider} />
-              <StatSection title="🌍  EXPLORATION" />
+              <StatSection icon="map" label="EXPLORATION" />
               <View style={ss.statGrid}>
                 <StatCard icon="map"           label="Régions explorées"   value={regionsUnlocked}  color={C.green} />
                 <StatCard icon="check-circle"  label="Quêtes complétées"   value={questsDone}       color={C.green} />
               </View>
 
               <View style={ss.divider} />
-              <StatSection title="🏆  RECORDS" />
+              <StatSection icon="trophy" label="RECORDS" />
               <View style={ss.statGrid}>
                 <StatCard icon="target"    label="Meilleur score qualité" value={bestQuality}     color="#FF6B6B" />
                 <StatCard icon="activity"  label="Série active"           value={`${streak} j`}  color={C.ember} />
               </View>
 
               <View style={ss.divider} />
-              <StatSection title="⚙️  COMPÉTENCES" />
+              <StatSection icon="cog" label="COMPÉTENCES" />
               <View style={ss.statGrid}>
                 <StatCard icon="tool"       label="Construction" value={constrLevel}  color={C.steel} />
                 <StatCard icon="shopping-bag" label="Commerce"   value={comLevel}     color={C.blue} />

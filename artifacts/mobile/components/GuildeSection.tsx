@@ -116,7 +116,7 @@ export default function GuildeSection() {
     const total = result.resources.reduce((s, r) => s + r.qty, 0) +
       (result.bonusResource?.qty ?? 0);
     if (total > 0) {
-      showFeedback(workerId, `+${total} ressources${result.bonusResource ? ' 💎' : ''} !`);
+      showFeedback(workerId, `+${total} ressources${result.bonusResource ? ' + trouvaille rare' : ''} !`);
     } else {
       showFeedback(workerId, "Rien à récolter pour l'instant");
     }
@@ -134,7 +134,7 @@ export default function GuildeSection() {
         activeOpacity={0.8}
       >
         <View style={styles.headerLeft}>
-          <Text style={{ fontSize: 18 }}>⚒️</Text>
+          <MaterialCommunityIcons name="hammer-wrench" size={18} color={colors.foreground} />
           <View>
             <Text style={[styles.headerTitle, { color: colors.foreground }]}>Guilde des Travailleurs</Text>
             <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
@@ -256,11 +256,18 @@ export default function GuildeSection() {
                           {units}/{carryCap}
                         </Text>
                       </View>
-                      <Text style={[styles.harvestEta, { color: colors.mutedForeground }]}>
-                        {isAtCap
-                          ? '⚠️ Récoltez maintenant pour ne pas perdre de ressources'
-                          : `Sac plein dans ${formatCountdown(msToFull)}`}
-                      </Text>
+                      {isAtCap ? (
+                        <View style={[styles.harvestEtaRow]}>
+                          <MaterialCommunityIcons name="alert-circle" size={12} color="#C9A227" />
+                          <Text style={[styles.harvestEta, { color: '#C9A227', marginBottom: 0 }]}>
+                            Récoltez maintenant pour ne pas perdre de ressources
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text style={[styles.harvestEta, { color: colors.mutedForeground }]}>
+                          {`Sac plein dans ${formatCountdown(msToFull)}`}
+                        </Text>
+                      )}
 
                       {workerFb && (
                         <Text
@@ -430,6 +437,7 @@ const styles = StyleSheet.create({
   harvestFill: { height: '100%', borderRadius: 3 },
   harvestPct: { fontSize: 11, fontWeight: '600', minWidth: 36, textAlign: 'right' },
   harvestEta: { fontSize: 10, marginBottom: 8 },
+  harvestEtaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8 },
   feedback: { fontSize: 12, fontWeight: '600', textAlign: 'center', marginBottom: 4 },
   actionRow: { flexDirection: 'row', gap: 8 },
   actionBtn: {

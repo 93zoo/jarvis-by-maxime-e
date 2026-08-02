@@ -9,6 +9,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -117,9 +118,16 @@ export default function PrecisionGauge({ difficulty, enigmaZoneBonus, onSuccess,
               { backgroundColor: result === 'success' ? '#1B5E20CC' : '#B71C1CCC' },
             ]}
           >
-            <Text style={styles.resultTxt}>
-              {result === 'success' ? '✓  DANS LA ZONE !' : '✗  RATÉ'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Feather
+                name={result === 'success' ? 'check' : 'x'}
+                size={14}
+                color="#fff"
+              />
+              <Text style={styles.resultTxt}>
+                {result === 'success' ? 'DANS LA ZONE !' : 'RATÉ'}
+              </Text>
+            </View>
           </View>
         )}
       </View>

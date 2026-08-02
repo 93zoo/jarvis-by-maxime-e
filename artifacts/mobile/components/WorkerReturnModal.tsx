@@ -58,7 +58,7 @@ export default function WorkerReturnModal({ visible, entries, getResourceName, g
         <Pressable style={[styles.sheet, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={(e) => e.stopPropagation()}>
           {/* Title */}
           <View style={styles.titleRow}>
-            <Text style={styles.titleEmoji}>🏠</Text>
+            <MaterialCommunityIcons name="home" size={32} color="#C9A227" />
             <View style={{ flex: 1 }}>
               <Text style={[styles.title, { color: colors.foreground }]}>Vos ouvriers sont revenus !</Text>
               <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
@@ -109,7 +109,7 @@ export default function WorkerReturnModal({ visible, entries, getResourceName, g
                   {/* Bonus find */}
                   {result.bonusResource && (
                     <View style={[styles.bonusRow, { backgroundColor: '#D4AF3722', borderColor: '#D4AF3755' }]}>
-                      <Text style={{ fontSize: 14 }}>💎</Text>
+                      <MaterialCommunityIcons name="diamond" size={14} color="#D4AF37" />
                       <Text style={[styles.bonusText, { color: '#D4AF37' }]}>
                         Trouvaille rare : {getResourceName(result.bonusResource.resourceId)} ×{result.bonusResource.qty}
                       </Text>

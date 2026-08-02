@@ -42,13 +42,16 @@ const RESOURCE_GROUPS = [
   { label: 'Gemmes & Rares', items: ['ruby','sapphire','emerald','diamond','dragon_scale','topaz','amethyst','onyx'] },
 ];
 
-const RESOURCE_EMOJI: Record<string, string> = {
-  iron:'⚙️', copper:'🔶', wood:'🪵', stone:'🪨', clay:'🟤', coal:'⬛',
-  bronze:'🟠', steel:'🔩', silver:'⬜', gold_ore:'🟡', platinum:'💿',
-  mithril:'💠', obsidian:'🖤', crystal:'🔷', adamantium:'🌑', ruby:'❤️',
-  sapphire:'💙', emerald:'💚', diamond:'💎', dragon_scale:'🐉',
-  topaz:'🟨', amethyst:'💜', onyx:'⚫', brass:'🔔', electrum:'✨',
-  darksteel:'🌘', mithrilite:'🔮', dragonite:'🌟', staralloy:'⭐',
+const RESOURCE_ICON: Record<string, any> = {
+  iron: 'anvil', copper: 'anvil', wood: 'pine-tree', stone: 'shield',
+  clay: 'hammer', coal: 'fire', bronze: 'sword', steel: 'sword',
+  silver: 'star-circle', gold_ore: 'gold', platinum: 'star-four-points',
+  mithril: 'star-four-points', obsidian: 'shield', crystal: 'diamond',
+  adamantium: 'shield', ruby: 'diamond', sapphire: 'diamond', emerald: 'diamond',
+  diamond: 'diamond', dragon_scale: 'fire', topaz: 'diamond',
+  amethyst: 'diamond', onyx: 'shield', brass: 'gold', electrum: 'lightning-bolt',
+  darksteel: 'sword-cross', mithrilite: 'star-four-points', dragonite: 'fire',
+  staralloy: 'star-four-points',
 };
 
 // ── Falling coin particle ─────────────────────────────────────────────────────
@@ -81,11 +84,11 @@ function Coin({ delay, startX }: { delay: number; startX: number }) {
   const translateY = y.interpolate({ inputRange: [0, 1], outputRange: [-20, 320] });
 
   return (
-    <Animated.Text
+    <Animated.View
       style={[styles.coin, { left: startX, opacity: op, transform: [{ translateY }] }]}
     >
-      🪙
-    </Animated.Text>
+      <MaterialCommunityIcons name="gold" size={20} color={GOLD} />
+    </Animated.View>
   );
 }
 
@@ -164,7 +167,7 @@ export default function BetaWelcomeModal({ visible, onClaim }: Props) {
         <View style={styles.card}>
           {/* Header glow ring */}
           <View style={styles.iconRing}>
-            <Text style={styles.iconEmoji}>⚒️</Text>
+            <MaterialCommunityIcons name="hammer-wrench" size={36} color={GOLD} />
           </View>
 
           <Animated.Text style={[styles.title, { transform: [{ scale: titleScale }] }]}>
@@ -178,7 +181,7 @@ export default function BetaWelcomeModal({ visible, onClaim }: Props) {
           <View style={styles.rewardsBox}>
             {/* Gold */}
             <View style={styles.goldRow}>
-              <Text style={styles.goldEmoji}>🪙</Text>
+              <MaterialCommunityIcons name="gold" size={22} color={GOLD} />
               <Text style={styles.goldAmount}>+2 000 Or</Text>
             </View>
 
@@ -194,7 +197,7 @@ export default function BetaWelcomeModal({ visible, onClaim }: Props) {
                   <View style={styles.groupItems}>
                     {g.items.map((id) => (
                       <View key={id} style={styles.resourceChip}>
-                        <Text style={styles.resourceEmoji}>{RESOURCE_EMOJI[id] ?? '📦'}</Text>
+                        <MaterialCommunityIcons name={RESOURCE_ICON[id] ?? 'package-variant'} size={14} color="#CCBBAA" />
                         <Text style={styles.resourceQty}>×20</Text>
                       </View>
                     ))}

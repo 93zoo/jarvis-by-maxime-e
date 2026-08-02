@@ -5,6 +5,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { RecipeData } from '@/types/game';
 import RuneSequence from './RuneSequence';
 import PrecisionGauge from './PrecisionGauge';
@@ -123,7 +124,7 @@ export default function CraftingEnigmaModal({ recipe, enigmaZoneBonus, onResult 
           {/* ── Results ── */}
           {phase === 'result' && result === 'success' && (
             <View style={styles.centreBox}>
-              <Text style={styles.resultStar}>★</Text>
+              <MaterialCommunityIcons name="star" size={52} color="#E8B84B" />
               <Text style={[styles.resultTitle, { color: '#E8B84B' }]}>DÉFI RÉUSSI !</Text>
               <Text style={styles.resultDesc}>Qualité de l'objet améliorée d'un cran</Text>
               <View style={styles.bonusBadge}>
@@ -133,7 +134,7 @@ export default function CraftingEnigmaModal({ recipe, enigmaZoneBonus, onResult 
           )}
           {phase === 'result' && result === 'fail' && (
             <View style={styles.centreBox}>
-              <Text style={[styles.resultStar, { color: 'rgba(255,255,255,0.28)' }]}>◇</Text>
+              <MaterialCommunityIcons name="diamond-outline" size={52} color="rgba(255,255,255,0.28)" />
               <Text style={[styles.resultTitle, { color: 'rgba(255,255,255,0.55)' }]}>DÉFI ÉCHOUÉ</Text>
               <Text style={styles.resultDesc}>Forgeage sans bonus supplémentaire</Text>
             </View>

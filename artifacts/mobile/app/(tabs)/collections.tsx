@@ -131,9 +131,12 @@ function EventBanner({
               borderColor: isCurrent ? colors.primary : 'transparent',
               borderWidth: 1,
             }]}>
-              <Text style={[evStyles.tierLabel, { color: reached ? colors.primary : colors.mutedForeground }]}>
-                {reached ? '✦ ' : ''}{tier.label} ({tier.count}/{progress.total})
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                {reached && <MaterialCommunityIcons name="star-four-points" size={10} color={colors.primary} />}
+                <Text style={[evStyles.tierLabel, { color: reached ? colors.primary : colors.mutedForeground }]}>
+                  {tier.label} ({tier.count}/{progress.total})
+                </Text>
+              </View>
               <Text style={[evStyles.tierEffects, { color: reached ? colors.foreground : colors.mutedForeground }]} numberOfLines={1}>
                 {tier.effects.map(e =>
                   `${BONUS_LABELS[e.type] ?? e.type} ${e.type === 'qualityBonus' ? `+${e.value}` : `+${e.value}%`}`
@@ -301,9 +304,12 @@ function SetDetailModal({
                   { backgroundColor: reached ? rc + '15' : colors.secondary, borderColor: isCurrent ? rc : 'transparent', borderWidth: isCurrent ? 1 : 0 },
                 ]}>
                   <View style={mdStyles.tierHeader}>
-                    <Text style={[mdStyles.tierLabel, { color: reached ? rc : colors.mutedForeground }]}>
-                      {reached ? '✦ ' : ''}{tier.label} ({tier.count}/{set.items.length})
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      {reached && <MaterialCommunityIcons name="star-four-points" size={10} color={rc} />}
+                      <Text style={[mdStyles.tierLabel, { color: reached ? rc : colors.mutedForeground }]}>
+                        {tier.label} ({tier.count}/{set.items.length})
+                      </Text>
+                    </View>
                   </View>
                   {tier.effects.map((effect) => (
                     <Text key={effect.type} style={[mdStyles.effectText, { color: reached ? colors.foreground : colors.mutedForeground }]}>
@@ -426,9 +432,12 @@ function SetCard({
 
       {/* Active bonus */}
       {currentTier && (
-        <Text style={[scStyles.bonusText, { color: rc }]} numberOfLines={1}>
-          ✦ {currentTier.label}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <MaterialCommunityIcons name="star-four-points" size={10} color={rc} />
+          <Text style={[scStyles.bonusText, { color: rc }]} numberOfLines={1}>
+            {currentTier.label}
+          </Text>
+        </View>
       )}
     </Pressable>
   );

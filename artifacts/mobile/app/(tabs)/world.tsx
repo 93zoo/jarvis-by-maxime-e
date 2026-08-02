@@ -836,7 +836,7 @@ function WorldMapCanvas({
             onPress={() => onHideoutPress(hideout)}
             hitSlop={10}
           >
-            <Text style={{ fontSize: 16 }}>📦</Text>
+            <MaterialCommunityIcons name="package-variant" size={16} color="#FFD700" />
           </Pressable>
         );
       })}
@@ -1091,7 +1091,10 @@ function MarketModal({ visible, onClose, game, colors, bottomPad }: {
                           <Text style={[mStyles.resName, { color: colors.foreground }]}>{item.name}</Text>
                           <Text style={[mStyles.resStock, { color: colors.mutedForeground }]}>{item.category} · {item.quality} · {item.value}g</Text>
                           {item.enigmaMastered && (
-                            <Text style={mStyles.enigmaLabel}>✦ Forgé avec Maîtrise · +{Math.round((sellPct - 0.85) * 100)}% sur la vente</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                              <MaterialCommunityIcons name="star-four-points" size={11} color="#C084FC" />
+                              <Text style={mStyles.enigmaLabel}>Forgé avec Maîtrise · +{Math.round((sellPct - 0.85) * 100)}% sur la vente</Text>
+                            </View>
                           )}
                         </View>
                         <TouchableOpacity
@@ -1982,7 +1985,7 @@ function RegionMinimap({
           >
             {hasHideout && (
               <View style={mmStyles.chestBadge}>
-                <Text style={{ fontSize: 11 }}>📦</Text>
+                <MaterialCommunityIcons name="package-variant" size={11} color="#FFD700" />
               </View>
             )}
             <MaterialCommunityIcons
@@ -2092,7 +2095,7 @@ function FouilleModal({
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
       <View style={fouStyles.overlay}>
         <View style={[fouStyles.box, { backgroundColor: colors.card, borderColor: rc + '80' }]}>
-          <Text style={fouStyles.chest}>📦</Text>
+          <MaterialCommunityIcons name="package-variant" size={52} color="#D4AF37" />
           <Text style={[fouStyles.title, { color: colors.foreground }]}>
             {done ? (collected ? 'Trésor trouvé !' : 'Trop tard…') : 'Cachette découverte !'}
           </Text>

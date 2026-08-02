@@ -311,8 +311,9 @@ function TalentTreeView({
             </Text>
           )}
           {isTalentUnlocked(selectedTalent.id) ? (
-            <View style={[tStyles.unlockedBadge, { backgroundColor: `${info.color}22` }]}>
-              <Text style={[tStyles.unlockedText, { color: info.color }]}>✓ Déjà débloqué</Text>
+            <View style={[tStyles.unlockedBadge, { backgroundColor: `${info.color}22`, flexDirection: 'row', gap: 6 }]}>
+              <Feather name="check" size={13} color={info.color} />
+              <Text style={[tStyles.unlockedText, { color: info.color }]}>Déjà débloqué</Text>
             </View>
           ) : (
             <TouchableOpacity
@@ -1826,7 +1827,7 @@ function StatsTabContent({ colors, game, titleHistory }: { colors: ReturnType<ty
           <Text style={[stStyles.infoLabel, { color: colors.mutedForeground }]}>Jours consécutifs</Text>
           <View style={stStyles.streakWrap}>
             <Text style={[stStyles.infoValue, { color: '#D4AF37' }]}>{streak}</Text>
-            <Text style={[stStyles.streakFlame, { color: '#D4AF37' }]}> ✦</Text>
+            <MaterialCommunityIcons name="star-four-points" size={10} color="#D4AF37" />
           </View>
         </View>
         <View style={[stStyles.infoSep, { backgroundColor: colors.border }]} />

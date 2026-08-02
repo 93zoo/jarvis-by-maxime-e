@@ -125,9 +125,9 @@ function reachabilityBgColor(r: 'reachable' | 'stretch' | 'unreachable'): string
 
 function reachabilityLabel(r: 'reachable' | 'stretch' | 'unreachable'): string {
   switch (r) {
-    case 'reachable': return '✓ Réalisable';
-    case 'stretch': return '~ Difficile';
-    case 'unreachable': return '✗ Hors portée';
+    case 'reachable': return 'Réalisable';
+    case 'stretch': return 'Difficile';
+    case 'unreachable': return 'Hors portée';
   }
 }
 
@@ -316,7 +316,6 @@ function QualityInfoSheet({
               : colors.border;
 
             const isCurrent = typicalScore >= minScore && typicalScore <= maxScore;
-            const statusIcon = reach === 'reachable' ? '✓' : reach === 'stretch' ? '~' : '✗';
             const statusColor = reachabilityColor(reach);
 
             return (
@@ -333,7 +332,12 @@ function QualityInfoSheet({
                 <Text style={[qiStyles.tierRange, { color: colors.mutedForeground }]}>
                   {minScore === 0 ? `< 40 pts` : `${minScore}–${maxScore === 100 ? '100' : maxScore} pts`}
                 </Text>
-                <Text style={[qiStyles.tierStatus, { color: statusColor }]}>{statusIcon}</Text>
+                {reach === 'reachable'
+                  ? <Feather name="check" size={13} style={[qiStyles.tierStatus, { color: statusColor }]} />
+                  : reach === 'stretch'
+                  ? <Feather name="minus" size={13} style={[qiStyles.tierStatus, { color: statusColor }]} />
+                  : <Feather name="x" size={13} style={[qiStyles.tierStatus, { color: statusColor }]} />
+                }
               </View>
             );
           })}
@@ -634,7 +638,7 @@ function OrdersModal({
                     {order.isSpecial && (
                       <View style={oStyles.urgentBadgeRow}>
                         <View style={[oStyles.urgentBadge, { backgroundColor: specialExpired ? '#7B620022' : '#E8B84B22' }]}>
-                          <Text style={{ fontSize: 11 }}>⭐</Text>
+                          <MaterialCommunityIcons name="star" size={11} color={specialExpired ? '#7B6200' : '#E8B84B'} />
                           <Text style={[oStyles.urgentBadgeText, { color: specialExpired ? '#7B6200' : '#E8B84B' }]}>
                             {specialExpired ? 'EXPIRÉE' : 'COMMANDE ROYALE'}
                           </Text>
@@ -674,15 +678,15 @@ function OrdersModal({
                       <View style={oStyles.urgentBonusRow}>
                         <Text style={[oStyles.urgentBonusText, { color: colors.mutedForeground }]}>Si livré à temps :</Text>
                         <View style={[oStyles.urgentBonusChip, { backgroundColor: '#E8B84B20' }]}>
-                          <Text style={{ fontSize: 11 }}>⭐</Text>
+                          <MaterialCommunityIcons name="star" size={11} color="#E8B84B" />
                           <Text style={[oStyles.urgentBonusText, { color: '#E8B84B' }]}>+{order.specialBonusGold ?? 0}g</Text>
                         </View>
                         <View style={[oStyles.urgentBonusChip, { backgroundColor: '#1565C020' }]}>
-                          <Text style={{ fontSize: 11 }}>✨</Text>
+                          <MaterialCommunityIcons name="star-four-points" size={11} color="#1E88E5" />
                           <Text style={[oStyles.urgentBonusText, { color: '#1E88E5' }]}>+{order.specialBonusXp ?? 0} XP</Text>
                         </View>
                         <View style={[oStyles.urgentBonusChip, { backgroundColor: '#4CAF5020' }]}>
-                          <Text style={{ fontSize: 11 }}>💎</Text>
+                          <MaterialCommunityIcons name="diamond" size={11} color="#4CAF50" />
                           <Text style={[oStyles.urgentBonusText, { color: '#4CAF50' }]}>+{order.specialBonusRep ?? 0} rép.</Text>
                         </View>
                       </View>
@@ -697,7 +701,7 @@ function OrdersModal({
                           <Text style={[oStyles.urgentBonusText, { color: '#FF8F00' }]}>+{order.urgentBonusGold ?? 0}g</Text>
                         </View>
                         <View style={[oStyles.urgentBonusChip, { backgroundColor: '#1565C020' }]}>
-                          <Text style={{ fontSize: 11 }}>✨</Text>
+                          <MaterialCommunityIcons name="star-four-points" size={11} color="#1E88E5" />
                           <Text style={[oStyles.urgentBonusText, { color: '#1E88E5' }]}>+{order.urgentBonusXp ?? 0} XP</Text>
                         </View>
                       </View>
@@ -725,9 +729,17 @@ function OrdersModal({
                             onPress={() => { setQualityInfoOpen(true); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
                             activeOpacity={0.75}
                           >
-                            <Text style={[oStyles.qualityBadgeLabel, { color: fgColor }]}>
-                              {reachabilityLabel(reach)}
-                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                              {reach === 'reachable'
+                                ? <Feather name="check" size={9} color={fgColor} />
+                                : reach === 'stretch'
+                                ? <Feather name="minus" size={9} color={fgColor} />
+                                : <Feather name="x" size={9} color={fgColor} />
+                              }
+                              <Text style={[oStyles.qualityBadgeLabel, { color: fgColor }]}>
+                                {reachabilityLabel(reach)}
+                              </Text>
+                            </View>
                             <Feather name="info" size={9} color={fgColor} style={{ marginLeft: 2 }} />
                           </TouchableOpacity>
                         </View>
@@ -1158,9 +1170,12 @@ function ApprenticeCard({
           activeOpacity={0.8}
         >
           <View style={{ alignItems: 'center', gap: 2 }}>
-            <Text style={{ color: '#A5D6A7', fontWeight: '700' }}>
-              ✓ {ap.readyItem.name} ({ap.readyItem.quality}) prêt
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Feather name="check" size={11} color="#A5D6A7" />
+              <Text style={{ color: '#A5D6A7', fontWeight: '700' }}>
+                {ap.readyItem.name} ({ap.readyItem.quality}) prêt
+              </Text>
+            </View>
             <Text style={{ color: '#A5D6A7', fontSize: 11, opacity: 0.85 }}>
               Salaire : {25 * ap.level}g — Appuyer pour payer et récupérer
             </Text>
@@ -1225,9 +1240,12 @@ function ApprenticeCard({
                 onPress={() => setFilterSpecialty((f) => !f)}
                 activeOpacity={0.8}
               >
-                <Text style={[apStyles.specialtyToggleText, { color: filterSpecialty ? colors.accent : colors.mutedForeground }]}>
-                  ★ Spécialité seulement
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <MaterialCommunityIcons name="star" size={12} color={filterSpecialty ? colors.accent : colors.mutedForeground} />
+                  <Text style={[apStyles.specialtyToggleText, { color: filterSpecialty ? colors.accent : colors.mutedForeground }]}>
+                    Spécialité seulement
+                  </Text>
+                </View>
               </TouchableOpacity>
             )}
           </View>
@@ -1254,7 +1272,7 @@ function ApprenticeCard({
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1 }}>
                   {isSpecialty && (
-                    <Text style={{ color: colors.accent, fontSize: 12, lineHeight: 16 }}>★</Text>
+                    <MaterialCommunityIcons name="star" size={12} color={colors.accent} />
                   )}
                   <Text style={[
                     apStyles.pickerName,
