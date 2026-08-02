@@ -733,7 +733,7 @@
   },
   {
     "id": "quest_volcano_5",
-    "regionId": "volcano",
+    "regionId": "dragon_lair",
     "title": "Écailles du Léviathan",
     "description": "Un dragon ancien hante les couloirs de lave. Récupérez ses écailles pour forger une armure légendaire.",
     "objectives": [
@@ -751,7 +751,7 @@
       "xp": 2000
     },
     "completed": false,
-    "unlockLevel": 13
+    "unlockLevel": 25
   },
   {
     "id": "quest_volcano_6",
@@ -853,7 +853,7 @@
   },
   {
     "id": "quest_epic_2",
-    "regionId": "volcano",
+    "regionId": "dragon_lair",
     "title": "L'Armurerie Draconique",
     "description": "Forgez un équipement complet digne d'un chasseur de dragons.",
     "objectives": [
@@ -887,7 +887,7 @@
       "xp": 5500
     },
     "completed": false,
-    "unlockLevel": 13
+    "unlockLevel": 25
   },
   {
     "id": "quest_epic_3",
@@ -913,7 +913,7 @@
   },
   {
     "id": "quest_epic_4",
-    "regionId": "castle",
+    "regionId": "dragon_lair",
     "title": "L'Époque d'Or",
     "description": "Votre forge entre dans les annales de l'histoire. Démontrez une richesse et une production sans égales.",
     "objectives": [
@@ -939,7 +939,7 @@
       "xp": 10000
     },
     "completed": false,
-    "unlockLevel": 20
+    "unlockLevel": 25
   },
   {
     "id": "quest_forest_z1",
