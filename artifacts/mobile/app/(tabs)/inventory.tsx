@@ -227,9 +227,16 @@ function CraftedItemCard({
       >
         <LinearGradient
           colors={['rgba(30,25,20,0.9)', 'rgba(15,12,10,0.95)']}
-          style={[styles.itemCard, { borderColor: qc }]}
+          style={[styles.itemCard, { borderColor: item.enigmaMastered ? '#C084FC' : qc, borderWidth: item.enigmaMastered ? 1.5 : 1 }]}
         >
           <View style={[styles.itemQualityStrip, { backgroundColor: qc }]} />
+          {/* Enigma mastery badge — top-right corner overlay */}
+          {item.enigmaMastered && (
+            <View style={styles.enigmaBadge}>
+              <MaterialCommunityIcons name="star-four-points" size={10} color="#C084FC" />
+              <Text style={styles.enigmaBadgeText}>Maîtrise</Text>
+            </View>
+          )}
       <View style={styles.itemBody}>
         <View style={styles.itemTop}>
           <View style={styles.itemInfo}>
@@ -1058,6 +1065,14 @@ const styles = StyleSheet.create({
   itemValue: { fontSize: 14, fontWeight: '700' },
   gemRow: { flexDirection: 'row', gap: 3 },
   miniGem: { width: 8, height: 8, borderRadius: 4 },
+  enigmaBadge: {
+    position: 'absolute', top: 8, right: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: '#5C00AA40', borderRadius: 8,
+    paddingHorizontal: 6, paddingVertical: 3,
+    borderWidth: 1, borderColor: '#C084FC66',
+  },
+  enigmaBadgeText: { fontSize: 9, fontWeight: '800', color: '#C084FC', letterSpacing: 0.5 },
   statPills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
   statPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   statPillText: { fontSize: 11, fontWeight: '600' },

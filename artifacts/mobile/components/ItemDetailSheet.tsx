@@ -283,6 +283,15 @@ export default function ItemDetailSheet({ itemInstanceId, onClose }: Props) {
                 <Text style={[styles.categoryLabel, { color: colors.mutedForeground }]}>
                   {categoryLabel(item.category)} · {rarityLabel(item.rarity)} · Niv.{item.level}
                 </Text>
+
+                {/* Enigma mastery stamp */}
+                {item.enigmaMastered && (
+                  <View style={styles.enigmaStamp}>
+                    <MaterialCommunityIcons name="star-four-points" size={13} color="#C084FC" />
+                    <Text style={styles.enigmaStampText}>Forgé avec Maîtrise — défi d'énigme réussi</Text>
+                  </View>
+                )}
+
                 <Text style={[styles.description, { color: colors.mutedForeground }]}>
                   {item.description}
                 </Text>
@@ -582,6 +591,14 @@ const styles = StyleSheet.create({
   matDot: { width: 8, height: 8, borderRadius: 4 },
   matName: { fontSize: 12, fontWeight: '500' },
   craftInfo: { fontSize: 12, marginBottom: 4 },
+  enigmaStamp: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#5C00AA28', borderRadius: 10,
+    paddingHorizontal: 10, paddingVertical: 6,
+    borderWidth: 1, borderColor: '#C084FC55',
+    marginBottom: 10,
+  },
+  enigmaStampText: { fontSize: 12, fontWeight: '700', color: '#C084FC' },
   closeBtn: { marginTop: 22, paddingVertical: 14, borderRadius: 12, alignItems: 'center', borderWidth: 1 },
   closeBtnText: { fontSize: 15, fontWeight: '600' },
   meltBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 13, marginTop: 20, borderRadius: 12, borderWidth: 1 },

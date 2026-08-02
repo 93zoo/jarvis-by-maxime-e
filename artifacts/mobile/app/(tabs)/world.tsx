@@ -839,6 +839,7 @@ const mStyles = StyleSheet.create({
   resInfo: { flex: 1 },
   resName: { fontSize: 13, fontWeight: '600' },
   resStock: { fontSize: 11, marginTop: 1 },
+  enigmaLabel: { fontSize: 10, fontWeight: '700', color: '#C084FC', marginTop: 2 },
   sellControls: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   qtyBtn: { width: 24, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   qtyText: { fontSize: 13, fontWeight: '700', minWidth: 20, textAlign: 'center' },
@@ -1039,16 +1040,20 @@ function MarketModal({ visible, onClose, game, colors, bottomPad }: {
                   </View>
                 ) : (
                   sellableItems.map((item) => {
-                    const sellPrice = Math.round(item.value * 0.85);
+                    const sellPct = item.enigmaMastered ? 0.92 : 0.85;
+                    const sellPrice = Math.round(item.value * sellPct);
                     return (
-                      <View key={item.instanceId} style={[mStyles.marketRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                        <MaterialCommunityIcons name="hammer" size={20} color={colors.mutedForeground} />
+                      <View key={item.instanceId} style={[mStyles.marketRow, { backgroundColor: colors.card, borderColor: item.enigmaMastered ? '#C084FC55' : colors.border, borderWidth: item.enigmaMastered ? 1.5 : 1 }]}>
+                        <MaterialCommunityIcons name="hammer" size={20} color={item.enigmaMastered ? '#C084FC' : colors.mutedForeground} />
                         <View style={mStyles.resInfo}>
                           <Text style={[mStyles.resName, { color: colors.foreground }]}>{item.name}</Text>
                           <Text style={[mStyles.resStock, { color: colors.mutedForeground }]}>{item.category} · {item.quality} · {item.value}g</Text>
+                          {item.enigmaMastered && (
+                            <Text style={mStyles.enigmaLabel}>✦ Forgé avec Maîtrise · +{Math.round((sellPct - 0.85) * 100)}% sur la vente</Text>
+                          )}
                         </View>
                         <TouchableOpacity
-                          style={[mStyles.sellBtn, { backgroundColor: colors.primary }]}
+                          style={[mStyles.sellBtn, { backgroundColor: item.enigmaMastered ? '#7C3AED' : colors.primary }]}
                           onPress={() => setPendingSale({ kind: 'item', instanceId: item.instanceId, name: item.name, gold: sellPrice })}
                         >
                           <Text style={[mStyles.sellBtnText, { color: colors.primaryForeground }]}>Vendre · {sellPrice}g</Text>
