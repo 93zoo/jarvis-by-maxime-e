@@ -210,9 +210,9 @@ function recipeUnlockCost(recipe: RecipeData): number {
 }
 
 /** How long (ms) between auto-generated NPC orders */
-const ORDER_INTERVAL_MS = 60 * 1000; // 1 minute
+const ORDER_INTERVAL_MS = 30 * 1000; // 30 seconds
 /** Maximum simultaneous pending orders */
-const MAX_ORDERS = 5;
+const MAX_ORDERS = 8;
 /** Fraction of auto-generated orders that carry a short urgent countdown (10–30 min real-time). */
 const URGENT_ORDER_CHANCE = 0.22;
 
@@ -361,6 +361,7 @@ type GameAction =
   | { type: 'REMOVE_GEM'; itemInstanceId: string; slotIndex: number }
   // NPC orders
   | { type: 'ADD_ORDER'; order: CraftOrder }
+  | { type: 'SEED_ORDERS'; orders: CraftOrder[] }
   | { type: 'ACCEPT_ORDER'; orderId: string }
   | { type: 'REFUSE_ORDER'; orderId: string }
   | { type: 'DELIVER_ORDER'; orderId: string; itemInstanceId: string; onTime?: boolean }
@@ -951,6 +952,16 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         activeOrders: [...state.activeOrders, action.order],
         lastOrderGeneratedAt: Date.now(),
       };
+    }
+    case 'SEED_ORDERS': {
+      // Add as many orders as fit under MAX_ORDERS, skipping npcId duplicates
+      let orders = [...state.activeOrders];
+      for (const order of action.orders) {
+        if (orders.length >= MAX_ORDERS) break;
+        if (orders.some((o) => o.npcId === order.npcId && !o.completed)) continue;
+        orders = [...orders, order];
+      }
+      return { ...state, activeOrders: orders, lastOrderGeneratedAt: Date.now() };
     }
     case 'ACCEPT_ORDER': {
       return {
@@ -1815,19 +1826,25 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const pending = state.activeOrders.filter((o) => !o.completed).length;
     // Always seed at least one order immediately if the queue is empty
     const deadlineExt = state.player.statUpgrades?.['order_deadline'] ?? 0;
-    if (pending === 0) {
-      dispatch({ type: 'ADD_ORDER', order: generateNpcOrder(state.player.level, state.player.forgeLevel, deadlineExt, state.player.unlockedRecipeIds) });
+    const makeOrder = () => generateNpcOrder(state.player.level, state.player.forgeLevel, deadlineExt, state.player.unlockedRecipeIds);
+    // Seed 3 orders immediately so the player never starts with an empty queue
+    const SEED_COUNT = 3;
+    if (pending < SEED_COUNT) {
+      dispatch({
+        type: 'SEED_ORDERS',
+        orders: Array.from({ length: SEED_COUNT - pending }, makeOrder),
+      });
     } else {
-      // Generate on load if enough time has passed since last order
+      // Refill one order on load if enough time has passed since the last one
       const sinceLastOrder = Date.now() - state.lastOrderGeneratedAt;
       if (sinceLastOrder >= ORDER_INTERVAL_MS && pending < MAX_ORDERS) {
-        dispatch({ type: 'ADD_ORDER', order: generateNpcOrder(state.player.level, state.player.forgeLevel, deadlineExt, state.player.unlockedRecipeIds) });
+        dispatch({ type: 'ADD_ORDER', order: makeOrder() });
       }
     }
     const t = setInterval(() => {
       const p = state.activeOrders.filter((o) => !o.completed).length;
       if (p < MAX_ORDERS) {
-        dispatch({ type: 'ADD_ORDER', order: generateNpcOrder(state.player.level, state.player.forgeLevel, deadlineExt, state.player.unlockedRecipeIds) });
+        dispatch({ type: 'ADD_ORDER', order: makeOrder() });
       }
     }, ORDER_INTERVAL_MS);
     return () => clearInterval(t);
