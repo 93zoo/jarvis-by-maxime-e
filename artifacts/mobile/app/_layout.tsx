@@ -12,6 +12,7 @@ import {
   Inter_700Bold,
   useFonts,
 } from '@expo-google-fonts/inter';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { GameProvider, useGame } from '@/context/GameContext';
@@ -83,6 +84,8 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    // Explicit load prevents MCI glyphs rendering as system emoji on Android
+    ...MaterialCommunityIcons.font,
   });
 
   // Defer RevenueCat init off the synchronous module-load hot path.
