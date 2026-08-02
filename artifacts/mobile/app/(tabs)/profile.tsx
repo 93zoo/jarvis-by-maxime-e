@@ -1052,6 +1052,8 @@ function SkillProgressChart({
   const prevSkillCountRef = useRef(skillSnapshots.length);
   useEffect(() => {
     if (prevSkillCountRef.current > 0 && skillSnapshots.length > prevSkillCountRef.current) {
+      // Clear any selected dot — its index may now point to a different snapshot
+      setSelectedIdx(null);
       incrProgress.value = 0;
       drawProgress.value = 0;
       if (!reducedMotion) {
