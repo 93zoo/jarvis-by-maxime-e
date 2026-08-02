@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Modal } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -62,7 +63,16 @@ function AppWithSplash() {
       <RootLayoutNav />
       {shouldShowTutorial && <FirstForgeTutorial onDone={finishTutorial} />}
       {canShowDailyReward && <DailyRewardModal />}
-      {!splashDone && <StudioSplash onDone={() => setSplashDone(true)} />}
+      <Modal
+        visible={!splashDone}
+        animationType="none"
+        transparent={false}
+        statusBarTranslucent
+        hardwareAccelerated
+        onRequestClose={() => setSplashDone(true)}
+      >
+        <StudioSplash onDone={() => setSplashDone(true)} />
+      </Modal>
     </>
   );
 }
