@@ -1586,9 +1586,9 @@ export default function ForgeScreen() {
     return () => { clearInterval(intervalId); runResultRef.current = null; };
   }, [craftPhase]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Temperature: cool while hammering; reset on any other phase ──────────
+  // ── Temperature: cool while hammering or cooling; reset on any other phase ──
   useEffect(() => {
-    if (craftPhase !== 'HAMMERING') {
+    if (craftPhase !== 'HAMMERING' && craftPhase !== 'COOLING') {
       setTemperature(0);
       temperatureRef.current = 0;
       return;
@@ -2086,6 +2086,37 @@ export default function ForgeScreen() {
             <Text style={styles.quenchSubtitle}>
               Retire l'acier quand la barre passe dans la zone verte
             </Text>
+
+            {/* ── Read-only temperature gauge (drains to 0 as metal cools) ── */}
+            {temperature > 0 && (
+              <View style={[styles.tempGauge, { marginBottom: 8 }]}>
+                <MaterialCommunityIcons name="thermometer" size={18} color="#FFAA00" />
+                <View style={[styles.tempTrackWrap]}>
+                  <View style={styles.tempTrack}>
+                    <View
+                      style={[
+                        styles.tempFill,
+                        {
+                          width: `${Math.min(100, temperature)}%` as `${number}%`,
+                          backgroundColor:
+                            temperature >= 70 ? '#FF5500'
+                            : temperature >= 45 ? '#FF8800'
+                            : '#FFAA00',
+                        },
+                      ]}
+                    />
+                  </View>
+                </View>
+                <Text
+                  style={[
+                    styles.tempValue,
+                    { color: temperature >= 70 ? '#FF8800' : '#FFAA00' },
+                  ]}
+                >
+                  {Math.min(100, Math.round(temperature))}°
+                </Text>
+              </View>
+            )}
 
             {/* Temperature bar */}
             <View style={styles.quenchTrack}>
