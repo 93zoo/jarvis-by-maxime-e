@@ -22,12 +22,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGame } from '@/context/GameContext';
 import { useColors } from '@/hooks/useColors';
-import type { Item, ItemCategory, Quality, ResourceData } from '@/types/game';
+import type { CraftedGem, Item, ItemCategory, Quality, ResourceData } from '@/types/game';
 import ItemDetailSheet from '@/components/ItemDetailSheet';
 import AlloyWorkshop from '@/components/AlloyWorkshop';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type TabType = 'resources' | 'items' | 'alloys' | 'showcase';
+type TabType = 'resources' | 'items' | 'alloys' | 'showcase' | 'gems';
 type SortOption = 'newest' | 'quality' | 'value' | 'name';
 type CategoryFilter = 'all' | ItemCategory;
 type QualityFilter = 'all' | Quality;
@@ -810,6 +810,7 @@ export default function InventoryScreen() {
           { key: 'items', label: 'Objets', icon: 'sword', badge: game.craftedItems.length },
           { key: 'alloys', label: 'Alliages', icon: 'flask', badge: game.discoveredAlloyIds.length },
           { key: 'showcase', label: 'Vitrine', icon: 'star', badge: game.showcasedItemIds.length },
+          { key: 'gems', label: 'Gemmes', icon: 'diamond', badge: game.craftedGems?.length ?? 0 },
         ] as { key: TabType; label: string; icon: string; badge: number }[]).map((tab) => (
           <TouchableOpacity
             key={tab.key}
@@ -834,7 +835,7 @@ export default function InventoryScreen() {
       </View>
 
       {/* ── Search + filter row (only for resources / items) ── */}
-      {activeTab !== 'alloys' && activeTab !== 'showcase' && <View style={[styles.toolbarRow, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+      {activeTab !== 'alloys' && activeTab !== 'showcase' && activeTab !== 'gems' && <View style={[styles.toolbarRow, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <View style={[styles.searchBox, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
           <Feather name="search" size={14} color={colors.mutedForeground} />
           <TextInput
@@ -981,6 +982,69 @@ export default function InventoryScreen() {
       {/* ── Showcase tab ── */}
       {activeTab === 'showcase' && (
         <ShowcaseSection game={game} colors={colors} bottomPad={bottomPad} />
+      )}
+
+      {/* ── Gems tab ── */}
+      {activeTab === 'gems' && (
+        (game.craftedGems?.length ?? 0) === 0 ? (
+          <Animated.View entering={FadeInDown.duration(400)} style={styles.emptyCenter}>
+            <MaterialCommunityIcons name="diamond" size={48} color={colors.mutedForeground} />
+            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Collection vide</Text>
+            <Text style={[styles.emptyDesc, { color: colors.mutedForeground }]}>
+              Forgez des gemmes, runes et joyaux via l&apos;Atelier des Pierres
+            </Text>
+          </Animated.View>
+        ) : (
+          <FlatList
+            data={game.craftedGems ?? []}
+            keyExtractor={(g: CraftedGem) => g.instanceId}
+            contentContainerStyle={[styles.listContent, { paddingBottom: bottomPad }]}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item: gem }: { item: CraftedGem }) => {
+              const QUALITY_COLORS: Record<string, string> = {
+                failed: '#666', basic: '#AAA', decent: '#88CC88', good: '#4488FF',
+                excellent: '#AA44FF', perfect: '#FFAA00', masterwork: '#FF4444',
+              };
+              const RARITY_COLORS: Record<string, string> = {
+                common: '#AAA', uncommon: '#44FF44', rare: '#4488FF',
+                epic: '#AA44FF', legendary: '#FFAA00', mythic: '#FF4444',
+              };
+              const QUALITY_LABELS: Record<string, string> = {
+                failed: 'Raté', basic: 'Médiocre', decent: 'Acceptable', good: 'Bon',
+                excellent: 'Excellent', perfect: 'Parfait', masterwork: "Chef-d'œuvre",
+              };
+              const qColor = QUALITY_COLORS[gem.craftQuality] ?? '#888';
+              const rColor = RARITY_COLORS[gem.rarity] ?? '#888';
+              return (
+                <View style={[styles.resourceCard, { borderLeftColor: qColor, borderLeftWidth: 3 }]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                    <MaterialCommunityIcons name="diamond" size={22} color={gem.color ?? rColor} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.resourceName, { color: rColor }]} numberOfLines={1}>
+                        {gem.name}{gem.affix ? ` ${gem.affix}` : ''}
+                      </Text>
+                      <Text style={{ fontSize: 11, color: qColor, marginTop: 1 }}>
+                        {QUALITY_LABELS[gem.craftQuality] ?? gem.craftQuality} · Niv.{gem.level}
+                      </Text>
+                    </View>
+                    <View style={{ gap: 3, alignItems: 'flex-end' }}>
+                      {Object.entries(gem.craftedStats ?? {})
+                        .filter(([, v]) => v > 0).slice(0, 3)
+                        .map(([stat, val]) => {
+                          const range = gem.statRanges?.find(r => r.stat === stat);
+                          return (
+                            <Text key={stat} style={{ fontSize: 10, color: colors.mutedForeground }}>
+                              +{val}{range?.unit ?? ''} {range?.label ?? stat}
+                            </Text>
+                          );
+                        })}
+                    </View>
+                  </View>
+                </View>
+              );
+            }}
+          />
+        )
       )}
 
       {/* ── Item detail sheet ── */}

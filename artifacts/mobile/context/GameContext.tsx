@@ -65,6 +65,7 @@ import {
 import { premiumXpMultiplier } from '@/lib/premiumStatus';
 import { computeMicroComboBonus } from '@/utils/microCombos';
 import { reportLeaderboardScore } from '@/lib/leaderboard';
+import { getActiveForgeEventId } from '@/utils/forgeEvent';
 
 // ---------------------------------------------------------------------------
 // Static data – lazily loaded on first access to avoid blocking the JS thread
@@ -937,6 +938,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         hideoutLastCollected: s.hideoutLastCollected ?? {},
         workers: s.workers ?? [],
         betaBoostClaimed: s.betaBoostClaimed ?? false,
+        craftedGems: s.craftedGems ?? [],
       };
     }
     case 'RESET': {
@@ -1110,6 +1112,15 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         return { ...item, gems };
       });
       if (!removedGem) return state;
+      // CraftedGem (has instanceId) → return to craftedGems array
+      if ('instanceId' in (removedGem as GemData)) {
+        return {
+          ...state,
+          craftedItems: items,
+          craftedGems: [...state.craftedGems, removedGem as CraftedGem],
+        };
+      }
+      // Legacy resource-based gem → return to inventory
       const gemType = (removedGem as GemData).type;
       const inv = [...state.inventory];
       const idx = inv.findIndex((i) => i.resourceId === gemType);
@@ -1119,6 +1130,37 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         inv.push({ resourceId: gemType, quantity: 1 });
       }
       return { ...state, craftedItems: items, inventory: inv };
+    }
+    case 'SOCKET_CRAFTED_GEM': {
+      const items = state.craftedItems.map((item) => {
+        if (item.instanceId !== action.itemInstanceId) return item;
+        const gems = [...item.gems];
+        gems[action.slotIndex] = action.gem as GemData;
+        return { ...item, gems };
+      });
+      const craftedGems = state.craftedGems.filter(g => g.instanceId !== action.gem.instanceId);
+      return { ...state, craftedItems: items, craftedGems };
+    }
+    case 'CRAFT_GEM': {
+      const newInv = state.inventory
+        .map(inv => {
+          const cost = action.recipe.find(r => r.resourceId === inv.resourceId);
+          if (!cost) return inv;
+          return { ...inv, quantity: inv.quantity - cost.quantity };
+        })
+        .filter(i => i.quantity > 0);
+      return {
+        ...state,
+        craftedGems: [...state.craftedGems, action.craftedGem],
+        inventory: newInv,
+      };
+    }
+    case 'FUSE_GEMS': {
+      const remaining = state.craftedGems.filter(g => !action.consumedInstanceIds.includes(g.instanceId));
+      if (action.resultGem) {
+        return { ...state, craftedGems: [...remaining, action.resultGem] };
+      }
+      return { ...state, craftedGems: remaining };
     }
     // ── NPC orders ──────────────────────────────────────────────────────────
     case 'ADD_ORDER': {
@@ -1960,6 +2002,15 @@ interface GameContextType {
   /** Non-null when the apprentice was auto-dismissed for unpaid salary. Clear it after showing. */
   apprenticeToast: string | null;
   clearApprenticeToast: () => void;
+  // ── Gem crafting ──────────────────────────────────────────────────────────
+  craftedGems: CraftedGem[];
+  craftGem: (gemId: string, qualityScore: number) => CraftedGem | null;
+  fuseGems: (instanceIds: string[]) => { success: boolean; gem?: CraftedGem };
+  socketCraftedGem: (itemInstanceId: string, slotIndex: number, gem: CraftedGem) => boolean;
+  /** Grant resources directly (event rewards, chests, etc.). */
+  grantResources: (resources: { resourceId: string; qty: number }[]) => void;
+  /** Propagates forge event activation immediately (no AsyncStorage polling lag). */
+  setActiveForgeEvent: (id: string | null) => void;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -1972,6 +2023,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const saveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const cloudTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const playerIdRef = useRef<string>('');
+  /** Active forge event ID — refreshed from AsyncStorage on mount and every 60 s. */
+  const activeForgeEventIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const update = async () => { activeForgeEventIdRef.current = await getActiveForgeEventId(); };
+    update();
+    const timer = setInterval(update, 60_000);
+    return () => clearInterval(timer);
+  }, []);
   const [cloudSyncStatus, setCloudSyncStatus] = useState<CloudSyncStatus>('idle');
   const [lastCloudSync, setLastCloudSync] = useState<number | null>(null);
   // Ref always pointing to latest syncToCloud to avoid stale closure in the interval
@@ -2188,6 +2247,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           hideoutLastCollected: state.hideoutLastCollected ?? {},
           workers: state.workers ?? [],
           betaBoostClaimed: state.betaBoostClaimed,
+          craftedGems: state.craftedGems,
           lastSaved: now,
         };
         await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
@@ -2298,6 +2358,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         hideoutLastCollected: state.hideoutLastCollected ?? {},
         workers: state.workers ?? [],
         betaBoostClaimed: state.betaBoostClaimed,
+        craftedGems: state.craftedGems,
         lastSaved: Date.now(),
       };
       AsyncStorage.setItem(SAVE_KEY, JSON.stringify(immediteSave)).catch(() => {
@@ -2634,8 +2695,25 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           });
         }
         dispatch({ type: 'ADD_SKILL_XP', skill: 'combat', amount: 12 + enemyLevel });
-        dispatch({ type: 'ADD_PLAYER_XP', amount: 8 + enemyLevel });
+        // Apply forge event: double_xp doubles all XP on boss fight wins
+        const xpMult = activeForgeEventIdRef.current === 'double_xp' ? 2 : 1;
+        dispatch({ type: 'ADD_PLAYER_XP', amount: (8 + enemyLevel) * xpMult });
         dispatch({ type: 'ADD_EXPLORATION', regionId, gain: 2 });
+        // Boss-only rare drops (not for secondary enemies)
+        if (!secondaryEnemy) {
+          const regionResourceIds = region.resourceNodes.map(n => n.resourceId);
+          const bossDropEntries = generateBossDrops(enemyLevel, regionResourceIds);
+          for (const entry of bossDropEntries) {
+            if (entry.resourceId) {
+              drops.push({ resourceId: entry.resourceId, quantity: entry.quantity ?? 1 });
+              dispatch({ type: 'ADD_RESOURCE', resourceId: entry.resourceId, qty: entry.quantity ?? 1 });
+              // Bonus player XP scaled by rarity tier, doubled if double_xp event active
+              if (entry.bonusXpPct > 0) {
+                dispatch({ type: 'ADD_PLAYER_XP', amount: Math.round((8 + enemyLevel) * entry.bonusXpPct * xpMult) });
+              }
+            }
+          }
+        }
       } else {
         dispatch({ type: 'ADD_SKILL_XP', skill: 'combat', amount: 3 });
         dispatch({ type: 'ADD_PLAYER_XP', amount: 2 });
@@ -2773,7 +2851,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         + computeTalentBonus(state.player.talentsUnlocked, 'allGoldBonus')
         + marketValueBonus / 100
         + statSellUpg;
-      const goldAmount = Math.round(item.value * 0.85 * sellBonus);
+      const baseGold = Math.round(item.value * 0.85 * sellBonus);
+      // Apply forge event: gold_bonus gives +30% on each sale
+      const goldAmount = activeForgeEventIdRef.current === 'gold_bonus'
+        ? Math.round(baseGold * 1.3)
+        : baseGold;
       dispatch({ type: 'SELL_ITEM', instanceId, goldAmount });
       dispatch({ type: 'ADD_SKILL_XP', skill: 'commerce', amount: 5 });
       dispatch({ type: 'UPDATE_QUEST_PROGRESS', objectiveType: 'sell', targetId: item.category, amount: 1 });
@@ -2840,10 +2922,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   // Gem socket actions
   // -------------------------------------------------------------------------
   const getSocketableGems = useCallback((): GemData[] => {
-    return getGems().filter(
-      (gem) => (state.inventory.find((i) => i.resourceId === gem.type)?.quantity ?? 0) > 0,
+    // Inventory path: only level-1 gems (world drops); prevents bypassing progression
+    // by socketing higher-tier templates via shared `type` (e.g. ruby_1/2/3 all have type='ruby').
+    const inventoryGems = getGems().filter(
+      (gem) => gem.level === 1 && (state.inventory.find((i) => i.resourceId === gem.type)?.quantity ?? 0) > 0,
     );
-  }, [state.inventory]);
+    // Crafted gems (all tiers/levels) come from the gem forge — exposed as GemData via subtype
+    return [...inventoryGems, ...state.craftedGems] as GemData[];
+  }, [state.inventory, state.craftedGems]);
 
   const socketGem = useCallback(
     (itemInstanceId: string, slotIndex: number, gem: GemData): boolean => {
@@ -2877,6 +2963,72 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     },
     [state.craftedItems],
   );
+
+  // ── Gem crafting callbacks ─────────────────────────────────────────────────
+
+  const craftGem = useCallback((gemId: string, qualityScore: number): CraftedGem | null => {
+    const template = getGems().find(g => g.id === gemId);
+    if (!template) return null;
+    const recipe = template.recipe ?? [];
+    for (const ingredient of recipe) {
+      const qty = state.inventory.find(i => i.resourceId === ingredient.resourceId)?.quantity ?? 0;
+      if (qty < ingredient.quantity) return null;
+    }
+    // Apply forge event bonus: gem_chance improves quality score by 20 pts
+    const adjustedScore = activeForgeEventIdRef.current === 'gem_chance'
+      ? Math.min(100, qualityScore + 20)
+      : qualityScore;
+    const craftedGem = generateCraftedGem(template, adjustedScore);
+    dispatch({ type: 'CRAFT_GEM', craftedGem, recipe });
+    return craftedGem;
+  }, [state.inventory]);
+
+  const fuseGems = useCallback((instanceIds: string[]): { success: boolean; gem?: CraftedGem } => {
+    if (instanceIds.length < 3) return { success: false };
+    const gems = instanceIds
+      .map(id => state.craftedGems.find(g => g.instanceId === id))
+      .filter((g): g is CraftedGem => Boolean(g));
+    if (gems.length < 3) return { success: false };
+    const baseGem = gems[0];
+    // Look up the real next-tier template from gems.json (same type, level+1).
+    // Returns early without consuming gems if already at max tier.
+    const nextLevel = (baseGem.level ?? 1) + 1;
+    const nextTemplate = getGems().find(g => g.type === baseGem.type && g.level === nextLevel);
+    if (!nextTemplate) return { success: false }; // max tier reached — no fusion possible
+    const success = Math.random() < (nextTemplate.fuseSuccessRate ?? baseGem.fuseSuccessRate ?? 0.5);
+    let resultGem: CraftedGem | undefined;
+    if (success) {
+      // Generate a fresh gem from the next-tier template (correct statRanges, rarity, name)
+      resultGem = generateCraftedGem(nextTemplate, Math.floor(Math.random() * 40) + 60);
+    }
+    dispatch({ type: 'FUSE_GEMS', consumedInstanceIds: instanceIds, resultGem });
+    return { success, gem: resultGem };
+  }, [state.craftedGems]);
+
+  const socketCraftedGem = useCallback((itemInstanceId: string, slotIndex: number, gem: CraftedGem): boolean => {
+    const item = state.craftedItems.find(i => i.instanceId === itemInstanceId);
+    if (!item) return false;
+    if (slotIndex < 0 || slotIndex >= item.gemSlots) return false;
+    if (item.gems[slotIndex] !== null) return false;
+    if (!state.craftedGems.some(g => g.instanceId === gem.instanceId)) return false;
+    dispatch({ type: 'SOCKET_CRAFTED_GEM', itemInstanceId, slotIndex, gem });
+    return true;
+  }, [state.craftedItems, state.craftedGems]);
+
+  /** Grant resources directly (used by event rewards, dev tools, etc.). */
+  const grantResources = useCallback((resources: { resourceId: string; qty: number }[]): void => {
+    for (const r of resources) {
+      dispatch({ type: 'ADD_RESOURCE', resourceId: r.resourceId, qty: r.qty });
+    }
+  }, []);
+
+  /**
+   * Called immediately by ForgeEventBanner on activation so event bonuses
+   * apply without waiting for the 60-second AsyncStorage polling cycle.
+   */
+  const setActiveForgeEvent = useCallback((id: string | null) => {
+    activeForgeEventIdRef.current = id;
+  }, []);
 
   /** Current total inventory weight (resources + crafted items). */
   const currentWeight = useMemo(() => {
@@ -2949,6 +3101,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       hideoutLastCollected: state.hideoutLastCollected ?? {},
       workers: state.workers ?? [],
       betaBoostClaimed: state.betaBoostClaimed,
+      craftedGems: state.craftedGems,
       lastSaved: now,
     };
     try {
@@ -2992,6 +3145,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         hideoutLastCollected: state.hideoutLastCollected ?? {},
         workers: state.workers ?? [],
         betaBoostClaimed: state.betaBoostClaimed,
+        craftedGems: state.craftedGems,
         lastSaved: Date.now(),
       };
       const res = await fetch(`${base}/save`, {
@@ -3065,6 +3219,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       hideoutLastCollected: state.hideoutLastCollected ?? {},
       workers: state.workers ?? [],
       betaBoostClaimed: state.betaBoostClaimed,
+      craftedGems: state.craftedGems,
       lastSaved: now,
     };
     dispatch({ type: 'COMPLETE_FIRST_FORGE_TUTORIAL' });
@@ -3518,6 +3673,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         collectWorker,
         betaBoostClaimed: state.betaBoostClaimed,
         claimBetaBoost,
+        // ── Gem crafting ──────────────────────────────────────────────────────
+        craftedGems: state.craftedGems,
+        craftGem,
+        fuseGems,
+        socketCraftedGem,
+        grantResources,
+        setActiveForgeEvent,
       } as GameContextType;
 
       // Lazy getters – each JSON file is required (and cached) only the first

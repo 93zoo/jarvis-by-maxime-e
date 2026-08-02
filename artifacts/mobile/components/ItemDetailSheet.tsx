@@ -20,7 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useGame } from '@/context/GameContext';
 import { useColors } from '@/hooks/useColors';
-import type { GemData, Item, Quality } from '@/types/game';
+import type { CraftedGem, GemData, Item, Quality } from '@/types/game';
 import ItemModel3D from './ItemModel3D';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -135,11 +135,12 @@ function GemPicker({
           ) : (
             <FlatList
               data={socketable}
-              keyExtractor={(g) => g.id}
+              keyExtractor={(g) => ('instanceId' in g ? (g as unknown as CraftedGem).instanceId : g.id)}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
               renderItem={({ item: gem }) => {
-                const qty = game.getInventoryQty(gem.type);
+                const isCrafted = 'instanceId' in gem;
+                const qty = isCrafted ? 0 : game.getInventoryQty(gem.type);
                 return (
                   <TouchableOpacity
                     style={[styles.gemRow, { backgroundColor: colors.secondary, borderColor: gem.color + '50' }]}
@@ -151,9 +152,10 @@ function GemPicker({
                       <Text style={[styles.gemRowName, { color: colors.foreground }]}>{gem.name}</Text>
                       <Text style={[styles.gemRowRarity, { color: gem.color }]}>
                         {rarityLabel(gem.rarity)} · Niv.{gem.level}
+                        {isCrafted && ` — ${(gem as unknown as CraftedGem).craftQuality ?? ''}`}
                       </Text>
                       <View style={styles.gemEffects}>
-                        {gem.effects.map((eff) => (
+                        {(gem.effects ?? []).map((eff) => (
                           <Text key={eff} style={[styles.gemEffect, { color: colors.accent }]}>
                             {eff}
                           </Text>
@@ -161,7 +163,10 @@ function GemPicker({
                       </View>
                     </View>
                     <View style={[styles.qtyBadge, { backgroundColor: colors.card }]}>
-                      <Text style={[styles.qtyText, { color: colors.accent }]}>x{qty}</Text>
+                      {isCrafted
+                        ? <MaterialCommunityIcons name="star" size={14} color={gem.color} />
+                        : <Text style={[styles.qtyText, { color: colors.accent }]}>x{qty}</Text>
+                      }
                     </View>
                   </TouchableOpacity>
                 );
@@ -218,7 +223,11 @@ export default function ItemDetailSheet({ itemInstanceId, onClose }: Props) {
   const handleSelectGem = (gem: GemData) => {
     if (pendingSlot === null) return;
     setShowPicker(false);
-    const ok = game.socketGem(item.instanceId, pendingSlot, gem);
+    // CraftedGems (from the gem forge) have an instanceId — route to the correct callback
+    const isCraftedGem = 'instanceId' in gem && typeof (gem as unknown as CraftedGem).instanceId === 'string';
+    const ok = isCraftedGem
+      ? game.socketCraftedGem(item.instanceId, pendingSlot, gem as unknown as CraftedGem)
+      : game.socketGem(item.instanceId, pendingSlot, gem);
     if (ok) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setPendingSlot(null);
   };

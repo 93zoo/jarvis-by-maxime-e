@@ -38,6 +38,8 @@ import ForgeGuidedOverlay from '@/components/ForgeGuidedOverlay';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BetaWelcomeModal, { BETA_RESOURCE_IDS } from '@/components/BetaWelcomeModal';
 import SettingsModal from '@/components/SettingsModal';
+import ForgeEventBanner from '@/components/ForgeEventBanner';
+import GemForgeModal from '@/components/GemForgeModal';
 import Reanimated, {
   cancelAnimation as cancelAnim,
   Easing as REasing,
@@ -1377,6 +1379,7 @@ export default function ForgeScreen() {
   const [showForgeInfo, setShowForgeInfo] = useState(false);
   const [showBetaWelcome, setShowBetaWelcome] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showGemForge, setShowGemForge] = useState(false);
   const [weather, setWeather] = useState<WeatherType>('none');
   const [activeForgeEvent, setActiveForgeEvent] = useState<ForgeEvent | null>(null);
   const [showEventBanner, setShowEventBanner] = useState(false);
@@ -1831,6 +1834,14 @@ export default function ForgeScreen() {
           <BoutiqueButton />
           <TouchableOpacity
             style={md.pill}
+            onPress={() => { setShowGemForge(true); Haptics.selectionAsync(); }}
+            activeOpacity={0.8}
+            accessibilityLabel="Atelier des Pierres"
+          >
+            <Feather name="hexagon" size={13} color={MEDIEVAL.textDim} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={md.pill}
             onPress={() => { setShowSettings(true); Haptics.selectionAsync(); }}
             activeOpacity={0.8}
             accessibilityLabel="Paramètres"
@@ -2027,6 +2038,9 @@ export default function ForgeScreen() {
 
           </>
         )}
+
+        {/* ── Persistent event banner (always visible at top of forge screen) ── */}
+        <ForgeEventBanner />
 
         {craftPhase === 'HAMMERING' && (
           <View style={{ paddingBottom: bottomPad }}>
@@ -2287,6 +2301,12 @@ export default function ForgeScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* ── Atelier des Pierres ── */}
+      <GemForgeModal
+        visible={showGemForge}
+        onClose={() => setShowGemForge(false)}
+      />
 
       {/* ── Forge Enigma Modal ── */}
       {pendingEnigma != null && activeRecipeRef.current != null && (
