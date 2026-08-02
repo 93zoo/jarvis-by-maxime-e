@@ -41,9 +41,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const QC_STEPS    = [25, 50, 100, 150, 300];
 /** After 10 min idle the step resets to 0 so the player starts fresh. */
 const QC_RESET_S  = 600;
-const QC_KEY_STEP = '@fk_qc_step';
-const QC_KEY_LAST = '@fk_qc_last';
-const QC_KEY_COOL = '@fk_qc_cool';
+/** Single JSON blob for all per-region QC state (v2 — ignores old single-region keys). */
+const QC_KEY_V2   = '@fk_qc_state_v2';
+type QCRegionState = { step: number; lastAt: number; coolSec: number };
 
 // ─── Region metadata ──────────────────────────────────────────────────────────
 const REGION_COLORS: Record<string, string> = {
@@ -647,6 +647,11 @@ function ExploreView({
         <Text style={[styles.weightText, { color: colors.mutedForeground }]}>
           {currentWeight.toFixed(1)}/{game.maxWeight}kg
         </Text>
+        {game.encumbrancePenalty > 0.005 && (
+          <Text style={{ fontSize: 10, color: '#F44336', fontWeight: '700', marginLeft: 5 }}>
+            {`⚖ -${Math.round(game.encumbrancePenalty * 100)}%`}
+          </Text>
+        )}
       </View>
 
       {/* Collect toast */}
@@ -1242,33 +1247,35 @@ export default function WorldScreen() {
   const [workerReturnEntries, setWorkerReturnEntries] = useState<WorkerReturnEntry[]>([]);
 
   // ── Quick-collect cooldown state ──────────────────────────────────────────
-  const [qcStep, setQcStep]       = useState(0);   // next step index (0-4)
-  const [qcLastAt, setQcLastAt]   = useState(0);   // ms timestamp of last use
-  const [qcCoolSec, setQcCoolSec] = useState(0);   // duration of active cooldown (s)
-  const [qcRemaining, setQcRemaining] = useState(0); // live countdown (s)
+  /** Per-region QC state: cooldown step + timestamps, keyed by regionId. */
+  const [qcState, setQcState] = useState<Record<string, QCRegionState>>({});
+  const [qcRemaining, setQcRemaining] = useState(0); // live countdown for the selected region (s)
 
-  // Load persisted state on mount
+  // Load persisted per-region QC state on mount; reset step for regions idle > QC_RESET_S
   useEffect(() => {
-    AsyncStorage.multiGet([QC_KEY_STEP, QC_KEY_LAST, QC_KEY_COOL]).then((pairs) => {
-      const step  = pairs[0][1] != null ? parseInt(pairs[0][1], 10) : 0;
-      const last  = pairs[1][1] != null ? parseInt(pairs[1][1], 10) : 0;
-      const cool  = pairs[2][1] != null ? parseInt(pairs[2][1], 10) : 0;
-      const elapsedS = last > 0 ? (Date.now() - last) / 1000 : Infinity;
-      // Step resets if the player was idle for more than QC_RESET_S
-      const effectiveStep = elapsedS > QC_RESET_S ? 0 : step;
-      setQcStep(effectiveStep);
-      setQcLastAt(last);
-      setQcCoolSec(cool);
-      if (effectiveStep !== step) {
-        AsyncStorage.setItem(QC_KEY_STEP, '0').catch(() => {});
+    AsyncStorage.getItem(QC_KEY_V2).then((raw) => {
+      const stored: Record<string, QCRegionState> = raw ? JSON.parse(raw) : {};
+      const now = Date.now();
+      const cleaned: Record<string, QCRegionState> = {};
+      for (const [regionId, rs] of Object.entries(stored)) {
+        const elapsedS = rs.lastAt > 0 ? (now - rs.lastAt) / 1000 : Infinity;
+        cleaned[regionId] = {
+          step: elapsedS > QC_RESET_S ? 0 : rs.step,
+          lastAt: rs.lastAt,
+          coolSec: rs.coolSec,
+        };
       }
+      setQcState(cleaned);
     }).catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 1-second ticker: recomputes remaining whenever lastAt or coolSec changes
+  // 1-second ticker: recomputes remaining for the currently selected region
   useEffect(() => {
-    if (qcLastAt === 0 || qcCoolSec === 0) { setQcRemaining(0); return; }
-    const compute = () => Math.max(0, Math.ceil(qcCoolSec - (Date.now() - qcLastAt) / 1000));
+    const rs      = selectedRegion ? qcState[selectedRegion.id] : undefined;
+    const lastAt  = rs?.lastAt  ?? 0;
+    const coolSec = rs?.coolSec ?? 0;
+    if (!lastAt || !coolSec) { setQcRemaining(0); return; }
+    const compute = () => Math.max(0, Math.ceil(coolSec - (Date.now() - lastAt) / 1000));
     setQcRemaining(compute());
     const id = setInterval(() => {
       const r = compute();
@@ -1276,7 +1283,8 @@ export default function WorldScreen() {
       if (r <= 0) clearInterval(id);
     }, 1000);
     return () => clearInterval(id);
-  }, [qcLastAt, qcCoolSec]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRegion?.id, qcState]);
 
   const qcIsReady = qcRemaining <= 0;
 
@@ -1338,22 +1346,21 @@ export default function WorldScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
 
-    // Apply the current cooldown step, then advance for next use
-    const thisStep  = Math.min(qcStep, QC_STEPS.length - 1);
+    // Apply this region's cooldown step, then advance it independently of other regions
+    const regionId  = selectedRegion.id;
+    const current   = qcState[regionId] ?? { step: 0, lastAt: 0, coolSec: 0 };
+    const thisStep  = Math.min(current.step, QC_STEPS.length - 1);
     const coolSec   = QC_STEPS[thisStep];
-    const nextStep  = Math.min(qcStep + 1, QC_STEPS.length - 1);
+    const nextStep  = Math.min(current.step + 1, QC_STEPS.length - 1);
     const now       = Date.now();
 
-    setQcStep(nextStep);
-    setQcLastAt(now);
-    setQcCoolSec(coolSec);
-
-    AsyncStorage.multiSet([
-      [QC_KEY_STEP, String(nextStep)],
-      [QC_KEY_LAST, String(now)],
-      [QC_KEY_COOL, String(coolSec)],
-    ]).catch(() => {});
-  }, [selectedRegion, game, qcStep, qcRemaining]);
+    const newQcState = {
+      ...qcState,
+      [regionId]: { step: nextStep, lastAt: now, coolSec },
+    };
+    setQcState(newQcState);
+    AsyncStorage.setItem(QC_KEY_V2, JSON.stringify(newQcState)).catch(() => {});
+  }, [selectedRegion, game, qcState, qcRemaining]);
 
   const handleExplore = useCallback(() => {
     if (!selectedRegion) return;

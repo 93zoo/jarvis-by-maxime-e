@@ -12,8 +12,11 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {
   ActiveHideout,
+  ActiveMarketEvent,
   AlloyData,
   Apprentice,
+  AuctionListing,
+  AuctionResult,
   CraftedGem,
   CraftOrder,
   CombatDrop,
@@ -50,6 +53,27 @@ import type {
   Worker,
   WorkerType,
 } from '@/types/game';
+import { pickRandomMarketEventType, getMarketEventType } from '@/data/marketEvents';
+import {
+  AUCTION_DURATION_BY_RARITY,
+  QUALITY_PRICE_MULT,
+  RARITY_PRICE_MULT,
+  BASE_PRICE_FACTOR,
+  REPUTATION_BONUS_PER_ORDER,
+  REPUTATION_BONUS_MAX,
+  RANDOM_FACTOR_MIN,
+  RANDOM_FACTOR_MAX,
+  EXCEPTIONAL_CHANCE,
+  EXCEPTIONAL_FACTOR_MIN,
+  EXCEPTIONAL_FACTOR_MAX,
+  AUCTION_CHECK_INTERVAL_MS,
+  MAX_AUCTION_RESULTS,
+  EVENT_INTERVAL_MIN_MS,
+  EVENT_INTERVAL_MAX_MS,
+  EVENT_DEFAULT_DURATION_MS,
+  MAX_ACTIVE_EVENTS,
+  EVENT_CHECK_INTERVAL_MS,
+} from '@/config/marketConfig';
 import {
   WORKER_DEFINITIONS,
   computeWorkerHarvest,
@@ -250,6 +274,16 @@ const MAX_WEIGHT_PER_LEVEL = 5;
 
 const SAVE_KEY = '@fk_save_v1';
 const SAVE_VERSION = 1;
+
+// ── Encumbrance (surcharge) constants ────────────────────────────────────────
+/** Gold penalty kicks in above this fraction of maxWeight. */
+const BURDEN_THRESHOLD   = 0.70;
+/** Maximum gold income reduction (20 %) reached after BURDEN_RAMP_MIN at threshold. */
+const BURDEN_MAX_PENALTY = 0.20;
+/** Minutes of continuous overload to reach the full penalty. */
+const BURDEN_RAMP_MIN    = 20;
+/** AsyncStorage key persisting when the player first crossed the threshold. */
+const BURDEN_KEY         = '@fk_burden_since';
 const PLAYER_ID_KEY = '@fk_player_id';
 const CLOUD_SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -373,6 +407,12 @@ interface GameState {
   betaBoostClaimed: boolean;
   /** Gems crafted at the forge (separate from gem resources in inventory). */
   craftedGems: CraftedGem[];
+  /** Items currently listed in the Hôtel des Ventes (removed from craftedItems). */
+  auctionListings: AuctionListing[];
+  /** Completed auction results — gold pending claim or already claimed. */
+  auctionResults: AuctionResult[];
+  /** Market events currently affecting auction prices. */
+  activeMarketEvents: ActiveMarketEvent[];
 }
 
 type GameAction =
@@ -403,7 +443,7 @@ type GameAction =
   | { type: 'SEED_ORDERS'; orders: CraftOrder[] }
   | { type: 'ACCEPT_ORDER'; orderId: string }
   | { type: 'REFUSE_ORDER'; orderId: string }
-  | { type: 'DELIVER_ORDER'; orderId: string; itemInstanceId: string; onTime?: boolean }
+  | { type: 'DELIVER_ORDER'; orderId: string; itemInstanceId: string; onTime?: boolean; encumbrancePenalty?: number }
   | { type: 'EXPIRE_URGENT_ORDERS' }
   // Quests
   | { type: 'ACCEPT_QUEST'; questId: string }
@@ -449,7 +489,13 @@ type GameAction =
   // Guilde des Travailleurs
   | { type: 'HIRE_WORKER'; workerType: WorkerType }
   | { type: 'UPGRADE_WORKER'; workerId: string }
-  | { type: 'COLLECT_WORKER'; workerId: string; resources: { resourceId: string; qty: number }[]; bonusResource?: { resourceId: string; qty: number }; workerXpEarned: number; newLevel: number; newXp: number };
+  | { type: 'COLLECT_WORKER'; workerId: string; resources: { resourceId: string; qty: number }[]; bonusResource?: { resourceId: string; qty: number }; workerXpEarned: number; newLevel: number; newXp: number }
+  // Hôtel des Ventes
+  | { type: 'LIST_ITEM_AUCTION'; listing: AuctionListing }
+  | { type: 'COMPLETE_AUCTION'; listingId: string; result: AuctionResult }
+  | { type: 'CLAIM_AUCTION_GOLD'; resultId: string; amount: number }
+  | { type: 'TRIGGER_MARKET_EVENT'; event: ActiveMarketEvent }
+  | { type: 'EXPIRE_MARKET_EVENTS' };
 
 function buildInitialPlayer(): Player {
   const skills = SKILL_TYPES.reduce(
@@ -685,6 +731,104 @@ function generateBossDrops(bossLevel: number, regionResourceIds: string[]): Boss
   return drops;
 }
 
+// ── Auction House pricing helpers ────────────────────────────────────────────
+
+/** Combined price multiplier from all currently-active market events for a given item. */
+function computeEventMultiplier(
+  category: ItemCategory,
+  rarity: Rarity,
+  activeEvents: ActiveMarketEvent[],
+): number {
+  const now = Date.now();
+  let mult = 1.0;
+  for (const ev of activeEvents) {
+    if (ev.startedAt + ev.durationMs <= now) continue;
+    const et = getMarketEventType(ev.eventTypeId);
+    if (!et) continue;
+    const catMult = (et.categoryMultipliers as Record<string, number> | undefined)?.[category] ?? 1.0;
+    const rarMult = (et.rarityMultipliers as Record<string, number> | undefined)?.[rarity] ?? 1.0;
+    mult *= Math.max(catMult, rarMult);
+  }
+  return mult;
+}
+
+/** Deterministic price estimate shown to the player (no random factor). */
+function computeEstimatedAuctionPrice(
+  item: Item,
+  player: Player,
+  activeEvents: ActiveMarketEvent[],
+): number {
+  const base = Math.round(item.value * BASE_PRICE_FACTOR);
+  const qMult = (QUALITY_PRICE_MULT as Record<string, number>)[item.quality] ?? 1.0;
+  const rMult = (RARITY_PRICE_MULT as Record<string, number>)[item.rarity] ?? 1.0;
+  const repBonus = Math.min(
+    REPUTATION_BONUS_MAX,
+    (player.totalOrdersDelivered ?? 0) * REPUTATION_BONUS_PER_ORDER,
+  );
+  const evMult = computeEventMultiplier(item.category, item.rarity, activeEvents);
+  return Math.max(1, Math.round(base * qMult * rMult * (1 + repBonus) * evMult));
+}
+
+/** Resolves an auction listing: applies random factor and produces an AuctionResult. */
+function resolveAuction(
+  listing: AuctionListing,
+  player: Player,
+  activeEvents: ActiveMarketEvent[],
+): AuctionResult {
+  const base = Math.round(listing.itemValue * BASE_PRICE_FACTOR);
+  const qMult = (QUALITY_PRICE_MULT as Record<string, number>)[listing.itemQuality] ?? 1.0;
+  const rMult = (RARITY_PRICE_MULT as Record<string, number>)[listing.itemRarity] ?? 1.0;
+  const repBonus = Math.min(
+    REPUTATION_BONUS_MAX,
+    (player.totalOrdersDelivered ?? 0) * REPUTATION_BONUS_PER_ORDER,
+  );
+  const evMult = computeEventMultiplier(listing.itemCategory, listing.itemRarity, activeEvents);
+
+  let randomFactor: number;
+  let exceptionalLabel: string | undefined;
+  if (Math.random() < EXCEPTIONAL_CHANCE) {
+    randomFactor = EXCEPTIONAL_FACTOR_MIN + Math.random() * (EXCEPTIONAL_FACTOR_MAX - EXCEPTIONAL_FACTOR_MIN);
+    exceptionalLabel = `×${(Math.round(randomFactor * 10) / 10).toFixed(1)} la valeur estimée !`;
+  } else {
+    randomFactor = RANDOM_FACTOR_MIN + Math.random() * (RANDOM_FACTOR_MAX - RANDOM_FACTOR_MIN);
+  }
+
+  const soldPrice = Math.max(1, Math.round(base * qMult * rMult * (1 + repBonus) * evMult * randomFactor));
+  return {
+    id: makeId(),
+    listingId: listing.id,
+    itemName: listing.itemName,
+    itemCategory: listing.itemCategory,
+    itemRarity: listing.itemRarity,
+    soldPrice,
+    listedAt: listing.listedAt,
+    completedAt: Date.now(),
+    claimed: false,
+    exceptionalLabel,
+  };
+}
+
+/**
+ * Progressive gold-income penalty for carrying a heavy load.
+ * Returns a value between 0 and BURDEN_MAX_PENALTY (0–20 %).
+ * Zero when below the threshold or not burdened yet.
+ */
+function computeEncumbrancePenalty(
+  currentWeight: number,
+  maxWeight: number,
+  burdenedSinceMs: number,
+): number {
+  if (!burdenedSinceMs || maxWeight <= 0) return 0;
+  const ratio = currentWeight / maxWeight;
+  if (ratio < BURDEN_THRESHOLD) return 0;
+  // How deep into the overloaded zone (0 = just at threshold, 1 = completely full)
+  const overloadRatio = Math.min(1, (ratio - BURDEN_THRESHOLD) / (1 - BURDEN_THRESHOLD));
+  // Time factor ramps from 0 → 1 over BURDEN_RAMP_MIN minutes
+  const burdenedMinutes = (Date.now() - burdenedSinceMs) / 60_000;
+  const timeFactor = Math.min(1, burdenedMinutes / BURDEN_RAMP_MIN);
+  return overloadRatio * timeFactor * BURDEN_MAX_PENALTY;
+}
+
 function buildInitialState(): GameState {
   return {
     isLoaded: false,
@@ -716,6 +860,9 @@ function buildInitialState(): GameState {
     workers: [],
     betaBoostClaimed: false,
     craftedGems: [],
+    auctionListings: [],
+    auctionResults: [],
+    activeMarketEvents: [],
   };
 }
 
@@ -939,6 +1086,12 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         workers: s.workers ?? [],
         betaBoostClaimed: s.betaBoostClaimed ?? false,
         craftedGems: s.craftedGems ?? [],
+        auctionListings: s.auctionListings ?? [],
+        auctionResults: (s.auctionResults ?? []).map(r => ({ ...r, claimed: r.claimed ?? false })),
+        // Discard expired market events on load — they no longer affect prices
+        activeMarketEvents: (s.activeMarketEvents ?? []).filter(
+          e => e.startedAt + e.durationMs > Date.now(),
+        ),
       };
     }
     case 'RESET': {
@@ -1162,6 +1315,46 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       }
       return { ...state, craftedGems: remaining };
     }
+    // ── Hôtel des Ventes ──────────────────────────────────────────────────────
+    case 'LIST_ITEM_AUCTION':
+      return {
+        ...state,
+        craftedItems: state.craftedItems.filter(i => i.instanceId !== action.listing.itemInstanceId),
+        auctionListings: [...state.auctionListings, action.listing],
+      };
+    case 'COMPLETE_AUCTION':
+      return {
+        ...state,
+        auctionListings: state.auctionListings.filter(l => l.id !== action.listingId),
+        auctionResults: [action.result, ...state.auctionResults].slice(0, MAX_AUCTION_RESULTS),
+      };
+    case 'CLAIM_AUCTION_GOLD': {
+      const alreadyClaimed = state.auctionResults.find(r => r.id === action.resultId);
+      if (!alreadyClaimed || alreadyClaimed.claimed) return state;
+      return {
+        ...state,
+        player: {
+          ...state.player,
+          gold: state.player.gold + action.amount,
+          totalGoldEarned: state.player.totalGoldEarned + action.amount,
+          bestSalePrice: Math.max(state.player.bestSalePrice ?? 0, action.amount),
+        },
+        auctionResults: state.auctionResults.map(r =>
+          r.id === action.resultId ? { ...r, claimed: true } : r,
+        ),
+      };
+    }
+    case 'TRIGGER_MARKET_EVENT': {
+      const nowMs = Date.now();
+      const liveEvents = state.activeMarketEvents.filter(e => e.startedAt + e.durationMs > nowMs);
+      if (liveEvents.length >= MAX_ACTIVE_EVENTS) return state;
+      return { ...state, activeMarketEvents: [...liveEvents, action.event] };
+    }
+    case 'EXPIRE_MARKET_EVENTS':
+      return {
+        ...state,
+        activeMarketEvents: state.activeMarketEvents.filter(e => e.startedAt + e.durationMs > Date.now()),
+      };
     // ── NPC orders ──────────────────────────────────────────────────────────
     case 'ADD_ORDER': {
       // Count only non-completed orders — completed ones are hidden in the UI
@@ -1201,8 +1394,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     }
     case 'EXPIRE_URGENT_ORDERS': {
       const now = Date.now();
+      // Remove ALL expired orders (urgent, special, and regular) — expired means
+      // deadline has passed and the order was not yet delivered (completed orders
+      // are removed at deliver time, so completed=true should never appear here).
       const updated = state.activeOrders.filter(
-        (o) => (!o.isUrgent && !o.isSpecial) || o.completed || o.deadline > now,
+        (o) => o.completed || o.deadline > now,
       );
       if (updated.length === state.activeOrders.length) return state;
       return { ...state, activeOrders: updated };
@@ -1214,11 +1410,15 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const urgentBonus = action.onTime && order.isUrgent ? (order.urgentBonusGold ?? 0) : 0;
       const specialBonus = action.onTime && order.isSpecial ? (order.specialBonusGold ?? 0) : 0;
       const specialRepBonus = action.onTime && order.isSpecial ? (order.specialBonusRep ?? 0) : 0;
-      const gold = state.player.gold + order.goldReward + urgentBonus + specialBonus;
+      // Apply encumbrance penalty to the base reward (gentle progressive reduction)
+      const effectiveReward = action.encumbrancePenalty
+        ? Math.max(1, Math.round(order.goldReward * (1 - action.encumbrancePenalty)))
+        : order.goldReward;
+      const gold = state.player.gold + effectiveReward + urgentBonus + specialBonus;
       const player = {
         ...state.player,
         gold,
-        totalGoldEarned: state.player.totalGoldEarned + order.goldReward,
+        totalGoldEarned: state.player.totalGoldEarned + effectiveReward,
         totalOrdersDelivered: (state.player.totalOrdersDelivered ?? 0) + 1,
       };
       const items = state.craftedItems.filter((i) => i.instanceId !== action.itemInstanceId);
@@ -1900,6 +2100,8 @@ interface GameContextType {
   allNPCs: NPCData[];
   allQuests: Quest[];
   maxWeight: number;
+  /** 0–0.20 — current gold-income reduction from carrying too heavy a load too long. */
+  encumbrancePenalty: number;
   // Helpers
   getResourceById: (id: string) => ResourceData | undefined;
   getRecipeById: (id: string) => RecipeData | undefined;
@@ -2011,6 +2213,14 @@ interface GameContextType {
   grantResources: (resources: { resourceId: string; qty: number }[]) => void;
   /** Propagates forge event activation immediately (no AsyncStorage polling lag). */
   setActiveForgeEvent: (id: string | null) => void;
+  // ── Hôtel des Ventes ──────────────────────────────────────────────────────
+  auctionListings: AuctionListing[];
+  auctionResults: AuctionResult[];
+  activeMarketEvents: ActiveMarketEvent[];
+  listItemForAuction: (itemInstanceId: string) => { success: boolean; listing?: AuctionListing; message: string };
+  claimAuctionGold: (resultId: string) => { success: boolean; gold: number };
+  claimAllAuctionGold: () => number;
+  estimateAuctionPrice: (item: Item) => number;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -2025,6 +2235,25 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const playerIdRef = useRef<string>('');
   /** Active forge event ID — refreshed from AsyncStorage on mount and every 60 s. */
   const activeForgeEventIdRef = useRef<string | null>(null);
+  /** Current encumbrance penalty (0–0.20) — ref so callbacks always read the latest value. */
+  const encumbrancePenaltyRef = useRef(0);
+
+  // ── Auction House: latest-state snapshot used inside interval callbacks ────
+  const latestAuctionStateRef = useRef({
+    auctionListings: state.auctionListings,
+    player: state.player,
+    activeMarketEvents: state.activeMarketEvents,
+  });
+  useEffect(() => {
+    latestAuctionStateRef.current = {
+      auctionListings: state.auctionListings,
+      player: state.player,
+      activeMarketEvents: state.activeMarketEvents,
+    };
+  }, [state.auctionListings, state.player, state.activeMarketEvents]);
+  /** Timestamp for the next auto-triggered market event. */
+  const nextMarketEventAtRef = useRef(Date.now() + EVENT_INTERVAL_MIN_MS);
+
   useEffect(() => {
     const update = async () => { activeForgeEventIdRef.current = await getActiveForgeEventId(); };
     update();
@@ -2189,6 +2418,51 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(t);
   }, [state.isLoaded]);
 
+  // Auction resolution — checks expired listings via stale-closure-safe ref
+  useEffect(() => {
+    if (!state.isLoaded) return;
+    const id = setInterval(() => {
+      const { auctionListings, player, activeMarketEvents } = latestAuctionStateRef.current;
+      const now = Date.now();
+      for (const listing of auctionListings) {
+        if (listing.listedAt + listing.durationMs <= now) {
+          const result = resolveAuction(listing, player, activeMarketEvents);
+          dispatch({ type: 'COMPLETE_AUCTION', listingId: listing.id, result });
+        }
+      }
+    }, AUCTION_CHECK_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [state.isLoaded]);
+
+  // Market event generator / expirer
+  useEffect(() => {
+    if (!state.isLoaded) return;
+    dispatch({ type: 'EXPIRE_MARKET_EVENTS' });
+    nextMarketEventAtRef.current = Date.now() + EVENT_INTERVAL_MIN_MS
+      + Math.random() * (EVENT_INTERVAL_MAX_MS - EVENT_INTERVAL_MIN_MS);
+    const id = setInterval(() => {
+      const now = Date.now();
+      const { activeMarketEvents } = latestAuctionStateRef.current;
+      const liveCount = activeMarketEvents.filter(e => e.startedAt + e.durationMs > now).length;
+      if (activeMarketEvents.some(e => e.startedAt + e.durationMs <= now)) {
+        dispatch({ type: 'EXPIRE_MARKET_EVENTS' });
+      }
+      if (liveCount < MAX_ACTIVE_EVENTS && now >= nextMarketEventAtRef.current) {
+        const et = pickRandomMarketEventType();
+        const ev: ActiveMarketEvent = {
+          instanceId: makeId(),
+          eventTypeId: et.id,
+          startedAt: now,
+          durationMs: et.durationMs ?? EVENT_DEFAULT_DURATION_MS,
+        };
+        dispatch({ type: 'TRIGGER_MARKET_EVENT', event: ev });
+        nextMarketEventAtRef.current = now + EVENT_INTERVAL_MIN_MS
+          + Math.random() * (EVENT_INTERVAL_MAX_MS - EVENT_INTERVAL_MIN_MS);
+      }
+    }, EVENT_CHECK_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [state.isLoaded]);
+
   // Cloud auto-sync every 5 minutes — calls through ref so always uses current state
   useEffect(() => {
     if (!state.isLoaded) return;
@@ -2248,6 +2522,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           workers: state.workers ?? [],
           betaBoostClaimed: state.betaBoostClaimed,
           craftedGems: state.craftedGems,
+          auctionListings: state.auctionListings,
+          auctionResults: state.auctionResults,
+          activeMarketEvents: state.activeMarketEvents,
           lastSaved: now,
         };
         await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
@@ -2359,6 +2636,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         workers: state.workers ?? [],
         betaBoostClaimed: state.betaBoostClaimed,
         craftedGems: state.craftedGems,
+        auctionListings: state.auctionListings,
+        auctionResults: state.auctionResults,
+        activeMarketEvents: state.activeMarketEvents,
         lastSaved: Date.now(),
       };
       AsyncStorage.setItem(SAVE_KEY, JSON.stringify(immediteSave)).catch(() => {
@@ -2754,7 +3034,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (QUALITY_ORDER[item.quality] < QUALITY_ORDER[order.minQuality])
         return { success: false, message: `Qualité insuffisante (${item.quality} < ${order.minQuality} requis).` };
       const onTime = !!((order.isUrgent || order.isSpecial) && Date.now() <= order.deadline);
-      dispatch({ type: 'DELIVER_ORDER', orderId, itemInstanceId, onTime });
+      dispatch({ type: 'DELIVER_ORDER', orderId, itemInstanceId, onTime, encumbrancePenalty: encumbrancePenaltyRef.current });
       dispatch({ type: 'ADD_PLAYER_XP', amount: order.xpReward });
       if (onTime && order.urgentBonusXp) {
         dispatch({ type: 'ADD_PLAYER_XP', amount: order.urgentBonusXp });
@@ -2853,9 +3133,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         + statSellUpg;
       const baseGold = Math.round(item.value * 0.85 * sellBonus);
       // Apply forge event: gold_bonus gives +30% on each sale
-      const goldAmount = activeForgeEventIdRef.current === 'gold_bonus'
+      const rawGold = activeForgeEventIdRef.current === 'gold_bonus'
         ? Math.round(baseGold * 1.3)
         : baseGold;
+      // Encumbrance penalty: gentle progressive reduction when over 70% load
+      const ep = encumbrancePenaltyRef.current;
+      const goldAmount = ep > 0
+        ? Math.max(1, Math.round(rawGold * (1 - ep)))
+        : rawGold;
       dispatch({ type: 'SELL_ITEM', instanceId, goldAmount });
       dispatch({ type: 'ADD_SKILL_XP', skill: 'commerce', amount: 5 });
       dispatch({ type: 'UPDATE_QUEST_PROGRESS', objectiveType: 'sell', targetId: item.category, amount: 1 });
@@ -2876,7 +3161,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         + computeTalentBonus(state.player.talentsUnlocked, 'sellPriceBonus')
         + computeTalentBonus(state.player.talentsUnlocked, 'allGoldBonus')
         + statSellUpg2;
-      const goldAmount = Math.round(pricePerUnit * qty * sellBonus);
+      const rawGold2 = Math.round(pricePerUnit * qty * sellBonus);
+      // Encumbrance penalty applies to resource sales too
+      const ep2 = encumbrancePenaltyRef.current;
+      const goldAmount = ep2 > 0
+        ? Math.max(1, Math.round(rawGold2 * (1 - ep2)))
+        : rawGold2;
       dispatch({ type: 'SELL_RESOURCE', resourceId, qty, goldAmount });
       dispatch({ type: 'ADJUST_MARKET', resourceId, delta: -0.03 * qty }); // selling reduces price
       dispatch({ type: 'ADD_SKILL_XP', skill: 'commerce', amount: qty });
@@ -3030,6 +3320,59 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     activeForgeEventIdRef.current = id;
   }, []);
 
+  // ── Hôtel des Ventes callbacks ────────────────────────────────────────────
+
+  const estimateAuctionPrice = useCallback((item: Item): number => {
+    return computeEstimatedAuctionPrice(item, state.player, state.activeMarketEvents);
+  }, [state.player, state.activeMarketEvents]);
+
+  const listItemForAuction = useCallback(
+    (itemInstanceId: string): { success: boolean; listing?: AuctionListing; message: string } => {
+      const item = state.craftedItems.find(i => i.instanceId === itemInstanceId);
+      if (!item) return { success: false, message: 'Objet introuvable.' };
+      if (state.auctionListings.some(l => l.itemInstanceId === itemInstanceId)) {
+        return { success: false, message: 'Cet objet est déjà en vente.' };
+      }
+      const durationMs = (AUCTION_DURATION_BY_RARITY as Record<string, number>)[item.rarity] ?? (10 * 60_000);
+      const estimatedPrice = computeEstimatedAuctionPrice(item, state.player, state.activeMarketEvents);
+      const listing: AuctionListing = {
+        id: makeId(),
+        itemInstanceId,
+        itemName: item.name,
+        itemCategory: item.category,
+        itemRarity: item.rarity,
+        itemQuality: item.quality,
+        itemValue: item.value,
+        estimatedPrice,
+        listedAt: Date.now(),
+        durationMs,
+      };
+      dispatch({ type: 'LIST_ITEM_AUCTION', listing });
+      return { success: true, listing, message: `${item.name} mis en vente.` };
+    },
+    [state.craftedItems, state.player, state.activeMarketEvents, state.auctionListings],
+  );
+
+  const claimAuctionGold = useCallback(
+    (resultId: string): { success: boolean; gold: number } => {
+      const result = state.auctionResults.find(r => r.id === resultId);
+      if (!result || result.claimed) return { success: false, gold: 0 };
+      dispatch({ type: 'CLAIM_AUCTION_GOLD', resultId, amount: result.soldPrice });
+      return { success: true, gold: result.soldPrice };
+    },
+    [state.auctionResults],
+  );
+
+  const claimAllAuctionGold = useCallback((): number => {
+    const unclaimed = state.auctionResults.filter(r => !r.claimed);
+    let total = 0;
+    for (const r of unclaimed) {
+      dispatch({ type: 'CLAIM_AUCTION_GOLD', resultId: r.id, amount: r.soldPrice });
+      total += r.soldPrice;
+    }
+    return total;
+  }, [state.auctionResults]);
+
   /** Current total inventory weight (resources + crafted items). */
   const currentWeight = useMemo(() => {
     const rw = state.inventory.reduce((acc, inv) => {
@@ -3057,6 +3400,46 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     },
     [state.player.level, state.player.talentsUnlocked, state.forgeUpgrades, state.player.statUpgrades],
   );
+
+  // ── Encumbrance penalty ───────────────────────────────────────────────────
+  // null = storage not yet read | 0 = not burdened | >0 = burden start timestamp
+  const [burdenedSinceMs, setBurdenedSinceMs] = useState<number | null>(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem(BURDEN_KEY)
+      .then((raw) => setBurdenedSinceMs(raw ? parseInt(raw, 10) : 0))
+      .catch(() => setBurdenedSinceMs(0));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Start/clear the burden timer whenever the weight crosses the threshold
+  useEffect(() => {
+    if (burdenedSinceMs === null) return; // wait for storage load
+    const ratio = maxWeight > 0 ? currentWeight / maxWeight : 0;
+    if (ratio >= BURDEN_THRESHOLD) {
+      if (!burdenedSinceMs) {
+        const now = Date.now();
+        setBurdenedSinceMs(now);
+        AsyncStorage.setItem(BURDEN_KEY, String(now)).catch(() => {});
+      }
+    } else if (burdenedSinceMs) {
+      setBurdenedSinceMs(0);
+      AsyncStorage.removeItem(BURDEN_KEY).catch(() => {});
+    }
+  }, [currentWeight, maxWeight, burdenedSinceMs]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Live penalty value — recomputed on weight change and on a 30-second tick.
+  // Also kept in sync with encumbrancePenaltyRef so callbacks always read the latest value.
+  const [encumbrancePenalty, setEncumbrancePenalty] = useState(0);
+  useEffect(() => {
+    const recompute = () => {
+      const val = computeEncumbrancePenalty(currentWeight, maxWeight, burdenedSinceMs ?? 0);
+      encumbrancePenaltyRef.current = val;
+      setEncumbrancePenalty(val);
+    };
+    recompute();
+    const id = setInterval(recompute, 30_000);
+    return () => clearInterval(id);
+  }, [currentWeight, maxWeight, burdenedSinceMs]);
 
   const saveGame = useCallback(async (): Promise<'ok' | 'error'> => {
     const now = Date.now();
@@ -3102,6 +3485,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       workers: state.workers ?? [],
       betaBoostClaimed: state.betaBoostClaimed,
       craftedGems: state.craftedGems,
+      auctionListings: state.auctionListings,
+      auctionResults: state.auctionResults,
+      activeMarketEvents: state.activeMarketEvents,
       lastSaved: now,
     };
     try {
@@ -3146,6 +3532,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         workers: state.workers ?? [],
         betaBoostClaimed: state.betaBoostClaimed,
         craftedGems: state.craftedGems,
+        auctionListings: state.auctionListings,
+        auctionResults: state.auctionResults,
+        activeMarketEvents: state.activeMarketEvents,
         lastSaved: Date.now(),
       };
       const res = await fetch(`${base}/save`, {
@@ -3220,6 +3609,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       workers: state.workers ?? [],
       betaBoostClaimed: state.betaBoostClaimed,
       craftedGems: state.craftedGems,
+      auctionListings: state.auctionListings,
+      auctionResults: state.auctionResults,
+      activeMarketEvents: state.activeMarketEvents,
       lastSaved: now,
     };
     dispatch({ type: 'COMPLETE_FIRST_FORGE_TUTORIAL' });
@@ -3580,6 +3972,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         completedQuestIds: state.completedQuestIds,
         questProgress: state.questProgress,
         maxWeight,
+        encumbrancePenalty,
         getResourceById,
         getRecipeById,
          getRecipeUnlockCost,
@@ -3680,6 +4073,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         socketCraftedGem,
         grantResources,
         setActiveForgeEvent,
+        // ── Hôtel des Ventes ──────────────────────────────────────────────
+        auctionListings: state.auctionListings,
+        auctionResults: state.auctionResults,
+        activeMarketEvents: state.activeMarketEvents,
+        listItemForAuction,
+        claimAuctionGold,
+        claimAllAuctionGold,
+        estimateAuctionPrice,
       } as GameContextType;
 
       // Lazy getters – each JSON file is required (and cached) only the first

@@ -597,6 +597,49 @@ export interface StatUpgradeDefinition {
   /** Unit label shown in the UI (e.g. '%', 'kg', 'h'). */
   unit: string;
 }
+// ---------------------------------------------------------------------------
+// Hôtel des Ventes automatique (Auction House)
+// ---------------------------------------------------------------------------
+
+/** Un objet forgé actuellement en vente à l'HdV — l'item est retiré de craftedItems. */
+export interface AuctionListing {
+  id: string;
+  itemInstanceId: string;
+  itemName: string;
+  itemCategory: ItemCategory;
+  itemRarity: Rarity;
+  itemQuality: Quality;
+  /** item.value au moment de la mise en vente — utilisé pour le calcul final. */
+  itemValue: number;
+  /** Prix estimé sans facteur aléatoire (affiché au joueur). */
+  estimatedPrice: number;
+  listedAt: number;
+  durationMs: number;
+}
+
+/** Résultat d'une vente terminée — l'or est à réclamer. */
+export interface AuctionResult {
+  id: string;
+  listingId: string;
+  itemName: string;
+  itemCategory: ItemCategory;
+  itemRarity: Rarity;
+  soldPrice: number;
+  listedAt: number;
+  completedAt: number;
+  claimed: boolean;
+  /** Présent si le facteur aléatoire dépasse le seuil exceptionnel. Ex: "×3.2 la valeur !" */
+  exceptionalLabel?: string;
+}
+
+/** Un événement de marché actif qui modifie les prix des enchères. */
+export interface ActiveMarketEvent {
+  instanceId: string;
+  eventTypeId: string;
+  startedAt: number;
+  durationMs: number;
+}
+
 export interface SaveData {
   version: number;
   player: Player;
@@ -641,6 +684,12 @@ export interface SaveData {
   betaBoostClaimed?: boolean;
   /** Gems crafted at the forge — separate from gem resources in inventory. */
   craftedGems?: CraftedGem[];
+  /** Active auction listings (items in the AH — removed from craftedItems). */
+  auctionListings?: AuctionListing[];
+  /** Completed auction results awaiting gold claim. */
+  auctionResults?: AuctionResult[];
+  /** Market events currently influencing auction prices. */
+  activeMarketEvents?: ActiveMarketEvent[];
   lastSaved: number;
 }
 

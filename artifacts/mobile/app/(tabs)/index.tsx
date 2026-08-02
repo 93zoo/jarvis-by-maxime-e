@@ -15,7 +15,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -40,6 +40,9 @@ import BetaWelcomeModal, { BETA_RESOURCE_IDS } from '@/components/BetaWelcomeMod
 import SettingsModal from '@/components/SettingsModal';
 import ForgeEventBanner from '@/components/ForgeEventBanner';
 import GemForgeModal from '@/components/GemForgeModal';
+import AuctionHouseModal from '@/components/AuctionHouseModal';
+import MarketNotificationBanner, { type BannerNotification } from '@/components/MarketNotificationBanner';
+import { getMarketEventType } from '@/data/marketEvents';
 import Reanimated, {
   cancelAnimation as cancelAnim,
   Easing as REasing,
@@ -1380,6 +1383,8 @@ export default function ForgeScreen() {
   const [showBetaWelcome, setShowBetaWelcome] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showGemForge, setShowGemForge] = useState(false);
+  const [showAuctionHouse, setShowAuctionHouse] = useState(false);
+  const [bannerQueue, setBannerQueue] = useState<BannerNotification[]>([]);
   const [weather, setWeather] = useState<WeatherType>('none');
   const [activeForgeEvent, setActiveForgeEvent] = useState<ForgeEvent | null>(null);
   const [showEventBanner, setShowEventBanner] = useState(false);
@@ -1393,6 +1398,8 @@ export default function ForgeScreen() {
   const [quenchLabel, setQuenchLabel] = useState<string | null>(null);
   const quenchProgressRef = useRef(100);
   const quenchDoneRef = useRef(false);
+  const prevAuctionResultIdsRef = useRef(new Set<string>());
+  const prevMarketEventIdsRef = useRef(new Set<string>());
   const runResultRef = useRef<((mod: number) => void) | null>(null);
   const activeRecipeRef = useRef<RecipeData | null>(null);
   const [pendingEnigma, setPendingEnigma] = useState<{ recipeId: string; qualityScore: number } | null>(null);
@@ -1418,6 +1425,48 @@ export default function ForgeScreen() {
       bounciness: 12,
     }).start();
   };
+
+  // ── Hôtel des Ventes: banner queue diffing ────────────────────────────────
+  const handleBannerConsumed = useCallback((id: string) => {
+    setBannerQueue(q => q.filter(n => n.id !== id));
+  }, []);
+
+  useEffect(() => {
+    const newResults = game.auctionResults.filter(r => !prevAuctionResultIdsRef.current.has(r.id));
+    if (newResults.length > 0) {
+      setBannerQueue(q => [
+        ...q,
+        ...newResults.map(r => ({
+          id: `auction_${r.id}`,
+          text: r.exceptionalLabel
+            ? `Vente exceptionnelle ! ${r.itemName} — ${r.soldPrice} pO (${r.exceptionalLabel})`
+            : `${r.itemName} vendu — ${r.soldPrice} pièces d'or !`,
+          iconName: 'cash',
+          color: r.exceptionalLabel ? '#FFD700' : '#44CC66',
+        })),
+      ]);
+    }
+    prevAuctionResultIdsRef.current = new Set(game.auctionResults.map(r => r.id));
+  }, [game.auctionResults]);
+
+  useEffect(() => {
+    const newEvents = game.activeMarketEvents.filter(e => !prevMarketEventIdsRef.current.has(e.instanceId));
+    if (newEvents.length > 0) {
+      setBannerQueue(q => [
+        ...q,
+        ...newEvents.map(e => {
+          const et = getMarketEventType(e.eventTypeId);
+          return {
+            id: `event_${e.instanceId}`,
+            text: et?.bannerText ?? 'Événement de marché en cours !',
+            iconName: et?.icon ?? 'alert-circle',
+            color: et?.color ?? '#888888',
+          };
+        }),
+      ]);
+    }
+    prevMarketEventIdsRef.current = new Set(game.activeMarketEvents.map(e => e.instanceId));
+  }, [game.activeMarketEvents]);
 
   // Gentle floating-in-place bob for the FORGER artwork button
   useEffect(() => {
@@ -1841,6 +1890,21 @@ export default function ForgeScreen() {
             <Feather name="hexagon" size={13} color={MEDIEVAL.textDim} />
           </TouchableOpacity>
           <TouchableOpacity
+            style={[
+              md.pill,
+              game.auctionResults.some(r => !r.claimed) && { borderColor: '#FFD70060' },
+            ]}
+            onPress={() => { setShowAuctionHouse(true); Haptics.selectionAsync(); }}
+            activeOpacity={0.8}
+            accessibilityLabel="Hôtel des Ventes"
+          >
+            <Ionicons
+              name="storefront-outline"
+              size={13}
+              color={game.auctionResults.some(r => !r.claimed) ? '#FFD700' : MEDIEVAL.textDim}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
             style={md.pill}
             onPress={() => { setShowSettings(true); Haptics.selectionAsync(); }}
             activeOpacity={0.8}
@@ -2038,6 +2102,13 @@ export default function ForgeScreen() {
 
           </>
         )}
+
+        {/* ── Market notification banner (absolute overlay, slides from top) ── */}
+        <MarketNotificationBanner
+          queue={bannerQueue}
+          onConsumed={handleBannerConsumed}
+          topInset={insets.top}
+        />
 
         {/* ── Persistent event banner (always visible at top of forge screen) ── */}
         <ForgeEventBanner />
@@ -2306,6 +2377,12 @@ export default function ForgeScreen() {
       <GemForgeModal
         visible={showGemForge}
         onClose={() => setShowGemForge(false)}
+      />
+
+      {/* ── Hôtel des Ventes ── */}
+      <AuctionHouseModal
+        visible={showAuctionHouse}
+        onClose={() => setShowAuctionHouse(false)}
       />
 
       {/* ── Forge Enigma Modal ── */}
