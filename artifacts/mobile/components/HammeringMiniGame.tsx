@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import Animated, {
   type SharedValue,
+  cancelAnimation,
   Easing,
   useAnimatedStyle,
   useSharedValue,
@@ -153,7 +154,9 @@ export default function HammeringMiniGame({
 
   useEffect(() => {
     const baseDuration = Math.max(650, 1180 - strikesCompleted * 110);
-    needleNorm.value = 0;
+    // Cancel the current animation without snapping to 0, then restart from
+    // the current needle position — avoids the visual jump on every strike.
+    cancelAnimation(needleNorm);
     needleNorm.value = withRepeat(
       withSequence(
         withTiming(1, { duration: baseDuration, easing: Easing.inOut(Easing.sin) }),

@@ -1528,22 +1528,21 @@ export default function ForgeScreen() {
   };
 
   const handleStrike = (score: number, label: HitLabel) => {
+    // ── Synchronous: scene fx, haptics, audio, ref mutation ────────────────
+    // These fire immediately so the tap feels instant even on slow devices.
     sceneRef.current?.triggerHammerStrike();
 
-    // ── Temperature rise (+25 per tap; capped at 110) ──────────────────────
     const prevTemp = temperatureRef.current;
     const newTemp = Math.min(110, prevTemp + 25);
-    temperatureRef.current = newTemp;
-    setTemperature(newTemp);
+    temperatureRef.current = newTemp; // ref only — no re-render yet
 
-    // Overheat? Force RATÉ and give error feedback
+    // Compute final score/label now (depends on temp) so the deferred block
+    // captures the right values via closure.
     let finalScore = score;
     let finalLabel = label;
     if (newTemp >= 100) {
       finalScore = 0;
       finalLabel = 'RATÉ';
-      setOverheated(true);
-      setTimeout(() => setOverheated(false), 1100);
       AudioManager.playOverheatCrack();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       triggerGaugeShake();
@@ -1558,18 +1557,28 @@ export default function ForgeScreen() {
       // Note: normal strike sounds are played by HammeringMiniGame — no duplicate here.
     }
 
-    setLastHitLabel(finalLabel);
-    if (hitTimerRef.current) clearTimeout(hitTimerRef.current);
-    hitTimerRef.current = setTimeout(() => setLastHitLabel(null), 900);
-
-    setSession((prev) => {
-      const newStrikes = prev.strikesCompleted + 1;
-      const newScores = [...prev.strikeScores, finalScore];
-      if (newStrikes >= 5) {
-        setTimeout(() => setCraftPhase('COOLING'), 400);
+    // ── Deferred: all React setState calls ─────────────────────────────────
+    // Pushing state updates to the next JS tick means the current press event
+    // finishes and the gesture system can register the next tap immediately —
+    // no lag between strikes on slower phones.
+    setTimeout(() => {
+      setTemperature(newTemp);
+      if (newTemp >= 100) {
+        setOverheated(true);
+        setTimeout(() => setOverheated(false), 1100);
       }
-      return { ...prev, strikesCompleted: newStrikes, strikeScores: newScores };
-    });
+      setLastHitLabel(finalLabel);
+      if (hitTimerRef.current) clearTimeout(hitTimerRef.current);
+      hitTimerRef.current = setTimeout(() => setLastHitLabel(null), 900);
+      setSession((prev) => {
+        const newStrikes = prev.strikesCompleted + 1;
+        const newScores = [...prev.strikeScores, finalScore];
+        if (newStrikes >= 5) {
+          setTimeout(() => setCraftPhase('COOLING'), 400);
+        }
+        return { ...prev, strikesCompleted: newStrikes, strikeScores: newScores };
+      });
+    }, 0);
   };
 
   const handleQuench = () => {

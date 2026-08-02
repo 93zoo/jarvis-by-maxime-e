@@ -107,9 +107,10 @@ export default function RootLayout() {
     Inter_600SemiBold,
     Inter_700Bold,
     // Preload icon fonts before any render — prevents □ glyphs on Android.
-    // The studio splash covers this extra loading time.
-    ...MaterialCommunityIcons.font,
-    ...Feather.font,
+    // v15 of @expo/vector-icons dropped the static .font property; load TTFs
+    // directly using the exact family name each createIconSet registers.
+    'feather': require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'),
+    'material-community': require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf'),
   });
 
   // Defer RevenueCat init off the synchronous module-load hot path.

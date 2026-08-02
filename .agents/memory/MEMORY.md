@@ -9,3 +9,5 @@
 - [Monetization design rules](monetization-design.md) — idempotent gold grants, premium bridge, rewarded-ads rules (level 5+, optional, credit before day marker).
 - [Replit ports config danger](replit-ports-danger.md) — never manually add [[ports]] to .replit; remapping externalPort 80 breaks Expo Go proxy access.
 - [Video in Expo Go SDK 54](expo-go-video-constraint.md) — expo-video and expo-av Video both crash in Expo Go SDK 54 (native modules absent); video intro only works in standalone/dev builds.
+- [vector-icons v15 font loading](vector-icons-v15-fonts.md) — v15 dropped `.font` static prop; require TTFs directly with lowercase family names ('feather', 'material-community').
+- [Dispatch from Reanimated runOnJS](gamecontext-dispatch-from-reanimated.md) — don't chain two game.xxx() calls from doCollect/runOnJS; wrap in one GameContext function instead.

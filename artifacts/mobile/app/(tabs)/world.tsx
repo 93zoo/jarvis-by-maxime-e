@@ -283,7 +283,7 @@ function ExploreView({
     // Collect up to what fits (may be less than rolled on partial capacity)
     const finalQty = rolled > 0 ? Math.min(rolled, maxQtyByWeight) : 0;
     if (finalQty > 0) {
-      game.addResource(node.resourceId, finalQty);
+      game.harvestResource(node.resourceId, finalQty);
       setLastDrops({ resourceId: node.resourceId, qty: finalQty });
       AudioManager.playCollect();
     } else {

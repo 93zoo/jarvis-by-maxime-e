@@ -197,7 +197,12 @@ function computeCollectionBonus(bonusType: string, craftedIds: Set<string>): num
 
 /** Generate a random order from the NPC roster */
 const QUALITY_ORDER: Record<Quality, number> = { poor: 0, normal: 1, good: 2, excellent: 3, legendary: 4 };
-const STARTER_RECIPE_IDS = ['iron_sword', 'iron_axe', 'iron_lance'];
+// All level-1 recipes are free — NPCs can order any of them from turn 1.
+const STARTER_RECIPE_IDS = [
+  'iron_sword', 'iron_axe', 'iron_lance',
+  'copper_blade', 'iron_shield', 'iron_helmet',
+  'copper_ring', 'iron_tool', 'iron_decoration',
+];
 
 function recipeUnlockCost(recipe: RecipeData): number {
   if (STARTER_RECIPE_IDS.includes(recipe.id)) return 0;
@@ -205,7 +210,7 @@ function recipeUnlockCost(recipe: RecipeData): number {
 }
 
 /** How long (ms) between auto-generated NPC orders */
-const ORDER_INTERVAL_MS = 3 * 60 * 1000; // 3 minutes
+const ORDER_INTERVAL_MS = 60 * 1000; // 1 minute
 /** Maximum simultaneous pending orders */
 const MAX_ORDERS = 5;
 /** Fraction of auto-generated orders that carry a short urgent countdown (10–30 min real-time). */
@@ -546,7 +551,7 @@ function buildInitialState(): GameState {
 }
 
 /** Generate a random NPC order based on player level */
-function generateNpcOrder(playerLevel: number, forgeLevel: number, extraDeadlineHours = 0): CraftOrder {
+function generateNpcOrder(playerLevel: number, forgeLevel: number, extraDeadlineHours = 0, unlockedRecipeIds: string[] = STARTER_RECIPE_IDS): CraftOrder {
   // High-tier NPCs can have requests that a new forge simply cannot fulfill.
   // Only introduce them once the player has the matching progression.
   const eligibleNpcs = ALL_NPCS.filter((npc) => {
@@ -557,17 +562,21 @@ function generateNpcOrder(playerLevel: number, forgeLevel: number, extraDeadline
   const npcPool = eligibleNpcs.length > 0 ? eligibleNpcs : ALL_NPCS;
   const npc = npcPool[Math.floor(Math.random() * npcPool.length)];
 
-  // Pick a recipe matching NPC preferences and player level
-  // Never request a recipe above the forge skill level; it must be craftable now.
+  // Pick a recipe matching NPC preferences and player level.
+  // Only request recipes the player has already unlocked — ordering a locked recipe
+  // would leave the player with no way to fulfill it.
   const maxRecipeLevel = Math.max(1, Math.min(playerLevel, forgeLevel));
   const eligible = ALL_RECIPES.filter((r) => {
     const matchesCategory = npc.preferredCategories.includes(r.category);
-    return matchesCategory && r.levelRequired <= maxRecipeLevel;
+    return matchesCategory && r.levelRequired <= maxRecipeLevel && unlockedRecipeIds.includes(r.id);
   });
+  // Fallback: any unlocked recipe at the player's level (ignores NPC category preference)
+  const fallback = ALL_RECIPES.filter((r) =>
+    r.levelRequired <= Math.max(1, playerLevel) && unlockedRecipeIds.includes(r.id),
+  );
   const recipe = eligible.length > 0
     ? eligible[Math.floor(Math.random() * eligible.length)]
-    : ALL_RECIPES.filter((r) => r.levelRequired <= Math.max(1, playerLevel))[0]
-      ?? ALL_RECIPES[0];
+    : fallback[0] ?? ALL_RECIPES[0];
 
   const budgetRange = npc.budgetMax - npc.budgetMin;
   const baseGold = Math.round(npc.budgetMin + Math.random() * budgetRange);
@@ -584,8 +593,8 @@ function generateNpcOrder(playerLevel: number, forgeLevel: number, extraDeadline
   let urgentBonusXp: number | undefined;
 
   if (isUrgent) {
-    // Short countdown: 10–30 minutes of real time
-    const urgentMinutes = 10 + Math.floor(Math.random() * 21);
+    // Short countdown: 20–45 minutes of real time
+    const urgentMinutes = 20 + Math.floor(Math.random() * 26);
     deadline = Date.now() + urgentMinutes * 60_000;
     // Higher base to reflect difficulty, plus a bonus stacked on top for on-time delivery
     goldReward = Math.round(baseGold * 1.6);
@@ -593,8 +602,8 @@ function generateNpcOrder(playerLevel: number, forgeLevel: number, extraDeadline
     urgentBonusGold = Math.round(baseGold * 1.4);
     urgentBonusXp = Math.round(baseXp * 1.5);
   } else {
-    // Regular deadline: 6–18 hours, plus any upgrade extension
-    const deadlineHours = 6 + Math.floor(Math.random() * 13) + extraDeadlineHours;
+    // Regular deadline: 2–8 hours, plus any upgrade extension
+    const deadlineHours = 2 + Math.floor(Math.random() * 7) + extraDeadlineHours;
     deadline = Date.now() + deadlineHours * 60 * 60 * 1000;
     goldReward = baseGold;
     xpReward = baseXp;
@@ -969,20 +978,57 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const orders = state.activeOrders.map((o) =>
         o.id === action.orderId ? { ...o, completed: true } : o,
       );
-      // Quest progress: deliver
+      // Quest progress: deliver — update then check for completion
       const qp = { ...state.questProgress };
+      const newCompletions: string[] = [];
+      let questPlayer = player;
+      let unlockedRegions = state.unlockedRegions;
+      let regionExploration = state.regionExploration;
+      let completedQuestIds = state.completedQuestIds;
+      let activeQuestIds = state.activeQuestIds;
+
       for (const qid of state.activeQuestIds) {
         const quest = ALL_QUESTS.find((q) => q.id === qid);
         if (!quest) continue;
+        const qProgress = { ...(qp[qid] ?? {}) };
+        let anyUpdated = false;
         for (const obj of quest.objectives) {
           if (obj.type === 'deliver') {
-            qp[qid] = { ...qp[qid], [obj.id]: Math.min(obj.required, (qp[qid]?.[obj.id] ?? 0) + 1) };
+            const prev = qProgress[obj.id] ?? 0;
+            if (prev < obj.required) {
+              qProgress[obj.id] = Math.min(obj.required, prev + 1);
+              anyUpdated = true;
+            }
           }
         }
+        if (anyUpdated) {
+          qp[qid] = qProgress;
+          const allDone = quest.objectives.every((obj) => (qProgress[obj.id] ?? 0) >= obj.required);
+          if (allDone) newCompletions.push(qid);
+        }
       }
+
+      // Apply quest completions
+      for (const qid of newCompletions) {
+        const quest = ALL_QUESTS.find((q) => q.id === qid);
+        if (!quest) continue;
+        questPlayer = levelUpPlayer({
+          ...questPlayer,
+          xp: questPlayer.xp + quest.rewards.xp,
+          gold: questPlayer.gold + quest.rewards.gold,
+          totalGoldEarned: questPlayer.totalGoldEarned + quest.rewards.gold,
+        });
+        if (quest.rewards.unlockRegion && !unlockedRegions.includes(quest.rewards.unlockRegion)) {
+          unlockedRegions = [...unlockedRegions, quest.rewards.unlockRegion];
+          regionExploration = { ...regionExploration, [quest.rewards.unlockRegion]: 0 };
+        }
+        completedQuestIds = [...completedQuestIds, qid];
+        activeQuestIds = activeQuestIds.filter((id) => id !== qid);
+      }
+
       const rep = { ...state.npcReputation };
       rep[order.npcId] = Math.min(100, (rep[order.npcId] ?? 50) + order.reputationReward);
-      return { ...state, player, craftedItems: items, activeOrders: orders, questProgress: qp, npcReputation: rep, showcasedItemIds: state.showcasedItemIds.filter((id) => id !== action.itemInstanceId) };
+      return { ...state, player: questPlayer, craftedItems: items, activeOrders: orders, questProgress: qp, npcReputation: rep, unlockedRegions, regionExploration, completedQuestIds, activeQuestIds, showcasedItemIds: state.showcasedItemIds.filter((id) => id !== action.itemInstanceId) };
     }
 
     // ── Quests ───────────────────────────────────────────────────────────────
@@ -1539,6 +1585,7 @@ interface GameContextType {
   getMarketPrice: (resourceId: string) => number;
   // Actions
   addResource: (resourceId: string, qty: number) => void;
+  harvestResource: (resourceId: string, qty: number) => void;
   removeResource: (resourceId: string, qty: number) => void;
   craftItem: (recipeId: string) => Item | null;
   craftItemWithScore: (recipeId: string, qualityScore: number, enigmaBonus?: boolean) => Item | null;
@@ -1755,18 +1802,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     // Always seed at least one order immediately if the queue is empty
     const deadlineExt = state.player.statUpgrades?.['order_deadline'] ?? 0;
     if (pending === 0) {
-      dispatch({ type: 'ADD_ORDER', order: generateNpcOrder(state.player.level, state.player.forgeLevel, deadlineExt) });
+      dispatch({ type: 'ADD_ORDER', order: generateNpcOrder(state.player.level, state.player.forgeLevel, deadlineExt, state.player.unlockedRecipeIds) });
     } else {
       // Generate on load if enough time has passed since last order
       const sinceLastOrder = Date.now() - state.lastOrderGeneratedAt;
       if (sinceLastOrder >= ORDER_INTERVAL_MS && pending < MAX_ORDERS) {
-        dispatch({ type: 'ADD_ORDER', order: generateNpcOrder(state.player.level, state.player.forgeLevel, deadlineExt) });
+        dispatch({ type: 'ADD_ORDER', order: generateNpcOrder(state.player.level, state.player.forgeLevel, deadlineExt, state.player.unlockedRecipeIds) });
       }
     }
     const t = setInterval(() => {
       const p = state.activeOrders.filter((o) => !o.completed).length;
       if (p < MAX_ORDERS) {
-        dispatch({ type: 'ADD_ORDER', order: generateNpcOrder(state.player.level, state.player.forgeLevel, deadlineExt) });
+        dispatch({ type: 'ADD_ORDER', order: generateNpcOrder(state.player.level, state.player.forgeLevel, deadlineExt, state.player.unlockedRecipeIds) });
       }
     }, ORDER_INTERVAL_MS);
     return () => clearInterval(t);
@@ -1958,6 +2005,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   // -------------------------------------------------------------------------
   const addResource = useCallback((resourceId: string, qty: number) => {
     dispatch({ type: 'ADD_RESOURCE', resourceId, qty });
+  }, []);
+
+  // harvestResource = addResource + quest-collect tracking, dispatched together
+  // inside GameContext (same pattern as craftItem) to avoid Reanimated closure issues.
+  const harvestResource = useCallback((resourceId: string, qty: number) => {
+    if (qty <= 0) return;
+    dispatch({ type: 'ADD_RESOURCE', resourceId, qty });
+    dispatch({ type: 'UPDATE_QUEST_PROGRESS', objectiveType: 'collect', targetId: resourceId, amount: qty });
   }, []);
 
   const removeResource = useCallback((resourceId: string, qty: number) => {
@@ -2342,7 +2397,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const cost = Math.max(30, Math.round(state.player.level * 8));
       if (state.player.gold < cost) return { success: false, cost };
       const deadlineExt = state.player.statUpgrades?.['order_deadline'] ?? 0;
-      const newOrder = generateNpcOrder(state.player.level, state.player.forgeLevel, deadlineExt);
+      const newOrder = generateNpcOrder(state.player.level, state.player.forgeLevel, deadlineExt, state.player.unlockedRecipeIds);
       dispatch({ type: 'REROLL_ORDER', orderId, newOrder, goldCost: cost });
       return { success: true, cost };
     },
@@ -2901,6 +2956,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const qty = reward.minQty + Math.floor(Math.random() * (reward.maxQty - reward.minQty + 1));
       const resources = [{ resourceId: reward.resourceId, qty }];
       dispatch({ type: 'COLLECT_HIDEOUT', slotId, regionId, resources });
+      // Hideout rewards count toward collect-type quest objectives
+      dispatch({ type: 'UPDATE_QUEST_PROGRESS', objectiveType: 'collect', targetId: reward.resourceId, amount: qty });
       return { success: true, rewards: resources };
     },
     [state.activeHideouts],
@@ -2975,6 +3032,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       getActiveQuests,
       getMarketPrice,
       addResource,
+      harvestResource,
       removeResource,
       craftItem,
       craftItemWithScore,
