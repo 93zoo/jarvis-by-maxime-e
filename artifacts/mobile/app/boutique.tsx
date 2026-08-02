@@ -22,6 +22,7 @@ import type { PurchasesPackage } from 'react-native-purchases';
 import { useSubscription, GOLD_PRODUCTS, RESOURCE_PRODUCTS } from '@/lib/revenuecat';
 import { useRewardedAds, ADS_UNLOCK_LEVEL } from '@/lib/rewardedAds';
 import { useGame } from '@/context/GameContext';
+import { WORKER_DEFINITIONS } from '@/data/workers';
 import { getLeaderboardApiBase } from '@/lib/leaderboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors } from '@/hooks/useColors';
@@ -267,6 +268,57 @@ export default function BoutiqueScreen() {
               Débloqué au niveau {ADS_UNLOCK_LEVEL} du forgeron — continue de forger !
             </Text>
           )}
+
+          {/* Travailleurs d'Élite — achetables en or */}
+          <Text style={[styles.sectionLabel, { color: '#9966CC' }]}>TRAVAILLEURS D'ÉLITE</Text>
+          {(['elite_miner', 'elite_lumberjack'] as const).map((eliteType) => {
+            const def = WORKER_DEFINITIONS[eliteType];
+            const alreadyHired = game.workers.filter((w) => w.type === eliteType).length;
+            const canAfford = game.player.gold >= def.hireCost;
+            return (
+              <View key={eliteType} style={[styles.card, { backgroundColor: colors.card, borderColor: '#9966CC55' }]}>
+                <View style={styles.cardRow}>
+                  <Text style={{ fontSize: 22 }}>{def.emoji}</Text>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={[styles.cardTitle, { color: colors.foreground }]}>{def.name}</Text>
+                      <View style={{ backgroundColor: '#9966CC33', borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 }}>
+                        <Text style={{ fontSize: 9, fontWeight: '800', color: '#B58CDF' }}>ÉLITE</Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.cardDesc, { color: colors.mutedForeground }]}>{def.description}</Text>
+                    {alreadyHired > 0 && (
+                      <Text style={[styles.cardDesc, { color: '#9966CC', marginTop: 3 }]}>
+                        {alreadyHired} en service · recrutez-en d'autres →
+                      </Text>
+                    )}
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={[
+                    styles.buyBtn,
+                    { backgroundColor: canAfford ? '#9966CC' : colors.muted },
+                  ]}
+                  onPress={() => {
+                    const result = game.hireWorker(eliteType);
+                    setFeedback(result.message);
+                    if (result.success) {
+                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                    } else {
+                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                    }
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.buyBtnText, { color: canAfford ? '#FFFFFF' : colors.mutedForeground }]}>
+                    {canAfford
+                      ? `Recruter · ${def.hireCost.toLocaleString()} or`
+                      : `Or insuffisant (${def.hireCost.toLocaleString()}g requis — vous avez ${game.player.gold.toLocaleString()}g)`}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })}
 
           {/* Premium */}
           <Text style={[styles.sectionLabel, { color: colors.primary }]}>FORGE PREMIUM</Text>

@@ -582,6 +582,8 @@ export interface SaveData {
   activeHideouts?: ActiveHideout[];
   /** Per-slot last-collected timestamps for hideout spawn rate calculation. */
   hideoutLastCollected?: Record<string, number>;
+  /** Guilde des Travailleurs idle workers. */
+  workers?: Worker[];
   lastSaved: number;
 }
 
@@ -589,6 +591,20 @@ export interface RegionHideoutSlot {
   id: string;
   spawnIntervalHours: number;
   rewardTable: RegionHideoutReward[];
+}
+
+// ---------------------------------------------------------------------------
+// Guilde des Travailleurs — Idle worker system
+// ---------------------------------------------------------------------------
+export type WorkerType = 'miner' | 'lumberjack' | 'elite_miner' | 'elite_lumberjack';
+
+export interface Worker {
+  id: string;
+  type: WorkerType;
+  level: number;
+  xp: number;
+  /** Timestamp (ms) when the worker last had their resources collected (or when hired) */
+  lastClaimedAt: number;
 }
 
 /** A currently active (spawned) hideout on the world map. */

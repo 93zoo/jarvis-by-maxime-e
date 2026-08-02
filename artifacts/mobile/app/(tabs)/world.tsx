@@ -31,6 +31,9 @@ import { useGame } from '@/context/GameContext';
 import { useColors } from '@/hooks/useColors';
 import AudioManager from '@/utils/AudioManager';
 import type { ActiveHideout, CraftOrder, RegionData, RegionEnemy, RegionResourceNode } from '@/types/game';
+import GuildeSection from '@/components/GuildeSection';
+import WorkerReturnModal, { type WorkerReturnEntry } from '@/components/WorkerReturnModal';
+import { computeWorkerHarvest, MIN_RECAP_MS } from '@/data/workers';
 
 // ─── Region metadata ──────────────────────────────────────────────────────────
 const REGION_COLORS: Record<string, string> = {
@@ -1223,6 +1226,7 @@ export default function WorldScreen() {
   const [collectResult, setCollectResult] = useState<{ drops: { resourceId: string; quantity: number }[]; regionCompleted: boolean; completionRewards?: { gold: number; playerXp: number; harvestXp: number; talentPoint: number } }>({ drops: [], regionCompleted: false });
   const [showCollectResult, setShowCollectResult] = useState(false);
   const [showMarket, setShowMarket] = useState(false);
+  const [workerReturnEntries, setWorkerReturnEntries] = useState<WorkerReturnEntry[]>([]);
 
   const headerTopPad = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPad = insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 96;
@@ -1236,6 +1240,21 @@ export default function WorldScreen() {
     const t = setInterval(tick, 60000);
     return () => clearInterval(t);
   }, []);
+
+  // Show return recap when the screen loads and workers have been busy
+  useEffect(() => {
+    if (!game.isLoaded || game.workers.length === 0) return;
+    const now = Date.now();
+    const entries: WorkerReturnEntry[] = game.workers
+      .filter((w) => now - w.lastClaimedAt >= MIN_RECAP_MS)
+      .map((w) => ({
+        worker: w,
+        result: computeWorkerHarvest(w.level, w.xp, w.type, w.lastClaimedAt, now),
+      }))
+      .filter((e) => e.result.resources.length > 0 || e.result.bonusResource != null);
+    if (entries.length > 0) setWorkerReturnEntries(entries);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game.isLoaded]);
 
   const handleRegionPress = useCallback((region: RegionData) => {
     const isUnlocked = game.unlockedRegions.includes(region.id);
@@ -1457,7 +1476,23 @@ export default function WorldScreen() {
           })}
         </View>
 
+        {/* ── Guilde des Travailleurs ── */}
+        <GuildeSection />
+
       </ScrollView>
+
+      {/* Worker return recap modal */}
+      <WorkerReturnModal
+        visible={workerReturnEntries.length > 0}
+        entries={workerReturnEntries}
+        getResourceName={(id) => game.getResourceById(id)?.name ?? id}
+        getResourceColor={(id) => game.getResourceById(id)?.color ?? '#888'}
+        onCollect={() => {
+          // Pass the exact precomputed result so granted rewards match what was displayed.
+          workerReturnEntries.forEach((e) => game.collectWorker(e.worker.id, e.result));
+          setWorkerReturnEntries([]);
+        }}
+      />
 
       <FouilleModal
         visible={fouilleTarget !== null}

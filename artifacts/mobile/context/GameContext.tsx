@@ -40,7 +40,15 @@ import type {
   SkillType,
   StatUpgradeDefinition,
   TalentData,
+  Worker,
+  WorkerType,
 } from '@/types/game';
+import {
+  WORKER_DEFINITIONS,
+  computeWorkerHarvest,
+  MAX_OFFLINE_MS,
+  type WorkerHarvestResult,
+} from '@/data/workers';
 import {
   applyUniqueVariance,
   generateUniqueTraits,
@@ -341,6 +349,8 @@ interface GameState {
   activeHideouts: ActiveHideout[];
   /** Per-slot last-collected timestamps for spawn rate calculation. */
   hideoutLastCollected: Record<string, number>;
+  /** Guilde des Travailleurs idle workers. */
+  workers: Worker[];
 }
 
 type GameAction =
@@ -408,7 +418,11 @@ type GameAction =
   | { type: 'UNPIN_FROM_SHOWCASE'; instanceId: string }
   | { type: 'SPAWN_HIDEOUT'; hideout: ActiveHideout }
   | { type: 'COLLECT_HIDEOUT'; slotId: string; regionId: string; resources: { resourceId: string; qty: number }[] }
-  | { type: 'EXPIRE_HIDEOUTS' };
+  | { type: 'EXPIRE_HIDEOUTS' }
+  // Guilde des Travailleurs
+  | { type: 'HIRE_WORKER'; workerType: WorkerType }
+  | { type: 'UPGRADE_WORKER'; workerId: string }
+  | { type: 'COLLECT_WORKER'; workerId: string; resources: { resourceId: string; qty: number }[]; bonusResource?: { resourceId: string; qty: number }; workerXpEarned: number; newLevel: number; newXp: number };
 
 function buildInitialPlayer(): Player {
   const skills = SKILL_TYPES.reduce(
@@ -558,6 +572,7 @@ function buildInitialState(): GameState {
     hasCompletedFirstForge: false,
     activeHideouts: [],
     hideoutLastCollected: {},
+    workers: [],
   };
 }
 
@@ -776,6 +791,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         hasCompletedFirstForge: s.hasCompletedFirstForge ?? ((s.craftedItems?.length ?? 0) > 0),
         activeHideouts: s.activeHideouts ?? [],
         hideoutLastCollected: s.hideoutLastCollected ?? {},
+        workers: s.workers ?? [],
       };
     }
     case 'RESET': {
@@ -1584,6 +1600,80 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, activeHideouts: filtered };
     }
 
+    // ── Guilde des Travailleurs ────────────────────────────────────────────
+    case 'HIRE_WORKER': {
+      const def = WORKER_DEFINITIONS[action.workerType];
+      if (!def) return state;
+      if (state.player.gold < def.hireCost) return state;
+      const newWorker: Worker = {
+        id: makeId(),
+        type: action.workerType,
+        level: 1,
+        xp: 0,
+        lastClaimedAt: Date.now(),
+      };
+      return {
+        ...state,
+        player: { ...state.player, gold: state.player.gold - def.hireCost },
+        workers: [...(state.workers ?? []), newWorker],
+      };
+    }
+
+    case 'UPGRADE_WORKER': {
+      const workers = state.workers ?? [];
+      const idx = workers.findIndex((w) => w.id === action.workerId);
+      if (idx < 0) return state;
+      const worker = workers[idx];
+      const def = WORKER_DEFINITIONS[worker.type];
+      if (worker.level >= 10) return state;
+      const cost = def.upgradeCosts[worker.level - 1];
+      if (cost == null || state.player.gold < cost) return state;
+      const upgraded = { ...worker, level: worker.level + 1 };
+      const updated = [...workers];
+      updated[idx] = upgraded;
+      return {
+        ...state,
+        player: { ...state.player, gold: state.player.gold - cost },
+        workers: updated,
+      };
+    }
+
+    case 'COLLECT_WORKER': {
+      const workers = state.workers ?? [];
+      const idx = workers.findIndex((w) => w.id === action.workerId);
+      if (idx < 0) return state;
+
+      // Update worker level/xp/lastClaimedAt
+      const updated = [...workers];
+      updated[idx] = {
+        ...workers[idx],
+        level: action.newLevel,
+        xp: action.newXp,
+        lastClaimedAt: Date.now(),
+      };
+
+      // Add resources to inventory
+      const allDrops = [
+        ...action.resources,
+        ...(action.bonusResource ? [action.bonusResource] : []),
+      ];
+      let inv = [...state.inventory];
+      for (const drop of allDrops) {
+        const invIdx = inv.findIndex((i) => i.resourceId === drop.resourceId);
+        if (invIdx >= 0) {
+          inv[invIdx] = { ...inv[invIdx], quantity: inv[invIdx].quantity + drop.qty };
+        } else {
+          inv.push({ resourceId: drop.resourceId, quantity: drop.qty });
+        }
+      }
+
+      return {
+        ...state,
+        workers: updated,
+        inventory: inv,
+      };
+    }
+
     default:
       return state;
   }
@@ -1673,6 +1763,11 @@ interface GameContextType {
   activeHideouts: ActiveHideout[];
   collectHideout: (slotId: string, regionId: string) => { success: boolean; rewards: { resourceId: string; qty: number }[] };
   fightForMaterials: (regionId: string, playerTotal: number, enemyTotal: number, enemyId?: string) => CombatResult;
+  // Guilde des Travailleurs
+  workers: Worker[];
+  hireWorker: (type: WorkerType) => { success: boolean; message: string };
+  upgradeWorker: (workerId: string) => { success: boolean; message: string };
+  collectWorker: (workerId: string, precomputed?: WorkerHarvestResult) => WorkerHarvestResult;
   saveGame: () => Promise<'ok' | 'error'>;
   resetGame: () => void;
   completeFirstForgeTutorial: () => Promise<void>;
@@ -1938,6 +2033,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           hasCompletedFirstForge: state.hasCompletedFirstForge,
           activeHideouts: state.activeHideouts ?? [],
           hideoutLastCollected: state.hideoutLastCollected ?? {},
+          workers: state.workers ?? [],
           lastSaved: now,
         };
         await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(save));
@@ -2046,6 +2142,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         hasCompletedFirstForge: state.hasCompletedFirstForge,
         activeHideouts: state.activeHideouts ?? [],
         hideoutLastCollected: state.hideoutLastCollected ?? {},
+        workers: state.workers ?? [],
         lastSaved: Date.now(),
       };
       AsyncStorage.setItem(SAVE_KEY, JSON.stringify(immediteSave)).catch(() => {
@@ -2695,6 +2792,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       hasCompletedFirstForge: state.hasCompletedFirstForge,
       activeHideouts: state.activeHideouts ?? [],
       hideoutLastCollected: state.hideoutLastCollected ?? {},
+      workers: state.workers ?? [],
       lastSaved: now,
     };
     try {
@@ -2736,6 +2834,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         hasCompletedFirstForge: state.hasCompletedFirstForge,
         activeHideouts: state.activeHideouts ?? [],
         hideoutLastCollected: state.hideoutLastCollected ?? {},
+        workers: state.workers ?? [],
         lastSaved: Date.now(),
       };
       const res = await fetch(`${base}/save`, {
@@ -2807,6 +2906,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       hasCompletedFirstForge: state.hasCompletedFirstForge,
       activeHideouts: state.activeHideouts ?? [],
       hideoutLastCollected: state.hideoutLastCollected ?? {},
+      workers: state.workers ?? [],
       lastSaved: now,
     };
     dispatch({ type: 'COMPLETE_FIRST_FORGE_TUTORIAL' });
@@ -3087,6 +3187,58 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   );
 
   // -------------------------------------------------------------------------
+  // Guilde des Travailleurs callbacks
+  // -------------------------------------------------------------------------
+  const hireWorker = useCallback((workerType: WorkerType): { success: boolean; message: string } => {
+    const def = WORKER_DEFINITIONS[workerType];
+    if (!def) return { success: false, message: 'Type inconnu' };
+    if (state.player.gold < def.hireCost) {
+      return { success: false, message: `Or insuffisant (${def.hireCost}g requis)` };
+    }
+    dispatch({ type: 'HIRE_WORKER', workerType });
+    return { success: true, message: `${def.name} recruté !` };
+  }, [state.workers, state.player.gold]);
+
+  const upgradeWorker = useCallback((workerId: string): { success: boolean; message: string } => {
+    const worker = (state.workers ?? []).find((w) => w.id === workerId);
+    if (!worker) return { success: false, message: 'Ouvrier introuvable' };
+    const def = WORKER_DEFINITIONS[worker.type];
+    if (worker.level >= 10) return { success: false, message: 'Niveau maximum atteint' };
+    const cost = def.upgradeCosts[worker.level - 1];
+    if (cost == null) return { success: false, message: 'Niveau maximum atteint' };
+    if (state.player.gold < cost) {
+      return { success: false, message: `Or insuffisant (${cost}g requis)` };
+    }
+    dispatch({ type: 'UPGRADE_WORKER', workerId });
+    return { success: true, message: `${def.name} amélioré → Niv.${worker.level + 1} !` };
+  }, [state.workers, state.player.gold]);
+
+  const collectWorker = useCallback((workerId: string, precomputed?: WorkerHarvestResult): WorkerHarvestResult => {
+    const worker = (state.workers ?? []).find((w) => w.id === workerId);
+    if (!worker) {
+      return { resources: [], workerXpEarned: 0, playerXpEarned: 0, elapsedMs: 0, leveledUp: false, newLevel: 1, newXp: 0 };
+    }
+    // Use the caller-supplied result (e.g. from the return-recap modal) so that
+    // the resources displayed and the resources granted are always identical.
+    // When no precomputed result is supplied (e.g. manual "Récolter" tap),
+    // compute fresh from the current timestamp.
+    const result = precomputed ?? computeWorkerHarvest(worker.level, worker.xp, worker.type, worker.lastClaimedAt, Date.now());
+    dispatch({
+      type: 'COLLECT_WORKER',
+      workerId,
+      resources: result.resources,
+      bonusResource: result.bonusResource,
+      workerXpEarned: result.workerXpEarned,
+      newLevel: result.newLevel,
+      newXp: result.newXp,
+    });
+    if (result.playerXpEarned > 0) {
+      dispatch({ type: 'ADD_PLAYER_XP', amount: result.playerXpEarned });
+    }
+    return result;
+  }, [state.workers]);
+
+  // -------------------------------------------------------------------------
   // Context value (memoized to avoid re-renders)
   // -------------------------------------------------------------------------
   const value = useMemo<GameContextType>(
@@ -3202,6 +3354,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       // Hideouts
       activeHideouts: state.activeHideouts ?? [],
       collectHideout,
+      // Guilde des Travailleurs
+      workers: state.workers ?? [],
+      hireWorker,
+      upgradeWorker,
+      collectWorker,
     }),
     // Include cloud sync reactive state so status transitions propagate to consumers
     // eslint-disable-next-line react-hooks/exhaustive-deps
