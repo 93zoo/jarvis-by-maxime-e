@@ -1,50 +1,17 @@
 import { Router, type Request } from "express";
-import fs from "node:fs/promises";
 import crypto from "node:crypto";
-import path from "node:path";
+import {
+  db,
+  leaderboardEntriesTable,
+  leaderboardAwardsTable,
+  leaderboardSettledTable,
+  type LeaderboardEntry,
+  type LeaderboardAward,
+} from "@workspace/db";
+import { and, eq, lt, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
 const router = Router();
-
-// Leaderboard data lives next to the cloud saves.
-const DATA_DIR = path.join(process.cwd(), ".saves");
-const LB_FILE = path.join(DATA_DIR, "leaderboard.json");
-
-interface PlayerEntry {
-  name: string;
-  level: number;
-  /** Last cumulative counter reported by the client (player XP earned + forge XP earned). */
-  lastTotal: number;
-  /** Points gained per day, keyed by "YYYY-MM-DD" (UTC). */
-  days: Record<string, number>;
-  updatedAt: string;
-  /**
-   * Secret bound to this playerId on first authenticated report (trust on
-   * first use). Required afterwards to report scores or claim rewards.
-   */
-  token?: string;
-}
-
-type LeaderboardData = Record<string, PlayerEntry>;
-
-// Serialize writes so concurrent reports never clobber each other.
-let writeChain: Promise<void> = Promise.resolve();
-
-async function readData(): Promise<LeaderboardData> {
-  try {
-    const raw = await fs.readFile(LB_FILE, "utf-8");
-    return JSON.parse(raw) as LeaderboardData;
-  } catch {
-    return {};
-  }
-}
-
-async function writeData(data: LeaderboardData): Promise<void> {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  const tmp = `${LB_FILE}.tmp`;
-  await fs.writeFile(tmp, JSON.stringify(data), "utf-8");
-  await fs.rename(tmp, LB_FILE);
-}
 
 function dayKey(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -90,7 +57,7 @@ function tokensMatch(a: string, b: string): boolean {
  *   nothing protected to read for them).
  */
 function authenticateOwner(
-  entry: PlayerEntry | undefined,
+  entry: LeaderboardEntry | undefined,
   token: string,
   opts: { allowMissingEntry?: boolean } = {},
 ): boolean {
@@ -102,31 +69,9 @@ function authenticateOwner(
 
 // ── Rewards for daily/weekly top 3 ───────────────────────────────────────────
 
-const AWARDS_FILE = path.join(DATA_DIR, "leaderboard-awards.json");
-
 interface AwardMaterial {
   id: string;
   qty: number;
-}
-
-interface Award {
-  id: string;
-  playerId: string;
-  name: string;
-  period: "daily" | "weekly";
-  /** "YYYY-MM-DD" for daily, "YYYY-Www" for weekly. */
-  periodKey: string;
-  rank: number;
-  gold: number;
-  materials: AwardMaterial[];
-  title: string;
-  claimed: boolean;
-  createdAt: string;
-}
-
-interface AwardsData {
-  settled: { daily: string[]; weekly: string[] };
-  awards: Award[];
 }
 
 const REWARD_TABLE: Record<"daily" | "weekly", { gold: number; materials: AwardMaterial[]; title: string }[]> = {
@@ -142,26 +87,6 @@ const REWARD_TABLE: Record<"daily" | "weekly", { gold: number; materials: AwardM
   ],
 };
 
-async function readAwards(): Promise<AwardsData> {
-  try {
-    const raw = await fs.readFile(AWARDS_FILE, "utf-8");
-    const parsed = JSON.parse(raw) as Partial<AwardsData>;
-    return {
-      settled: { daily: parsed.settled?.daily ?? [], weekly: parsed.settled?.weekly ?? [] },
-      awards: parsed.awards ?? [],
-    };
-  } catch {
-    return { settled: { daily: [], weekly: [] }, awards: [] };
-  }
-}
-
-async function writeAwards(data: AwardsData): Promise<void> {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  const tmp = `${AWARDS_FILE}.tmp`;
-  await fs.writeFile(tmp, JSON.stringify(data), "utf-8");
-  await fs.rename(tmp, AWARDS_FILE);
-}
-
 /** ISO week key, e.g. "2026-W31" (weeks run Monday–Sunday, UTC). */
 function weekKey(d: Date): string {
   const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
@@ -173,13 +98,16 @@ function weekKey(d: Date): string {
   return `${date.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
 }
 
-function rankTop3(data: LeaderboardData, dayKeys: string[]): { playerId: string; name: string; points: number }[] {
-  return Object.entries(data)
+function rankTop3(
+  entries: LeaderboardEntry[],
+  dayKeys: string[],
+): { playerId: string; name: string; points: number }[] {
+  return entries
     // Only token-bound entries are eligible for rewards: awards for entries
     // nobody can prove ownership of would be stealable via first-come binding.
-    .filter(([, e]) => e.token)
-    .map(([id, e]) => ({
-      playerId: id,
+    .filter((e) => e.token)
+    .map((e) => ({
+      playerId: e.playerId,
       name: e.name,
       points: dayKeys.reduce((sum, k) => sum + (e.days[k] ?? 0), 0),
     }))
@@ -191,83 +119,80 @@ function rankTop3(data: LeaderboardData, dayKeys: string[]): { playerId: string;
 /**
  * Lazily settle any finished periods (yesterday's daily race, last ISO week's
  * weekly race). Creates claimable awards for the top 3 of each finished period.
- * Runs inside the write chain; idempotent thanks to the `settled` markers.
+ * Idempotent and safe across concurrent instances: the settled marker is
+ * claimed with an INSERT that only one transaction can win.
  */
 async function settleFinishedPeriods(): Promise<void> {
-  const data = await readData();
-  const awards = await readAwards();
   const now = new Date();
-  let dirty = false;
+
+  const candidates: { period: "daily" | "weekly"; periodKey: string; dayKeys: string[] }[] = [];
 
   // Daily: settle yesterday (UTC) once today has started.
   const yesterday = dayKey(new Date(now.getTime() - 86_400_000));
-  if (!awards.settled.daily.includes(yesterday)) {
-    const top = rankTop3(data, [yesterday]);
-    top.forEach((r, i) => {
-      const reward = REWARD_TABLE.daily[i];
-      awards.awards.push({
-        id: `daily:${yesterday}:${i + 1}`,
-        playerId: r.playerId,
-        name: r.name,
-        period: "daily",
-        periodKey: yesterday,
-        rank: i + 1,
-        gold: reward.gold,
-        materials: reward.materials,
-        title: reward.title,
-        claimed: false,
-        createdAt: now.toISOString(),
-      });
-    });
-    awards.settled.daily.push(yesterday);
-    dirty = true;
-  }
+  candidates.push({ period: "daily", periodKey: yesterday, dayKeys: [yesterday] });
 
   // Weekly: settle the previous ISO week once a new week has started.
   const lastWeek = weekKey(new Date(now.getTime() - 7 * 86_400_000));
-  if (lastWeek !== weekKey(now) && !awards.settled.weekly.includes(lastWeek)) {
-    // Collect the day keys of the previous ISO week from the last 14 days.
+  if (lastWeek !== weekKey(now)) {
     const keys: string[] = [];
     for (let i = 1; i <= 14; i++) {
       const d = new Date(now.getTime() - i * 86_400_000);
       if (weekKey(d) === lastWeek) keys.push(dayKey(d));
     }
-    const top = rankTop3(data, keys);
-    top.forEach((r, i) => {
-      const reward = REWARD_TABLE.weekly[i];
-      awards.awards.push({
-        id: `weekly:${lastWeek}:${i + 1}`,
-        playerId: r.playerId,
-        name: r.name,
-        period: "weekly",
-        periodKey: lastWeek,
-        rank: i + 1,
-        gold: reward.gold,
-        materials: reward.materials,
-        title: reward.title,
-        claimed: false,
-        createdAt: now.toISOString(),
-      });
-    });
-    awards.settled.weekly.push(lastWeek);
-    dirty = true;
+    candidates.push({ period: "weekly", periodKey: lastWeek, dayKeys: keys });
   }
 
-  if (dirty) {
-    // Keep the file small: cap the settled markers and drop claimed awards older than 30 days.
-    awards.settled.daily = awards.settled.daily.slice(-30);
-    awards.settled.weekly = awards.settled.weekly.slice(-10);
-    const cutoff = now.getTime() - 30 * 86_400_000;
-    awards.awards = awards.awards.filter((a) => !a.claimed || Date.parse(a.createdAt) > cutoff);
-    await writeAwards(awards);
+  for (const c of candidates) {
+    await db.transaction(async (tx) => {
+      // Claim the settlement marker; if another instance already settled this
+      // period, the insert affects no rows and we skip award creation.
+      const claimed = await tx
+        .insert(leaderboardSettledTable)
+        .values({ period: c.period, periodKey: c.periodKey })
+        .onConflictDoNothing()
+        .returning({ periodKey: leaderboardSettledTable.periodKey });
+      if (claimed.length === 0) return;
+
+      const entries = await tx.select().from(leaderboardEntriesTable);
+      const top = rankTop3(entries, c.dayKeys);
+      if (top.length > 0) {
+        await tx
+          .insert(leaderboardAwardsTable)
+          .values(
+            top.map((r, i) => {
+              const reward = REWARD_TABLE[c.period][i];
+              return {
+                id: `${c.period}:${c.periodKey}:${i + 1}`,
+                playerId: r.playerId,
+                name: r.name,
+                period: c.period,
+                periodKey: c.periodKey,
+                rank: i + 1,
+                gold: reward.gold,
+                materials: reward.materials,
+                title: reward.title,
+                claimed: false,
+                createdAt: now,
+              };
+            }),
+          )
+          .onConflictDoNothing();
+      }
+
+      // Housekeeping: drop claimed awards older than 30 days.
+      const cutoff = new Date(now.getTime() - 30 * 86_400_000);
+      await tx
+        .delete(leaderboardAwardsTable)
+        .where(and(eq(leaderboardAwardsTable.claimed, true), lt(leaderboardAwardsTable.createdAt, cutoff)));
+    });
   }
 }
 
 /** Latest title won by each player (most recent award wins, weekly beats daily on ties). */
-function latestTitles(awards: Award[]): Record<string, string> {
+function latestTitles(awards: LeaderboardAward[]): Record<string, string> {
   const titles: Record<string, string> = {};
   const sorted = [...awards].sort((a, b) => {
-    const t = Date.parse(a.createdAt) - Date.parse(b.createdAt);
+    const t = a.createdAt.getTime() - b.createdAt.getTime();
     if (t !== 0) return t;
     return a.period === "weekly" ? 1 : -1; // weekly last => wins
   });
@@ -275,79 +200,96 @@ function latestTitles(awards: Award[]): Record<string, string> {
   return titles;
 }
 
-/** Run a job serialized on the write chain and get its result. */
-function onWriteChain<T>(job: () => Promise<T>): Promise<T> {
-  const result = writeChain.then(job);
-  writeChain = result.then(() => undefined, () => undefined);
-  return result;
-}
-
 // ── POST /api/leaderboard/report ─────────────────────────────────────────────
 // Body: { playerId, name, level, totalXP }
 // totalXP is a lifetime cumulative counter; the server banks the positive delta
 // into today's bucket. Idempotent for repeated identical reports.
-router.post("/leaderboard/report", (req, res) => {
-  const { playerId, name, level, totalXP } = req.body as {
-    playerId?: string;
-    name?: string;
-    level?: number;
-    totalXP?: number;
-  };
+router.post("/leaderboard/report", async (req, res) => {
+  try {
+    const { playerId, name, level, totalXP } = req.body as {
+      playerId?: string;
+      name?: string;
+      level?: number;
+      totalXP?: number;
+    };
 
-  const safeId = sanitizeId(playerId);
-  const total = Number(totalXP);
-  const token = tokenFrom(req);
-  if (!safeId || !Number.isFinite(total) || total < 0) {
-    res.status(400).json({ error: "playerId and a non-negative totalXP are required" });
-    return;
-  }
+    const safeId = sanitizeId(playerId);
+    const total = Number(totalXP);
+    const token = tokenFrom(req);
+    if (!safeId || !Number.isFinite(total) || total < 0) {
+      res.status(400).json({ error: "playerId and a non-negative totalXP are required" });
+      return;
+    }
+    if (!token) {
+      res.status(403).json({ error: "Player token required" });
+      return;
+    }
 
-  writeChain = writeChain
-    .then(async () => {
-      const data = await readData();
-      const today = dayKey(new Date());
-      let prev = data[safeId] as PlayerEntry | undefined;
+    const banked = await db.transaction(async (tx) => {
+      // Lock the row so concurrent reports for the same player serialize.
+      const [locked] = await tx
+        .select()
+        .from(leaderboardEntriesTable)
+        .where(eq(leaderboardEntriesTable.playerId, safeId))
+        .for("update")
+        .limit(1);
+      let prev: LeaderboardEntry | undefined = locked;
       // Legacy entry without a bound token: nobody can prove ownership, so
       // re-anchor it as a fresh identity — bind the caller's token but wipe
       // banked points. Hijacking such an entry therefore yields nothing.
       const rebindingLegacy = prev !== undefined && !prev.token;
       if (rebindingLegacy) prev = undefined;
       if (!rebindingLegacy && !authenticateOwner(prev, token, { allowMissingEntry: true })) {
-        res.status(403).json({ error: "Invalid player token" });
-        return;
+        return null; // signals 403
       }
-      if (!token) {
-        res.status(403).json({ error: "Player token required" });
-        return;
-      }
+      const today = dayKey(new Date());
       // First report (or counter reset after game reset): start fresh, no banked points.
       // Clamp per-report gains to blunt trivial spoofing (client is untrusted;
       // a real anti-cheat needs authenticated identities — tracked separately).
       const MAX_DELTA_PER_REPORT = 20_000;
       const delta = prev ? Math.min(MAX_DELTA_PER_REPORT, Math.max(0, total - prev.lastTotal)) : 0;
-      const days = { ...(prev?.days ?? {}) };
+      let days: Record<string, number> = { ...(prev?.days ?? {}) };
       if (delta > 0) days[today] = (days[today] ?? 0) + delta;
-      // Counter went backwards => player reset their game; re-anchor.
-      const entry: PlayerEntry = {
+      // Prune buckets older than 8 days to keep the row small.
+      const keep = new Set(periodKeys("weekly").concat(dayKey(new Date(Date.now() - 7 * 86_400_000))));
+      days = Object.fromEntries(Object.entries(days).filter(([k]) => keep.has(k)));
+
+      const entry = {
+        playerId: safeId,
         name: String(name ?? prev?.name ?? "Forgeron").slice(0, 24) || "Forgeron",
         level: Number.isFinite(Number(level)) ? Math.max(1, Math.floor(Number(level))) : prev?.level ?? 1,
         lastTotal: total,
         days,
-        updatedAt: new Date().toISOString(),
+        updatedAt: new Date(),
         // Verified above (or freshly bound for a new/re-anchored identity).
         token: prev?.token ?? token,
       };
-      // Prune buckets older than 8 days to keep the file small.
-      const keep = new Set(periodKeys("weekly").concat(dayKey(new Date(Date.now() - 7 * 86_400_000))));
-      entry.days = Object.fromEntries(Object.entries(entry.days).filter(([k]) => keep.has(k)));
-      data[safeId] = entry;
-      await writeData(data);
-      res.json({ success: true, banked: delta });
-    })
-    .catch((err) => {
-      logger.error(err, "leaderboard report error");
-      if (!res.headersSent) res.status(500).json({ error: "Failed to record score" });
+      await tx
+        .insert(leaderboardEntriesTable)
+        .values(entry)
+        .onConflictDoUpdate({
+          target: leaderboardEntriesTable.playerId,
+          set: {
+            name: entry.name,
+            level: entry.level,
+            lastTotal: entry.lastTotal,
+            days: entry.days,
+            updatedAt: entry.updatedAt,
+            token: entry.token,
+          },
+        });
+      return delta;
     });
+
+    if (banked === null) {
+      res.status(403).json({ error: "Invalid player token" });
+      return;
+    }
+    res.json({ success: true, banked });
+  } catch (err) {
+    logger.error(err, "leaderboard report error");
+    if (!res.headersSent) res.status(500).json({ error: "Failed to record score" });
+  }
 });
 
 // ── GET /api/leaderboard?period=daily|weekly&playerId=... ────────────────────
@@ -357,18 +299,18 @@ router.get("/leaderboard", async (req, res) => {
     const period = req.query.period === "weekly" ? "weekly" : "daily";
     const selfId = sanitizeId(req.query.playerId);
     const keys = periodKeys(period);
-    await onWriteChain(() => settleFinishedPeriods()).catch((err) => {
+    await settleFinishedPeriods().catch((err) => {
       logger.error(err, "leaderboard settle error");
     });
-    const data = await readData();
-    const titles = latestTitles((await readAwards()).awards);
+    const entries = await db.select().from(leaderboardEntriesTable);
+    const titles = latestTitles(await db.select().from(leaderboardAwardsTable));
 
-    const rows = Object.entries(data)
-      .map(([id, e]) => ({
-        playerId: id,
+    const rows = entries
+      .map((e) => ({
+        playerId: e.playerId,
         name: e.name,
         level: e.level,
-        title: titles[id] ?? null,
+        title: titles[e.playerId] ?? null,
         points: keys.reduce((sum, k) => sum + (e.days[k] ?? 0), 0),
       }))
       .filter((r) => r.points > 0)
@@ -396,18 +338,26 @@ router.get("/leaderboard/rewards", async (req, res) => {
       return;
     }
     const token = tokenFrom(req);
-    await onWriteChain(() => settleFinishedPeriods());
+    await settleFinishedPeriods();
     // No entry yet (player never reported a score): nothing to steal —
     // allow reading the (necessarily empty) reward list.
-    const entry = (await readData())[selfId];
+    const [entry] = await db
+      .select()
+      .from(leaderboardEntriesTable)
+      .where(eq(leaderboardEntriesTable.playerId, selfId))
+      .limit(1);
     if (!authenticateOwner(entry, token, { allowMissingEntry: true })) {
       res.status(403).json({ error: "Invalid player token" });
       return;
     }
-    const awards = await readAwards();
-    const pending = awards.awards.filter((a) => a.playerId === selfId && !a.claimed);
-    const title = latestTitles(awards.awards)[selfId] ?? null;
-    res.json({ success: true, pending, title });
+    const awards = await db.select().from(leaderboardAwardsTable);
+    const pending = awards.filter((a) => a.playerId === selfId && !a.claimed);
+    const title = latestTitles(awards)[selfId] ?? null;
+    res.json({
+      success: true,
+      pending: pending.map((a) => ({ ...a, createdAt: a.createdAt.toISOString() })),
+      title,
+    });
   } catch (err) {
     logger.error(err, "leaderboard rewards read error");
     res.status(500).json({ error: "Failed to load rewards" });
@@ -417,43 +367,65 @@ router.get("/leaderboard/rewards", async (req, res) => {
 // ── POST /api/leaderboard/rewards/claim ──────────────────────────────────────
 // Body: { playerId, awardId }. Marks the award claimed exactly once and
 // returns its contents so the client can grant gold/materials in-game.
-router.post("/leaderboard/rewards/claim", (req, res) => {
-  const { playerId, awardId } = req.body as { playerId?: string; awardId?: string };
-  const selfId = sanitizeId(playerId);
-  const id = String(awardId ?? "").slice(0, 64);
-  const token = tokenFrom(req);
-  if (!selfId || !id) {
-    res.status(400).json({ error: "playerId and awardId are required" });
-    return;
-  }
-  onWriteChain(async () => {
-    // Authorization: the caller must hold the secret bound to the award
-    // owner's leaderboard entry — knowing a playerId/awardId is not enough.
-    const awards = await readAwards();
-    const award = awards.awards.find((a) => a.id === id && a.playerId === selfId);
-    if (!award) {
+router.post("/leaderboard/rewards/claim", async (req, res) => {
+  try {
+    const { playerId, awardId } = req.body as { playerId?: string; awardId?: string };
+    const selfId = sanitizeId(playerId);
+    const id = String(awardId ?? "").slice(0, 64);
+    const token = tokenFrom(req);
+    if (!selfId || !id) {
+      res.status(400).json({ error: "playerId and awardId are required" });
+      return;
+    }
+
+    const outcome = await db.transaction(async (tx) => {
+      // Authorization: the caller must hold the secret bound to the award
+      // owner's leaderboard entry — knowing a playerId/awardId is not enough.
+      const [award] = await tx
+        .select()
+        .from(leaderboardAwardsTable)
+        .where(and(eq(leaderboardAwardsTable.id, id), eq(leaderboardAwardsTable.playerId, selfId)))
+        .for("update")
+        .limit(1);
+      if (!award) return { status: 404 as const };
+      // A claim always targets an existing winner: strict token match required
+      // (awards are only ever settled for token-bound entries).
+      const [entry] = await tx
+        .select()
+        .from(leaderboardEntriesTable)
+        .where(eq(leaderboardEntriesTable.playerId, award.playerId))
+        .limit(1);
+      if (!authenticateOwner(entry, token)) return { status: 403 as const };
+      if (award.claimed) {
+        // Idempotent for the rightful owner: repeating the claim returns the
+        // same payload (the client credits at most once via its own state).
+        return { status: 200 as const, award, alreadyClaimed: true };
+      }
+      await tx
+        .update(leaderboardAwardsTable)
+        .set({ claimed: true })
+        .where(eq(leaderboardAwardsTable.id, award.id));
+      return { status: 200 as const, award: { ...award, claimed: true }, alreadyClaimed: false };
+    });
+
+    if (outcome.status === 404) {
       res.status(404).json({ error: "Award not found" });
       return;
     }
-    // A claim always targets an existing winner: strict token match required
-    // (awards are only ever settled for token-bound entries).
-    if (!authenticateOwner((await readData())[award.playerId], token)) {
+    if (outcome.status === 403) {
       res.status(403).json({ error: "Invalid player token" });
       return;
     }
-    if (award.claimed) {
-      // Idempotent for the rightful owner: repeating the claim returns the
-      // same payload (the client credits at most once via its own state).
-      res.json({ success: true, reward: award, alreadyClaimed: true });
-      return;
-    }
-    award.claimed = true;
-    await writeAwards(awards);
-    res.json({ success: true, reward: award });
-  }).catch((err) => {
+    const reward = { ...outcome.award, createdAt: outcome.award.createdAt.toISOString() };
+    res.json(
+      outcome.alreadyClaimed
+        ? { success: true, reward, alreadyClaimed: true }
+        : { success: true, reward },
+    );
+  } catch (err) {
     logger.error(err, "leaderboard reward claim error");
     if (!res.headersSent) res.status(500).json({ error: "Failed to claim reward" });
-  });
+  }
 });
 
 export default router;
