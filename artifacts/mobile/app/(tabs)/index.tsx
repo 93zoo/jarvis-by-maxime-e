@@ -341,6 +341,50 @@ function QualityInfoSheet({
 // ─── Orders Modal ─────────────────────────────────────────────────────────────
 const QUALITY_ORDER_UI: Record<string, number> = { poor: 0, normal: 1, good: 2, excellent: 3, legendary: 4 };
 
+/**
+ * Greedy inventory-constrained count of how many accepted, non-expired orders
+ * can actually be fulfilled given current craftedItems.
+ *
+ * Each crafted item can satisfy at most one order. We sort orders by easiest
+ * quality requirement first (ascending), and for each order we claim the
+ * lowest-quality eligible item — this maximises the number of orders filled.
+ */
+function computeFulfillableCount(
+  orders: { id: string; accepted: boolean; completed: boolean; deadline: number; requestedCategory: string; minQuality: string }[],
+  craftedItems: { instanceId: string; category: string; quality: string }[],
+  nowMs: number,
+): number {
+  const accepted = orders.filter((o) => o.accepted && !o.completed && o.deadline > nowMs);
+  // Sort easiest quality requirement first to maximise throughput
+  const sorted = [...accepted].sort(
+    (a, b) => (QUALITY_ORDER_UI[a.minQuality] ?? 0) - (QUALITY_ORDER_UI[b.minQuality] ?? 0),
+  );
+  // Track which crafted items are still available (by instanceId)
+  const available = new Map<string, { instanceId: string; category: string; quality: string }>(
+    craftedItems.map((i) => [i.instanceId, i]),
+  );
+  let count = 0;
+  for (const order of sorted) {
+    // Find the lowest-quality eligible item to preserve high-quality items for harder orders
+    let bestId: string | null = null;
+    let bestRank = Infinity;
+    for (const [id, item] of available) {
+      if (item.category !== order.requestedCategory) continue;
+      const rank = QUALITY_ORDER_UI[item.quality] ?? 0;
+      if (rank < (QUALITY_ORDER_UI[order.minQuality] ?? 0)) continue;
+      if (rank < bestRank) {
+        bestRank = rank;
+        bestId = id;
+      }
+    }
+    if (bestId !== null) {
+      available.delete(bestId);
+      count++;
+    }
+  }
+  return count;
+}
+
 const oStyles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
@@ -1611,6 +1655,10 @@ export default function ForgeScreen() {
   const pendingCount = pendingOrders.length;
   const upgradeLevel = Object.values(game.forgeUpgrades).reduce((a, b) => a + b, 0);
 
+  // Count accepted orders that can be delivered right now from current inventory.
+  // Uses inventory-constrained matching so one item is never counted twice.
+  const fulfillableCount = computeFulfillableCount(pendingOrders, game.craftedItems, Date.now());
+
   return (
     <View style={[styles.container, { backgroundColor: MEDIEVAL.steelDark }]}>
       {/* ── Photorealistic forge backdrop (ForgeBackdrop: image + effects) ── */}
@@ -1682,11 +1730,16 @@ export default function ForgeScreen() {
             onPress={() => setShowOrdersModal(true)}
             activeOpacity={0.8}
           >
-            <Feather name="inbox" size={13} color={MEDIEVAL.textDim} />
+            <Feather name="inbox" size={13} color={fulfillableCount > 0 ? '#4CAF50' : MEDIEVAL.textDim} />
             {pendingCount > 0 && (
               <View style={md.headerBadge}>
                 <Text style={md.headerBadgeText}>{pendingCount}</Text>
               </View>
+            )}
+            {fulfillableCount > 0 && (
+              <Text style={{ fontSize: 10, fontWeight: '800', color: '#4CAF50' }}>
+                {fulfillableCount} prête{fulfillableCount > 1 ? 's' : ''}
+              </Text>
             )}
             {(() => {
               const urgentCount = pendingOrders.filter((o) => o.isUrgent && o.deadline > Date.now()).length;
