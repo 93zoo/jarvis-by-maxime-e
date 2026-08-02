@@ -1,72 +1,504 @@
 [
   {
-    "id": "ruby_1",
-    "name": "Rubis",
-    "type": "ruby",
-    "level": 1,
-    "rarity": "uncommon",
-    "color": "#E0115F",
-    "effects": ["+5 Attaque", "+3 Feu"],
-    "bonusValue": 50
+    "id": "ruby_1", "name": "Rubis", "type": "ruby", "category": "gem",
+    "level": 1, "rarity": "common", "color": "#E0115F", "icon": "💎",
+    "effects": ["+Attaque", "+Feu"], "bonusValue": 50,
+    "statRanges": [
+      { "stat": "attack", "label": "Attaque", "min": 2, "max": 6 },
+      { "stat": "luck",   "label": "Chance",  "min": 1, "max": 3 }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 2 }, { "resourceId": "stone", "quantity": 2 }, { "resourceId": "iron", "quantity": 1 }],
+    "possibleAffixes": ["du Titan", "du Berserker", "du Dragon"],
+    "possibleSpecialEffects": ["fire_damage"],
+    "fuseSuccessRate": 0.85
   },
   {
-    "id": "sapphire_1",
-    "name": "Saphir",
-    "type": "sapphire",
-    "level": 1,
-    "rarity": "uncommon",
-    "color": "#0F52BA",
-    "effects": ["+5 Magie", "+3 Glace"],
-    "bonusValue": 50
+    "id": "ruby_2", "name": "Rubis Ardent", "type": "ruby", "category": "gem",
+    "level": 2, "rarity": "uncommon", "color": "#C0002F", "icon": "💎",
+    "effects": ["+Attaque", "+Feu amélioré"], "bonusValue": 120,
+    "statRanges": [
+      { "stat": "attack", "label": "Attaque", "min": 5, "max": 14 },
+      { "stat": "luck",   "label": "Chance",  "min": 2, "max": 5 }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 4 }, { "resourceId": "copper", "quantity": 2 }, { "resourceId": "crystal", "quantity": 1 }],
+    "possibleAffixes": ["du Titan", "du Berserker", "du Dragon", "du Phénix"],
+    "possibleSpecialEffects": ["fire_damage"],
+    "fuseSuccessRate": 0.65
   },
   {
-    "id": "diamond_1",
-    "name": "Diamant",
-    "type": "diamond",
-    "level": 1,
-    "rarity": "rare",
-    "color": "#B9F2FF",
-    "effects": ["+8 Tous les stats", "+5 Durabilité"],
-    "bonusValue": 200
+    "id": "ruby_3", "name": "Rubis du Brasier", "type": "ruby", "category": "gem",
+    "level": 3, "rarity": "rare", "color": "#9B0030", "icon": "💎",
+    "effects": ["+Attaque élevée", "+Feu intense"], "bonusValue": 280,
+    "statRanges": [
+      { "stat": "attack", "label": "Attaque", "min": 10, "max": 26 },
+      { "stat": "luck",   "label": "Chance",  "min": 3, "max": 8 }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 6 }, { "resourceId": "obsidian", "quantity": 1 }, { "resourceId": "mithril", "quantity": 1 }],
+    "possibleAffixes": ["du Dragon", "du Phénix", "du Berserker"],
+    "possibleSpecialEffects": ["fire_damage", "crit_rate"],
+    "fuseSuccessRate": 0.45
+  },
+
+  {
+    "id": "sapphire_1", "name": "Saphir", "type": "sapphire", "category": "gem",
+    "level": 1, "rarity": "common", "color": "#0F52BA", "icon": "🔵",
+    "effects": ["+Magie", "+Glace"], "bonusValue": 50,
+    "statRanges": [
+      { "stat": "magic", "label": "Magie",  "min": 2, "max": 6 },
+      { "stat": "luck",  "label": "Chance", "min": 1, "max": 3 }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 2 }, { "resourceId": "stone", "quantity": 2 }, { "resourceId": "copper", "quantity": 1 }],
+    "possibleAffixes": ["du Sage", "de l'Ombre", "de l'Éclipse"],
+    "possibleSpecialEffects": ["ice_damage"],
+    "fuseSuccessRate": 0.85
   },
   {
-    "id": "emerald_1",
-    "name": "Émeraude",
-    "type": "emerald",
-    "level": 1,
-    "rarity": "uncommon",
-    "color": "#50C878",
-    "effects": ["+5 Défense", "+3 Régénération"],
-    "bonusValue": 60
+    "id": "sapphire_2", "name": "Saphir Glacial", "type": "sapphire", "category": "gem",
+    "level": 2, "rarity": "uncommon", "color": "#0033AA", "icon": "🔵",
+    "effects": ["+Magie", "+Glace intense"], "bonusValue": 130,
+    "statRanges": [
+      { "stat": "magic", "label": "Magie",  "min": 5, "max": 14 },
+      { "stat": "speed", "label": "Vitesse", "min": 1, "max": 4 }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 4 }, { "resourceId": "crystal", "quantity": 1 }, { "resourceId": "stone", "quantity": 3 }],
+    "possibleAffixes": ["du Sage", "de l'Ombre", "de l'Éclipse", "du Gardien"],
+    "possibleSpecialEffects": ["ice_damage"],
+    "fuseSuccessRate": 0.65
   },
   {
-    "id": "topaz_1",
-    "name": "Topaze",
-    "type": "topaz",
-    "level": 1,
-    "rarity": "common",
-    "color": "#FFC87C",
-    "effects": ["+5 Vitesse", "+3 Réflexes"],
-    "bonusValue": 35
+    "id": "sapphire_3", "name": "Saphir de l'Abîsse", "type": "sapphire", "category": "gem",
+    "level": 3, "rarity": "rare", "color": "#001A80", "icon": "🔵",
+    "effects": ["+Magie élevée", "+Glace maîtrisée"], "bonusValue": 300,
+    "statRanges": [
+      { "stat": "magic", "label": "Magie",  "min": 10, "max": 26 },
+      { "stat": "speed", "label": "Vitesse", "min": 2, "max": 7 }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 6 }, { "resourceId": "obsidian", "quantity": 1 }, { "resourceId": "mithril", "quantity": 1 }],
+    "possibleAffixes": ["du Sage", "de l'Éclipse", "du Destin"],
+    "possibleSpecialEffects": ["ice_damage", "superior_craft_chance"],
+    "fuseSuccessRate": 0.45
+  },
+
+  {
+    "id": "emerald_1", "name": "Émeraude", "type": "emerald", "category": "gem",
+    "level": 1, "rarity": "common", "color": "#50C878", "icon": "🟢",
+    "effects": ["+Défense", "+Vie"], "bonusValue": 55,
+    "statRanges": [
+      { "stat": "defense",   "label": "Défense", "min": 3, "max": 8 },
+      { "stat": "life_bonus","label": "Vie",     "min": 5, "max": 20 }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 2 }, { "resourceId": "stone", "quantity": 3 }, { "resourceId": "wood", "quantity": 2 }],
+    "possibleAffixes": ["du Gardien", "du Titan", "du Sage"],
+    "possibleSpecialEffects": ["resource_bonus"],
+    "fuseSuccessRate": 0.85
   },
   {
-    "id": "amethyst_1",
-    "name": "Améthyste",
-    "type": "amethyst",
-    "level": 1,
-    "rarity": "common",
-    "color": "#9966CC",
-    "effects": ["+5 Chance", "+3 Expérience"],
-    "bonusValue": 30
+    "id": "emerald_2", "name": "Émeraude de la Forêt", "type": "emerald", "category": "gem",
+    "level": 2, "rarity": "uncommon", "color": "#228B22", "icon": "🟢",
+    "effects": ["+Défense", "+Vie accrue"], "bonusValue": 145,
+    "statRanges": [
+      { "stat": "defense",   "label": "Défense", "min": 6, "max": 16 },
+      { "stat": "life_bonus","label": "Vie",     "min": 15, "max": 45 }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 4 }, { "resourceId": "crystal", "quantity": 1 }, { "resourceId": "wood", "quantity": 3 }],
+    "possibleAffixes": ["du Gardien", "du Titan", "du Phénix"],
+    "possibleSpecialEffects": ["resource_bonus", "life_steal"],
+    "fuseSuccessRate": 0.65
   },
   {
-    "id": "onyx_1",
-    "name": "Onyx",
-    "type": "onyx",
-    "level": 1,
-    "rarity": "uncommon",
-    "color": "#2A2A2A",
-    "effects": ["+8 Durabilité", "+5 Poids max"],
-    "bonusValue": 45
+    "id": "emerald_3", "name": "Émeraude Ancienne", "type": "emerald", "category": "gem",
+    "level": 3, "rarity": "rare", "color": "#006400", "icon": "🟢",
+    "effects": ["+Défense haute", "+Vie majeure"], "bonusValue": 320,
+    "statRanges": [
+      { "stat": "defense",   "label": "Défense", "min": 12, "max": 30 },
+      { "stat": "life_bonus","label": "Vie",     "min": 35, "max": 90 }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 6 }, { "resourceId": "obsidian", "quantity": 1 }, { "resourceId": "mithril", "quantity": 1 }],
+    "possibleAffixes": ["du Gardien", "du Destin", "du Néant"],
+    "possibleSpecialEffects": ["resource_bonus", "life_steal"],
+    "fuseSuccessRate": 0.45
+  },
+
+  {
+    "id": "topaz_1", "name": "Topaze", "type": "topaz", "category": "gem",
+    "level": 1, "rarity": "common", "color": "#FFC87C", "icon": "🟡",
+    "effects": ["+Vitesse", "+Réflexes"], "bonusValue": 35,
+    "statRanges": [
+      { "stat": "speed", "label": "Vitesse", "min": 1, "max": 5 },
+      { "stat": "luck",  "label": "Chance",  "min": 1, "max": 3 }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 2 }, { "resourceId": "stone", "quantity": 2 }, { "resourceId": "wood", "quantity": 1 }],
+    "possibleAffixes": ["du Berserker", "du Sage", "de l'Éclipse"],
+    "possibleSpecialEffects": ["stamina_reduction"],
+    "fuseSuccessRate": 0.85
+  },
+  {
+    "id": "topaz_2", "name": "Topaze Vive", "type": "topaz", "category": "gem",
+    "level": 2, "rarity": "uncommon", "color": "#E6A020", "icon": "🟡",
+    "effects": ["+Vitesse élevée", "+Agilité"], "bonusValue": 100,
+    "statRanges": [
+      { "stat": "speed", "label": "Vitesse", "min": 3, "max": 9 },
+      { "stat": "luck",  "label": "Chance",  "min": 2, "max": 5 }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 4 }, { "resourceId": "copper", "quantity": 2 }, { "resourceId": "crystal", "quantity": 1 }],
+    "possibleAffixes": ["du Berserker", "de l'Éclipse", "du Destin"],
+    "possibleSpecialEffects": ["stamina_reduction", "craft_speed"],
+    "fuseSuccessRate": 0.65
+  },
+  {
+    "id": "topaz_3", "name": "Topaze du Vent", "type": "topaz", "category": "gem",
+    "level": 3, "rarity": "rare", "color": "#B87800", "icon": "🟡",
+    "effects": ["+Vitesse max", "+Agilité maîtrisée"], "bonusValue": 250,
+    "statRanges": [
+      { "stat": "speed", "label": "Vitesse", "min": 6, "max": 18 },
+      { "stat": "luck",  "label": "Chance",  "min": 3, "max": 8 }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 6 }, { "resourceId": "obsidian", "quantity": 1 }, { "resourceId": "crystal", "quantity": 2 }],
+    "possibleAffixes": ["du Berserker", "de l'Éclipse", "du Néant"],
+    "possibleSpecialEffects": ["stamina_reduction", "craft_speed"],
+    "fuseSuccessRate": 0.45
+  },
+
+  {
+    "id": "amethyst_1", "name": "Améthyste", "type": "amethyst", "category": "gem",
+    "level": 1, "rarity": "common", "color": "#9966CC", "icon": "🔮",
+    "effects": ["+Chance", "+Expérience"], "bonusValue": 30,
+    "statRanges": [
+      { "stat": "luck",     "label": "Chance",       "min": 2, "max": 6 },
+      { "stat": "xp_bonus", "label": "Bonus XP (%)", "min": 1, "max": 4, "unit": "%" }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 2 }, { "resourceId": "stone", "quantity": 2 }, { "resourceId": "copper", "quantity": 1 }],
+    "possibleAffixes": ["du Sage", "du Phénix", "de l'Éclipse"],
+    "possibleSpecialEffects": ["xp_bonus"],
+    "fuseSuccessRate": 0.85
+  },
+  {
+    "id": "amethyst_2", "name": "Améthyste Mystique", "type": "amethyst", "category": "gem",
+    "level": 2, "rarity": "uncommon", "color": "#7733AA", "icon": "🔮",
+    "effects": ["+Chance élevée", "+Expérience accrue"], "bonusValue": 95,
+    "statRanges": [
+      { "stat": "luck",     "label": "Chance",       "min": 4, "max": 10 },
+      { "stat": "magic",    "label": "Magie",        "min": 1, "max": 5 },
+      { "stat": "xp_bonus", "label": "Bonus XP (%)", "min": 2, "max": 6, "unit": "%" }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 4 }, { "resourceId": "crystal", "quantity": 1 }, { "resourceId": "stone", "quantity": 2 }],
+    "possibleAffixes": ["du Sage", "de l'Ombre", "du Destin"],
+    "possibleSpecialEffects": ["xp_bonus", "superior_craft_chance"],
+    "fuseSuccessRate": 0.65
+  },
+  {
+    "id": "amethyst_3", "name": "Améthyste du Destin", "type": "amethyst", "category": "gem",
+    "level": 3, "rarity": "epic", "color": "#5500AA", "icon": "🔮",
+    "effects": ["+Chance max", "+Magie", "+XP accru"], "bonusValue": 400,
+    "statRanges": [
+      { "stat": "luck",     "label": "Chance",       "min": 8, "max": 20 },
+      { "stat": "magic",    "label": "Magie",        "min": 3, "max": 10 },
+      { "stat": "xp_bonus", "label": "Bonus XP (%)", "min": 4, "max": 10, "unit": "%" }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 8 }, { "resourceId": "obsidian", "quantity": 2 }, { "resourceId": "mithril", "quantity": 1 }],
+    "possibleAffixes": ["du Sage", "du Destin", "du Néant"],
+    "possibleSpecialEffects": ["xp_bonus", "superior_craft_chance", "resource_bonus"],
+    "fuseSuccessRate": 0.30
+  },
+
+  {
+    "id": "diamond_1", "name": "Diamant", "type": "diamond", "category": "gem",
+    "level": 1, "rarity": "rare", "color": "#B9F2FF", "icon": "💠",
+    "effects": ["+Tous les stats"], "bonusValue": 200,
+    "statRanges": [
+      { "stat": "attack",  "label": "Attaque", "min": 1, "max": 4 },
+      { "stat": "defense", "label": "Défense", "min": 1, "max": 4 },
+      { "stat": "magic",   "label": "Magie",   "min": 1, "max": 4 },
+      { "stat": "speed",   "label": "Vitesse", "min": 1, "max": 3 },
+      { "stat": "luck",    "label": "Chance",  "min": 1, "max": 3 }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 5 }, { "resourceId": "crystal", "quantity": 2 }, { "resourceId": "mithril", "quantity": 1 }],
+    "possibleAffixes": ["du Titan", "du Gardien", "du Destin"],
+    "possibleSpecialEffects": ["superior_craft_chance", "crit_rate"],
+    "fuseSuccessRate": 0.55
+  },
+  {
+    "id": "diamond_2", "name": "Diamant Brillant", "type": "diamond", "category": "gem",
+    "level": 2, "rarity": "epic", "color": "#6AF0FF", "icon": "💠",
+    "effects": ["+Tous les stats (élevé)"], "bonusValue": 500,
+    "statRanges": [
+      { "stat": "attack",  "label": "Attaque", "min": 3, "max": 9 },
+      { "stat": "defense", "label": "Défense", "min": 3, "max": 9 },
+      { "stat": "magic",   "label": "Magie",   "min": 3, "max": 9 },
+      { "stat": "speed",   "label": "Vitesse", "min": 2, "max": 6 },
+      { "stat": "luck",    "label": "Chance",  "min": 2, "max": 6 }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 8 }, { "resourceId": "obsidian", "quantity": 2 }, { "resourceId": "mithril", "quantity": 2 }],
+    "possibleAffixes": ["du Titan", "du Gardien", "du Destin", "du Néant"],
+    "possibleSpecialEffects": ["superior_craft_chance", "crit_rate"],
+    "fuseSuccessRate": 0.35
+  },
+  {
+    "id": "diamond_3", "name": "Diamant Céleste", "type": "diamond", "category": "gem",
+    "level": 3, "rarity": "legendary", "color": "#00D4FF", "icon": "💠",
+    "effects": ["+Tous les stats (légendaire)"], "bonusValue": 1200,
+    "statRanges": [
+      { "stat": "attack",  "label": "Attaque", "min": 6, "max": 18 },
+      { "stat": "defense", "label": "Défense", "min": 6, "max": 18 },
+      { "stat": "magic",   "label": "Magie",   "min": 6, "max": 18 },
+      { "stat": "speed",   "label": "Vitesse", "min": 4, "max": 12 },
+      { "stat": "luck",    "label": "Chance",  "min": 4, "max": 12 }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 12 }, { "resourceId": "obsidian", "quantity": 3 }, { "resourceId": "mithril", "quantity": 3 }, { "resourceId": "dragon_scale", "quantity": 1 }],
+    "possibleAffixes": ["du Titan", "du Destin", "du Néant"],
+    "possibleSpecialEffects": ["superior_craft_chance", "crit_rate", "xp_bonus"],
+    "fuseSuccessRate": 0.20
+  },
+
+  {
+    "id": "onyx_1", "name": "Onyx", "type": "onyx", "category": "gem",
+    "level": 1, "rarity": "uncommon", "color": "#444444", "icon": "⬛",
+    "effects": ["+Défense", "+Durabilité"], "bonusValue": 45,
+    "statRanges": [
+      { "stat": "defense",    "label": "Défense",    "min": 3, "max": 10 },
+      { "stat": "durability", "label": "Durabilité", "min": 8, "max": 25 }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 3 }, { "resourceId": "iron", "quantity": 2 }, { "resourceId": "stone", "quantity": 3 }],
+    "possibleAffixes": ["du Gardien", "du Titan", "de l'Ombre"],
+    "possibleSpecialEffects": ["stamina_reduction"],
+    "fuseSuccessRate": 0.75
+  },
+  {
+    "id": "onyx_2", "name": "Onyx de Fer Noir", "type": "onyx", "category": "gem",
+    "level": 2, "rarity": "rare", "color": "#222222", "icon": "⬛",
+    "effects": ["+Défense haute", "+Durabilité majeure"], "bonusValue": 180,
+    "statRanges": [
+      { "stat": "defense",    "label": "Défense",    "min": 8, "max": 22 },
+      { "stat": "durability", "label": "Durabilité", "min": 20, "max": 60 },
+      { "stat": "attack",     "label": "Attaque",    "min": 2, "max": 6 }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 5 }, { "resourceId": "obsidian", "quantity": 1 }, { "resourceId": "iron", "quantity": 3 }],
+    "possibleAffixes": ["du Gardien", "de l'Ombre", "du Néant"],
+    "possibleSpecialEffects": ["stamina_reduction"],
+    "fuseSuccessRate": 0.50
+  },
+
+  {
+    "id": "rune_force_1", "name": "Rune de Force", "type": "rune_force", "category": "rune",
+    "level": 1, "rarity": "uncommon", "color": "#CC2200", "icon": "🔴",
+    "effects": ["+Force brute"], "bonusValue": 60,
+    "statRanges": [
+      { "stat": "attack", "label": "Force (Attaque)", "min": 4, "max": 12 }
+    ],
+    "recipe": [{ "resourceId": "iron", "quantity": 3 }, { "resourceId": "coal", "quantity": 2 }, { "resourceId": "stone", "quantity": 2 }],
+    "possibleAffixes": ["du Titan", "du Berserker", "du Dragon"],
+    "possibleSpecialEffects": ["crit_rate"],
+    "fuseSuccessRate": 0.75
+  },
+  {
+    "id": "rune_force_2", "name": "Rune de Force Majeure", "type": "rune_force", "category": "rune",
+    "level": 2, "rarity": "rare", "color": "#8B0000", "icon": "🔴",
+    "effects": ["+Force majeure"], "bonusValue": 190,
+    "statRanges": [
+      { "stat": "attack",  "label": "Force (Attaque)",  "min": 10, "max": 28 },
+      { "stat": "defense", "label": "Résistance",       "min": 2,  "max": 7 }
+    ],
+    "recipe": [{ "resourceId": "iron", "quantity": 4 }, { "resourceId": "coal", "quantity": 5 }, { "resourceId": "crystal", "quantity": 1 }, { "resourceId": "obsidian", "quantity": 1 }],
+    "possibleAffixes": ["du Titan", "du Berserker", "du Dragon", "du Néant"],
+    "possibleSpecialEffects": ["crit_rate", "fire_damage"],
+    "fuseSuccessRate": 0.50
+  },
+
+  {
+    "id": "rune_precision_1", "name": "Rune de Précision", "type": "rune_precision", "category": "rune",
+    "level": 1, "rarity": "uncommon", "color": "#888888", "icon": "⚡",
+    "effects": ["+Précision (Attaque + Magie)"], "bonusValue": 65,
+    "statRanges": [
+      { "stat": "attack", "label": "Précision (Attaque)", "min": 2, "max": 7 },
+      { "stat": "magic",  "label": "Précision (Magie)",   "min": 2, "max": 7 }
+    ],
+    "recipe": [{ "resourceId": "iron", "quantity": 2 }, { "resourceId": "coal", "quantity": 3 }, { "resourceId": "stone", "quantity": 2 }],
+    "possibleAffixes": ["du Sage", "du Berserker", "de l'Éclipse"],
+    "possibleSpecialEffects": ["crit_rate"],
+    "fuseSuccessRate": 0.75
+  },
+  {
+    "id": "rune_precision_2", "name": "Rune de Précision Parfaite", "type": "rune_precision", "category": "rune",
+    "level": 2, "rarity": "rare", "color": "#AAAAAA", "icon": "⚡",
+    "effects": ["+Précision haute"], "bonusValue": 200,
+    "statRanges": [
+      { "stat": "attack", "label": "Précision (Attaque)", "min": 5, "max": 18 },
+      { "stat": "magic",  "label": "Précision (Magie)",   "min": 5, "max": 18 },
+      { "stat": "luck",   "label": "Chance critique",     "min": 2, "max": 6 }
+    ],
+    "recipe": [{ "resourceId": "iron", "quantity": 3 }, { "resourceId": "coal", "quantity": 5 }, { "resourceId": "crystal", "quantity": 2 }],
+    "possibleAffixes": ["du Sage", "du Berserker", "du Destin"],
+    "possibleSpecialEffects": ["crit_rate", "superior_craft_chance"],
+    "fuseSuccessRate": 0.50
+  },
+
+  {
+    "id": "rune_crit_1", "name": "Rune Critique", "type": "rune_crit", "category": "rune",
+    "level": 1, "rarity": "uncommon", "color": "#FFD700", "icon": "✨",
+    "effects": ["+Chance critique (%)"], "bonusValue": 75,
+    "statRanges": [
+      { "stat": "luck",      "label": "Chance critique (%)", "min": 2, "max": 6,  "unit": "%" },
+      { "stat": "attack",    "label": "Attaque",             "min": 1, "max": 4 }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 3 }, { "resourceId": "crystal", "quantity": 1 }, { "resourceId": "iron", "quantity": 2 }],
+    "possibleAffixes": ["du Berserker", "du Dragon", "du Phénix"],
+    "possibleSpecialEffects": ["crit_rate"],
+    "fuseSuccessRate": 0.75
+  },
+  {
+    "id": "rune_crit_2", "name": "Rune Critique Fatale", "type": "rune_crit", "category": "rune",
+    "level": 2, "rarity": "epic", "color": "#E6C200", "icon": "✨",
+    "effects": ["+Chance critique élevée"], "bonusValue": 350,
+    "statRanges": [
+      { "stat": "luck",   "label": "Chance critique (%)", "min": 5, "max": 14, "unit": "%" },
+      { "stat": "attack", "label": "Attaque critique",    "min": 3, "max": 10 }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 6 }, { "resourceId": "crystal", "quantity": 2 }, { "resourceId": "mithril", "quantity": 1 }, { "resourceId": "obsidian", "quantity": 1 }],
+    "possibleAffixes": ["du Berserker", "du Dragon", "du Néant"],
+    "possibleSpecialEffects": ["crit_rate", "fire_damage"],
+    "fuseSuccessRate": 0.35
+  },
+
+  {
+    "id": "rune_speed_1", "name": "Rune de Vitesse", "type": "rune_speed", "category": "rune",
+    "level": 1, "rarity": "uncommon", "color": "#00CED1", "icon": "🔹",
+    "effects": ["+Vitesse (%)"], "bonusValue": 55,
+    "statRanges": [
+      { "stat": "speed", "label": "Vitesse (%)", "min": 2, "max": 6, "unit": "%" },
+      { "stat": "luck",  "label": "Chance",      "min": 1, "max": 3 }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 2 }, { "resourceId": "stone", "quantity": 2 }, { "resourceId": "copper", "quantity": 2 }],
+    "possibleAffixes": ["du Berserker", "de l'Éclipse", "du Sage"],
+    "possibleSpecialEffects": ["stamina_reduction", "craft_speed"],
+    "fuseSuccessRate": 0.75
+  },
+  {
+    "id": "rune_speed_2", "name": "Rune du Vent Rapide", "type": "rune_speed", "category": "rune",
+    "level": 2, "rarity": "rare", "color": "#008080", "icon": "🔹",
+    "effects": ["+Vitesse élevée"], "bonusValue": 170,
+    "statRanges": [
+      { "stat": "speed", "label": "Vitesse (%)", "min": 5, "max": 14, "unit": "%" },
+      { "stat": "luck",  "label": "Chance",      "min": 2, "max": 6 }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 5 }, { "resourceId": "crystal", "quantity": 2 }, { "resourceId": "copper", "quantity": 3 }],
+    "possibleAffixes": ["du Berserker", "de l'Éclipse", "du Destin"],
+    "possibleSpecialEffects": ["stamina_reduction", "craft_speed"],
+    "fuseSuccessRate": 0.50
+  },
+
+  {
+    "id": "rune_luck_1", "name": "Rune de Chance", "type": "rune_luck", "category": "rune",
+    "level": 1, "rarity": "uncommon", "color": "#32CD32", "icon": "🍀",
+    "effects": ["+Chance"], "bonusValue": 50,
+    "statRanges": [
+      { "stat": "luck",  "label": "Chance",  "min": 3, "max": 8 },
+      { "stat": "speed", "label": "Vitesse", "min": 1, "max": 3 }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 2 }, { "resourceId": "stone", "quantity": 2 }, { "resourceId": "wood", "quantity": 3 }],
+    "possibleAffixes": ["du Phénix", "du Sage", "de l'Éclipse"],
+    "possibleSpecialEffects": ["resource_bonus", "xp_bonus"],
+    "fuseSuccessRate": 0.80
+  },
+  {
+    "id": "rune_luck_2", "name": "Rune de Fortune", "type": "rune_luck", "category": "rune",
+    "level": 2, "rarity": "rare", "color": "#228B22", "icon": "🍀",
+    "effects": ["+Chance majeure"], "bonusValue": 210,
+    "statRanges": [
+      { "stat": "luck",     "label": "Chance",       "min": 7, "max": 18 },
+      { "stat": "xp_bonus", "label": "Bonus XP (%)", "min": 2, "max": 5, "unit": "%" }
+    ],
+    "recipe": [{ "resourceId": "coal", "quantity": 5 }, { "resourceId": "crystal", "quantity": 2 }, { "resourceId": "wood", "quantity": 4 }, { "resourceId": "obsidian", "quantity": 1 }],
+    "possibleAffixes": ["du Phénix", "du Sage", "du Destin"],
+    "possibleSpecialEffects": ["resource_bonus", "xp_bonus", "superior_craft_chance"],
+    "fuseSuccessRate": 0.50
+  },
+
+  {
+    "id": "rune_endurance_1", "name": "Rune d'Endurance", "type": "rune_endurance", "category": "rune",
+    "level": 1, "rarity": "uncommon", "color": "#CD7F32", "icon": "🛡️",
+    "effects": ["+Défense", "+Durabilité"], "bonusValue": 60,
+    "statRanges": [
+      { "stat": "defense",    "label": "Défense",    "min": 3, "max": 9 },
+      { "stat": "life_bonus", "label": "Vie",        "min": 8, "max": 25 }
+    ],
+    "recipe": [{ "resourceId": "iron", "quantity": 4 }, { "resourceId": "coal", "quantity": 3 }, { "resourceId": "stone", "quantity": 3 }],
+    "possibleAffixes": ["du Gardien", "du Titan", "de l'Ombre"],
+    "possibleSpecialEffects": ["stamina_reduction"],
+    "fuseSuccessRate": 0.75
+  },
+  {
+    "id": "rune_endurance_2", "name": "Rune de l'Indomptable", "type": "rune_endurance", "category": "rune",
+    "level": 2, "rarity": "epic", "color": "#8B5A00", "icon": "🛡️",
+    "effects": ["+Endurance majeure"], "bonusValue": 380,
+    "statRanges": [
+      { "stat": "defense",    "label": "Défense",    "min": 8, "max": 22 },
+      { "stat": "magic",      "label": "Résistance", "min": 3, "max": 8 },
+      { "stat": "life_bonus", "label": "Vie",        "min": 20, "max": 60 }
+    ],
+    "recipe": [{ "resourceId": "iron", "quantity": 6 }, { "resourceId": "coal", "quantity": 6 }, { "resourceId": "obsidian", "quantity": 2 }, { "resourceId": "mithril", "quantity": 1 }],
+    "possibleAffixes": ["du Gardien", "du Titan", "du Néant"],
+    "possibleSpecialEffects": ["stamina_reduction", "life_steal"],
+    "fuseSuccessRate": 0.35
+  },
+
+  {
+    "id": "jewel_phoenix_1", "name": "Joyau du Phénix", "type": "jewel_phoenix", "category": "jewel",
+    "level": 1, "rarity": "legendary", "color": "#FF4500", "icon": "🔥",
+    "effects": ["+Tous stats", "+Feu divin", "+Résurrection"], "bonusValue": 1500,
+    "statRanges": [
+      { "stat": "attack",  "label": "Attaque du Phénix", "min": 8, "max": 20 },
+      { "stat": "magic",   "label": "Magie de Feu",      "min": 8, "max": 20 },
+      { "stat": "luck",    "label": "Chance divine",     "min": 5, "max": 15 },
+      { "stat": "xp_bonus","label": "Bonus XP (%)",      "min": 5, "max": 15, "unit": "%" }
+    ],
+    "recipe": [{ "resourceId": "dragon_scale", "quantity": 1 }, { "resourceId": "mithril", "quantity": 3 }, { "resourceId": "obsidian", "quantity": 2 }, { "resourceId": "coal", "quantity": 10 }],
+    "possibleAffixes": ["du Phénix", "du Destin", "du Néant"],
+    "possibleSpecialEffects": ["fire_damage", "xp_bonus", "superior_craft_chance"],
+    "fuseSuccessRate": 0.15
+  },
+
+  {
+    "id": "jewel_titan_1", "name": "Joyau du Titan", "type": "jewel_titan", "category": "jewel",
+    "level": 1, "rarity": "legendary", "color": "#708090", "icon": "⚙️",
+    "effects": ["+Attaque titanesque", "+Défense de titan"], "bonusValue": 1400,
+    "statRanges": [
+      { "stat": "attack",  "label": "Puissance du Titan", "min": 15, "max": 35 },
+      { "stat": "defense", "label": "Armure du Titan",    "min": 15, "max": 35 },
+      { "stat": "life_bonus","label": "Vie du Titan",     "min": 50, "max": 120 }
+    ],
+    "recipe": [{ "resourceId": "dragon_scale", "quantity": 1 }, { "resourceId": "mithril", "quantity": 3 }, { "resourceId": "iron", "quantity": 6 }, { "resourceId": "coal", "quantity": 10 }],
+    "possibleAffixes": ["du Titan", "du Gardien", "du Néant"],
+    "possibleSpecialEffects": ["stamina_reduction", "life_steal"],
+    "fuseSuccessRate": 0.15
+  },
+
+  {
+    "id": "jewel_dragon_1", "name": "Joyau du Dragon", "type": "jewel_dragon", "category": "jewel",
+    "level": 1, "rarity": "legendary", "color": "#DC143C", "icon": "🐉",
+    "effects": ["+Feu du dragon", "+Foudre draconique", "+Attaque majeure"], "bonusValue": 1600,
+    "statRanges": [
+      { "stat": "attack",  "label": "Griffes du Dragon", "min": 12, "max": 30 },
+      { "stat": "magic",   "label": "Feu draconique",    "min": 10, "max": 25 },
+      { "stat": "luck",    "label": "Instinct draconique","min": 5, "max": 12 }
+    ],
+    "recipe": [{ "resourceId": "dragon_scale", "quantity": 2 }, { "resourceId": "mithril", "quantity": 2 }, { "resourceId": "obsidian", "quantity": 3 }, { "resourceId": "coal", "quantity": 12 }],
+    "possibleAffixes": ["du Dragon", "du Berserker", "du Néant"],
+    "possibleSpecialEffects": ["fire_damage", "lightning_damage", "crit_rate"],
+    "fuseSuccessRate": 0.12
+  },
+
+  {
+    "id": "jewel_shadow_1", "name": "Joyau de l'Ombre", "type": "jewel_shadow", "category": "jewel",
+    "level": 1, "rarity": "legendary", "color": "#4B0082", "icon": "🌑",
+    "effects": ["+Vol de vie", "+Chance maximale", "+Ombre"], "bonusValue": 1800,
+    "statRanges": [
+      { "stat": "luck",      "label": "Chance de l'Ombre",  "min": 10, "max": 25 },
+      { "stat": "attack",    "label": "Lame de l'Ombre",    "min": 8, "max": 20 },
+      { "stat": "xp_bonus",  "label": "Bonus XP (%)",        "min": 8, "max": 18, "unit": "%" }
+    ],
+    "recipe": [{ "resourceId": "dragon_scale", "quantity": 1 }, { "resourceId": "mithril", "quantity": 2 }, { "resourceId": "obsidian", "quantity": 3 }, { "resourceId": "coal", "quantity": 10 }, { "resourceId": "crystal", "quantity": 3 }],
+    "possibleAffixes": ["de l'Ombre", "du Néant", "du Destin"],
+    "possibleSpecialEffects": ["life_steal", "resource_bonus", "xp_bonus"],
+    "fuseSuccessRate": 0.10
   }
 ]

@@ -14,12 +14,19 @@ import type {
   ActiveHideout,
   AlloyData,
   Apprentice,
+  CraftedGem,
   CraftOrder,
   CombatDrop,
   CombatResult,
   ForgeHistoryEntry,
   ForgeUpgradeData,
+  GemAffix,
+  GemCraftQuality,
   GemData,
+  SpecialEffect,
+  SpecialEffectType,
+  StatRange,
+  StoneCategory,
   InventoryItem,
   Item,
   ItemCategory,
@@ -363,6 +370,8 @@ interface GameState {
   workers: Worker[];
   /** True once the one-time beta boost has been claimed. Persisted in every save path. */
   betaBoostClaimed: boolean;
+  /** Gems crafted at the forge (separate from gem resources in inventory). */
+  craftedGems: CraftedGem[];
 }
 
 type GameAction =
@@ -383,7 +392,11 @@ type GameAction =
   | { type: 'SET_EXPLORATION'; regionId: string; percent: number }
   | { type: 'ADD_EXPLORATION'; regionId: string; gain: number }
   | { type: 'SOCKET_GEM'; itemInstanceId: string; slotIndex: number; gem: GemData }
+  | { type: 'SOCKET_CRAFTED_GEM'; itemInstanceId: string; slotIndex: number; gem: CraftedGem }
   | { type: 'REMOVE_GEM'; itemInstanceId: string; slotIndex: number }
+  // Gem crafting & fusion
+  | { type: 'CRAFT_GEM'; craftedGem: CraftedGem; recipe: { resourceId: string; quantity: number }[] }
+  | { type: 'FUSE_GEMS'; consumedInstanceIds: string[]; resultGem?: CraftedGem }
   // NPC orders
   | { type: 'ADD_ORDER'; order: CraftOrder }
   | { type: 'SEED_ORDERS'; orders: CraftOrder[] }
@@ -557,6 +570,120 @@ function makeApprenticeItem(recipe: RecipeData, apprenticeLevel: number, special
   };
 }
 
+// ── Gem crafting helpers ─────────────────────────────────────────────────────
+
+const GEM_QUALITY_THRESHOLDS: [string, number][] = [
+  ['masterwork', 95], ['perfect', 85], ['excellent', 70],
+  ['good', 55], ['decent', 40], ['basic', 20],
+];
+
+function gemQualityFromScore(score: number): GemCraftQuality {
+  for (const [quality, threshold] of GEM_QUALITY_THRESHOLDS) {
+    if (score >= threshold) return quality as GemCraftQuality;
+  }
+  return 'failed';
+}
+
+const GEM_QUALITY_MULT: Record<string, number> = {
+  masterwork: 1.00, perfect: 0.92, excellent: 0.80,
+  good: 0.65, decent: 0.50, basic: 0.30, failed: 0,
+};
+
+const SPECIAL_EFFECT_LABELS: Record<string, string> = {
+  fire_damage: 'Dégâts de Feu', ice_damage: 'Dégâts de Glace',
+  lightning_damage: 'Dégâts de Foudre', life_steal: 'Vol de Vie',
+  crit_rate: 'Taux Critique', stamina_reduction: 'Réduction Endurance',
+  craft_speed: 'Vitesse de Forge', xp_bonus: 'Bonus Expérience',
+  resource_bonus: 'Bonus Ressources', superior_craft_chance: 'Chance Qualité Sup.',
+};
+
+function generateCraftedGem(template: GemData, qualityScore: number): CraftedGem {
+  const craftQuality = gemQualityFromScore(qualityScore);
+  const mult = GEM_QUALITY_MULT[craftQuality] ?? 0;
+
+  const craftedStats: Record<string, number> = {};
+  for (const range of (template.statRanges ?? [])) {
+    if (craftQuality === 'failed') { craftedStats[range.stat] = 0; continue; }
+    const span = range.max - range.min;
+    const val = range.min + Math.round(span * mult * (0.75 + Math.random() * 0.25));
+    craftedStats[range.stat] = Math.min(range.max, val);
+  }
+
+  const affixes = (template.possibleAffixes ?? ['du Gardien']) as GemAffix[];
+  const affix: GemAffix | undefined = craftQuality !== 'failed'
+    ? affixes[Math.floor(Math.random() * affixes.length)]
+    : undefined;
+
+  let specialEffect: SpecialEffect | undefined;
+  if ((craftQuality === 'perfect' || craftQuality === 'masterwork') && template.possibleSpecialEffects?.length) {
+    const picked = template.possibleSpecialEffects[Math.floor(Math.random() * template.possibleSpecialEffects.length)] as SpecialEffectType;
+    specialEffect = { type: picked, label: SPECIAL_EFFECT_LABELS[picked] ?? picked, value: Math.round(5 + mult * 15) };
+  }
+
+  return {
+    ...template,
+    instanceId: makeId(),
+    craftQuality,
+    craftedStats,
+    affix,
+    specialEffect,
+    craftedAt: Date.now(),
+  };
+}
+
+// ── Boss drop helpers ─────────────────────────────────────────────────────────
+
+type BossDropTier = 'rare' | 'epic' | 'legendary';
+
+interface BossDropEntry {
+  type: 'resource' | 'item';
+  resourceId?: string;
+  quantity?: number;
+  tier?: BossDropTier;
+  name?: string;
+  bonusXpPct: number; // 0.15 / 0.10 / 0.05
+}
+
+const BOSS_RARE_POOL: Record<BossDropTier, string[]> = {
+  rare:      ['crystal', 'obsidian', 'silver'],
+  epic:      ['mithril', 'darksteel', 'electrum'],
+  legendary: ['dragon_scale', 'mithrilite', 'adamantium'],
+};
+
+const BOSS_DROP_RATES: [BossDropTier, number][] = [
+  ['rare',      0.15],
+  ['epic',      0.10],
+  ['legendary', 0.05],
+];
+
+const BOSS_DROP_XP_PCT: Record<BossDropTier, number> = {
+  rare: 0.15, epic: 0.10, legendary: 0.05,
+};
+
+function generateBossDrops(bossLevel: number, regionResourceIds: string[]): BossDropEntry[] {
+  const drops: BossDropEntry[] = [];
+
+  // Always: 2–4 common region resources
+  const commonPool = regionResourceIds.length > 0 ? regionResourceIds : ['iron', 'stone', 'coal'];
+  const commonCount = 2 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < commonCount; i++) {
+    const resourceId = commonPool[Math.floor(Math.random() * commonPool.length)];
+    drops.push({ type: 'resource', resourceId, quantity: 1 + Math.floor(Math.random() * 3), bonusXpPct: 0 });
+  }
+
+  // Tier-gated rare drops
+  for (const [tier, rate] of BOSS_DROP_RATES) {
+    if (Math.random() < rate) {
+      const pool = BOSS_RARE_POOL[tier];
+      const resourceId = pool[Math.floor(Math.random() * pool.length)];
+      const qty = tier === 'legendary' ? 1 : tier === 'epic' ? 1 + Math.floor(Math.random() * 2) : 1 + Math.floor(Math.random() * 3);
+      drops.push({ type: 'resource', resourceId, quantity: qty, tier, bonusXpPct: BOSS_DROP_XP_PCT[tier] });
+    }
+  }
+
+  return drops;
+}
+
 function buildInitialState(): GameState {
   return {
     isLoaded: false,
@@ -587,6 +714,7 @@ function buildInitialState(): GameState {
     hideoutLastCollected: {},
     workers: [],
     betaBoostClaimed: false,
+    craftedGems: [],
   };
 }
 

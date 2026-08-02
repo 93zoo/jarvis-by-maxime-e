@@ -30,13 +30,41 @@ export type ItemCategory =
   | 'decoration';
 export type ResourceType = 'metal' | 'wood' | 'stone' | 'clay' | 'gem' | 'organic' | 'misc';
 export type GemType =
-  | 'ruby'
-  | 'sapphire'
-  | 'diamond'
-  | 'emerald'
-  | 'topaz'
-  | 'amethyst'
-  | 'onyx';
+  // ── Gemmes classiques ─────────────────────────────────────────────────────
+  | 'ruby' | 'sapphire' | 'diamond' | 'emerald' | 'topaz' | 'amethyst' | 'onyx'
+  // ── Runes ─────────────────────────────────────────────────────────────────
+  | 'rune_force' | 'rune_precision' | 'rune_crit' | 'rune_speed'
+  | 'rune_luck' | 'rune_endurance'
+  // ── Joyaux rares ──────────────────────────────────────────────────────────
+  | 'jewel_phoenix' | 'jewel_titan' | 'jewel_dragon' | 'jewel_shadow';
+
+export type StoneCategory = 'gem' | 'rune' | 'jewel';
+
+export type GemCraftQuality =
+  | 'failed' | 'basic' | 'decent' | 'good' | 'excellent' | 'perfect' | 'masterwork';
+
+export type GemAffix =
+  | 'du Titan' | 'du Berserker' | 'du Sage' | 'du Dragon' | 'du Phénix'
+  | "de l'Ombre" | 'du Gardien' | "de l'Éclipse" | 'du Destin' | 'du Néant';
+
+export type SpecialEffectType =
+  | 'fire_damage' | 'ice_damage' | 'lightning_damage' | 'life_steal'
+  | 'crit_rate' | 'stamina_reduction' | 'craft_speed' | 'xp_bonus'
+  | 'resource_bonus' | 'superior_craft_chance';
+
+export interface SpecialEffect {
+  type: SpecialEffectType;
+  label: string;
+  value: number;
+}
+
+export interface StatRange {
+  stat: string;
+  label: string;
+  min: number;
+  max: number;
+  unit?: string;
+}
 
 // ---------------------------------------------------------------------------
 // Player
@@ -182,11 +210,36 @@ export interface GemData {
   id: string;
   name: string;
   type: GemType;
+  /** Gem category — absent on legacy data, defaults to 'gem'. */
+  category?: StoneCategory;
   level: number;
-  rarity: Rarity;
+  rarity: Rarity | 'mythic';
   color: string;
+  /** Emoji icon for display. */
+  icon?: string;
   effects: string[];
   bonusValue: number;
+  /** Stat ranges resolved at crafting time. */
+  statRanges?: StatRange[];
+  /** Resources consumed per crafting attempt. */
+  recipe?: { resourceId: string; quantity: number }[];
+  /** Affixes that can roll on this gem type. */
+  possibleAffixes?: GemAffix[];
+  /** Special effects available at high craft quality. */
+  possibleSpecialEffects?: SpecialEffectType[];
+  /** Fusion success probability (0–1) when combining 3 identical gems. */
+  fuseSuccessRate?: number;
+}
+
+/** A gem crafted at the forge — extends GemData with instance-specific fields. */
+export interface CraftedGem extends GemData {
+  instanceId: string;
+  craftQuality: GemCraftQuality;
+  /** Stat values generated at crafting time (within statRanges). */
+  craftedStats: Record<string, number>;
+  affix?: GemAffix;
+  specialEffect?: SpecialEffect;
+  craftedAt: number;
 }
 
 export interface RegionResourceNode {
@@ -586,6 +639,8 @@ export interface SaveData {
   workers?: Worker[];
   /** True once the one-time beta-tester welcome boost has been claimed. Persisted so it survives reinstalls. */
   betaBoostClaimed?: boolean;
+  /** Gems crafted at the forge — separate from gem resources in inventory. */
+  craftedGems?: CraftedGem[];
   lastSaved: number;
 }
 
