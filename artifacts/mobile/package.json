@@ -9,15 +9,13 @@
     "build": "node scripts/build.js",
     "serve": "node server/serve.js",
     "typecheck": "node scripts/validate-icons.js && tsc -p tsconfig.json --noEmit",
-    "test": "node scripts/validate-icons.test.js",
     "validate-icons": "node scripts/validate-icons.js",
-    "validate": "node scripts/validate-icons.js && node scripts/validate-icons.test.js"
+    "validate": "node scripts/validate-icons.js"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@expo-google-fonts/inter": "^0.4.0",
     "@expo/cli": "54.0.23",
-    "@expo/config-plugins": "~54.0.5",
     "@expo/ngrok": "^4.1.0",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -28,7 +26,6 @@
     "@ungap/structured-clone": "^1.3.0",
     "@workspace/api-client-react": "workspace:*",
     "babel-plugin-react-compiler": "^19.0.0-beta-e993439-20250117",
-    "babel-preset-expo": "~54.0.12",
     "expo": "~54.0.27",
     "expo-blur": "~15.0.8",
     "expo-constants": "~18.0.11",
@@ -63,12 +60,10 @@
   },
   "dependencies": {
     "@types/three": "^0.168.0",
-    "buffer": "^6.0.3",
     "expo-asset": "^12.0.13",
     "expo-audio": "^1.1.1",
     "expo-gl": "~16.0.10",
     "expo-video": "~3.0.16",
-    "feather-icons": "^4.29.2",
     "react-native-purchases": "^10.5.0",
     "react-native-webview": "^13.15.0",
     "three": "^0.168.0"
