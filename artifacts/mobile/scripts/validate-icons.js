@@ -15,23 +15,16 @@
  *      - AVATAR_PRESETS  → Ionicons  (the `icon` field)
  *      - SKILL_ICONS     → Feather
  *      - TREE_INFO       → Feather   (the `icon` field)
- *  • JSON data files with explicit icon-set registration (add new ones to
- *    JSON_ICON_FILES below when you need to pin validation to a specific set):
+ *  • JSON data files (add new ones to JSON_ICON_FILES below):
  *      - data/talents.json → Feather (the `icon` field on each talent)
- *  • JSON data files auto-discovered from the data/ directory: any .json file
- *    that contains an "icon" field and is NOT already in JSON_ICON_FILES is
- *    validated automatically against the union of all known glyph sets.
- *    You do NOT need to register these files manually — they are picked up
- *    as soon as they appear in data/.
  *
  * ── Adding new icon maps ──────────────────────────────────────────────────────
  * If you create a new constant that stores icon names as string values, add an
  * entry to NAMED_MAPS below specifying the constant name and its icon set.
  * The script will then validate those names automatically.
  *
- * If the icons live in a JSON data file and you want to pin validation to a
- * specific icon set (stricter), add an entry to JSON_ICON_FILES below.
- * Otherwise, just drop the file in data/ and it will be auto-discovered.
+ * If the icons live in a JSON data file rather than a TS/JS constant, add an
+ * entry to JSON_ICON_FILES below instead.
  */
 
 const fs = require('fs');
@@ -285,75 +278,6 @@ for (const { file, iconKey, iconSet } of JSON_ICON_FILES) {
     report.push(`\n${relPath}:`);
     report.push(...fileErrors);
     totalErrors += fileErrors.length;
-  }
-}
-
-// ── Auto-discovered JSON data files ──────────────────────────────────────────
-// Scan data/ for any .json files that contain an "icon" field and are not
-// already covered by JSON_ICON_FILES above.  Validate against the union of
-// all known glyph sets — an icon is only flagged when it is absent from every
-// set, which handles files that mix icons from multiple libraries.
-
-const ALL_GLYPHS = new Set([
-  ...GLYPHMAPS.Ionicons,
-  ...GLYPHMAPS.Feather,
-  ...GLYPHMAPS.MaterialCommunityIcons,
-]);
-
-// Paths already explicitly registered — skip them in auto-discovery.
-const explicitlyRegistered = new Set(
-  JSON_ICON_FILES.map(({ file }) => path.resolve(file)),
-);
-
-const DATA_DIR = path.join(__dirname, '../data');
-
-if (fs.existsSync(DATA_DIR)) {
-  const jsonFiles = fs.readdirSync(DATA_DIR)
-    .filter(name => name.endsWith('.json'))
-    .map(name => path.join(DATA_DIR, name))
-    .filter(fullPath => !explicitlyRegistered.has(path.resolve(fullPath)));
-
-  for (const fullPath of jsonFiles) {
-    const relPath = path.relative(path.join(__dirname, '..'), fullPath);
-
-    let parsed;
-    try {
-      parsed = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
-    } catch {
-      report.push(`\n${relPath}:`);
-      report.push(`  [auto-discover] failed to parse JSON — skipping`);
-      continue;
-    }
-
-    const items = Array.isArray(parsed) ? parsed : Object.values(parsed);
-
-    // Only process files that actually have an "icon" field somewhere.
-    const hasIconField = items.some(
-      item => item && typeof item === 'object' && 'icon' in item,
-    );
-    if (!hasIconField) continue;
-
-    const fileErrors = [];
-    for (const item of items) {
-      if (!item || typeof item !== 'object') continue;
-      const iconName = item['icon'];
-      if (typeof iconName !== 'string' || iconName.trim() === '') continue;
-      // Skip non-icon strings (emoji, labels, hex colours, etc.)
-      // Valid icon names are lowercase kebab-case and ≤ 60 chars.
-      if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(iconName) || iconName.length > 60) continue;
-      if (!ALL_GLYPHS.has(iconName)) {
-        const label = item.id ? `id="${item.id}"` : JSON.stringify(item).slice(0, 60);
-        fileErrors.push(
-          `  [any icon set via ${relPath}] "${iconName}" (${label}) — not found in any glyph map`,
-        );
-      }
-    }
-
-    if (fileErrors.length > 0) {
-      report.push(`\n${relPath}:`);
-      report.push(...fileErrors);
-      totalErrors += fileErrors.length;
-    }
   }
 }
 
