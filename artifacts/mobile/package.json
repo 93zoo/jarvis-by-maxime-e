@@ -9,8 +9,7 @@
     "build": "node scripts/build.js",
     "serve": "node server/serve.js",
     "typecheck": "node scripts/validate-icons.js && tsc -p tsconfig.json --noEmit",
-    "validate-icons": "node scripts/validate-icons.js",
-    "validate": "node scripts/validate-icons.js"
+    "validate-icons": "node scripts/validate-icons.js"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
