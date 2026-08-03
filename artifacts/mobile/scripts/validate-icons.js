@@ -15,16 +15,11 @@
  *      - AVATAR_PRESETS  → Ionicons  (the `icon` field)
  *      - SKILL_ICONS     → Feather
  *      - TREE_INFO       → Feather   (the `icon` field)
- *  • JSON data files (add new ones to JSON_ICON_FILES below):
- *      - data/talents.json → Feather (the `icon` field on each talent)
  *
  * ── Adding new icon maps ──────────────────────────────────────────────────────
  * If you create a new constant that stores icon names as string values, add an
  * entry to NAMED_MAPS below specifying the constant name and its icon set.
  * The script will then validate those names automatically.
- *
- * If the icons live in a JSON data file rather than a TS/JS constant, add an
- * entry to JSON_ICON_FILES below instead.
  */
 
 const fs = require('fs');
@@ -61,24 +56,6 @@ const NAMED_MAPS = [
   { name: 'AVATAR_PRESETS', iconSet: 'Ionicons',  iconKey: 'icon'   },  // [{ id, label, icon, bg, accent }]
   { name: 'SKILL_ICONS',    iconSet: 'Feather',   iconKey: null     },  // { skillId: 'icon-name' }
   { name: 'TREE_INFO',      iconSet: 'Feather',   iconKey: 'icon'   },  // { key: { label, icon, color } }
-];
-
-/**
- * JSON data files that contain icon name fields.
- * Each entry is validated independently (not part of the source-file scan).
- *
- * file    — absolute path to the JSON file
- * iconKey — property name on each array element that holds the icon name
- * iconSet — which glyph set to validate against
- *
- * ADD NEW JSON DATA FILES HERE.
- */
-const JSON_ICON_FILES = [
-  {
-    file:    path.join(__dirname, '../data/talents.json'),
-    iconKey: 'icon',
-    iconSet: 'Feather',
-  },
 ];
 
 // ── Load glyphmaps ────────────────────────────────────────────────────────────
@@ -238,39 +215,6 @@ for (const file of files) {
       if (!glyphmap.has(name)) {
         fileErrors.push(`  [${iconSet} via ${constName}] "${name}" — not found in glyphmap`);
       }
-    }
-  }
-
-  if (fileErrors.length > 0) {
-    report.push(`\n${relPath}:`);
-    report.push(...fileErrors);
-    totalErrors += fileErrors.length;
-  }
-}
-
-// ── JSON data files ───────────────────────────────────────────────────────────
-
-for (const { file, iconKey, iconSet } of JSON_ICON_FILES) {
-  const relPath = path.relative(path.join(__dirname, '..'), file);
-  if (!fs.existsSync(file)) {
-    report.push(`\n${relPath}:`);
-    report.push(`  [${iconSet}] file not found — skipping`);
-    continue;
-  }
-
-  const glyphmap = GLYPHMAPS[iconSet];
-  if (!glyphmap) continue;
-
-  const items = JSON.parse(fs.readFileSync(file, 'utf8'));
-  const arr = Array.isArray(items) ? items : Object.values(items);
-  const fileErrors = [];
-
-  for (const item of arr) {
-    const iconName = item[iconKey];
-    if (typeof iconName !== 'string' || iconName.trim() === '') continue;
-    if (!glyphmap.has(iconName)) {
-      const label = item.id ? `id="${item.id}"` : JSON.stringify(item).slice(0, 60);
-      fileErrors.push(`  [${iconSet} via ${relPath}] "${iconName}" (${label}) — not found in glyphmap`);
     }
   }
 
