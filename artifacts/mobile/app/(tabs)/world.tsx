@@ -1227,14 +1227,6 @@ function MarketModal({ visible, onClose, game, colors, bottomPad }: {
   );
 }
 
-const mmStyles = StyleSheet.create({
-  wrap: { paddingVertical: 6 },
-  row: { paddingHorizontal: 12, paddingBottom: 4, gap: 8 },
-  tile: { width: 68, alignItems: 'center', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 4, gap: 3, position: 'relative' },
-  chestBadge: { position: 'absolute', top: -5, right: -5, zIndex: 2 },
-  tileLabel: { fontSize: 9, fontWeight: '700', textAlign: 'center' },
-  reqLabel: { fontSize: 8, fontWeight: '600', textAlign: 'center' },
-});
 export default function WorldScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -1457,15 +1449,6 @@ export default function WorldScreen() {
         </View>
       </LinearGradient>
 
-      {/* ── Minimap strip ── */}
-      <RegionMinimap
-        regions={game.allRegions}
-        unlockedRegions={game.unlockedRegions}
-        activeHideouts={validHideouts}
-        playerLevel={game.player.level}
-        onRegionPress={handleRegionPress}
-        colors={colors}
-      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -2010,66 +1993,6 @@ const styles = StyleSheet.create({
   loreToast: { position: 'absolute', bottom: 130, left: 16, right: 16, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(200,140,60,0.3)', backgroundColor: 'rgba(20,14,8,0.92)', padding: 12, flexDirection: 'row', alignItems: 'flex-start', zIndex: 20 },
   loreToastText: { fontSize: 12, lineHeight: 18, flex: 1, fontStyle: 'italic' },
 });
-
-function RegionMinimap({
-  regions, unlockedRegions, activeHideouts, playerLevel, onRegionPress, colors,
-}: {
-  regions: RegionData[];
-  unlockedRegions: string[];
-  activeHideouts: ActiveHideout[];
-  playerLevel: number;
-  onRegionPress: (region: RegionData) => void;
-  colors: ReturnType<typeof useColors>;
-}) {
-  const sorted = useMemo(
-    () => [...regions].sort((a, b) => a.levelRequired - b.levelRequired),
-    [regions],
-  );
-  return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={mmStyles.wrap} contentContainerStyle={mmStyles.row}>
-      {sorted.map((region) => {
-        const isUnlocked = unlockedRegions.includes(region.id);
-        const hasHideout = activeHideouts.some((h) => h.regionId === region.id);
-        const canAccess = playerLevel >= region.levelRequired;
-        const rc = REGION_COLORS[region.id] ?? '#D4851A';
-        return (
-          <TouchableOpacity
-            key={region.id}
-            style={[
-              mmStyles.tile,
-              {
-                backgroundColor: isUnlocked ? rc + '20' : 'rgba(20,14,8,0.7)',
-                borderWidth: hasHideout ? 2 : 1,
-                borderColor: hasHideout ? '#FFD700' : isUnlocked ? rc + '70' : colors.border,
-              },
-            ]}
-            onPress={() => onRegionPress(region)}
-            activeOpacity={0.75}
-          >
-            {hasHideout && (
-              <View style={mmStyles.chestBadge}>
-                <Feather name="box" size={11} color="#FFD700" />
-              </View>
-            )}
-            <Feather
-              name={isUnlocked ? (REGION_ICONS[region.id] ?? 'map') : 'lock'}
-              size={20}
-              color={isUnlocked ? rc : canAccess ? colors.accent : colors.mutedForeground}
-            />
-            <Text style={[mmStyles.tileLabel, { color: isUnlocked ? '#F2E4C4' : colors.mutedForeground }]} numberOfLines={1}>
-              {region.name}
-            </Text>
-            {!isUnlocked && (
-              <Text style={[mmStyles.reqLabel, { color: canAccess ? colors.accent : colors.mutedForeground }]}>
-                Niv.{region.levelRequired}
-              </Text>
-            )}
-          </TouchableOpacity>
-        );
-      })}
-    </ScrollView>
-  );
-}
 
 const fouStyles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', justifyContent: 'center', alignItems: 'center' },
