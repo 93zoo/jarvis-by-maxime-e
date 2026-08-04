@@ -25,7 +25,7 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@/lib/LinearGradientSafe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useGame, STAT_UPGRADE_DEFINITIONS } from '@/context/GameContext';

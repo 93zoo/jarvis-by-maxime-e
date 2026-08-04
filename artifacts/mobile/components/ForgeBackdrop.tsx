@@ -16,7 +16,7 @@
 
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, DimensionValue, Easing, ImageBackground, StyleSheet, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@/lib/LinearGradientSafe';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const FORGE_BG = require('../assets/images/forge-bg-v2.png');

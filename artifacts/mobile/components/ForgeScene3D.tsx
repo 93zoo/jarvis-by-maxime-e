@@ -16,7 +16,7 @@ import React, {
   useState,
 } from 'react';
 import { Animated, Easing, LayoutChangeEvent, StyleSheet, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@/lib/LinearGradientSafe';
 import AudioManager from '@/utils/AudioManager';
 
 // ─── Public types (kept for parent compatibility) ────────────────────────────

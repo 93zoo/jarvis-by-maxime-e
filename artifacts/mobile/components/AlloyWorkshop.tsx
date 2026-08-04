@@ -16,7 +16,7 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@/lib/LinearGradientSafe';
 import * as Haptics from 'expo-haptics';
 import { useGame } from '@/context/GameContext';
 import { useColors } from '@/hooks/useColors';

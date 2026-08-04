@@ -20,7 +20,7 @@ import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import AudioManager from '@/utils/AudioManager';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@/lib/LinearGradientSafe';
 
 export type HitLabel = 'PARFAIT!' | 'EXCELLENT!' | 'TRÈS BIEN' | 'BIEN' | 'RATÉ';
 
