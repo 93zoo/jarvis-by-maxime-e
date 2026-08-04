@@ -149,7 +149,7 @@ export const STAT_UPGRADE_DEFINITIONS: StatUpgradeDefinition[] = [
     maxLevel: 5,
     costs: [400, 900, 1800, 3600, 7200],
     effectType: 'inventoryWeightBonus',
-    bonusPerLevel: 100,
+    bonusPerLevel: 1000,
     unit: ' kg',
   },
   {
@@ -269,8 +269,8 @@ const URGENT_ORDER_CHANCE = 0.22;
 const SPECIAL_ORDER_CHANCE = 0.07;
 
 /** Maximum inventory weight (kg) based on player level */
-const MAX_WEIGHT_BASE = 100;
-const MAX_WEIGHT_PER_LEVEL = 5;
+const MAX_WEIGHT_BASE = 1000;
+const MAX_WEIGHT_PER_LEVEL = 50;
 
 const SAVE_KEY = '@fk_save_v1';
 const SAVE_VERSION = 1;
@@ -3421,17 +3421,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const res = getResources().find((r) => r.id === inv.resourceId);
       return acc + (res?.weight ?? 0) * inv.quantity;
     }, 0);
-    const iw = state.craftedItems.reduce((acc, item) => acc + item.weight, 0);
+    const iw = state.craftedItems.reduce((acc, item) => acc + (item.weight ?? 0), 0);
     return rw + iw;
   }, [state.inventory, state.craftedItems]);
 
-  // Storage upgrade bonus: +100 / +250 / +500 / +1000 / +2000 kg per level
-  const STORAGE_BONUS = [0, 100, 250, 500, 1000, 2000];
+  // Storage upgrade bonus: +1000 / +2500 / +5000 / +10000 / +20000 kg per level
+  const STORAGE_BONUS = [0, 1000, 2500, 5000, 10000, 20000];
   const maxWeight = useMemo(
     () => {
       const storageLv = state.forgeUpgrades['storage'] ?? 0;
       const storageBonus = STORAGE_BONUS[Math.min(storageLv, 5)] ?? 0;
-      const statInventoryBonus = (state.player.statUpgrades?.['inventory_capacity'] ?? 0) * 100;
+      const statInventoryBonus = (state.player.statUpgrades?.['inventory_capacity'] ?? 0) * 1000;
       return (
         MAX_WEIGHT_BASE +
         state.player.level * MAX_WEIGHT_PER_LEVEL +

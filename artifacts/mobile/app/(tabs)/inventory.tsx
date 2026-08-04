@@ -716,7 +716,7 @@ export default function InventoryScreen() {
       const res = game.getResourceById(inv.resourceId);
       return acc + (res?.weight ?? 0) * inv.quantity;
     }, 0);
-    const iw = game.craftedItems.reduce((a, b) => a + b.weight, 0);
+    const iw = game.craftedItems.reduce((a, b) => a + (b.weight ?? 0), 0);
     return Math.round((rw + iw) * 10) / 10;
   }, [game.inventory, game.craftedItems, game.getResourceById]);
 
