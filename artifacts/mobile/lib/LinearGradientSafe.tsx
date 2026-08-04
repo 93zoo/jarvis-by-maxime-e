@@ -11,7 +11,7 @@
  */
 import React from 'react';
 import { Platform, StyleSheet, View, ViewStyle, StyleProp, ColorValue } from 'react-native';
-import { LinearGradient as RealLinearGradient } from '@/lib/LinearGradientSafe';
+import { LinearGradient as RealLinearGradient } from 'expo-linear-gradient';
 
 export interface LinearGradientProps {
   colors: readonly (ColorValue | string)[];

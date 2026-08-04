@@ -15,8 +15,15 @@
  */
 
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Animated, DimensionValue, Easing, ImageBackground, StyleSheet, View } from 'react-native';
+import { Animated, DimensionValue, Easing, ImageBackground, Platform, StyleSheet, View } from 'react-native';
 import { LinearGradient } from '@/lib/LinearGradientSafe';
+import Constants from 'expo-constants';
+
+// Many simultaneous Animated.loop() calls crash Android's native thread in Expo Go.
+const IS_EXPO_GO =
+  Platform.OS !== 'web' &&
+  ((Constants.appOwnership as string) === 'expo' ||
+    Constants.executionEnvironment === 'storeClient');
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const FORGE_BG = require('../assets/images/forge-bg-v2.png');
@@ -141,6 +148,17 @@ function Dust({ x, y, size, duration, delay }: { x: DimensionValue; y: Dimension
 
 // ─── Main backdrop ───────────────────────────────────────────────────────────
 export default function ForgeBackdrop() {
+  // Expo Go: skip ALL animations (many simultaneous Animated.loop() calls crash
+  // Android's native thread). Static image + vignettes only.
+  if (IS_EXPO_GO) {
+    return (
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <ImageBackground source={FORGE_BG} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        <LinearGradient colors={['rgba(4,2,1,0.55)', 'transparent']} style={styles.topVignette} />
+        <LinearGradient colors={['transparent', 'rgba(4,2,1,0.72)']} style={styles.bottomVignette} />
+      </View>
+    );
+  }
   const fireGlow = useRef(new Animated.Value(0)).current;
   const breath = useRef(new Animated.Value(0)).current;
 

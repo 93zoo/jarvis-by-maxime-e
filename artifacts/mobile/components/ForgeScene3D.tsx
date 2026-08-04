@@ -15,9 +15,16 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Animated, Easing, LayoutChangeEvent, StyleSheet, View } from 'react-native';
+import { Animated, Easing, LayoutChangeEvent, Platform, StyleSheet, View } from 'react-native';
 import { LinearGradient } from '@/lib/LinearGradientSafe';
 import AudioManager from '@/utils/AudioManager';
+import Constants from 'expo-constants';
+
+// Many simultaneous Animated.loop() calls crash Android's native thread in Expo Go.
+const IS_EXPO_GO =
+  Platform.OS !== 'web' &&
+  ((Constants.appOwnership as string) === 'expo' ||
+    Constants.executionEnvironment === 'storeClient');
 
 // ─── Public types (kept for parent compatibility) ────────────────────────────
 export type CraftPhase = 'IDLE' | 'HEATING' | 'HAMMERING' | 'COOLING' | 'RESULT';
@@ -205,8 +212,13 @@ function FireLayer({
 // ─── Main component ───────────────────────────────────────────────────────────
 const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(
   ({ craftPhase, upgradeLevel = 0 }, ref) => {
+    // Expo Go: no-op ref + null render — ForgeBackdrop already shows the static image.
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useImperativeHandle(ref, () => ({ triggerHammerStrike: () => {} }));
+    if (IS_EXPO_GO) return null;
 
     // ── Layout measurement ──────────────────────────────────────────────────
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     const [dims, setDims] = useState({ w: 390, h: 280 });
     const onLayout = (e: LayoutChangeEvent) => {
       const { width, height } = e.nativeEvent.layout;

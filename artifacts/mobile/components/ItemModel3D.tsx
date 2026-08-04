@@ -6,10 +6,25 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PanResponder, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { GLView, ExpoWebGLRenderingContext } from 'expo-gl';
-import * as THREE from 'three';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import type { Item, ItemCategory } from '@/types/game';
+
+// expo-gl crashes Expo Go on Android at import time — lazy-require only in standalone/web
+const IS_EXPO_GO =
+  Platform.OS !== 'web' &&
+  ((Constants.appOwnership as string) === 'expo' ||
+    Constants.executionEnvironment === 'storeClient');
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let GLView: React.ComponentType<any> | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let THREE: any = null;
+if (!IS_EXPO_GO) {
+  try { GLView = require('expo-gl').GLView; } catch { GLView = null; }
+  try { THREE = require('three'); } catch { THREE = null; }
+}
+type ExpoWebGLRenderingContext = any;
 
 // ─── WebGL check ─────────────────────────────────────────────────────────────
 function hasWebGL(): boolean {
@@ -21,7 +36,7 @@ function hasWebGL(): boolean {
 }
 
 // ─── Category → geometry ─────────────────────────────────────────────────────
-function buildItemGroup(category: ItemCategory, material: THREE.Material): THREE.Group {
+function buildItemGroup(category: ItemCategory, material: any): any {
   const g = new THREE.Group();
   const m = material;
 
@@ -40,7 +55,7 @@ function buildItemGroup(category: ItemCategory, material: THREE.Material): THREE
     }
     case 'axe': {
       const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 1.6, 8), m);
-      const headMat = material.clone() as THREE.MeshStandardMaterial;
+      const headMat = material.clone();
       const head = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.55, 0.09), headMat);
       head.position.set(0.22, 0.5, 0);
       const cheek = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.28, 0.09), headMat);
@@ -177,10 +192,19 @@ interface Props {
 }
 
 export default function ItemModel3D({ item, primaryMaterialId, height = 200 }: Props) {
+  // Expo Go: expo-gl absent → 2D fallback (IS_EXPO_GO is constant → consistent hooks)
+  const matHex0 = '#' + (colorForMaterial(primaryMaterialId ?? item.materials[0] ?? 'iron')).toString(16).padStart(6, '0');
+  if (IS_EXPO_GO || !GLView || !THREE) {
+    return <CategoryFallback category={item.category} color={matHex0} />;
+  }
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [webglOk] = useState(hasWebGL);
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const rotX = useRef(0.18);
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const rotY = useRef(-0.35);
-  const rotRef = useRef<THREE.Group | null>(null);
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const rotRef = useRef<any>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
   const matColor = useMemo(
     () => colorForMaterial(primaryMaterialId ?? item.materials[0] ?? 'iron'),
@@ -212,7 +236,7 @@ export default function ItemModel3D({ item, primaryMaterialId, height = 200 }: P
       (gl as any).canvas = { width: W, height: H, style: {}, addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false, clientWidth: W, clientHeight: H };
     }
 
-    let renderer: THREE.WebGLRenderer;
+    let renderer: any;
     try {
       renderer = new THREE.WebGLRenderer({ canvas: (gl as any).canvas, context: gl as unknown as WebGL2RenderingContext, antialias: true });
     } catch {

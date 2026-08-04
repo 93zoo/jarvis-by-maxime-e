@@ -1,6 +1,19 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { KeyboardProvider } from 'react-native-keyboard-controller';
+import Constants from 'expo-constants';
+
+// react-native-keyboard-controller crashes Expo Go on Android at module-load time.
+// Lazy-require so it is never touched inside Expo Go.
+const IS_EXPO_GO_LAYOUT =
+  (Constants.appOwnership as string) === 'expo' ||
+  Constants.executionEnvironment === 'storeClient';
+
+let KeyboardProvider: React.ComponentType<{ children: React.ReactNode }> = ({ children }) => <>{children}</>;
+if (!IS_EXPO_GO_LAYOUT) {
+  try {
+    KeyboardProvider = require('react-native-keyboard-controller').KeyboardProvider;
+  } catch { /* fallback already set */ }
+}
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
