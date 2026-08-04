@@ -14,7 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@/components/Feather';
 import * as Haptics from 'expo-haptics';
 
 const { width: SW } = Dimensions.get('window');

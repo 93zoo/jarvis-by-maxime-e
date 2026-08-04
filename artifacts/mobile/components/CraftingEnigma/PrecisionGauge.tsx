@@ -9,7 +9,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@/components/Feather';
 import Animated, {
   Easing,
   useAnimatedStyle,

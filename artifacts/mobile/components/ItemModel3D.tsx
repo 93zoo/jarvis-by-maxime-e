@@ -5,7 +5,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PanResponder, Platform, StyleSheet, Text, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@/components/Feather';
 import Constants from 'expo-constants';
 import type { Item, ItemCategory } from '@/types/game';
 

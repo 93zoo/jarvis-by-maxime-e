@@ -22,7 +22,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@/components/Feather';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useGame } from '@/context/GameContext';
 import {

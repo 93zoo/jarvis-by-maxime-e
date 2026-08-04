@@ -13,7 +13,7 @@ import type { ItemSet } from '@/types/game';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 import { getAllMicroCombos, type MicroCombo } from '@/utils/microCombos';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@/components/Feather';
 const RARITY_COLORS: Record<string, string> = {
   common:    '#9E9E9E',
   rare:      '#2196F3',

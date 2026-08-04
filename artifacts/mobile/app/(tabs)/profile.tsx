@@ -23,7 +23,7 @@ import Reanimated, {
   FadeInDown,
   type SharedValue,
 } from 'react-native-reanimated';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@/components/Feather';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from '@/lib/LinearGradientSafe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

@@ -52,7 +52,7 @@ import Reanimated, {
 } from 'react-native-reanimated';
 
 // ─── Quality helpers ─────────────────────────────────────────────────────────
-import { Feather } from '@expo/vector-icons';
+import Feather from '@/components/Feather';
 function qualityColor(q: Quality, colors: ReturnType<typeof useColors>): string {
   switch (q) {
     case 'legendary': return '#9966CC';

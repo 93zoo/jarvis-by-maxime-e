@@ -19,7 +19,7 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import AudioManager from '@/utils/AudioManager';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@/components/Feather';
 import { LinearGradient } from '@/lib/LinearGradientSafe';
 
 export type HitLabel = 'PARFAIT!' | 'EXCELLENT!' | 'TRÈS BIEN' | 'BIEN' | 'RATÉ';

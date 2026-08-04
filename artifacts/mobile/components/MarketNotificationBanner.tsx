@@ -21,7 +21,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@/components/Feather';
 import {
   BANNER_DISPLAY_MS,
   BANNER_QUEUE_GAP_MS,

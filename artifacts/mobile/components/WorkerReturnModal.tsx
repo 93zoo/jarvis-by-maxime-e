@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@/components/Feather';
 import { useColors } from '@/hooks/useColors';
 import type { WorkerHarvestResult } from '@/data/workers';
 import { WORKER_DEFINITIONS } from '@/data/workers';

@@ -16,7 +16,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@/components/Feather';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from '@/lib/LinearGradientSafe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

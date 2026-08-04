@@ -17,7 +17,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@/components/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { STUDIO } from '@/constants/studio';
 import type { CraftPhase } from '@/components/ForgeScene3D';

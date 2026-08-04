@@ -4,11 +4,11 @@
  */
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather, { type FeatherIconName } from '@/components/Feather';
 import * as Haptics from 'expo-haptics';
 
 interface Props {
-  icon: keyof typeof Feather.glyphMap;
+  icon: FeatherIconName;
   color: string; // couleur néon (ex. '#00E5FF')
   onPress: () => void;
   size?: number;

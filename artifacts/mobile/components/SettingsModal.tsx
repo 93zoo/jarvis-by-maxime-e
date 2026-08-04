@@ -16,7 +16,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@/components/Feather';
 import * as Haptics from 'expo-haptics';
 import { useGame } from '@/context/GameContext';
 import AudioManager from '@/utils/AudioManager';

@@ -4,7 +4,7 @@
  */
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, TouchableOpacity } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@/components/Feather';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 

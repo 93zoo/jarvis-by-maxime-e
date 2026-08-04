@@ -30,7 +30,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from '@/lib/LinearGradientSafe';
 import { StatusBar } from 'expo-status-bar';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@/components/Feather';
 
 const { width: W, height: H } = Dimensions.get('window');
 

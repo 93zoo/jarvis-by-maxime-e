@@ -136,9 +136,7 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
-    // TTF v15 embarqué dans les assets : Expo Go substitue sinon sa propre
-    // version pré-bundlée de Feather (codepoints différents → glyphes CJK/□).
-    'feather': require('../assets/fonts/Feather.ttf'),
+    // Icons are pure SVG (components/Feather.tsx) — no icon font to load.
   });
 
   // Defer RevenueCat init off the synchronous module-load hot path.

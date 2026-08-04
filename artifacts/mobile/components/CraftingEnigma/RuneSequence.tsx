@@ -5,7 +5,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@/components/Feather';
 
 const RUNES = [
   { id: 'activity',      icon: 'activity' as const,       color: '#FF6B35', label: 'FEU' },

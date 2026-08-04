@@ -10,7 +10,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@/components/Feather';
 import type { Achievement } from '@/types/game';
 import AudioManager from '@/utils/AudioManager';
 

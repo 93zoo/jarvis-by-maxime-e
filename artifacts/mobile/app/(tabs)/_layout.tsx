@@ -1,6 +1,6 @@
 import React from 'react';
 import { useColors } from '@/hooks/useColors';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@/components/Feather';
 import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
 import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';

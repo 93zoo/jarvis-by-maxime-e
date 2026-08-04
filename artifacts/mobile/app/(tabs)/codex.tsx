@@ -19,7 +19,7 @@ import { useColors } from '@/hooks/useColors';
 import type { Quest, RegionData, ResourceData } from '@/types/game';
 import ProfileScreen from './profile';
 import { useLeaderboardPending } from '@/context/LeaderboardContext';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@/components/Feather';
 
 type CodexTab = 'resources' | 'recipes' | 'regions' | 'skills' | 'quests' | 'profil';
 

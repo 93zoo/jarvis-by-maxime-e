@@ -21,7 +21,7 @@ import {
   Easing,
   ScrollView,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@/components/Feather';
 import { useGame } from '@/context/GameContext';
 import type { CraftedGem, GemData } from '@/types/game';
 

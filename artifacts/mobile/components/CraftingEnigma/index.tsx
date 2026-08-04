@@ -5,7 +5,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@/components/Feather';
 import type { RecipeData } from '@/types/game';
 import RuneSequence from './RuneSequence';
 import PrecisionGauge from './PrecisionGauge';
