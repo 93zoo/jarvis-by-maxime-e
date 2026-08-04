@@ -1084,8 +1084,8 @@ const styles = StyleSheet.create({
   headerForgeName: { fontSize: 11, fontWeight: '500', letterSpacing: 1, marginTop: 1 },
   weightWarning: { fontSize: 11, fontWeight: '700', textAlign: 'right', marginTop: 3 },
 
-  tabBar: { borderBottomWidth: 1 },
-  tabBarContent: { flexDirection: 'row', alignItems: 'stretch' },
+  tabBar: { borderBottomWidth: 1, flexShrink: 0, flexGrow: 0 },
+  tabBarContent: { flexDirection: 'row', alignItems: 'center' },
   tab: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 11, paddingHorizontal: 12, gap: 5 },
   tabText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.2 },
   tabBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10, minWidth: 20, alignItems: 'center' },
