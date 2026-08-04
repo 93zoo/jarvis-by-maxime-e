@@ -30,7 +30,6 @@ import { useRewardedAds } from '@/lib/rewardedAds';
 import HammeringMiniGame, { HitLabel } from '@/components/HammeringMiniGame';
 import WeatherEffect, { WeatherType } from '@/components/WeatherEffect';
 import AudioManager from '@/utils/AudioManager';
-import { applyStoredAudioSettings } from '@/utils/audioSettings';
 import CraftingEnigmaModal from '@/components/CraftingEnigma';
 import LeaderboardRewardsModal from '@/components/LeaderboardRewardsModal';
 import ForgeGuidedOverlay from '@/components/ForgeGuidedOverlay';
@@ -1544,24 +1543,11 @@ export default function ForgeScreen() {
     outputRange: [5, -5],
   });
 
-  // Init audio on mount + weather cycle + forge ambience
+  // Start forge-specific ambience when the forge tab is mounted.
+  // Music and ambience layers are now global (started in _layout.tsx) so they
+  // persist across tab changes and are NOT started or stopped here.
   useEffect(() => {
-    AudioManager.init();
-    // Restore saved mute/volume BEFORE starting any loop so a muted player
-    // never hears a burst on app open.
-    applyStoredAudioSettings().finally(() => {
-      // Start the looping fire-crackle ambience when the forge tab is entered
-      AudioManager.startForgeAmbience();
-      // Medieval music bed + layered environmental loops (fire crackle, bellows)
-      AudioManager.startMusic();
-      AudioManager.startAmbienceLayers();
-    });
-
-    return () => {
-      // Stop every loop started above so nothing outlives the forge screen
-      AudioManager.stopMusic();
-      AudioManager.stopAmbienceLayers();
-    };
+    AudioManager.startForgeAmbience();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1574,31 +1560,15 @@ export default function ForgeScreen() {
     }).catch(() => { setShowBetaWelcome(true); }); // if AsyncStorage fails, fall back to save flag only
   }, [game.isLoaded]);
 
-  // Web: page-visibility suspend/resume lives in its own effect below.
+  // Weather cycle + forge ambience cleanup.
+  // visibilitychange (suspend/resume AudioContext) is now global in _layout.tsx.
   useEffect(() => {
-
-    // Web: use the Page Visibility API to suspend/resume the AudioContext so
-    // the oscillator graph stays alive and there is no audible gap on return.
-    let removeVisibility: (() => void) | undefined;
-    if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      const handleVisibilityChange = () => {
-        if (document.hidden) {
-          AudioManager.suspendForgeAmbience();
-        } else {
-          AudioManager.resumeForgeAmbience();
-        }
-      };
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-      removeVisibility = () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }
-
     // Randomly assign atmospheric weather — changes every 5–10 minutes
     const WEATHER_TYPES: WeatherType[] = ['none', 'none', 'none', 'rain', 'fog', 'rain', 'snow'];
     const pick = () => WEATHER_TYPES[Math.floor(Math.random() * WEATHER_TYPES.length)];
     setWeather(pick());
     const weatherTimer = setInterval(() => setWeather(pick()), 7 * 60 * 1000); // 7 min
     return () => {
-      removeVisibility?.();
       clearInterval(weatherTimer);
       AudioManager.stopForgeAmbience();
     };

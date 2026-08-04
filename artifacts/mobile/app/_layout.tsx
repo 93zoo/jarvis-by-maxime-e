@@ -40,6 +40,7 @@ SplashScreen.preventAutoHideAsync();
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState, Modal, Platform, View } from 'react-native';
 import AudioManager from '@/utils/AudioManager';
+import { applyStoredAudioSettings } from '@/utils/audioSettings';
 import { LeaderboardProvider } from '@/context/LeaderboardContext';
 
 const queryClient = new QueryClient();
@@ -82,6 +83,43 @@ function AppWithSplash() {
       appStateRef.current = nextState;
     });
     return () => sub.remove();
+  }, []);
+
+  // Global audio init — lives here so music persists across all tabs.
+  // The forge tab previously owned this, which caused music to stop whenever
+  // the player navigated away and the tab was unmounted.
+  useEffect(() => {
+    AudioManager.init();
+    // Restore saved mute/volume BEFORE starting any loop so a muted player
+    // never hears a burst on app open.
+    applyStoredAudioSettings().finally(() => {
+      AudioManager.startMusic();
+      AudioManager.startAmbienceLayers();
+    });
+
+    // Web: suspend/resume the AudioContext when the tab loses/gains visibility
+    // so the oscillator graph stays alive and there is no audible gap on return.
+    let removeVisibility: (() => void) | undefined;
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const handleVisibilityChange = () => {
+        if (document.hidden) {
+          AudioManager.suspendForgeAmbience();
+        } else {
+          AudioManager.resumeForgeAmbience();
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      removeVisibility = () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }
+
+    return () => {
+      removeVisibility?.();
+      // Music is stopped by handleBackground() when the app backgrounds;
+      // we only stop here on an actual unmount (full app teardown).
+      AudioManager.stopMusic();
+      AudioManager.stopAmbienceLayers();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const [splashDone, setSplashDone] = useState(
