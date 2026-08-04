@@ -12,3 +12,4 @@
 - [vector-icons v15 font loading](vector-icons-v15-fonts.md) — Feather ONLY (no Ionicons/MDI: Expo Go pre-bundles stale codepoints); spread `Feather.font` in useFonts, never manual require() paths.
 - [Dispatch from Reanimated runOnJS](gamecontext-dispatch-from-reanimated.md) — don't chain two game.xxx() calls from doCollect/runOnJS; wrap in one GameContext function instead.
 - [iOS overflow clipping](ios-overflow-clipping.md) — View with width:0 clips all children on iOS; add overflow:'visible' + non-zero dimension for anchor views.
+- [Worklets babel plugin under pnpm](worklets-plugin-pnpm.md) — preset auto-include silently fails under pnpm; explicit plugin in babel.config.js REQUIRED, and clear Metro caches after babel changes.
