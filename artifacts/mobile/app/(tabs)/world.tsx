@@ -243,8 +243,10 @@ function ExploreView({
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const progress = useSharedValue(0);
+  // Numeric pixels instead of '%' — Reanimated %-widths crash Android's native thread.
+  const trackW = useSharedValue(0);
   const progressStyle = useAnimatedStyle(() => ({
-    width: `${Math.round(progress.value * 100)}%` as `${number}%`,
+    width: progress.value * trackW.value,
   }));
   const toastOpacity = useSharedValue(0);
   const toastStyle = useAnimatedStyle(() => ({ opacity: toastOpacity.value }));
@@ -528,7 +530,10 @@ function ExploreView({
 
               {/* Progress bar (only when collecting this node) */}
               {isCollecting && (
-                <View style={[styles.progressTrack, { backgroundColor: colors.muted }]}>
+                <View
+                  style={[styles.progressTrack, { backgroundColor: colors.muted }]}
+                  onLayout={(e) => { trackW.value = e.nativeEvent.layout.width; }}
+                >
                   <Animated.View style={[styles.progressFill, progressStyle, { backgroundColor: rc }]} />
                 </View>
               )}
@@ -2047,8 +2052,10 @@ function FouilleModal({
   const [expired, setExpired] = useState(false);
   const [rewards, setRewards] = useState<{ resourceId: string; qty: number }[]>([]);
   const progress = useSharedValue(1);
+  // Numeric pixels instead of '%' — Reanimated %-widths crash Android's native thread.
+  const timerTrackW = useSharedValue(0);
   const progressStyle = useAnimatedStyle(() => ({
-    width: `${Math.round(progress.value * 100)}%` as `${number}%`,
+    width: progress.value * timerTrackW.value,
   }));
   const expiredRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -2110,7 +2117,10 @@ function FouilleModal({
 
           {!done && (
             <>
-              <View style={[fouStyles.timerTrack, { backgroundColor: colors.muted }]}>
+              <View
+                style={[fouStyles.timerTrack, { backgroundColor: colors.muted }]}
+                onLayout={(e) => { timerTrackW.value = e.nativeEvent.layout.width; }}
+              >
                 <Animated.View style={[fouStyles.timerFill, progressStyle, { backgroundColor: rc }]} />
               </View>
               <TouchableOpacity

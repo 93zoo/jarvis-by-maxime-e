@@ -1369,8 +1369,10 @@ export default function ForgeScreen() {
   // heatingProgress is now a Reanimated shared value — runs on the native
   // thread so 0 React re-renders fire during the heating animation.
   const heatingAnim = useSharedValue(0);
+  // Numeric pixels instead of '%' — Reanimated %-widths crash Android's native thread.
+  const heatingTrackW = useSharedValue(0);
   const heatingBarStyle = useAnimatedStyle(() => ({
-    width: `${heatingAnim.value * 100}%` as `${number}%`,
+    width: heatingAnim.value * heatingTrackW.value,
   }));
   const [craftedItem, setCraftedItem] = useState<Item | null>(null);
   const [showRecipeSheet, setShowRecipeSheet] = useState(false);
@@ -2033,7 +2035,10 @@ export default function ForgeScreen() {
                   {selectedRecipe.name}
                 </Text>
               )}
-              <View style={[styles.heatingTrack, { backgroundColor: colors.muted }]}>
+              <View
+                style={[styles.heatingTrack, { backgroundColor: colors.muted }]}
+                onLayout={(e) => { heatingTrackW.value = e.nativeEvent.layout.width; }}
+              >
                 {/* Reanimated view — updates on the native thread, no JS re-renders */}
                 <Reanimated.View
                   style={[styles.heatingFill, { backgroundColor: colors.primary }, heatingBarStyle]}
