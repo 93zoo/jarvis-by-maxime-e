@@ -419,6 +419,7 @@ type GameAction =
   | { type: 'LOAD'; payload: SaveData }
   | { type: 'RESET' }
   | { type: 'COMPLETE_FIRST_FORGE_TUTORIAL' }
+  | { type: 'REPLAY_FIRST_FORGE_TUTORIAL' }
   | { type: 'COMPLETE_FIRST_FORGE' }
   | { type: 'CLAIM_BETA_BOOST' }
   | { type: 'ADD_RESOURCE'; resourceId: string; qty: number }
@@ -1101,6 +1102,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     }
     case 'COMPLETE_FIRST_FORGE_TUTORIAL': {
       return { ...state, hasCompletedFirstForgeTutorial: true };
+    }
+    case 'REPLAY_FIRST_FORGE_TUTORIAL': {
+      return { ...state, hasCompletedFirstForgeTutorial: false };
     }
     case 'COMPLETE_FIRST_FORGE': {
       return { ...state, hasCompletedFirstForge: true };
@@ -2183,6 +2187,8 @@ interface GameContextType {
   saveGame: () => Promise<'ok' | 'error'>;
   resetGame: () => void;
   completeFirstForgeTutorial: () => Promise<void>;
+  /** Remet le flag tutoriel à false pour pouvoir le rejouer (bouton profil). */
+  replayFirstForgeTutorial: () => void;
   completeFirstForge: () => Promise<void>;
   betaBoostClaimed: boolean;
   claimBetaBoost: () => void;
@@ -3653,6 +3659,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state]);
 
+  /** Remet le flag à false pour rejouer le tutoriel depuis le profil. */
+  const replayFirstForgeTutorial = useCallback((): void => {
+    dispatch({ type: 'REPLAY_FIRST_FORGE_TUTORIAL' });
+  }, []);
+
   const completeFirstForge = useCallback(async (): Promise<void> => {
     dispatch({ type: 'COMPLETE_FIRST_FORGE' });
     try {
@@ -4041,6 +4052,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         saveGame,
         resetGame,
         completeFirstForgeTutorial,
+        replayFirstForgeTutorial,
         completeFirstForge,
         forgeUpgrades: state.forgeUpgrades,
         upgradeForgeElement,

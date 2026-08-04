@@ -3134,6 +3134,13 @@ export default function ProfileScreen({ tabs, title }: { tabs?: readonly Profile
               <Feather name="info" size={15} color="#E8B84B" />
               <Text style={[styles.resetBtnText, { color: '#E8B84B' }]}>À propos de Braise Noire Studios</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.resetBtn, { borderColor: '#5C7C4C' }]}
+              onPress={() => { game.replayFirstForgeTutorial(); router.push('/'); }}
+            >
+              <Feather name="play-circle" size={15} color="#7CB05C" />
+              <Text style={[styles.resetBtnText, { color: '#7CB05C' }]}>Revoir le tutoriel</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={[styles.resetBtn, { borderColor: '#C0392B' }]} onPress={handleReset}>
               <Feather name="refresh-cw" size={15} color="#C0392B" />
               <Text style={[styles.resetBtnText, { color: '#C0392B' }]}>Réinitialiser la partie</Text>
