@@ -17,7 +17,7 @@ import {
   View,
 } from 'react-native';
 import Feather from '@/components/Feather';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from '@/lib/LinearGradientSafe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGame } from '@/context/GameContext';
@@ -947,7 +947,7 @@ export default function InventoryScreen() {
 
       {activeTab === 'resources' && (
         filteredResources.length === 0 ? (
-          <Animated.View entering={FadeInDown.duration(400)} style={styles.emptyCenter}>
+          <Animated.View entering={FadeIn.duration(300)} style={styles.emptyCenter}>
             <Feather name="box" size={48} color={colors.mutedForeground} />
             <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
               {search ? 'Aucun résultat' : 'Inventaire vide'}
@@ -971,7 +971,7 @@ export default function InventoryScreen() {
 
       {activeTab === 'items' && (
         filteredItems.length === 0 ? (
-          <Animated.View entering={FadeInDown.duration(400)} style={styles.emptyCenter}>
+          <Animated.View entering={FadeIn.duration(300)} style={styles.emptyCenter}>
             <Feather name="tool" size={48} color={colors.mutedForeground} />
             <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
               {search || categoryFilter !== 'all' || qualityFilter !== 'all' ? 'Aucun résultat' : 'Aucun objet forgé'}
@@ -1003,7 +1003,7 @@ export default function InventoryScreen() {
       {/* ── Gems tab ── */}
       {activeTab === 'gems' && (
         (game.craftedGems?.length ?? 0) === 0 ? (
-          <Animated.View entering={FadeInDown.duration(400)} style={styles.emptyCenter}>
+          <Animated.View entering={FadeIn.duration(300)} style={styles.emptyCenter}>
             <Feather name="hexagon" size={48} color={colors.mutedForeground} />
             <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Collection vide</Text>
             <Text style={[styles.emptyDesc, { color: colors.mutedForeground }]}>
@@ -1086,8 +1086,8 @@ const styles = StyleSheet.create({
 
   tabBar: { borderBottomWidth: 1 },
   tabBarContent: { flexDirection: 'row', alignItems: 'stretch' },
-  tab: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 13, paddingHorizontal: 16, gap: 6, minWidth: 80 },
-  tabText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
+  tab: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 11, paddingHorizontal: 12, gap: 5 },
+  tabText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.2 },
   tabBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10, minWidth: 20, alignItems: 'center' },
   tabBadgeText: { fontSize: 10, fontWeight: '800' },
 
