@@ -38,7 +38,7 @@ import FirstForgeTutorial from '@/components/FirstForgeTutorial';
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 import React, { useEffect, useRef, useState } from 'react';
-import { AppState, Modal, Platform } from 'react-native';
+import { AppState, Modal, Platform, View } from 'react-native';
 import AudioManager from '@/utils/AudioManager';
 
 const queryClient = new QueryClient();
