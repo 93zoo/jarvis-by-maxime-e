@@ -34,7 +34,6 @@ import { RewardedAdsProvider } from '@/lib/rewardedAds';
 import StudioSplash from '@/components/StudioSplash';
 import DailyRewardModal from '@/components/DailyRewardModal';
 import FirstForgeTutorial from '@/components/FirstForgeTutorial';
-import { Feather } from '@expo/vector-icons';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -137,7 +136,9 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
-    ...Feather.font,          // registers 'feather' font family
+    // TTF v15 embarqué dans les assets : Expo Go substitue sinon sa propre
+    // version pré-bundlée de Feather (codepoints différents → glyphes CJK/□).
+    'feather': require('../assets/fonts/Feather.ttf'),
   });
 
   // Defer RevenueCat init off the synchronous module-load hot path.
