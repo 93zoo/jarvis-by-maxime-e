@@ -1,0 +1,117 @@
+# Préparation complète de l'application pour Google Play
+
+Prépare ce projet Expo afin qu'il soit entièrement prêt à être publié sur le Google Play Store.
+
+Effectue les opérations suivantes :
+
+## Configuration Expo
+
+* Vérifie que le projet est compatible avec Expo SDK le plus récent.
+* Vérifie que le projet est compatible avec EAS Build.
+* Mets à jour les dépendances si nécessaire.
+* Corrige automatiquement les incompatibilités.
+
+## app.json / app.config.ts
+
+Configure correctement :
+
+* name
+* slug
+* version = 1.0.0
+* orientation
+* icon
+* splash screen
+* adaptive icon Android
+* userInterfaceStyle
+* scheme
+* android.package (si absent, propose un identifiant unique)
+* permissions minimales
+* edgeToEdgeEnabled
+
+Ajoute tous les paramètres recommandés par Expo.
+
+## Android
+
+Configure :
+
+* versionCode
+* targetSdkVersion
+* compileSdkVersion
+* minSdkVersion recommandée
+* Kotlin
+* Gradle
+* Proguard
+* R8
+* Build Release
+
+Vérifie que tout est conforme aux exigences actuelles de Google Play.
+
+## EAS Build
+
+Si nécessaire :
+
+* crée eas.json
+* configure les profils preview et production
+* configure Android App Bundle (.aab)
+* configure automatiquement les credentials Expo
+* prépare la signature de l'application
+
+## Optimisations
+
+Active :
+
+* Hermes
+* optimisation du bundle
+* suppression du code mort
+* compression des images
+* optimisation des performances
+* optimisation mémoire
+
+## Assets
+
+Vérifie les ressources :
+
+* icône 1024×1024 si nécessaire
+* adaptive icon
+* splash screen
+* favicon
+* notification icon
+
+Si des fichiers sont manquants, indique précisément lesquels doivent être créés.
+
+## Permissions
+
+Supprime toutes les permissions Android inutiles.
+
+Ne conserve que les permissions réellement utilisées par l'application.
+
+## Confidentialité
+
+Analyse le projet et indique :
+
+* quelles données sont collectées
+* quelles données sont transmises
+* quelles API sont utilisées
+* si une politique de confidentialité est nécessaire
+
+Prépare les réponses aux formulaires Google Play "Sécurité des données".
+
+## Vérifications
+
+Exécute :
+
+* expo doctor
+* expo install --check
+* npm audit
+* vérification TypeScript
+* vérification ESLint
+
+Corrige automatiquement les erreurs détectées.
+
+## Build
+
+Lance toutes les vérifications nécessaires pour produire un build Release.
+
+À la fin, indique uniquement les éventuels blocages restants.
+
+Ne modifie aucune fonctionnalité du jeu ni son interface utilisateur. Les changements doivent uniquement concerner la configuration, la compatibilité, les performances et la publication sur Google Play.

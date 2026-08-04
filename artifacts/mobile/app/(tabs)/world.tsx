@@ -615,6 +615,26 @@ function ExploreView({
                         </View>
                       );
                     })}
+                    {/* Bouton Valider quand tous les objectifs sont remplis */}
+                    {isActive && !isDone && (() => {
+                      const allDone = quest.objectives.every(
+                        (obj) => (progress[obj.id] ?? 0) >= obj.required
+                      );
+                      if (!allDone) return null;
+                      return (
+                        <TouchableOpacity
+                          style={[styles.zoneClaimBtn, { backgroundColor: '#4CAF50' }]}
+                          onPress={() => {
+                            game.completeQuest(quest.id);
+                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <Feather name="check-circle" size={14} color="#fff" />
+                          <Text style={styles.zoneClaimBtnText}>Valider la quête</Text>
+                        </TouchableOpacity>
+                      );
+                    })()}
                     {/* Rewards */}
                     {!isDone && (
                       <View style={styles.zoneRewards}>
@@ -1948,6 +1968,8 @@ const styles = StyleSheet.create({
   zoneQuestTitle: { fontSize: 13, fontWeight: '700', marginBottom: 2 },
   zoneQuestDesc: { fontSize: 11, lineHeight: 15 },
   zoneAcceptBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 7 },
+  zoneClaimBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 10, paddingVertical: 8, borderRadius: 8 },
+  zoneClaimBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   zoneAcceptText: { fontSize: 11, fontWeight: '800' },
   zoneActiveBadge: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
   zoneActiveBadgeText: { fontSize: 9, fontWeight: '800', letterSpacing: 1 },

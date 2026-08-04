@@ -2186,6 +2186,7 @@ interface GameContextType {
   collectWorker: (workerId: string, precomputed?: WorkerHarvestResult) => WorkerHarvestResult;
   saveGame: () => Promise<'ok' | 'error'>;
   resetGame: () => void;
+  completeQuest: (questId: string) => void;
   completeFirstForgeTutorial: () => Promise<void>;
   /** Remet le flag tutoriel à false pour pouvoir le rejouer (bouton profil). */
   replayFirstForgeTutorial: () => void;
@@ -3130,6 +3131,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'ACCEPT_QUEST', questId });
   }, []);
 
+  const completeQuest = useCallback((questId: string) => {
+    dispatch({ type: 'COMPLETE_QUEST', questId });
+  }, []);
+
   const getActiveQuests = useCallback((): (Quest & { progress: Record<string, number> })[] => {
     return state.activeQuestIds.map((qid) => {
       const q = getQuests().find((x) => x.id === qid);
@@ -4051,6 +4056,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         fightForMaterials,
         saveGame,
         resetGame,
+        completeQuest,
         completeFirstForgeTutorial,
         replayFirstForgeTutorial,
         completeFirstForge,
