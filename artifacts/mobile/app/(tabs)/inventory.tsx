@@ -819,12 +819,17 @@ export default function InventoryScreen() {
         ] as { key: TabType; label: string; icon: string; badge: number }[]).map((tab) => (
           <TouchableOpacity
             key={tab.key}
-            style={[styles.tab, activeTab === tab.key && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
+            style={[
+              styles.tab,
+              activeTab === tab.key
+                ? { borderBottomColor: colors.primary, borderBottomWidth: 2, backgroundColor: colors.primary + '18' }
+                : { borderBottomWidth: 2, borderBottomColor: 'transparent' },
+            ]}
             onPress={() => setActiveTab(tab.key)}
           >
             <Feather
               name={tab.icon as any}
-              size={18}
+              size={16}
               color={activeTab === tab.key ? colors.primary : colors.mutedForeground}
             />
             <Text style={[styles.tabText, { color: activeTab === tab.key ? colors.primary : colors.mutedForeground }]}>
@@ -1077,10 +1082,10 @@ const styles = StyleSheet.create({
 
   tabBar: { borderBottomWidth: 1 },
   tabBarContent: { flexDirection: 'row', alignItems: 'stretch' },
-  tab: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 11, paddingHorizontal: 14, gap: 6 },
-  tabText: { fontSize: 13, fontWeight: '600' },
-  tabBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10 },
-  tabBadgeText: { fontSize: 10, fontWeight: '700' },
+  tab: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 13, paddingHorizontal: 16, gap: 6, minWidth: 80 },
+  tabText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
+  tabBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10, minWidth: 20, alignItems: 'center' },
+  tabBadgeText: { fontSize: 10, fontWeight: '800' },
 
   toolbarRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, gap: 8, borderBottomWidth: 1 },
   searchBox: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, height: 38, borderRadius: 10, borderWidth: 1 },
