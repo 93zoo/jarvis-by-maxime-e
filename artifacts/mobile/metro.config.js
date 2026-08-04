@@ -3,6 +3,17 @@ const http = require('http');
 
 const config = getDefaultConfig(__dirname);
 
+// react-native-svg's fetchData.ts imports the Node 'buffer' module. Under pnpm
+// Metro cannot resolve it from the package's own node_modules — expose the
+// workspace copy explicitly.
+config.resolver = {
+  ...config.resolver,
+  extraNodeModules: {
+    ...(config.resolver?.extraNodeModules || {}),
+    buffer: require.resolve('buffer'),
+  },
+};
+
 /**
  * Dev-only proxy: the Expo dev domain serves everything, so requests the web
  * app makes to `/api-server/api/...` would otherwise hit Metro and get HTML
