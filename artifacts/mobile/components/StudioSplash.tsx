@@ -364,7 +364,7 @@ export default function StudioSplash({ onDone }: { onDone: () => void }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  root: { position: 'absolute', top: 0, left: 0, backgroundColor: '#000', zIndex: 9999, elevation: 9999, overflow: 'hidden' },
+  root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', zIndex: 9999, elevation: 9999, overflow: 'hidden' },
   letterbox: { position: 'absolute', left: 0, right: 0, backgroundColor: '#000' },
   titleBlock: { alignItems: 'center', justifyContent: 'center', flex: 1 },
   mainTitle: { fontSize: 62, fontWeight: '900', letterSpacing: 10, textShadowColor: EMBER, textShadowRadius: 28, textShadowOffset: { width: 0, height: 0 } },

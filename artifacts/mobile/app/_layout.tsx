@@ -113,7 +113,11 @@ function AppWithSplash() {
         hardwareAccelerated
         onRequestClose={() => setSplashDone(true)}
       >
-        <StudioSplash onDone={() => setSplashDone(true)} />
+        {/* Fond noir plein écran : sans ça, la zone non couverte par le splash
+            (barre de navigation Android) laisse voir le fond blanc du Modal */}
+        <View style={{ flex: 1, backgroundColor: '#000' }}>
+          <StudioSplash onDone={() => setSplashDone(true)} />
+        </View>
       </Modal>
     </>
   );
