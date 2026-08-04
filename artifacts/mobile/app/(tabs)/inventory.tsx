@@ -775,9 +775,13 @@ export default function InventoryScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* ── Header ── */}
-      <LinearGradient
-        colors={[colors.card as string, 'transparent']}
-        style={[styles.header, { paddingTop: headerTopPad + 10 }]}
+      <View
+        style={[styles.header, {
+          paddingTop: headerTopPad + 10,
+          backgroundColor: colors.card,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+        }]}
       >
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
@@ -801,7 +805,7 @@ export default function InventoryScreen() {
             </Text>
           </View>
         )}
-      </LinearGradient>
+      </View>
 
       {/* ── Tab bar ── */}
       <ScrollView
