@@ -32,9 +32,10 @@ const IS_EXPO_GO =
     Constants.executionEnvironment === 'storeClient');
 
 // ─── Lazy-load react-native-webview (natif seulement) ───────────────────────
-// Ne JAMAIS require() react-native-webview dans Expo Go : crash natif Android.
+// La WebView fonctionne dans Expo Go (le crash attribué à tort venait du bug
+// worklets) — elle sert la vidéo d'intro HTML5.
 let RNWebView: React.ComponentType<any> | null = null;
-if (!IS_WEB && !IS_EXPO_GO) {
+if (!IS_WEB) {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     RNWebView = require('react-native-webview').WebView;
@@ -361,8 +362,8 @@ function VideoSplash({ onDone }: { onDone: () => void }) {
 
 export default function StudioSplash({ onDone }: { onDone: () => void }) {
   if (IS_WEB)     return <FallbackSplash       onDone={onDone} />;
-  // Expo Go Android : react-native-webview provoque un crash natif → FallbackSplash
-  if (IS_EXPO_GO) return <FallbackSplash       onDone={onDone} />;
+  // Expo Go : vidéo d'intro via WebView (expo-video absent d'Expo Go)
+  if (IS_EXPO_GO) return <WebViewVideoSplash   onDone={onDone} />;
   return                 <VideoSplash          onDone={onDone} />;
 }
 
