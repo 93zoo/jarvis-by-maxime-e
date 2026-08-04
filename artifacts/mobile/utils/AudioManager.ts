@@ -136,6 +136,19 @@ class AudioManagerClass {
   /** Must be called after a user gesture (browser autoplay policy on web). */
   init(): void {
     if (Platform.OS !== 'web') {
+      // Configure la session audio Android/iOS avant toute lecture.
+      // Sans ça, createAudioPlayer().play() échoue silencieusement.
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const ExpoAudio = require('expo-audio');
+        if (ExpoAudio.setAudioModeAsync) {
+          ExpoAudio.setAudioModeAsync({
+            playsInSilentModeIOS: true,
+            staysActiveInBackground: false,
+            shouldDuckAndroid: true,
+          }).catch(() => { /* ignore */ });
+        }
+      } catch { /* expo-audio absent, degrade gracefully */ }
       this._loadNativeSounds();
     } else {
       this._initWebAudio();
