@@ -32,15 +32,3 @@ REVENUECAT_APPLE_APP_STORE_APP_ID = "appc655e1f7be"
 REVENUECAT_GOOGLE_PLAY_STORE_APP_ID = "appaa4b602e3d"
 REVENUECAT_PROJECT_ID = "projb1bb9804"
 REVENUECAT_TEST_STORE_APP_ID = "appac498934f1"
-
-[[ports]]
-localPort = 8080
-externalPort = 8080
-
-[[ports]]
-localPort = 8081
-externalPort = 80
-
-[[ports]]
-localPort = 18115
-externalPort = 3002
