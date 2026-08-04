@@ -20,7 +20,9 @@ import { LinearGradient } from '@/lib/LinearGradientSafe';
 import AudioManager from '@/utils/AudioManager';
 import Constants from 'expo-constants';
 
-// Many simultaneous Animated.loop() calls crash Android's native thread in Expo Go.
+// ForgeScene3D has many simultaneous Animated.loop() calls (flicker + sparks + smoke).
+// Combined with ForgeBackdrop this exceeds Android's native thread limit in Expo Go.
+// Return null in Expo Go — ForgeBackdrop (static image) is still shown.
 const IS_EXPO_GO =
   Platform.OS !== 'web' &&
   ((Constants.appOwnership as string) === 'expo' ||
@@ -213,6 +215,7 @@ function FireLayer({
 const ForgeScene3D = forwardRef<ForgeScene3DRef, Props>(
   ({ craftPhase, upgradeLevel = 0 }, ref) => {
     // Expo Go: no-op ref + null render — ForgeBackdrop already shows the static image.
+    // IS_EXPO_GO is a module-level constant, so hook order stays consistent.
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useImperativeHandle(ref, () => ({ triggerHammerStrike: () => {} }));
     if (IS_EXPO_GO) return null;

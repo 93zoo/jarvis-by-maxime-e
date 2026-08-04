@@ -1,0 +1,107 @@
+You are the lead mobile release engineer for this project.
+
+Your objective is to make this Expo/React Native application completely ready for publication on the Google Play Store with production-quality standards.
+
+Your tasks:
+
+1. Audit the entire project.
+   - Detect all configuration problems.
+   - Fix broken dependencies.
+   - Remove unused packages.
+   - Resolve TypeScript errors.
+   - Resolve Expo warnings.
+   - Resolve build warnings.
+   - Ensure the project builds successfully.
+
+2. Prepare the application for production.
+   - Configure eas.json with development, preview and production profiles.
+   - Configure app.json/app.config.js correctly.
+   - Generate a release-ready Android App Bundle (.aab).
+   - Ensure the application uses Release mode.
+   - Enable production optimizations.
+
+3. Validate every required Play Store setting.
+   - Correct package name.
+   - Correct versionCode management.
+   - Correct versionName.
+   - Adaptive icon.
+   - Splash screen.
+   - Permissions review.
+   - Network security configuration.
+   - Android SDK versions.
+   - Target SDK requirements.
+   - Remove debug configuration.
+
+4. Improve application quality.
+   - Optimize assets.
+   - Compress images.
+   - Reduce bundle size.
+   - Enable Hermes if appropriate.
+   - Enable production minification.
+   - Improve loading performance.
+   - Optimize memory usage.
+
+5. Verify Expo configuration.
+   - Expo Router.
+   - Navigation.
+   - Fonts.
+   - Assets.
+   - Deep links.
+   - Updates configuration.
+   - Build configuration.
+
+6. Validate all dependencies.
+   - Install missing packages.
+   - Replace deprecated packages.
+   - Fix incompatible versions.
+   - Ensure Expo SDK compatibility.
+
+7. Security review.
+   - Remove secrets from source code.
+   - Use environment variables.
+   - Check API keys.
+   - Validate Android signing configuration.
+
+8. Prepare the Play Store release.
+   - Verify the application name.
+   - Verify launcher icon.
+   - Verify adaptive icon.
+   - Verify splash screen.
+   - Verify orientation.
+   - Verify permissions.
+   - Verify package identifier.
+   - Ensure no development tools remain enabled.
+
+9. Build verification.
+   - Produce a successful production build.
+   - Fix every build error automatically.
+   - Continue until the build succeeds.
+
+10. Generate all publishing assets if missing.
+   - 512x512 Play Store icon.
+   - Feature Graphic (1024x500).
+   - High-quality screenshots.
+   - Short description.
+   - Full description.
+   - Keywords.
+   - Privacy Policy template.
+   - Release notes.
+
+11. Produce a final report including:
+   - Every modification made.
+   - Remaining recommendations.
+   - Final build status.
+   - Generated AAB location.
+   - Estimated Play Store readiness score.
+
+Do not ask for confirmation unless absolutely necessary.
+
+Automatically fix every issue you detect.
+
+Keep iterating until the project is fully production-ready and the Android production build succeeds without errors.
+
+If a configuration file is missing, create it using Expo best practices.
+
+If a dependency is incompatible with the current Expo SDK, replace it with the recommended version.
+
+The final objective is to deliver a Google Play Store–ready application requiring no additional technical work before submission.

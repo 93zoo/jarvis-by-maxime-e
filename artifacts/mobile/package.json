@@ -5,14 +5,20 @@
   "main": "expo-router/entry",
   "scripts": {
     "dev": "EXPO_PACKAGER_PROXY_URL=https://$REPLIT_EXPO_DEV_DOMAIN EXPO_PUBLIC_DOMAIN=$REPLIT_DEV_DOMAIN EXPO_PUBLIC_REPL_ID=$REPL_ID REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN pnpm exec expo start --localhost --port $PORT",
+    "prebuild": "node scripts/validate-icons.js",
     "build": "node scripts/build.js",
     "serve": "node server/serve.js",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "node scripts/validate-icons.js && tsc -p tsconfig.json --noEmit",
+    "test": "node scripts/validate-icons.test.js",
+    "validate-icons": "node scripts/validate-icons.js",
+    "validate": "node scripts/validate-icons.js && node scripts/validate-icons.test.js"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@expo-google-fonts/inter": "^0.4.0",
     "@expo/cli": "54.0.23",
+    "@expo/config-plugins": "~54.0.5",
+    "babel-preset-expo": "~54.0.12",
     "@expo/ngrok": "^4.1.0",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",

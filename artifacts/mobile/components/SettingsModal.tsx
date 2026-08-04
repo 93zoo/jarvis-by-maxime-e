@@ -16,7 +16,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useGame } from '@/context/GameContext';
 import AudioManager from '@/utils/AudioManager';
@@ -127,10 +127,10 @@ function StatCard({
   );
 }
 
-function StatSection({ icon, label }: { icon: React.ComponentProps<typeof MaterialCommunityIcons>['name']; label: string }) {
+function StatSection({ icon, label }: { icon: React.ComponentProps<typeof Feather>['name']; label: string }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-      <MaterialCommunityIcons name={icon} size={13} color="rgba(200,160,80,0.7)" />
+      <Feather name={icon} size={13} color="rgba(200,160,80,0.7)" />
       <Text style={ss.statSection}>{label}</Text>
     </View>
   );
@@ -267,7 +267,7 @@ export default function SettingsModal({ visible, onClose, onGoToProfile, onQuit 
         {/* ── Header ── */}
         <View style={ss.header}>
           <View style={ss.headerLeft}>
-            <MaterialCommunityIcons name="anvil" size={20} color={C.ember} />
+            <Feather name="tool" size={20} color={C.ember} />
             <Text style={ss.headerTitle}>PARAMÈTRES</Text>
           </View>
           <TouchableOpacity onPress={onClose} style={ss.closeBtn} activeOpacity={0.7}>
@@ -352,7 +352,7 @@ export default function SettingsModal({ visible, onClose, onGoToProfile, onQuit 
                     <Text style={ss.playerSub}>
                       Niv. {player.level} · Forge Niv. {forgeLevel} · {currentGold.toLocaleString('fr-FR')}
                     </Text>
-                    <MaterialCommunityIcons name="gold" size={12} color={C.gold} />
+                    <Feather name="dollar-sign" size={12} color={C.gold} />
                   </View>
                   <View style={ss.xpRow}>
                     <View style={ss.xpTrack}>
@@ -428,7 +428,7 @@ export default function SettingsModal({ visible, onClose, onGoToProfile, onQuit 
           {tab === 'stats' && (
             <View style={ss.section}>
 
-              <StatSection icon="hammer-wrench" label="FORGERON" />
+              <StatSection icon="tool" label="FORGERON" />
               <View style={ss.statGrid}>
                 <StatCard icon="user"    label="Niveau joueur"   value={player.level}    color={C.ember} />
                 <StatCard icon="award"   label="Niveau forge"    value={forgeLevel}       color={C.gold} />
@@ -439,7 +439,7 @@ export default function SettingsModal({ visible, onClose, onGoToProfile, onQuit 
               </View>
 
               <View style={ss.divider} />
-              <StatSection icon="fire" label="PRODUCTION" />
+              <StatSection icon="activity" label="PRODUCTION" />
               <View style={ss.statGrid}>
                 <StatCard icon="package"    label="Forgés au total"   value={totalCrafted}    color={C.ember} />
                 <StatCard icon="trending-up" label="Légendaires"      value={legendaryCount}  color="#9966CC" />
@@ -448,7 +448,7 @@ export default function SettingsModal({ visible, onClose, onGoToProfile, onQuit 
               </View>
 
               <View style={ss.divider} />
-              <StatSection icon="gold" label="COMMERCE" />
+              <StatSection icon="dollar-sign" label="COMMERCE" />
               <View style={ss.statGrid}>
                 <StatCard icon="dollar-sign" label="Or total gagné"     value={goldEarned} color={C.gold} wide />
               </View>
@@ -465,14 +465,14 @@ export default function SettingsModal({ visible, onClose, onGoToProfile, onQuit 
               </View>
 
               <View style={ss.divider} />
-              <StatSection icon="trophy" label="RECORDS" />
+              <StatSection icon="award" label="RECORDS" />
               <View style={ss.statGrid}>
                 <StatCard icon="target"    label="Meilleur score qualité" value={bestQuality}     color="#FF6B6B" />
                 <StatCard icon="activity"  label="Série active"           value={`${streak} j`}  color={C.ember} />
               </View>
 
               <View style={ss.divider} />
-              <StatSection icon="cog" label="COMPÉTENCES" />
+              <StatSection icon="settings" label="COMPÉTENCES" />
               <View style={ss.statGrid}>
                 <StatCard icon="tool"       label="Construction" value={constrLevel}  color={C.steel} />
                 <StatCard icon="shopping-bag" label="Commerce"   value={comLevel}     color={C.blue} />

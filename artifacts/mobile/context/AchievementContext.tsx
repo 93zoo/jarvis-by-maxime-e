@@ -19,8 +19,10 @@ import { useGame } from '@/context/GameContext';
 import AchievementToast from '@/components/AchievementToast';
 import AudioManager from '@/utils/AudioManager';
 
-// ─── Static achievement data ──────────────────────────────────────────────────
-const ALL_ACHIEVEMENTS: Achievement[] = require('@/data/achievements.json');
+// ─── Static achievement data – lazily loaded on first access ──────────────────
+let _cache_achievements: Achievement[] | undefined;
+const getAchievements = (): Achievement[] =>
+  (_cache_achievements ??= require('@/data/achievements.json') as Achievement[]);
 
 const ACHI_SAVE_KEY = '@fk_achievements_v1';
 
@@ -33,7 +35,7 @@ interface AchievementContextType {
 
 const AchievementCtx = createContext<AchievementContextType>({
   unlockedIds: new Set(),
-  allAchievements: ALL_ACHIEVEMENTS,
+  allAchievements: [],
   totalUnlocked: 0,
 });
 
@@ -145,7 +147,7 @@ export function AchievementProvider({ children }: { children: React.ReactNode })
     // We need to know how many are currently unlocked to evaluate 'achievementsUnlocked'
     let currentCount = unlockedIds.size;
 
-    for (const ach of ALL_ACHIEVEMENTS) {
+    for (const ach of getAchievements()) {
       if (unlockedIds.has(ach.id)) continue;
       if (meetsCondition(ach, currentCount)) {
         newlyUnlocked.push(ach);
@@ -198,7 +200,7 @@ export function AchievementProvider({ children }: { children: React.ReactNode })
 
   const value: AchievementContextType = {
     unlockedIds,
-    allAchievements: ALL_ACHIEVEMENTS,
+    allAchievements: getAchievements(),
     totalUnlocked: unlockedIds.size,
   };
 

@@ -1,0 +1,29 @@
+metivant@FR-STA-9cvlDb1Y:~/forge-kingdoms/artifacts/mobile/android$ ls
+app  build  build.gradle  gradle  gradle.properties  gradlew  gradlew.bat  settings.gradle
+metivant@FR-STA-9cvlDb1Y:~/forge-kingdoms/artifacts/mobile/android$ cd
+.gradle/ .kotlin/ app/     build/   gradle/
+metivant@FR-STA-9cvlDb1Y:~/forge-kingdoms/artifacts/mobile/android$ cd app/
+metivant@FR-STA-9cvlDb1Y:~/forge-kingdoms/artifacts/mobile/android/app$ ls
+build  build.gradle  debug.keystore  proguard-rules.pro  src
+metivant@FR-STA-9cvlDb1Y:~/forge-kingdoms/artifacts/mobile/android/app$ adb install -r "/mnt/c/Users/metivant/Desktop/Forge-Kingdoms.apk"
+* daemon not running; starting now at tcp:5037
+* daemon started successfully
+adb: no devices/emulators found
+metivant@FR-STA-9cvlDb1Y:~/forge-kingdoms/artifacts/mobile/android/app$ # Vérifie que le fichier existe
+ls -lh ~/forge-kingdoms/artifacts/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+-rw-r--r-- 1 metivant metivant 198M Aug  3 14:35 /home/metivant/forge-kingdoms/artifacts/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+metivant@FR-STA-9cvlDb1Y:~/forge-kingdoms/artifacts/mobile/android/app$ cp ~/forge-kingdoms/artifacts/mobile/android/app/build/outputs/apk/debug/app-debug.apk \
+   "/mnt/c/Users/metivant/Desktop/Forge-Kingdoms.apk"
+cp: cannot create regular file '/mnt/c/Users/metivant/Desktop/Forge-Kingdoms.apk': No such file or directory
+metivant@FR-STA-9cvlDb1Y:~/forge-kingdoms/artifacts/mobile/android/app$ ls /mnt/c/Users/
+ 'All Users'   Default   'Default User'   Public   adm-metivant-pre   defaultuser0   desktop.ini   fleger   ifernandez   metivant-pre   yhagiwara
+metivant@FR-STA-9cvlDb1Y:~/forge-kingdoms/artifacts/mobile/android/app$ cp ~/forge-kingdoms/artifacts/mobile/android/app/build/outputs/apk/debug/app-debug.apk \
+   "/mnt/c/Users/metivant-pre/Desktop/Forge-Kingdoms.apk"
+cp: cannot create regular file '/mnt/c/Users/metivant-pre/Desktop/Forge-Kingdoms.apk': No such file or directory
+metivant@FR-STA-9cvlDb1Y:~/forge-kingdoms/artifacts/mobile/android/app$ cp ~/forge-kingdoms/artifacts/mobile/android/app/build/outputs/apk/debug/app-debug.apk \
+   "/mnt/c/Users/metivant-pre/Documents/Forge-Kingdoms.apk"
+metivant@FR-STA-9cvlDb1Y:~/forge-kingdoms/artifacts/mobile/android/app$
+
+
+
+

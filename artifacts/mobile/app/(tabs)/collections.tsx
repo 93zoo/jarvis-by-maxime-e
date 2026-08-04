@@ -5,15 +5,15 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from '@/lib/LinearGradientSafe';
 import { useColors } from '@/hooks/useColors';
 import { useGame } from '@/context/GameContext';
 import type { ItemSet } from '@/types/game';
-import { ALL_MICRO_COMBOS, type MicroCombo } from '@/utils/microCombos';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
+import { getAllMicroCombos, type MicroCombo } from '@/utils/microCombos';
+import { Feather } from '@expo/vector-icons';
 const RARITY_COLORS: Record<string, string> = {
   common:    '#9E9E9E',
   rare:      '#2196F3',
@@ -84,14 +84,14 @@ function EventBanner({
         {/* Header row */}
         <View style={evStyles.headerRow}>
           <View style={[evStyles.iconWrap, { backgroundColor: colors.primary + '22', borderColor: colors.primary + '66' }]}>
-            <MaterialCommunityIcons name={event.icon as any} size={24} color={colors.primary} />
+            <Feather name={featherIcon(event.icon as string)} size={24} color={colors.primary} />
           </View>
           <View style={{ flex: 1, marginLeft: 10 }}>
             <Text style={[evStyles.overline, { color: colors.primary }]}>ÉVÉNEMENT EN COURS</Text>
             <Text style={[evStyles.name, { color: colors.foreground }]} numberOfLines={1}>{event.name}</Text>
           </View>
           <View style={[evStyles.timerBadge, { backgroundColor: colors.background + 'CC', borderColor: colors.primary + '55' }]}>
-            <MaterialCommunityIcons name="timer-sand" size={13} color={colors.primary} />
+            <Feather name="clock" size={13} color={colors.primary} />
             <Text style={[evStyles.timerText, { color: colors.primary }]}>{formatCountdown(remaining)}</Text>
           </View>
         </View>
@@ -132,7 +132,7 @@ function EventBanner({
               borderWidth: 1,
             }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                {reached && <MaterialCommunityIcons name="star-four-points" size={10} color={colors.primary} />}
+                {reached && <Feather name="star" size={10} color={colors.primary} />}
                 <Text style={[evStyles.tierLabel, { color: reached ? colors.primary : colors.mutedForeground }]}>
                   {tier.label} ({tier.count}/{progress.total})
                 </Text>
@@ -184,7 +184,7 @@ function BonusSummaryPanel({
   return (
     <View style={[spStyles.panel, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 6 }}>
-        <MaterialCommunityIcons name="lightning-bolt" size={16} color={colors.accent} />
+        <Feather name="zap" size={16} color={colors.accent} />
         <Text style={[spStyles.title, { color: colors.foreground, marginBottom: 0 }]}>Bonus actifs des collections</Text>
       </View>
       <View style={spStyles.grid}>
@@ -249,7 +249,7 @@ function SetDetailModal({
           {/* Header */}
           <View style={mdStyles.headerRow}>
             <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: rc + '22', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: rc + '55' }}>
-              <MaterialCommunityIcons name={(set as any).icon ?? 'treasure-chest'} size={32} color={rc} />
+              <Feather name={featherIcon((set as any).icon, 'gift')} size={32} color={rc} />
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={[mdStyles.setName, { color: colors.foreground }]}>{set.name}</Text>
@@ -305,7 +305,7 @@ function SetDetailModal({
                 ]}>
                   <View style={mdStyles.tierHeader}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                      {reached && <MaterialCommunityIcons name="star-four-points" size={10} color={rc} />}
+                      {reached && <Feather name="star" size={10} color={rc} />}
                       <Text style={[mdStyles.tierLabel, { color: reached ? rc : colors.mutedForeground }]}>
                         {tier.label} ({tier.count}/{set.items.length})
                       </Text>
@@ -323,7 +323,7 @@ function SetDetailModal({
             {/* Reward */}
             <View style={[mdStyles.rewardRow, { backgroundColor: isClaimed ? colors.muted : rc + '22', borderColor: rc + '55' }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                <MaterialCommunityIcons name={isClaimed ? 'check-decagram' : 'gift'} size={18} color={isClaimed ? colors.mutedForeground : rc} />
+                <Feather name={isClaimed ? 'check-circle' : 'gift'} size={18} color={isClaimed ? colors.mutedForeground : rc} />
                 <Text style={[mdStyles.rewardTitle, { color: isClaimed ? colors.mutedForeground : rc, marginBottom: 0 }]}>
                   {isClaimed ? 'Récompense obtenue' : 'Récompense de collection'}
                 </Text>
@@ -404,7 +404,7 @@ function SetCard({
       {/* Emoji + Name */}
       <View style={scStyles.topRow}>
         <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: rc + '22', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: rc + '55' }}>
-          <MaterialCommunityIcons name={isRevealed ? ((set as any).icon ?? 'treasure-chest') : 'lock'} size={24} color={isRevealed ? rc : colors.mutedForeground} />
+          <Feather name={isRevealed ? featherIcon((set as any).icon, 'gift') : 'lock'} size={24} color={isRevealed ? rc : colors.mutedForeground} />
         </View>
         <View style={{ flex: 1, marginLeft: 10 }}>
           <Text style={[scStyles.name, { color: colors.foreground }]} numberOfLines={1}>
@@ -414,7 +414,7 @@ function SetCard({
             <Text style={[scStyles.rarityText, { color: rc }]}>{RARITY_LABELS[set.rarity]}</Text>
           </View>
         </View>
-        {isComplete && <MaterialCommunityIcons name={isClaimed ? 'check-decagram' : 'gift'} size={24} color={isClaimed ? '#4CAF50' : '#E8B84B'} />}
+        {isComplete && <Feather name={isClaimed ? 'check-circle' : 'gift'} size={24} color={isClaimed ? '#4CAF50' : '#E8B84B'} />}
       </View>
 
       {/* Progress */}
@@ -433,7 +433,7 @@ function SetCard({
       {/* Active bonus */}
       {currentTier && (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <MaterialCommunityIcons name="star-four-points" size={10} color={rc} />
+          <Feather name="star" size={10} color={rc} />
           <Text style={[scStyles.bonusText, { color: rc }]} numberOfLines={1}>
             {currentTier.label}
           </Text>
@@ -469,7 +469,7 @@ function DiscoveredComboCard({
     <View style={[dcStyles.card, { backgroundColor: colors.card, borderColor: colors.accent + '66' }]}>
       <View style={dcStyles.topRow}>
         <View style={[dcStyles.iconWrap, { backgroundColor: colors.accent + '22', borderColor: colors.accent + '55' }]}>
-          <MaterialCommunityIcons name={combo.icon as any} size={20} color={colors.accent} />
+          <Feather name={featherIcon(combo.icon as string)} size={20} color={colors.accent} />
         </View>
         <View style={{ flex: 1, marginLeft: 10 }}>
           <Text style={[dcStyles.name, { color: colors.foreground }]} numberOfLines={1}>{combo.name}</Text>
@@ -498,7 +498,7 @@ function DiscoveriesSection({
     const discovered: MicroCombo[] = [];
     const partial: { combo: MicroCombo; knownId: string }[] = [];
     let hiddenCount = 0;
-    for (const combo of ALL_MICRO_COMBOS) {
+    for (const combo of getAllMicroCombos()) {
       const hasA = craftedIds.has(combo.items[0]);
       const hasB = craftedIds.has(combo.items[1]);
       if (hasA && hasB) discovered.push(combo);
@@ -511,10 +511,10 @@ function DiscoveriesSection({
   return (
     <View style={dsStyles.section}>
       <View style={dsStyles.headerRow}>
-        <MaterialCommunityIcons name="flask-outline" size={18} color={colors.accent} />
+        <Feather name="droplet" size={18} color={colors.accent} />
         <Text style={[dsStyles.title, { color: colors.foreground }]}>DÉCOUVERTES</Text>
         <Text style={[dsStyles.count, { color: colors.mutedForeground }]}>
-          {discovered.length}/{ALL_MICRO_COMBOS.length}
+          {discovered.length}/{getAllMicroCombos().length}
         </Text>
       </View>
       <Text style={[dsStyles.subtitle, { color: colors.mutedForeground }]}>
@@ -620,7 +620,7 @@ export default function CollectionsScreen() {
           </Text>
         </View>
         <View style={[csStyles.trophyBadge, { backgroundColor: colors.primary + '22', borderWidth: 1, borderColor: colors.primary + '55' }]}>
-          <MaterialCommunityIcons name="trophy" size={22} color={colors.primary} />
+          <Feather name="award" size={22} color={colors.primary} />
           <Text style={[csStyles.trophyText, { color: colors.primary }]}>{completedSets}</Text>
         </View>
       </View>
@@ -660,7 +660,7 @@ export default function CollectionsScreen() {
 
         {filtered.length === 0 && (
           <View style={csStyles.empty}>
-            <MaterialCommunityIcons name="magnify" size={40} color={colors.mutedForeground} />
+            <Feather name="search" size={40} color={colors.mutedForeground} />
             <Text style={[csStyles.emptyText, { color: colors.mutedForeground }]}>Aucune collection pour ce filtre</Text>
           </View>
         )}
@@ -695,3 +695,40 @@ const csStyles = StyleSheet.create({
   empty:         { alignItems: 'center', paddingVertical: 60, gap: 12 },
   emptyText:     { fontSize: 14 },
 });
+
+const ICON_ALIAS: Record<string, React.ComponentProps<typeof Feather>['name']> = {
+  // Rewards / achievements
+  crown: 'award', trophy: 'award', medal: 'award', ribbon: 'tag',
+  // Gifts / special
+  gift: 'gift', 'gift-outline': 'gift',
+  // Elements / nature
+  sparkles: 'star', diamond: 'hexagon', 'diamond-stone': 'hexagon',
+  flame: 'activity', fire: 'zap', flare: 'sun',
+  flash: 'zap', snow: 'cloud-snow', snowflake: 'cloud-snow',
+  grass: 'wind', 'white-balance-sunny': 'sun', halloween: 'moon',
+  water: 'droplet', cactus: 'sun', volcano: 'activity', flask: 'droplet',
+  // Weapons / combat
+  sword: 'scissors', axe: 'scissors', 'axe-battle': 'scissors',
+  'sword-cross': 'x', 'knife-military': 'scissors', knife: 'scissors',
+  'skull-crossbones': 'alert-octagon', skull: 'alert-octagon',
+  // Armor / defense
+  'shield-half-full': 'shield', 'shield-home': 'shield', 'shield-half': 'shield',
+  ring: 'circle', 'chess-rook': 'box', pillar: 'layers', castle: 'home',
+  // Tools / construction
+  hammer: 'tool', 'hammer-outline': 'tool', 'hammer-wrench': 'tool',
+  pickaxe: 'tool', build: 'layers', construct: 'tool',
+  'auto-fix': 'settings', 'star-four-points': 'star',
+  // Animals / misc
+  'horse-variant': 'wind', boat: 'anchor',
+  // Economy
+  cash: 'dollar-sign', 'cash-outline': 'dollar-sign',
+  // Nature / world
+  'home-group': 'home', 'pine-tree': 'triangle', summit: 'trending-up',
+  // Misc (MDI names without direct Feather equivalent)
+  scale: 'sliders', restaurant: 'coffee',
+};
+
+function featherIcon(name: string | undefined, fallback: React.ComponentProps<typeof Feather>['name'] = 'gift'): React.ComponentProps<typeof Feather>['name'] {
+  if (!name) return fallback;
+  return ICON_ALIAS[name] ?? (name as React.ComponentProps<typeof Feather>['name']);
+}

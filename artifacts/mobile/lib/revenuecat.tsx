@@ -24,7 +24,7 @@ export const GOLD_PRODUCTS: Record<string, number> = {
 /** Contents of a resource pack consumable. */
 export interface ResourcePackContent {
   name: string;
-  /** MaterialCommunityIcons icon name */
+  /** Feather icon name */
   icon: string;
   /** Short description shown in the boutique */
   tagline: string;
@@ -39,7 +39,7 @@ export interface ResourcePackContent {
 export const RESOURCE_PRODUCTS: Record<string, ResourcePackContent> = {
   resource_pack_forge: {
     name: 'Pack Forgeron',
-    icon: 'hammer',
+    icon: 'tool',
     tagline: 'Matériaux de base en quantité',
     items: [
       { resourceId: 'iron',   qty: 20 },
@@ -51,7 +51,7 @@ export const RESOURCE_PRODUCTS: Record<string, ResourcePackContent> = {
   },
   resource_pack_rare: {
     name: 'Pack Maître',
-    icon: 'anvil',
+    icon: 'tool',
     tagline: 'Alliages & métaux rares',
     items: [
       { resourceId: 'bronze', qty: 8 },
@@ -63,7 +63,7 @@ export const RESOURCE_PRODUCTS: Record<string, ResourcePackContent> = {
   },
   resource_pack_gems: {
     name: 'Pack Gemmes',
-    icon: 'diamond',
+    icon: 'hexagon',
     tagline: 'Pierres précieuses rares',
     items: [
       { resourceId: 'amethyst', qty: 5 },

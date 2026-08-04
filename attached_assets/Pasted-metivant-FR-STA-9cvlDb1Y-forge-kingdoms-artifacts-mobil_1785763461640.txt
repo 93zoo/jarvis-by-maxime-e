@@ -1,0 +1,64 @@
+metivant@FR-STA-9cvlDb1Y:~/forge-kingdoms/artifacts/mobile/android$ cd ~/forge-kingdoms/artifacts/mobile/android
+./gradlew assembleRelease --stacktrace 2>&1 | grep -A 30 "createBundleReleaseJsAndAssets" | head -60
+> Task :app:createBundleReleaseJsAndAssets
+React Compiler enabled
+
+> Task :react-native-safe-area-context:bundleReleaseAar
+> Task :react-native-safe-area-context:mapReleaseSourceSetPaths
+> Task :react-native-svg:bundleReleaseAar
+> Task :react-native-svg:mapReleaseSourceSetPaths
+
+> Task :app:createBundleReleaseJsAndAssets
+Starting Metro Bundler
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+
+> Task :react-native-async-storage_async-storage:mergeReleaseResources
+> Task :react-native-keyboard-controller:mergeReleaseResources
+> Task :react-native-safe-area-context:mergeReleaseResources
+> Task :react-native-svg:mergeReleaseResources
+> Task :react-native-screens:configureCMakeRelWithDebInfo[armeabi-v7a]
+> Task :react-native-purchases:mergeReleaseResources
+> Task :expo-modules-core:configureCMakeRelWithDebInfo[armeabi-v7a]
+> Task :react-native-worklets:configureCMakeRelWithDebInfo[x86]
+> Task :react-native-svg:verifyReleaseResources
+> Task :react-native-svg:assembleRelease
+> Task :react-native-webview:bundleReleaseAar
+> Task :react-native-worklets:configureCMakeRelWithDebInfo[x86_64]
+> Task :react-native-worklets:generateJsonModelRelease
+> Task :react-native-worklets:prefabReleaseConfigurePackage
+> Task :react-native-keyboard-controller:verifyReleaseResources
+
+> Task :app:createBundleReleaseJsAndAssets
+Android node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17_expo-c_mh43mr33z5h5fsakfbsyuc2qce/node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+
+> Task :react-native-async-storage_async-storage:verifyReleaseResources
+> Task :react-native-async-storage_async-storage:assembleRelease
+> Task :react-native-keyboard-controller:assembleRelease
+> Task :react-native-safe-area-context:verifyReleaseResources
+> Task :react-native-safe-area-context:assembleRelease
+> Task :react-native-webview:mapReleaseSourceSetPaths
+> Task :react-native-purchases:verifyReleaseResources
+> Task :react-native-purchases:assembleRelease
+
+> Task :app:createBundleReleaseJsAndAssets
+Android Bundling failed 3315ms node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17_expo-c_mh43mr33z5h5fsakfbsyuc2qce/node_modules/expo-router/entry.js (1 module)
+SyntaxError: ../../node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17_expo-c_mh43mr33z5h5fsakfbsyuc2qce/node_modules/expo-router/entry.js: Cannot find module 'babel-preset-expo'
+Require stack:
+- /home/metivant/forge-kingdoms/node_modules/.pnpm/@babel+core@7.29.7/node_modules/@babel/core/lib/config/files/plugins.js
+- /home/metivant/forge-kingdoms/node_modules/.pnpm/@babel+core@7.29.7/node_modules/@babel/core/lib/config/files/index.js
+- /home/metivant/forge-kingdoms/node_modules/.pnpm/@babel+core@7.29.7/node_modules/@babel/core/lib/index.js
+- /home/metivant/forge-kingdoms/node_modules/.pnpm/@expo+metro-config@54.0.17_expo@54.0.36/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js
+- /home/metivant/forge-kingdoms/node_modules/.pnpm/@expo+metro-config@54.0.17_expo@54.0.36/node_modules/@expo/metro-config/build/transform-worker/transform-worker.js
+- /home/metivant/forge-kingdoms/node_modules/.pnpm/metro@0.83.3/node_modules/metro/src/DeltaBundler/Worker.flow.js
+- /home/metivant/forge-kingdoms/node_modules/.pnpm/metro@0.83.3/node_modules/metro/src/DeltaBundler/Worker.js
+- /home/metivant/forge-kingdoms/node_modules/.pnpm/jest-worker@29.7.0/node_modules/jest-worker/build/workers/processChild.js
+
+Make sure that all the Babel plugins and presets you are using
+are defined as dependencies or devDependencies in your package.json
+file. It's possible that the missing plugin is loaded by a preset
+you are using that forgot to add the plugin to its dependencies: you
+can workaround this problem by explicitly adding the missing package
+to your top-level package.json.
+
+
+

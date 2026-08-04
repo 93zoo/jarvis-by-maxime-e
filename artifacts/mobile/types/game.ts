@@ -96,6 +96,8 @@ export interface Player {
   craftedLegendaryCount: number;
   craftedExcellentCount: number;
   craftedGoodCount: number;
+  /** Total number of items crafted with a successful enigma-mastery bonus. */
+  enigmaMasteredCount?: number;
   createdAt: number;
   streak: number;
   lastPlayedDate: number;

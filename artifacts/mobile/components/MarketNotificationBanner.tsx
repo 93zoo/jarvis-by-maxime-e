@@ -21,7 +21,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import {
   BANNER_DISPLAY_MS,
   BANNER_QUEUE_GAP_MS,
@@ -34,7 +34,7 @@ import {
 export interface BannerNotification {
   id: string;
   text: string;
-  /** Ionicons icon name */
+  /** Feather icon name */
   iconName: string;
   color: string;
 }
@@ -151,8 +151,8 @@ export default function MarketNotificationBanner({ queue, onConsumed, topInset =
     >
       {/* Left icon */}
       <View style={[bs.iconWrap, { backgroundColor: current.color + '22' }]}>
-        <Ionicons
-          name={current.iconName as React.ComponentProps<typeof Ionicons>['name']}
+        <Feather
+          name={current.iconName as React.ComponentProps<typeof Feather>['name']}
           size={16}
           color={current.color}
         />

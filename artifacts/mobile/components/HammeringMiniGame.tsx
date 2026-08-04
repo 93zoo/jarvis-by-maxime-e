@@ -19,7 +19,7 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import AudioManager from '@/utils/AudioManager';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from '@/lib/LinearGradientSafe';
 
 export type HitLabel = 'PARFAIT!' | 'EXCELLENT!' | 'TRÈS BIEN' | 'BIEN' | 'RATÉ';
@@ -264,11 +264,11 @@ export default function HammeringMiniGame({
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <MaterialCommunityIcons name="anvil" size={22} color={PALETTE.gold} />
+          <Feather name="tool" size={22} color={PALETTE.gold} />
           <Text style={styles.headerTitle}>MARTELAGE</Text>
         </View>
         <View style={styles.scoreBadge}>
-          <MaterialCommunityIcons name="star-four-points" size={16} color={PALETTE.neonCyan} />
+          <Feather name="star" size={16} color={PALETTE.neonCyan} />
           <Text style={styles.scoreText}>{totalScore} <Text style={styles.scorePts}>pts</Text></Text>
         </View>
       </View>
@@ -332,8 +332,8 @@ export default function HammeringMiniGame({
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
         >
-          <MaterialCommunityIcons 
-            name={strikesCompleted >= TOTAL_STRIKES ? "check-bold" : "hammer"} 
+          <Feather 
+            name={strikesCompleted >= TOTAL_STRIKES ? "check" : "tool"} 
             size={28} 
             color={strikesCompleted >= TOTAL_STRIKES ? "#888" : "#FFF"} 
           />
@@ -507,7 +507,8 @@ const styles = StyleSheet.create({
     top: -4,
     bottom: -4,
     left: 0,
-    width: 0, 
+    width: 2,
+    overflow: 'visible', // iOS clips width:0 children by default; explicit visible fixes the needle
     zIndex: 10,
   },
   needleLine: {

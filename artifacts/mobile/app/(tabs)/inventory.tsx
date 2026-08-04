@@ -16,7 +16,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from '@/lib/LinearGradientSafe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -64,46 +64,46 @@ function rarityColor(r: string, colors: ReturnType<typeof useColors>): string {
 }
 
 // ─── Icône par ressource ──────────────────────────────────────────────────────
-const RESOURCE_ICONS: Record<string, React.ComponentProps<typeof MaterialCommunityIcons>['name']> = {
+const RESOURCE_ICONS: Record<string, React.ComponentProps<typeof Feather>['name']> = {
   // Métaux communs
-  iron:         'nail',
-  copper:       'pipe',
-  bronze:       'shield-half-full',
-  steel:        'sword',
-  silver:       'circle-slice-8',
-  gold_ore:     'gold',
-  platinum:     'medal',
-  brass:        'wrench',
-  electrum:     'lightning-bolt',
+  iron: 'tool',
+  copper: 'droplet',
+  bronze:       'shield',
+  steel: 'scissors',
+  silver: 'disc',
+  gold_ore: 'dollar-sign',
+  platinum: 'award',
+  brass:        'tool',
+  electrum: 'zap',
   // Métaux rares / magiques
-  mithril:      'star-four-points',
-  darksteel:    'sword-cross',
-  mithrilite:   'star-circle',
-  dragonite:    'fire-circle',
-  adamantium:   'shield-sword',
-  staralloy:    'star-shooting',
+  mithril: 'star',
+  darksteel: 'alert-octagon',
+  mithrilite:   'star',
+  dragonite: 'activity',
+  adamantium: 'shield',
+  staralloy: 'star',
   // Minéraux
-  stone:        'diamond-stone',
-  obsidian:     'hexagon-slice-6',
-  coal:         'fire',
-  clay:         'beaker',
+  stone: 'hexagon',
+  obsidian: 'star',
+  coal: 'activity',
+  clay: 'droplet',
   // Gemmes
-  crystal:      'crystal-ball',
-  ruby:         'diamond',
-  sapphire:     'rhombus',
-  emerald:      'rhombus-outline',
-  diamond:      'diamond-outline',
-  topaz:        'hexagon',
-  amethyst:     'hexagon-outline',
-  onyx:         'dots-hexagon',
+  crystal: 'globe',
+  ruby: 'hexagon',
+  sapphire: 'hexagon',
+  emerald: 'hexagon',
+  diamond: 'hexagon',
+  topaz:        'octagon',
+  amethyst:     'square',
+  onyx: 'grid',
   // Organique
-  wood:         'pine-tree',
-  dragon_scale: 'skull-crossbones',
+  wood: 'feather',
+  dragon_scale: 'alert-octagon',
 };
 
 function ResourceIcon({ id, color, size = 20 }: { id: string; color: string; size?: number }) {
-  const icon = RESOURCE_ICONS[id] ?? 'cube-outline';
-  return <MaterialCommunityIcons name={icon} size={size} color={color} />;
+  const icon = RESOURCE_ICONS[id] ?? 'box';
+  return <Feather name={icon} size={size} color={color} />;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -136,7 +136,7 @@ function WeightBar({
   const barColor = pct > 0.9 ? colors.destructive : pct > 0.7 ? colors.primary : colors.accent;
   return (
     <View style={weightStyles.container}>
-      <MaterialCommunityIcons name="weight" size={14} color={pct > 0.7 ? barColor : colors.mutedForeground} />
+      <Feather name="activity" size={14} color={pct > 0.7 ? barColor : colors.mutedForeground} />
       <View style={[weightStyles.track, { backgroundColor: colors.muted }]}>
         <View style={[weightStyles.fill, { width: `${Math.round(pct * 100)}%` as `${number}%`, backgroundColor: barColor }]} />
       </View>
@@ -233,7 +233,7 @@ function CraftedItemCard({
           {/* Enigma mastery badge — top-right corner overlay */}
           {item.enigmaMastered && (
             <View style={styles.enigmaBadge}>
-              <MaterialCommunityIcons name="star-four-points" size={10} color="#C084FC" />
+              <Feather name="star" size={10} color="#C084FC" />
               <Text style={styles.enigmaBadgeText}>Maîtrise</Text>
             </View>
           )}
@@ -274,31 +274,31 @@ function CraftedItemCard({
         <View style={styles.statPills}>
           {item.stats.attack !== undefined && (
             <View style={[styles.statPill, { backgroundColor: colors.secondary }]}>
-              <MaterialCommunityIcons name="sword" size={12} color={colors.accent} style={{ marginRight: 4 }} />
+              <Feather name="scissors" size={12} color={colors.accent} style={{ marginRight: 4 }} />
               <Text style={[styles.statPillText, { color: colors.accent }]}>{item.stats.attack}</Text>
             </View>
           )}
           {item.stats.defense !== undefined && (
             <View style={[styles.statPill, { backgroundColor: colors.secondary }]}>
-              <MaterialCommunityIcons name="shield" size={12} color={colors.accent} style={{ marginRight: 4 }} />
+              <Feather name="shield" size={12} color={colors.accent} style={{ marginRight: 4 }} />
               <Text style={[styles.statPillText, { color: colors.accent }]}>{item.stats.defense}</Text>
             </View>
           )}
           {item.stats.magic !== undefined && (
             <View style={[styles.statPill, { backgroundColor: colors.secondary }]}>
-              <MaterialCommunityIcons name="auto-fix" size={12} color={colors.accent} style={{ marginRight: 4 }} />
+              <Feather name="edit-3" size={12} color={colors.accent} style={{ marginRight: 4 }} />
               <Text style={[styles.statPillText, { color: colors.accent }]}>{item.stats.magic}</Text>
             </View>
           )}
           {item.stats.speed !== undefined && (
             <View style={[styles.statPill, { backgroundColor: colors.secondary }]}>
-              <MaterialCommunityIcons name="lightning-bolt" size={12} color={colors.accent} style={{ marginRight: 4 }} />
+              <Feather name="zap" size={12} color={colors.accent} style={{ marginRight: 4 }} />
               <Text style={[styles.statPillText, { color: colors.accent }]}>{item.stats.speed}</Text>
             </View>
           )}
           {gemsSlotted > 0 && (
             <View style={[styles.statPill, { backgroundColor: colors.secondary }]}>
-              <MaterialCommunityIcons name="diamond" size={12} color="#9966CC" style={{ marginRight: 4 }} />
+              <Feather name="hexagon" size={12} color="#9966CC" style={{ marginRight: 4 }} />
               <Text style={[styles.statPillText, { color: '#9966CC' }]}>×{gemsSlotted}</Text>
             </View>
           )}
@@ -350,19 +350,19 @@ function ShowcaseItemCard({ item, onPress, colors }: {
           <View style={scStyles.statRow}>
             {item.stats.attack !== undefined && (
               <View style={[scStyles.statChip, { backgroundColor: colors.card }]}>
-                <MaterialCommunityIcons name="sword" size={10} color={colors.accent} />
+                <Feather name="scissors" size={10} color={colors.accent} />
                 <Text style={[scStyles.statText, { color: colors.accent }]}>{item.stats.attack}</Text>
               </View>
             )}
             {item.stats.defense !== undefined && (
               <View style={[scStyles.statChip, { backgroundColor: colors.card }]}>
-                <MaterialCommunityIcons name="shield" size={10} color={colors.accent} />
+                <Feather name="shield" size={10} color={colors.accent} />
                 <Text style={[scStyles.statText, { color: colors.accent }]}>{item.stats.defense}</Text>
               </View>
             )}
             {item.stats.magic !== undefined && (
               <View style={[scStyles.statChip, { backgroundColor: colors.card }]}>
-                <MaterialCommunityIcons name="auto-fix" size={10} color={colors.accent} />
+                <Feather name="edit-3" size={10} color={colors.accent} />
                 <Text style={[scStyles.statText, { color: colors.accent }]}>{item.stats.magic}</Text>
               </View>
             )}
@@ -371,20 +371,20 @@ function ShowcaseItemCard({ item, onPress, colors }: {
           <View style={scStyles.badgeRow}>
             {item.enigmaMastered && (
               <View style={[scStyles.badge, { backgroundColor: '#5C00AA30', flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
-                <MaterialCommunityIcons name="flask" size={11} color="#C084FC" />
+                <Feather name="droplet" size={11} color="#C084FC" />
                 <Text style={[scStyles.badgeText, { color: '#C084FC' }]}>Énigme</Text>
               </View>
             )}
             {item.unique && (
               <View style={[scStyles.badge, { backgroundColor: '#E8B84B20', flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
-                <MaterialCommunityIcons name="star" size={11} color="#E8B84B" />
+                <Feather name="star" size={11} color="#E8B84B" />
                 <Text style={[scStyles.badgeText, { color: '#E8B84B' }]}>Unique</Text>
               </View>
             )}
           </View>
           {/* Forge stamp */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <MaterialCommunityIcons name="hammer" size={11} color={colors.mutedForeground} />
+            <Feather name="tool" size={11} color={colors.mutedForeground} />
             <Text style={[scStyles.stamp, { color: colors.mutedForeground }]}>{item.craftedBy} · {craftDate}</Text>
           </View>
         </View>
@@ -444,7 +444,7 @@ function ShowcaseSection({ game, colors, bottomPad }: {
       <View style={scStyles.sectionHeader}>
         <View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <MaterialCommunityIcons name="star" size={14} color={colors.foreground} />
+            <Feather name="star" size={14} color={colors.foreground} />
             <Text style={[scStyles.sectionTitle, { color: colors.foreground }]}>VOTRE VITRINE</Text>
           </View>
           <Text style={[scStyles.sectionSub, { color: colors.mutedForeground }]}>
@@ -494,7 +494,7 @@ function ShowcaseSection({ game, colors, bottomPad }: {
                     {detailItem.unique && (
                       <View style={scStyles.traitsBox}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                          <MaterialCommunityIcons name="star" size={13} color={colors.accent} />
+                          <Feather name="star" size={13} color={colors.accent} />
                           <Text style={[scStyles.traitTitle, { color: colors.accent }]}>TRAITS UNIQUES</Text>
                         </View>
                         {[
@@ -514,23 +514,23 @@ function ShowcaseSection({ game, colors, bottomPad }: {
 
                     {/* Stats */}
                     <View style={scStyles.statsGrid}>
-                      {detailItem.stats.attack !== undefined && <View style={[scStyles.statCard, { backgroundColor: colors.secondary }]}><MaterialCommunityIcons name="sword" size={16} color={colors.accent} /><Text style={[scStyles.statCardVal, { color: colors.accent }]}>{detailItem.stats.attack}</Text><Text style={[scStyles.statCardLabel, { color: colors.mutedForeground }]}>ATQ</Text></View>}
-                      {detailItem.stats.defense !== undefined && <View style={[scStyles.statCard, { backgroundColor: colors.secondary }]}><MaterialCommunityIcons name="shield" size={16} color={colors.accent} /><Text style={[scStyles.statCardVal, { color: colors.accent }]}>{detailItem.stats.defense}</Text><Text style={[scStyles.statCardLabel, { color: colors.mutedForeground }]}>DEF</Text></View>}
-                      {detailItem.stats.magic !== undefined && <View style={[scStyles.statCard, { backgroundColor: colors.secondary }]}><MaterialCommunityIcons name="auto-fix" size={16} color={colors.accent} /><Text style={[scStyles.statCardVal, { color: colors.accent }]}>{detailItem.stats.magic}</Text><Text style={[scStyles.statCardLabel, { color: colors.mutedForeground }]}>MAG</Text></View>}
-                      {detailItem.stats.speed !== undefined && <View style={[scStyles.statCard, { backgroundColor: colors.secondary }]}><MaterialCommunityIcons name="lightning-bolt" size={16} color={colors.accent} /><Text style={[scStyles.statCardVal, { color: colors.accent }]}>{detailItem.stats.speed}</Text><Text style={[scStyles.statCardLabel, { color: colors.mutedForeground }]}>VIT</Text></View>}
+                      {detailItem.stats.attack !== undefined && <View style={[scStyles.statCard, { backgroundColor: colors.secondary }]}><Feather name="scissors" size={16} color={colors.accent} /><Text style={[scStyles.statCardVal, { color: colors.accent }]}>{detailItem.stats.attack}</Text><Text style={[scStyles.statCardLabel, { color: colors.mutedForeground }]}>ATQ</Text></View>}
+                      {detailItem.stats.defense !== undefined && <View style={[scStyles.statCard, { backgroundColor: colors.secondary }]}><Feather name="shield" size={16} color={colors.accent} /><Text style={[scStyles.statCardVal, { color: colors.accent }]}>{detailItem.stats.defense}</Text><Text style={[scStyles.statCardLabel, { color: colors.mutedForeground }]}>DEF</Text></View>}
+                      {detailItem.stats.magic !== undefined && <View style={[scStyles.statCard, { backgroundColor: colors.secondary }]}><Feather name="edit-3" size={16} color={colors.accent} /><Text style={[scStyles.statCardVal, { color: colors.accent }]}>{detailItem.stats.magic}</Text><Text style={[scStyles.statCardLabel, { color: colors.mutedForeground }]}>MAG</Text></View>}
+                      {detailItem.stats.speed !== undefined && <View style={[scStyles.statCard, { backgroundColor: colors.secondary }]}><Feather name="zap" size={16} color={colors.accent} /><Text style={[scStyles.statCardVal, { color: colors.accent }]}>{detailItem.stats.speed}</Text><Text style={[scStyles.statCardLabel, { color: colors.mutedForeground }]}>VIT</Text></View>}
                     </View>
 
                     {/* Badges */}
                     <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-                      {detailItem.enigmaMastered && <View style={[scStyles.badge, { backgroundColor: '#5C00AA30', flexDirection: 'row', alignItems: 'center', gap: 4 }]}><MaterialCommunityIcons name="flask" size={11} color="#C084FC" /><Text style={[scStyles.badgeText, { color: '#C084FC' }]}>Défi d'énigme réussi</Text></View>}
-                      {detailItem.unique && <View style={[scStyles.badge, { backgroundColor: '#E8B84B20', flexDirection: 'row', alignItems: 'center', gap: 4 }]}><MaterialCommunityIcons name="star" size={11} color="#E8B84B" /><Text style={[scStyles.badgeText, { color: '#E8B84B' }]}>Arme unique</Text></View>}
+                      {detailItem.enigmaMastered && <View style={[scStyles.badge, { backgroundColor: '#5C00AA30', flexDirection: 'row', alignItems: 'center', gap: 4 }]}><Feather name="droplet" size={11} color="#C084FC" /><Text style={[scStyles.badgeText, { color: '#C084FC' }]}>Défi d'énigme réussi</Text></View>}
+                      {detailItem.unique && <View style={[scStyles.badge, { backgroundColor: '#E8B84B20', flexDirection: 'row', alignItems: 'center', gap: 4 }]}><Feather name="star" size={11} color="#E8B84B" /><Text style={[scStyles.badgeText, { color: '#E8B84B' }]}>Arme unique</Text></View>}
                     </View>
 
                     {/* Forge stamp */}
                     <View style={[scStyles.stampBox, { backgroundColor: colors.secondary }]}>
                       <Text style={[scStyles.stampLabel, { color: colors.mutedForeground }]}>EMPREINTE DE FORGE</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                        <MaterialCommunityIcons name="hammer" size={12} color={colors.foreground} />
+                        <Feather name="tool" size={12} color={colors.foreground} />
                         <Text style={[scStyles.stampText, { color: colors.foreground }]}>Forgé par {detailItem.craftedBy}</Text>
                       </View>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -578,7 +578,7 @@ function ShowcaseSection({ game, colors, bottomPad }: {
             </View>
             {pickableItems.length === 0 ? (
               <View style={[scStyles.emptyPicker, { backgroundColor: colors.secondary }]}>
-                <MaterialCommunityIcons name="hammer-wrench" size={36} color={colors.mutedForeground} />
+                <Feather name="tool" size={36} color={colors.mutedForeground} />
                 <Text style={[scStyles.emptyPickerText, { color: colors.mutedForeground }]}>
                   Forgez des objets pour les exposer dans votre vitrine.
                 </Text>
@@ -795,7 +795,7 @@ export default function InventoryScreen() {
         </View>
         {weightPct > 0.8 && (
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4 }}>
-            <MaterialCommunityIcons name="alert-circle" size={14} color={colors.destructive} style={{ marginRight: 4 }} />
+            <Feather name="alert-circle" size={14} color={colors.destructive} style={{ marginRight: 4 }} />
             <Text style={[styles.weightWarning, { color: colors.destructive, marginTop: 0 }]}>
               Inventaire presque plein !
             </Text>
@@ -804,35 +804,42 @@ export default function InventoryScreen() {
       </LinearGradient>
 
       {/* ── Tab bar ── */}
-      <View style={[styles.tabBar, { borderBottomColor: colors.border }]}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={[styles.tabBar, { borderBottomColor: colors.border }]}
+        contentContainerStyle={styles.tabBarContent}
+      >
         {([
-          { key: 'resources', label: 'Ressources', icon: 'pickaxe', badge: game.inventory.length },
-          { key: 'items', label: 'Objets', icon: 'sword', badge: game.craftedItems.length },
-          { key: 'alloys', label: 'Alliages', icon: 'flask', badge: game.discoveredAlloyIds.length },
-          { key: 'showcase', label: 'Vitrine', icon: 'star', badge: game.showcasedItemIds.length },
-          { key: 'gems', label: 'Gemmes', icon: 'diamond', badge: game.craftedGems?.length ?? 0 },
+          { key: 'resources', label: 'Ressources', icon: 'tool',        badge: game.inventory.length },
+          { key: 'items',     label: 'Objets',     icon: 'shield',    badge: game.craftedItems.length },
+          { key: 'alloys',    label: 'Alliages',   icon: 'activity',            badge: game.discoveredAlloyIds.length },
+          { key: 'showcase',  label: 'Vitrine',    icon: 'award',  badge: game.showcasedItemIds.length },
+          { key: 'gems',      label: 'Gemmes',     icon: 'hexagon',   badge: game.craftedGems?.length ?? 0 },
         ] as { key: TabType; label: string; icon: string; badge: number }[]).map((tab) => (
           <TouchableOpacity
             key={tab.key}
             style={[styles.tab, activeTab === tab.key && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
             onPress={() => setActiveTab(tab.key)}
           >
-            <MaterialCommunityIcons
+            <Feather
               name={tab.icon as any}
-              size={17}
+              size={18}
               color={activeTab === tab.key ? colors.primary : colors.mutedForeground}
             />
             <Text style={[styles.tabText, { color: activeTab === tab.key ? colors.primary : colors.mutedForeground }]}>
               {tab.label}
             </Text>
-            <View style={[styles.tabBadge, { backgroundColor: activeTab === tab.key ? colors.primary : colors.muted }]}>
-              <Text style={[styles.tabBadgeText, { color: activeTab === tab.key ? colors.primaryForeground : colors.mutedForeground }]}>
-                {tab.badge}
-              </Text>
-            </View>
+            {tab.badge > 0 && (
+              <View style={[styles.tabBadge, { backgroundColor: activeTab === tab.key ? colors.primary : colors.muted }]}>
+                <Text style={[styles.tabBadgeText, { color: activeTab === tab.key ? colors.primaryForeground : colors.mutedForeground }]}>
+                  {tab.badge}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
 
       {/* ── Search + filter row (only for resources / items) ── */}
       {activeTab !== 'alloys' && activeTab !== 'showcase' && activeTab !== 'gems' && <View style={[styles.toolbarRow, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
@@ -932,7 +939,7 @@ export default function InventoryScreen() {
       {activeTab === 'resources' && (
         filteredResources.length === 0 ? (
           <Animated.View entering={FadeInDown.duration(400)} style={styles.emptyCenter}>
-            <MaterialCommunityIcons name="package-variant" size={48} color={colors.mutedForeground} />
+            <Feather name="box" size={48} color={colors.mutedForeground} />
             <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
               {search ? 'Aucun résultat' : 'Inventaire vide'}
             </Text>
@@ -956,7 +963,7 @@ export default function InventoryScreen() {
       {activeTab === 'items' && (
         filteredItems.length === 0 ? (
           <Animated.View entering={FadeInDown.duration(400)} style={styles.emptyCenter}>
-            <MaterialCommunityIcons name="hammer-wrench" size={48} color={colors.mutedForeground} />
+            <Feather name="tool" size={48} color={colors.mutedForeground} />
             <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
               {search || categoryFilter !== 'all' || qualityFilter !== 'all' ? 'Aucun résultat' : 'Aucun objet forgé'}
             </Text>
@@ -988,7 +995,7 @@ export default function InventoryScreen() {
       {activeTab === 'gems' && (
         (game.craftedGems?.length ?? 0) === 0 ? (
           <Animated.View entering={FadeInDown.duration(400)} style={styles.emptyCenter}>
-            <MaterialCommunityIcons name="diamond" size={48} color={colors.mutedForeground} />
+            <Feather name="hexagon" size={48} color={colors.mutedForeground} />
             <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Collection vide</Text>
             <Text style={[styles.emptyDesc, { color: colors.mutedForeground }]}>
               Forgez des gemmes, runes et joyaux via l&apos;Atelier des Pierres
@@ -1018,7 +1025,7 @@ export default function InventoryScreen() {
               return (
                 <View style={[styles.resourceCard, { borderLeftColor: qColor, borderLeftWidth: 3 }]}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                    <MaterialCommunityIcons name="diamond" size={22} color={gem.color ?? rColor} />
+                    <Feather name="hexagon" size={22} color={gem.color ?? rColor} />
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.resourceName, { color: rColor }]} numberOfLines={1}>
                         {gem.name}{gem.affix ? ` ${gem.affix}` : ''}
@@ -1068,8 +1075,9 @@ const styles = StyleSheet.create({
   headerForgeName: { fontSize: 11, fontWeight: '500', letterSpacing: 1, marginTop: 1 },
   weightWarning: { fontSize: 11, fontWeight: '700', textAlign: 'right', marginTop: 3 },
 
-  tabBar: { flexDirection: 'row', borderBottomWidth: 1 },
-  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 11, gap: 6 },
+  tabBar: { borderBottomWidth: 1 },
+  tabBarContent: { flexDirection: 'row', alignItems: 'stretch' },
+  tab: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 11, paddingHorizontal: 14, gap: 6 },
   tabText: { fontSize: 13, fontWeight: '600' },
   tabBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10 },
   tabBadgeText: { fontSize: 10, fontWeight: '700' },

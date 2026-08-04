@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
 import type { WorkerHarvestResult } from '@/data/workers';
 import { WORKER_DEFINITIONS } from '@/data/workers';
@@ -58,7 +58,7 @@ export default function WorkerReturnModal({ visible, entries, getResourceName, g
         <Pressable style={[styles.sheet, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={(e) => e.stopPropagation()}>
           {/* Title */}
           <View style={styles.titleRow}>
-            <MaterialCommunityIcons name="home" size={32} color="#C9A227" />
+            <Feather name="home" size={32} color="#C9A227" />
             <View style={{ flex: 1 }}>
               <Text style={[styles.title, { color: colors.foreground }]}>Vos ouvriers sont revenus !</Text>
               <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
@@ -81,7 +81,7 @@ export default function WorkerReturnModal({ visible, entries, getResourceName, g
                       </Text>
                       {result.leveledUp && (
                         <View style={styles.levelUpBadge}>
-                          <MaterialCommunityIcons name="arrow-up-circle" size={12} color="#FFD700" />
+                          <Feather name="arrow-up-circle" size={12} color="#FFD700" />
                           <Text style={styles.levelUpText}>NIVEAU SUPÉRIEUR !</Text>
                         </View>
                       )}
@@ -109,7 +109,7 @@ export default function WorkerReturnModal({ visible, entries, getResourceName, g
                   {/* Bonus find */}
                   {result.bonusResource && (
                     <View style={[styles.bonusRow, { backgroundColor: '#D4AF3722', borderColor: '#D4AF3755' }]}>
-                      <MaterialCommunityIcons name="diamond" size={14} color="#D4AF37" />
+                      <Feather name="hexagon" size={14} color="#D4AF37" />
                       <Text style={[styles.bonusText, { color: '#D4AF37' }]}>
                         Trouvaille rare : {getResourceName(result.bonusResource.resourceId)} ×{result.bonusResource.qty}
                       </Text>
@@ -121,7 +121,7 @@ export default function WorkerReturnModal({ visible, entries, getResourceName, g
 
             {/* Summary */}
             <View style={[styles.summaryRow, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
-              <MaterialCommunityIcons name="star-circle" size={15} color={colors.accent} />
+              <Feather name="star" size={15} color={colors.accent} />
               <Text style={[styles.summaryText, { color: colors.foreground }]}>
                 +{totalPlayerXp} XP forgeron
               </Text>
@@ -136,7 +136,7 @@ export default function WorkerReturnModal({ visible, entries, getResourceName, g
             onPress={onCollect}
             activeOpacity={0.85}
           >
-            <MaterialCommunityIcons name="package-down" size={18} color="#000" />
+            <Feather name="download" size={18} color="#000" />
             <Text style={styles.collectBtnText}>Récupérer tout</Text>
           </TouchableOpacity>
         </Pressable>

@@ -21,7 +21,7 @@ import {
   Easing,
   ScrollView,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useGame } from '@/context/GameContext';
 import type { CraftedGem, GemData } from '@/types/game';
 
@@ -158,7 +158,7 @@ function StrikingPhase({ numStrikes, onComplete }: StrikingPhaseProps) {
       </View>
 
       <TouchableOpacity style={sf.strikeBtn} onPress={handleStrike} activeOpacity={0.75}>
-        <Ionicons name="hammer" size={24} color="#FFD700" />
+        <Feather name="tool" size={24} color="#FFD700" />
         <Text style={sf.strikeBtnText}>FRAPPER !</Text>
       </TouchableOpacity>
     </View>
@@ -174,7 +174,7 @@ function CraftedGemCard({ gem, compact }: { gem: CraftedGem; compact?: boolean }
     <View style={[sf.gemCard, { borderColor: qualityColor }]}>
       <View style={sf.gemCardHeader}>
         <View style={[sf.gemIconCircle, { backgroundColor: gem.color + '33' }]}>
-          <Ionicons name="diamond" size={20} color={gem.color ?? rarityColor} />
+          <Feather name="hexagon" size={20} color={gem.color ?? rarityColor} />
         </View>
         <View style={sf.gemCardMeta}>
           <Text style={[sf.gemCardName, { color: rarityColor }]} numberOfLines={1}>
@@ -206,7 +206,7 @@ function CraftedGemCard({ gem, compact }: { gem: CraftedGem; compact?: boolean }
           </View>
           {gem.specialEffect && (
             <View style={sf.specialRow}>
-              <Ionicons name="flash" size={12} color="#FFAA00" />
+              <Feather name="zap" size={12} color="#FFAA00" />
               <Text style={sf.specialLabel}> {gem.specialEffect.label}</Text>
               <Text style={sf.specialVal}>+{gem.specialEffect.value}%</Text>
             </View>
@@ -359,7 +359,7 @@ export default function GemForgeModal({ visible, onClose }: GemForgeModalProps) 
                 style={[sf.recipeCard, sel && sf.recipeCardSel, !canAfford && sf.recipeCardDim]}
                 onPress={() => setSelectedGemId(gem.id)}>
                 <View style={[sf.recipeIconCircle, { backgroundColor: gem.color + '33' }]}>
-                  <Ionicons name="diamond" size={18} color={gem.color ?? rarityColor} />
+                  <Feather name="hexagon" size={18} color={gem.color ?? rarityColor} />
                 </View>
                 <View style={sf.recipeInfo}>
                   <Text style={[sf.recipeName, { color: rarityColor }]}>{gem.name}</Text>
@@ -375,8 +375,8 @@ export default function GemForgeModal({ visible, onClose }: GemForgeModalProps) 
                     })}
                   </View>
                 </View>
-                <Ionicons
-                  name={canAfford ? 'checkmark-circle' : 'close-circle'}
+                <Feather
+                  name={canAfford ? 'check-circle' : 'x-circle'}
                   size={18}
                   color={canAfford ? '#44FF44' : '#FF4444'}
                 />
@@ -389,7 +389,7 @@ export default function GemForgeModal({ visible, onClose }: GemForgeModalProps) 
           style={[sf.ctaBtn, (!selectedGemId || !canAffordSelected) && sf.ctaBtnDim]}
           disabled={!selectedGemId || !canAffordSelected}
           onPress={handleStartCraft}>
-          <Ionicons name="hammer" size={18} color="#FFD700" />
+          <Feather name="tool" size={18} color="#FFD700" />
           <Text style={sf.ctaBtnTxt}>
             {!selectedGemId
               ? 'Sélectionner une recette'
@@ -417,7 +417,7 @@ export default function GemForgeModal({ visible, onClose }: GemForgeModalProps) 
         </Text>
         <CraftedGemCard gem={lastCraftedGem} />
         <TouchableOpacity style={[sf.ctaBtn, { borderColor: qColor, backgroundColor: qColor + '22' }]} onPress={handleCollect}>
-          <Ionicons name="bag-add" size={18} color={qColor} />
+          <Feather name="plus-square" size={18} color={qColor} />
           <Text style={[sf.ctaBtnTxt, { color: qColor }]}>Ajouter à la collection</Text>
         </TouchableOpacity>
       </View>
@@ -459,13 +459,13 @@ export default function GemForgeModal({ visible, onClose }: GemForgeModalProps) 
                 style={[sf.recipeCard, sel && sf.recipeCardSel]}
                 onPress={() => setFuseTypeId(sel ? null : type)}>
                 <View style={[sf.recipeIconCircle, { backgroundColor: (t.color ?? '#888') + '33' }]}>
-                  <Ionicons name="diamond" size={18} color={t.color ?? rarityColor} />
+                  <Feather name="hexagon" size={18} color={t.color ?? rarityColor} />
                 </View>
                 <View style={sf.recipeInfo}>
                   <Text style={[sf.recipeName, { color: rarityColor }]}>{t.name}</Text>
                   <Text style={sf.recipeLevel}>{gems.length} disponibles — Taux : {Math.round((t.fuseSuccessRate ?? 0.5) * 100)}%</Text>
                 </View>
-                {sel && <Ionicons name="checkmark-circle" size={18} color="#44FF44" />}
+                {sel && <Feather name="check-circle" size={18} color="#44FF44" />}
               </TouchableOpacity>
             );
           })}
@@ -476,7 +476,7 @@ export default function GemForgeModal({ visible, onClose }: GemForgeModalProps) 
             style={[sf.ctaBtn, fusePending && sf.ctaBtnDim]}
             disabled={fusePending}
             onPress={handleFuse}>
-            <Ionicons name="color-wand" size={18} color="#FFD700" />
+            <Feather name="edit-3" size={18} color="#FFD700" />
             <Text style={sf.ctaBtnTxt}>
               {fusePending ? 'Fusion en cours…' : `Fusionner 3 ${selectedFuseGroup.gems[0].name}`}
             </Text>
@@ -510,11 +510,11 @@ export default function GemForgeModal({ visible, onClose }: GemForgeModalProps) 
           {/* Header */}
           <View style={sf.header}>
             <View style={sf.headerLeft}>
-              <Ionicons name="diamond" size={20} color="#FFD700" />
+              <Feather name="hexagon" size={20} color="#FFD700" />
               <Text style={sf.headerTitle}>Atelier des Pierres</Text>
             </View>
             <TouchableOpacity style={sf.closeBtn} onPress={handleClose}>
-              <Ionicons name="close" size={22} color="#AAA" />
+              <Feather name="x" size={22} color="#AAA" />
             </TouchableOpacity>
           </View>
 

@@ -1,0 +1,23 @@
+cd ~/forge-kingdoms/artifacts/mobile/android
+./gradlew assembleRelease --stacktrace 2>&1 | grep -E "Error|error|Cannot find|SyntaxError|FAILED" | head -20
+> Task :gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-gradle-plugin:expo-autolinking-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-module-gradle-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :react-native-gesture-handler:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :react-native-purchases:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :react-native-keyboard-controller:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :react-native-safe-area-context:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :react-native-webview:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-constants:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-modules-core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :react-native-screens:checkKotlinGradlePluginConfigurationErrors SKIPPED
+SyntaxError: ../../node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17_expo-c_mh43mr33z5h5fsakfbsyuc2qce/node_modules/expo-router/entry.js: Cannot find module 'babel-preset-expo'
+Error: Cannot find module 'babel-preset-expo'
+    at stopHiding - secret - don't use this - v1 (/home/metivant/forge-kingdoms/node_modules/.pnpm/@babel+core@7.29.7/node_modules/@babel/core/lib/errors/rewrite-stack-trace.js:47:12)
+metivant@FR-STA-9cvlDb1Y:~/forge-kingdoms/artifacts/mobile/android$

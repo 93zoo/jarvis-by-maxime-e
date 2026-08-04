@@ -14,7 +14,6 @@ import {
   View,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -26,11 +25,14 @@ import { WORKER_DEFINITIONS } from '@/data/workers';
 import { getLeaderboardApiBase } from '@/lib/leaderboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors } from '@/hooks/useColors';
-import resourcesData from '@/data/resources.json';
-
-const resourceNameMap: Record<string, string> = Object.fromEntries(
-  (resourcesData as { id: string; name: string }[]).map((r) => [r.id, r.name])
-);
+let _resourceNameMap: Record<string, string> | undefined;
+function getResourceNameMap(): Record<string, string> {
+  if (!_resourceNameMap) {
+    const data = require('@/data/resources.json') as { id: string; name: string }[];
+    _resourceNameMap = Object.fromEntries(data.map((r) => [r.id, r.name]));
+  }
+  return _resourceNameMap;
+}
 
 const DAILY_CHEST_KEY = '@fk_daily_ad_chest_v1';
 const AD_GOLD_KEY = '@fk_ad_gold_v1';
@@ -380,7 +382,7 @@ export default function BoutiqueScreen() {
             return (
               <View key={pkg.identifier} style={[styles.card, { backgroundColor: colors.card, borderColor: '#C9A22755' }]}>
                 <View style={styles.cardRow}>
-                  <MaterialCommunityIcons name={pack.icon as any} size={22} color="#C9A227" />
+                  <Feather name={pack.icon as any} size={22} color="#C9A227" />
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.cardTitle, { color: colors.foreground }]}>{pack.name}</Text>
                     <Text style={[styles.cardDesc, { color: colors.mutedForeground }]}>{pack.tagline}</Text>
@@ -390,7 +392,7 @@ export default function BoutiqueScreen() {
                   {pack.items.map(({ resourceId, qty }) => (
                     <View key={resourceId} style={[styles.resourceChip, { backgroundColor: colors.secondary }]}>
                       <Text style={[styles.resourceChipText, { color: colors.foreground }]}>
-                        {resourceNameMap[resourceId] ?? resourceId.replace(/_/g, ' ')} ×{qty}
+                        {getResourceNameMap()[resourceId] ?? resourceId.replace(/_/g, ' ')} ×{qty}
                       </Text>
                     </View>
                   ))}
@@ -479,6 +481,11 @@ export default function BoutiqueScreen() {
             <Text style={[styles.modalDesc, { color: colors.mutedForeground }]}>
               {confirmPkg?.product.title} — {confirmPkg?.product.priceString}
             </Text>
+            <TouchableOpacity onPress={openTermsOfUse} style={{ alignSelf: 'center', marginTop: 8 }}>
+              <Text style={[styles.restoreText, { color: colors.mutedForeground, textDecorationLine: 'underline' }]}>
+                Conditions d'utilisation
+              </Text>
+            </TouchableOpacity>
             <View style={styles.modalActions}>
               <TouchableOpacity style={[styles.modalBtn, { backgroundColor: colors.background }]} onPress={() => setConfirmPkg(null)}>
                 <Text style={[styles.buyBtnText, { color: colors.mutedForeground }]}>Annuler</Text>

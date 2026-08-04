@@ -14,7 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from '@/lib/LinearGradientSafe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -127,7 +127,7 @@ function GemPicker({
 
           {socketable.length === 0 ? (
             <View style={styles.pickerEmpty}>
-              <MaterialCommunityIcons name="diamond" size={32} color={colors.mutedForeground} />
+              <Feather name="hexagon" size={32} color={colors.mutedForeground} />
               <Text style={[styles.pickerEmptyText, { color: colors.mutedForeground }]}>
                 Aucune gemme dans l'inventaire.{'\n'}Explorez le monde pour en trouver.
               </Text>
@@ -164,7 +164,7 @@ function GemPicker({
                     </View>
                     <View style={[styles.qtyBadge, { backgroundColor: colors.card }]}>
                       {isCrafted
-                        ? <MaterialCommunityIcons name="star" size={14} color={gem.color} />
+                        ? <Feather name="star" size={14} color={gem.color} />
                         : <Text style={[styles.qtyText, { color: colors.accent }]}>x{qty}</Text>
                       }
                     </View>
@@ -296,7 +296,7 @@ export default function ItemDetailSheet({ itemInstanceId, onClose }: Props) {
                 {/* Enigma mastery stamp */}
                 {item.enigmaMastered && (
                   <View style={styles.enigmaStamp}>
-                    <MaterialCommunityIcons name="star-four-points" size={13} color="#C084FC" />
+                    <Feather name="star" size={13} color="#C084FC" />
                     <Text style={styles.enigmaStampText}>Forgé avec Maîtrise — défi d'énigme réussi</Text>
                   </View>
                 )}

@@ -20,7 +20,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useGame } from '@/context/GameContext';
 import type { AuctionListing, AuctionResult, Item } from '@/types/game';
@@ -49,11 +49,11 @@ const QUALITY_LABEL: Record<string, string> = {
   excellent: 'Excellent', legendary: 'Légendaire',
 };
 
-const CATEGORY_ICON: Record<string, React.ComponentProps<typeof Ionicons>['name']> = {
-  sword: 'flash', axe: 'cut', hammer: 'hammer', lance: 'arrow-up',
-  shield: 'shield', armor: 'body', helmet: 'ellipse',
-  ring: 'radio-button-off', amulet: 'diamond', dagger: 'remove',
-  crown: 'star', tool: 'build', decoration: 'color-palette',
+const CATEGORY_ICON: Record<string, React.ComponentProps<typeof Feather>['name']> = {
+  sword: 'zap', axe: 'scissors', hammer: 'tool', lance: 'arrow-up',
+  shield: 'shield', armor: 'user', helmet: 'circle',
+  ring: 'circle', amulet: 'hexagon', dagger: 'minus',
+  crown: 'star', tool: 'tool', decoration: 'sliders',
 };
 
 type AHTab = 'sell' | 'active' | 'completed';
@@ -96,7 +96,7 @@ function AuctionCountdown({ listedAt, durationMs }: { listedAt: number; duration
 
   return (
     <View style={cd.row}>
-      <Ionicons name="time-outline" size={11} color="#888" />
+      <Feather name="clock" size={11} color="#888" />
       <Text style={cd.text}> {label}</Text>
     </View>
   );
@@ -122,11 +122,11 @@ function SellItemCard({
 }) {
   const rarityColor = RARITY_COLOR[item.rarity] ?? '#888';
   const qualityColor = QUALITY_COLOR[item.quality] ?? '#888';
-  const catIcon = CATEGORY_ICON[item.category] ?? 'construct';
+  const catIcon = CATEGORY_ICON[item.category] ?? 'tool';
   return (
     <View style={mc.itemCard}>
       <View style={[mc.catIconWrap, { backgroundColor: rarityColor + '22' }]}>
-        <Ionicons name={catIcon} size={18} color={rarityColor} />
+        <Feather name={catIcon} size={18} color={rarityColor} />
       </View>
       <View style={mc.itemInfo}>
         <Text style={[mc.itemName, { color: rarityColor }]} numberOfLines={1}>{item.name}</Text>
@@ -139,13 +139,13 @@ function SellItemCard({
           </Text>
         </View>
         <View style={mc.priceRow}>
-          <Ionicons name="cash-outline" size={11} color="#FFD700" />
+          <Feather name="dollar-sign" size={11} color="#FFD700" />
           <Text style={mc.estimatedPrice}> ~{formatGold(estimatedPrice)} pO</Text>
           <Text style={mc.duration}>  ·  {formatDurationShort(durationMs)}</Text>
         </View>
       </View>
       <TouchableOpacity style={mc.listBtn} onPress={onList} activeOpacity={0.8}>
-        <Ionicons name="storefront-outline" size={14} color="#FFD700" />
+        <Feather name="shopping-bag" size={14} color="#FFD700" />
         <Text style={mc.listBtnTxt}>Vendre</Text>
       </TouchableOpacity>
     </View>
@@ -156,23 +156,23 @@ function SellItemCard({
 
 function ActiveListingCard({ listing }: { listing: AuctionListing }) {
   const rarityColor = RARITY_COLOR[listing.itemRarity] ?? '#888';
-  const catIcon = CATEGORY_ICON[listing.itemCategory] ?? 'construct';
+  const catIcon = CATEGORY_ICON[listing.itemCategory] ?? 'tool';
   return (
     <View style={mc.itemCard}>
       <View style={[mc.catIconWrap, { backgroundColor: rarityColor + '22' }]}>
-        <Ionicons name={catIcon} size={18} color={rarityColor} />
+        <Feather name={catIcon} size={18} color={rarityColor} />
       </View>
       <View style={mc.itemInfo}>
         <Text style={[mc.itemName, { color: rarityColor }]} numberOfLines={1}>{listing.itemName}</Text>
         <Text style={mc.duration}>{RARITY_LABEL[listing.itemRarity] ?? listing.itemRarity}</Text>
         <View style={mc.priceRow}>
-          <Ionicons name="cash-outline" size={11} color="#FFD700" />
+          <Feather name="dollar-sign" size={11} color="#FFD700" />
           <Text style={mc.estimatedPrice}> ~{formatGold(listing.estimatedPrice)} pO</Text>
         </View>
         <AuctionCountdown listedAt={listing.listedAt} durationMs={listing.durationMs} />
       </View>
       <View style={mc.pendingBadge}>
-        <Ionicons name="hourglass-outline" size={13} color="#FFD700" />
+        <Feather name="clock" size={13} color="#FFD700" />
         <Text style={mc.pendingTxt}>Enchère</Text>
       </View>
     </View>
@@ -183,11 +183,11 @@ function ActiveListingCard({ listing }: { listing: AuctionListing }) {
 
 function ResultCard({ result, onClaim }: { result: AuctionResult; onClaim: () => void }) {
   const rarityColor = RARITY_COLOR[result.itemRarity] ?? '#888';
-  const catIcon = CATEGORY_ICON[result.itemCategory] ?? 'construct';
+  const catIcon = CATEGORY_ICON[result.itemCategory] ?? 'tool';
   return (
     <View style={[mc.itemCard, result.claimed && mc.itemCardClaimed]}>
       <View style={[mc.catIconWrap, { backgroundColor: rarityColor + '22' }]}>
-        <Ionicons name={catIcon} size={18} color={result.claimed ? '#444' : rarityColor} />
+        <Feather name={catIcon} size={18} color={result.claimed ? '#444' : rarityColor} />
       </View>
       <View style={mc.itemInfo}>
         <Text style={[mc.itemName, { color: result.claimed ? '#555' : rarityColor }]} numberOfLines={1}>
@@ -197,7 +197,7 @@ function ResultCard({ result, onClaim }: { result: AuctionResult; onClaim: () =>
           <Text style={mc.exceptionalLabel}>{result.exceptionalLabel}</Text>
         ) : null}
         <View style={mc.priceRow}>
-          <Ionicons name="cash" size={12} color={result.claimed ? '#555' : '#FFD700'} />
+          <Feather name="dollar-sign" size={12} color={result.claimed ? '#555' : '#FFD700'} />
           <Text style={[mc.soldPrice, result.claimed && mc.soldPriceClaimed]}>
             {' '}{formatGold(result.soldPrice)} pièces d'or
           </Text>
@@ -205,7 +205,7 @@ function ResultCard({ result, onClaim }: { result: AuctionResult; onClaim: () =>
       </View>
       {result.claimed ? (
         <View style={mc.claimedBadge}>
-          <Ionicons name="checkmark-circle" size={16} color="#444" />
+          <Feather name="check-circle" size={16} color="#444" />
         </View>
       ) : (
         <TouchableOpacity style={mc.claimBtn} onPress={onClaim} activeOpacity={0.8}>
@@ -291,11 +291,11 @@ export default function AuctionHouseModal({ visible, onClose }: AuctionHouseModa
           {/* ── Header ── */}
           <View style={mc.header}>
             <View style={mc.headerLeft}>
-              <Ionicons name="storefront" size={20} color="#FFD700" />
+              <Feather name="shopping-bag" size={20} color="#FFD700" />
               <Text style={mc.headerTitle}>Hôtel des Ventes</Text>
             </View>
             <TouchableOpacity style={mc.closeBtn} onPress={onClose}>
-              <Ionicons name="close" size={22} color="#888" />
+              <Feather name="x" size={22} color="#888" />
             </TouchableOpacity>
           </View>
 
@@ -314,7 +314,7 @@ export default function AuctionHouseModal({ visible, onClose }: AuctionHouseModa
                 const remMin = Math.max(0, Math.round(remaining / 60_000));
                 return (
                   <View key={ev.instanceId} style={[mc.eventBadge, { borderColor: et.color + '88', backgroundColor: et.color + '18' }]}>
-                    <Ionicons name={et.icon as React.ComponentProps<typeof Ionicons>['name']} size={12} color={et.color} />
+                    <Feather name={et.icon as React.ComponentProps<typeof Feather>['name']} size={12} color={et.color} />
                     <Text style={[mc.eventLabel, { color: et.color }]}>{et.label}</Text>
                     <Text style={mc.eventTimer}>{remMin}m</Text>
                   </View>
@@ -326,7 +326,7 @@ export default function AuctionHouseModal({ visible, onClose }: AuctionHouseModa
           {/* ── Feedback toast ── */}
           {feedbackMsg ? (
             <View style={mc.feedbackBanner}>
-              <Ionicons name="checkmark-circle" size={14} color="#44FF88" />
+              <Feather name="check-circle" size={14} color="#44FF88" />
               <Text style={mc.feedbackText}>{feedbackMsg}</Text>
             </View>
           ) : null}
@@ -358,7 +358,7 @@ export default function AuctionHouseModal({ visible, onClose }: AuctionHouseModa
               <ScrollView style={mc.list} showsVerticalScrollIndicator={false} contentContainerStyle={mc.listContent}>
                 {availableItems.length === 0 ? (
                   <View style={mc.empty}>
-                    <Ionicons name="cube-outline" size={36} color="#333" />
+                    <Feather name="box" size={36} color="#333" />
                     <Text style={mc.emptyTxt}>Aucun objet forgé disponible.</Text>
                     <Text style={mc.emptySubTxt}>Forgez des objets pour les mettre en vente ici.</Text>
                   </View>
@@ -385,7 +385,7 @@ export default function AuctionHouseModal({ visible, onClose }: AuctionHouseModa
               <ScrollView style={mc.list} showsVerticalScrollIndicator={false} contentContainerStyle={mc.listContent}>
                 {game.auctionListings.length === 0 ? (
                   <View style={mc.empty}>
-                    <Ionicons name="hourglass-outline" size={36} color="#333" />
+                    <Feather name="clock" size={36} color="#333" />
                     <Text style={mc.emptyTxt}>Aucune enchère en cours.</Text>
                     <Text style={mc.emptySubTxt}>Mettez un objet forgé en vente depuis l'onglet Vendre.</Text>
                   </View>
@@ -402,7 +402,7 @@ export default function AuctionHouseModal({ visible, onClose }: AuctionHouseModa
               <>
                 {unclaimedResults.length > 1 && (
                   <TouchableOpacity style={mc.claimAllBtn} onPress={handleClaimAll} activeOpacity={0.8}>
-                    <Ionicons name="bag-add" size={15} color="#FFD700" />
+                    <Feather name="plus-square" size={15} color="#FFD700" />
                     <Text style={mc.claimAllTxt}>
                       Réclamer tout — {formatGold(unclaimedResults.reduce((s, r) => s + r.soldPrice, 0))} pO
                     </Text>
@@ -411,7 +411,7 @@ export default function AuctionHouseModal({ visible, onClose }: AuctionHouseModa
                 <ScrollView style={mc.list} showsVerticalScrollIndicator={false} contentContainerStyle={mc.listContent}>
                   {game.auctionResults.length === 0 ? (
                     <View style={mc.empty}>
-                      <Ionicons name="cash-outline" size={36} color="#333" />
+                      <Feather name="dollar-sign" size={36} color="#333" />
                       <Text style={mc.emptyTxt}>Aucune vente terminée.</Text>
                       <Text style={mc.emptySubTxt}>Les résultats apparaîtront ici automatiquement.</Text>
                     </View>

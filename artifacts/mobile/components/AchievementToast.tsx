@@ -10,7 +10,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import type { Achievement } from '@/types/game';
 import AudioManager from '@/utils/AudioManager';
 
@@ -94,7 +94,7 @@ export default function AchievementToast({ achievement, onDismiss }: Props) {
 
       {/* Stars decoration */}
       <View style={styles.starsWrap}>
-        <MaterialCommunityIcons name="star-four-points" size={18} color={accentColor} />
+        <Feather name="star" size={18} color={accentColor} />
       </View>
     </Animated.View>
   );

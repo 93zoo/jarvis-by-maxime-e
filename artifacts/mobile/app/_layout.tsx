@@ -23,7 +23,7 @@ import {
   Inter_700Bold,
   useFonts,
 } from '@expo-google-fonts/inter';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { GameProvider, useGame } from '@/context/GameContext';
@@ -34,12 +34,14 @@ import { RewardedAdsProvider } from '@/lib/rewardedAds';
 import StudioSplash from '@/components/StudioSplash';
 import DailyRewardModal from '@/components/DailyRewardModal';
 import FirstForgeTutorial from '@/components/FirstForgeTutorial';
+import { Feather } from '@expo/vector-icons';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState, Modal, Platform, View } from 'react-native';
 import AudioManager from '@/utils/AudioManager';
+import { LeaderboardProvider } from '@/context/LeaderboardContext';
 
 const queryClient = new QueryClient();
 
@@ -124,16 +126,18 @@ function AppWithSplash() {
 }
 
 export default function RootLayout() {
+  // Load all fonts — text AND icon — in one useFonts call.
+  // useFonts guarantees that fonts are fully registered natively before the
+  // hook resolves, avoiding the race condition where Font.isLoaded() returns
+  // true in JS but the native Android text renderer hasn't applied the font yet.
+  // NOTE: Ionicons is pre-bundled in Expo Go with mismatched codepoints (v5 vs
+  // our v7) → CJK glyphs. All icons have been migrated to Feather only.
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
-    // Preload icon fonts before any render — prevents □ glyphs on Android.
-    // v15 of @expo/vector-icons dropped the static .font property; load TTFs
-    // directly using the exact family name each createIconSet registers.
-    'feather': require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'),
-    'material-community': require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf'),
+    ...Feather.font,          // registers 'feather' font family
   });
 
   // Defer RevenueCat init off the synchronous module-load hot path.
@@ -148,8 +152,7 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
-  // Wait for fonts before mounting providers — prevents race conditions
-  // in GameProvider's AsyncStorage load and SubscriptionProvider init.
+  // Block rendering until all fonts (text + icons) are ready.
   if (!fontsLoaded && !fontError) return null;
 
   return (
@@ -162,8 +165,10 @@ export default function RootLayout() {
                 <GameProvider>
                   <RewardedAdsProvider>
                     <AchievementProvider>
-                      <GoldGrantReconciler />
-                      <AppWithSplash />
+                      <LeaderboardProvider>
+                        <GoldGrantReconciler />
+                        <AppWithSplash />
+                      </LeaderboardProvider>
                     </AchievementProvider>
                   </RewardedAdsProvider>
                 </GameProvider>

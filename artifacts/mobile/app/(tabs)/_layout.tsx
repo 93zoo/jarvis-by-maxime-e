@@ -1,13 +1,13 @@
 import React from 'react';
-import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { Tabs } from 'expo-router';
 import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
-import { SymbolView } from 'expo-symbols';
 import { LinearGradient } from '@/lib/LinearGradientSafe';
+import { Platform, StyleSheet, useColorScheme } from 'react-native';
+import Constants from 'expo-constants';
+import { useLeaderboardPending } from '@/context/LeaderboardContext';
 
 const MEDIEVAL = {
   gold: '#E8B84B',
@@ -58,6 +58,7 @@ function ClassicTabLayout() {
   const isDark = colorScheme === 'dark';
   const isIOS = Platform.OS === 'ios';
   const isWeb = Platform.OS === 'web';
+  const { pendingCount } = useLeaderboardPending();
 
   return (
     <Tabs
@@ -103,48 +104,28 @@ function ClassicTabLayout() {
         name="index"
         options={{
           title: 'Forge',
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="hammer" tintColor={color} size={22} />
-            ) : (
-              <Feather name="tool" size={22} color={color} />
-            ),
+          tabBarIcon: ({ color }) => <Feather name="tool" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="world"
         options={{
           title: 'Monde',
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="map" tintColor={color} size={22} />
-            ) : (
-              <Feather name="map" size={22} color={color} />
-            ),
+          tabBarIcon: ({ color }) => <Feather name="map" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="inventory"
         options={{
           title: 'Inventaire',
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="bag" tintColor={color} size={22} />
-            ) : (
-              <Feather name="archive" size={22} color={color} />
-            ),
+          tabBarIcon: ({ color }) => <Feather name="archive" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="collections"
         options={{
           title: 'Sets',
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="trophy" tintColor={color} size={22} />
-            ) : (
-              <Feather name="award" size={22} color={color} />
-            ),
+          tabBarIcon: ({ color }) => <Feather name="award" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -158,24 +139,16 @@ function ClassicTabLayout() {
         name="codex"
         options={{
           title: 'Codex',
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="books.vertical" tintColor={color} size={22} />
-            ) : (
-              <Feather name="book-open" size={22} color={color} />
-            ),
+          tabBarIcon: ({ color }) => <Feather name="book-open" size={22} color={color} />,
+          tabBarBadge: pendingCount > 0 ? pendingCount : undefined,
+          tabBarBadgeStyle: { backgroundColor: '#E53935', color: '#fff', fontSize: 10 },
         }}
       />
       <Tabs.Screen
         name="skills"
         options={{
           title: 'Compétences',
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="star" tintColor={color} size={22} />
-            ) : (
-              <Feather name="star" size={22} color={color} />
-            ),
+          tabBarIcon: ({ color }) => <Feather name="star" size={22} color={color} />,
         }}
       />
     </Tabs>
@@ -183,8 +156,17 @@ function ClassicTabLayout() {
 }
 
 export default function TabLayout() {
-  if (isLiquidGlassAvailable()) {
+  if (!IS_EXPO_GO && isLiquidGlassAvailable()) {
     return <NativeTabLayout />;
   }
   return <ClassicTabLayout />;
+}
+
+const IS_EXPO_GO =
+  (Constants.appOwnership as string) === 'expo' ||
+  Constants.executionEnvironment === 'storeClient';
+
+let isLiquidGlassAvailable: () => boolean = () => false;
+if (!IS_EXPO_GO) {
+  try { isLiquidGlassAvailable = require('expo-glass-effect').isLiquidGlassAvailable; } catch { /* keep false */ }
 }

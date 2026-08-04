@@ -18,8 +18,6 @@ import {
   isLeaderboardAvailable,
   type LeaderboardAward,
 } from '@/lib/leaderboard';
-import resourcesData from '@/data/resources.json';
-
 const PLAYER_ID_KEY = '@fk_player_id';
 const GOLD = '#E8B84B';
 const BG = '#0D0A07';
@@ -28,12 +26,17 @@ const PARCH = '#F5EFE2';
 const DIM = '#9A8B72';
 const MEDALS = ['#FFD700', '#C0C0C0', '#CD7F32'];
 
-const RESOURCE_NAMES: Record<string, string> = Object.fromEntries(
-  (resourcesData as { id: string; name?: string }[]).map((r) => [r.id, r.name ?? r.id]),
-);
+let _resourceNames: Record<string, string> | undefined;
+function getResourceNames(): Record<string, string> {
+  if (!_resourceNames) {
+    const data = require('@/data/resources.json') as { id: string; name?: string }[];
+    _resourceNames = Object.fromEntries(data.map((r) => [r.id, r.name ?? r.id]));
+  }
+  return _resourceNames;
+}
 
 function materialLabel(m: { id: string; qty: number }): string {
-  return `${m.qty}× ${RESOURCE_NAMES[m.id] ?? m.id}`;
+  return `${m.qty}× ${getResourceNames()[m.id] ?? m.id}`;
 }
 
 function periodLabel(a: LeaderboardAward): string {

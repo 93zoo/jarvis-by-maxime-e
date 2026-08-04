@@ -16,12 +16,12 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { STUDIO } from '@/constants/studio';
 
-type ForgeIcon = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+type ForgeIcon = React.ComponentProps<typeof Feather>['name'];
 
 interface TutorialStep {
   eyebrow: string;
@@ -41,7 +41,7 @@ const STEPS: TutorialStep[] = [
     title: 'Les onglets',
     description: "Six onglets au bas de l'écran pour tout explorer.",
     detail: "Tu peux naviguer librement à tout moment.",
-    icon: 'view-grid',
+    icon: 'grid',
     color: '#7986CB',
     actionLabel: 'SUIVANT',
     renderIllustration: () => <TabsGrid />,
@@ -51,7 +51,7 @@ const STEPS: TutorialStep[] = [
     title: 'Les outils du forgeron',
     description: "Quatre boutons à gauche de la forge pour gérer ton atelier.",
     detail: "Quêtes, Événements, Apprenti et Améliorations.",
-    icon: 'tools',
+    icon: 'tool',
     color: '#FFB74D',
     actionLabel: 'SUIVANT',
     renderIllustration: () => <SidebarGrid />,
@@ -61,7 +61,7 @@ const STEPS: TutorialStep[] = [
     title: 'Trouver une recette',
     description: "Toutes les recettes se trouvent dans le Codex, onglet Recettes.",
     detail: "Les recettes de départ sont gratuites ; les autres se débloquent avec de l'or.",
-    icon: 'book-open-variant',
+    icon: 'book-open',
     color: STUDIO.gold,
     actionLabel: 'SUIVANT',
     renderIllustration: () => <RecipeIllustration />,
@@ -71,7 +71,7 @@ const STEPS: TutorialStep[] = [
     title: 'Choisis une recette',
     description: 'Touche FORGER et sélectionne l’objet que tu veux créer.',
     detail: 'Les matériaux requis sont indiqués avant de commencer.',
-    icon: 'anvil',
+    icon: 'tool',
     color: STUDIO.gold,
     actionLabel: 'CHOISIR',
   },
@@ -80,7 +80,7 @@ const STEPS: TutorialStep[] = [
     title: 'Chauffe le métal',
     description: 'Le four porte la pièce à bonne température avant le travail.',
     detail: 'Laisse la barre de chauffe se remplir : le métal doit briller.',
-    icon: 'fire',
+    icon: 'activity',
     color: '#F06A2B',
     actionLabel: 'CHAUFFER',
   },
@@ -89,7 +89,7 @@ const STEPS: TutorialStep[] = [
     title: 'Frappe au bon moment',
     description: 'Frappe quand l’aiguille passe dans la zone lumineuse.',
     detail: 'Une frappe précise améliore la qualité de ton œuvre.',
-    icon: 'hammer',
+    icon: 'tool',
     color: '#D8B765',
     actionLabel: 'FRAPPER',
   },
@@ -98,7 +98,7 @@ const STEPS: TutorialStep[] = [
     title: 'Refroidis la pièce',
     description: 'Retire l’acier dans la zone verte pour réussir la trempe.',
     detail: 'Trouve l’équilibre entre un métal trop chaud et trop froid.',
-    icon: 'water',
+    icon: 'droplet',
     color: '#56B9DE',
     actionLabel: 'REFROIDIR',
   },
@@ -107,7 +107,7 @@ const STEPS: TutorialStep[] = [
     title: 'Livre une commande',
     description: 'Consulte les commandes et remets l’objet au client satisfait.',
     detail: 'Tu gagnes de l’or, de l’expérience et de la réputation.',
-    icon: 'package-variant-closed',
+    icon: 'box',
     color: '#72BC75',
     actionLabel: 'COMMENCER',
   },
@@ -211,7 +211,7 @@ function TutorialIllustration({ step }: { step: TutorialStep }) {
       />
       <View style={[styles.iconPlate, { borderColor: step.color }]}>
         <Animated.View style={{ transform: [{ scale: iconScale }] }}>
-          <MaterialCommunityIcons name={step.icon} size={62} color={step.color} />
+          <Feather name={step.icon} size={62} color={step.color} />
         </Animated.View>
       </View>
       <View style={[styles.iconSpark, styles.iconSparkTop, { backgroundColor: step.color }]} />
@@ -250,7 +250,7 @@ function MenuGridItem({ icon, label, role, color, useFeather }: {
       <View style={[mgStyles.iconBox, { backgroundColor: color + '22', borderColor: color + '55' }]}>
         {useFeather
           ? <Feather name={icon as any} size={16} color={color} />
-          : <MaterialCommunityIcons name={icon as any} size={16} color={color} />
+          : <Feather name={icon as any} size={16} color={color} />
         }
       </View>
       <View style={{ flex: 1 }}>
@@ -262,9 +262,9 @@ function MenuGridItem({ icon, label, role, color, useFeather }: {
 }
 
 const TABS_DATA = [
-  { icon: 'hammer',            label: 'Forge',      role: 'Forger',      color: STUDIO.gold, feather: false },
-  { icon: 'map-marker-radius', label: 'Monde',      role: 'Explorer',    color: '#72BC75',   feather: false },
-  { icon: 'package-variant',   label: 'Inventaire', role: 'Ressources',  color: '#56B9DE',   feather: false },
+  { icon: 'tool',            label: 'Forge',      role: 'Forger',      color: STUDIO.gold, feather: false },
+  { icon: 'map', label: 'Monde',      role: 'Explorer',    color: '#72BC75',   feather: false },
+  { icon: 'box',   label: 'Inventaire', role: 'Ressources',  color: '#56B9DE',   feather: false },
   { icon: 'layers',            label: 'Sets',       role: 'Collections', color: '#CE93D8',   feather: true  },
   { icon: 'book-open',         label: 'Codex',      role: 'Recettes',    color: '#FFB74D',   feather: true  },
   { icon: 'star',              label: 'Compét.',    role: 'Talents',     color: '#F06A2B',   feather: true  },
@@ -305,15 +305,15 @@ function RecipeIllustration() {
           <Feather name="book-open" size={11} color={STUDIO.gold} />
           <Text style={[mgStyles.navChipText, { color: STUDIO.gold }]}>Codex</Text>
         </View>
-        <MaterialCommunityIcons name="chevron-right" size={14} color="#756B5E" />
+        <Feather name="chevron-right" size={14} color="#756B5E" />
         <View style={[mgStyles.navChip, { backgroundColor: STUDIO.gold + '18', borderColor: STUDIO.gold + '40' }]}>
-          <MaterialCommunityIcons name="clipboard-list" size={11} color={STUDIO.gold} />
+          <Feather name="clipboard" size={11} color={STUDIO.gold} />
           <Text style={[mgStyles.navChipText, { color: STUDIO.gold }]}>Recettes</Text>
         </View>
       </View>
       <View style={mgStyles.recipeCard}>
         <View style={mgStyles.recipeRow}>
-          <MaterialCommunityIcons name="hammer" size={18} color={STUDIO.gold} />
+          <Feather name="tool" size={18} color={STUDIO.gold} />
           <View style={{ flex: 1 }}>
             <Text style={mgStyles.recipeName}>Épée en Fer</Text>
             <Text style={mgStyles.recipeMeta}>Niveau Forge 1</Text>
@@ -323,7 +323,7 @@ function RecipeIllustration() {
           </View>
         </View>
         <View style={[mgStyles.recipeRow, { marginTop: 8, opacity: 0.65 }]}>
-          <MaterialCommunityIcons name="lock" size={16} color="#FFB74D" />
+          <Feather name="lock" size={16} color="#FFB74D" />
           <View style={{ flex: 1 }}>
             <Text style={mgStyles.recipeName}>Épée en Acier</Text>
             <Text style={mgStyles.recipeMeta}>Niveau Forge 5</Text>

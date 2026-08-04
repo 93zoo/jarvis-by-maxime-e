@@ -9,10 +9,16 @@
  */
 import type { RecipeData } from '@/types/game';
 
-const RECIPES_DATA = require('@/data/recipes.json');
-const COLLECTIONS_DATA = require('@/data/collections.json');
+// Static data – lazily loaded on first access to avoid blocking the JS thread
+let _cache_recipes_data: any;
+const getRecipesData = () => (_cache_recipes_data ??= require('@/data/recipes.json'));
+let _cache_collections_data: any;
+const getCollectionsData = () => (_cache_collections_data ??= require('@/data/collections.json'));
 
-const ALL_RECIPES: RecipeData[] = RECIPES_DATA.recipes ?? RECIPES_DATA;
+const getAllRecipes = (): RecipeData[] => {
+  const d = getRecipesData();
+  return d.recipes ?? d;
+};
 
 interface MicroComboPairConfig {
   categories: [string, string];
@@ -20,9 +26,9 @@ interface MicroComboPairConfig {
   icon: string;
 }
 
-const PAIR_CONFIGS: MicroComboPairConfig[] = COLLECTIONS_DATA.microCombos?.pairs ?? [];
-const EPITHETS: string[] = COLLECTIONS_DATA.microCombos?.epithets ?? [''];
-const BONUS_TYPES: string[] = COLLECTIONS_DATA.microCombos?.bonusTypes ?? ['forgeXpBonus'];
+const getPairConfigs = (): MicroComboPairConfig[] => getCollectionsData().microCombos?.pairs ?? [];
+const getEpithets = (): string[] => getCollectionsData().microCombos?.epithets ?? [''];
+const getBonusTypes = (): string[] => getCollectionsData().microCombos?.bonusTypes ?? ['forgeXpBonus'];
 
 export interface MicroCombo {
   id: string;
@@ -47,10 +53,12 @@ function buildCombo(a: string, b: string, config: MicroComboPairConfig): MicroCo
   // Sort so hash & id are order-independent.
   const [idA, idB] = a < b ? [a, b] : [b, a];
   const hash = fnv1a(`${idA}|${idB}`);
-  const bonusType = BONUS_TYPES[hash % BONUS_TYPES.length];
+  const bonusTypes = getBonusTypes();
+  const bonusType = bonusTypes[hash % bonusTypes.length];
   // qualityBonus is a flat point; percentage bonuses range 2–5%.
   const value = bonusType === 'qualityBonus' ? 1 : 2 + ((hash >>> 3) % 4);
-  const epithet = EPITHETS[(hash >>> 7) % EPITHETS.length];
+  const epithets = getEpithets();
+  const epithet = epithets[(hash >>> 7) % epithets.length];
   return {
     id: `combo_${idA}__${idB}`,
     name: `${config.label} ${epithet}`.trim(),
@@ -62,13 +70,13 @@ function buildCombo(a: string, b: string, config: MicroComboPairConfig): MicroCo
 
 function generateAllMicroCombos(): MicroCombo[] {
   const byCategory = new Map<string, RecipeData[]>();
-  for (const r of ALL_RECIPES) {
+  for (const r of getAllRecipes()) {
     const list = byCategory.get(r.category) ?? [];
     list.push(r);
     byCategory.set(r.category, list);
   }
   const combos: MicroCombo[] = [];
-  for (const config of PAIR_CONFIGS) {
+  for (const config of getPairConfigs()) {
     const [catA, catB] = config.categories;
     for (const ra of byCategory.get(catA) ?? []) {
       for (const rb of byCategory.get(catB) ?? []) {
@@ -80,7 +88,10 @@ function generateAllMicroCombos(): MicroCombo[] {
 }
 
 /** All procedurally generated micro-combos (deterministic, same for everyone). */
-export const ALL_MICRO_COMBOS: MicroCombo[] = generateAllMicroCombos();
+let _cache_micro_combos: MicroCombo[] | undefined;
+export function getAllMicroCombos(): MicroCombo[] {
+  return (_cache_micro_combos ??= generateAllMicroCombos());
+}
 
 /** A combo is discovered once BOTH of its items have been forged at least once. */
 export function isComboDiscovered(combo: MicroCombo, craftedIds: Set<string>): boolean {
@@ -90,7 +101,7 @@ export function isComboDiscovered(combo: MicroCombo, craftedIds: Set<string>): b
 /** Sum of active (discovered) micro-combo bonuses for a given bonus type. */
 export function computeMicroComboBonus(bonusType: string, craftedIds: Set<string>): number {
   let total = 0;
-  for (const combo of ALL_MICRO_COMBOS) {
+  for (const combo of getAllMicroCombos()) {
     if (combo.bonus.type === bonusType && isComboDiscovered(combo, craftedIds)) {
       total += combo.bonus.value;
     }

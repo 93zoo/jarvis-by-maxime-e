@@ -15,7 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from '@/lib/LinearGradientSafe';
 import * as Haptics from 'expo-haptics';
 import { useGame } from '@/context/GameContext';
@@ -107,7 +107,7 @@ function AlloyCard({
         {/* Header row */}
         <View style={styles.cardHeader}>
           <View style={styles.cardTitleRow}>
-            <MaterialCommunityIcons name="fire" size={16} color={outColor} style={{ marginRight: 6 }} />
+            <Feather name="activity" size={16} color={outColor} style={{ marginRight: 6 }} />
             <Text style={[styles.cardName, { color: discovered ? colors.foreground : colors.mutedForeground }]}>
               {discovered ? alloy.name : '???'}
             </Text>
@@ -168,8 +168,8 @@ function AlloyCard({
           disabled={!canFuse}
           activeOpacity={0.75}
         >
-          <MaterialCommunityIcons
-            name={canFuse ? 'merge' : 'lock'}
+          <Feather
+            name={canFuse ? 'git-merge' : 'lock'}
             size={15}
             color={canFuse ? '#0D0A07' : colors.mutedForeground}
             style={{ marginRight: 6 }}
@@ -246,7 +246,7 @@ function FusionModal({
           style={[styles.fusionCard, { borderColor: outColor + '50' }]}
         >
           {/* Icon */}
-          <MaterialCommunityIcons name="fire" size={42} color={outColor} style={{ marginBottom: 12 }} />
+          <Feather name="activity" size={42} color={outColor} style={{ marginBottom: 12 }} />
 
           {/* Title */}
           <Text style={[styles.fusionTitle, { color: outColor }]}>
@@ -272,7 +272,7 @@ function FusionModal({
           {phase === 'result' && result && (
             <>
               <View style={[styles.resultRow, { backgroundColor: result.success ? outColor + '20' : colors.muted }]}>
-                <MaterialCommunityIcons
+                <Feather
                   name={result.success ? 'check-circle' : 'alert-circle'}
                   size={22}
                   color={result.success ? outColor : colors.destructive}
@@ -347,8 +347,8 @@ export default function AlloyWorkshop({ bottomPad }: { bottomPad: number }) {
   }, []);
 
   const FILTERS: { key: FilterMode; label: string; icon: string }[] = [
-    { key: 'all', label: 'Tous', icon: 'view-list' },
-    { key: 'available', label: 'Disponibles', icon: 'check-circle-outline' },
+    { key: 'all', label: 'Tous', icon: 'list' },
+    { key: 'available', label: 'Disponibles', icon: 'check-circle' },
     { key: 'discovered', label: 'Découverts', icon: 'eye' },
   ];
 
@@ -374,7 +374,7 @@ export default function AlloyWorkshop({ bottomPad }: { bottomPad: number }) {
             onPress={() => setFilter(f.key)}
             activeOpacity={0.75}
           >
-            <MaterialCommunityIcons
+            <Feather
               name={f.icon as any}
               size={13}
               color={filter === f.key ? '#0D0A07' : colors.mutedForeground}
@@ -390,7 +390,7 @@ export default function AlloyWorkshop({ bottomPad }: { bottomPad: number }) {
           </TouchableOpacity>
         ))}
         <View style={[styles.progressPill, { backgroundColor: colors.secondary }]}>
-          <MaterialCommunityIcons name="flask" size={13} color="#E8B84B" />
+          <Feather name="droplet" size={13} color="#E8B84B" />
           <Text style={[styles.progressPillText, { color: '#E8B84B' }]}>
             {discoveredCount}/{alloys.length}
           </Text>
@@ -408,7 +408,7 @@ export default function AlloyWorkshop({ bottomPad }: { bottomPad: number }) {
             },
           ]}
         >
-          <MaterialCommunityIcons
+          <Feather
             name={lastResult.success ? 'check-circle' : 'alert-circle'}
             size={16}
             color={lastResult.success ? '#4CAF50' : colors.destructive}
@@ -422,7 +422,7 @@ export default function AlloyWorkshop({ bottomPad }: { bottomPad: number }) {
       {/* List */}
       {filtered.length === 0 ? (
         <View style={styles.emptyCenter}>
-          <MaterialCommunityIcons name="flask-empty-outline" size={48} color={colors.mutedForeground} />
+          <Feather name="droplet" size={48} color={colors.mutedForeground} />
           <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
             {filter === 'available'
               ? 'Aucun alliage fusionnable pour l\'instant.'

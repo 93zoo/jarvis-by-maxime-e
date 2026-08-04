@@ -10,7 +10,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from '@/lib/LinearGradientSafe';
@@ -19,6 +18,8 @@ import { useGame } from '@/context/GameContext';
 import { useColors } from '@/hooks/useColors';
 import type { Quest, RegionData, ResourceData } from '@/types/game';
 import ProfileScreen from './profile';
+import { useLeaderboardPending } from '@/context/LeaderboardContext';
+import { Feather } from '@expo/vector-icons';
 
 type CodexTab = 'resources' | 'recipes' | 'regions' | 'skills' | 'quests' | 'profil';
 
@@ -34,6 +35,7 @@ export default function CodexScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const game = useGame();
+  const { pendingCount } = useLeaderboardPending();
   const [activeTab, setActiveTab] = useState<CodexTab>('resources');
   const [selectedResource, setSelectedResource] = useState<ResourceData | null>(null);
   const [recipeMessage, setRecipeMessage] = useState<string | null>(null);
@@ -60,7 +62,7 @@ export default function CodexScreen() {
 
   const TABS: { key: CodexTab; label: string; icon: React.ComponentProps<typeof Feather>['name'] }[] = [
     { key: 'resources', label: 'Matériaux', icon: 'layers' },
-    { key: 'recipes', label: 'Recettes', icon: 'book' },
+    { key: 'recipes', label: 'Recettes', icon: 'book-open' },
     { key: 'regions', label: 'Régions', icon: 'map' },
     { key: 'skills', label: 'Talents', icon: 'star' },
     { key: 'quests', label: 'Quêtes', icon: 'flag' },
@@ -70,9 +72,10 @@ export default function CodexScreen() {
   const activeQuests = game.getActiveQuests();
   const completedCount = game.completedQuestIds.length;
 
-  const renderQuestEntry = (quest: Quest & { progress?: Record<string, number>; isActive?: boolean }) => {
+  const renderQuestEntry = (quest: Quest & { progress?: Record<string, number>; isActive?: boolean; regionLocked?: boolean }) => {
     const isActive = game.activeQuestIds.includes(quest.id);
     const isCompleted = game.completedQuestIds.includes(quest.id);
+    const regionLocked = quest.regionLocked ?? false;
     const progress = quest.progress ?? game.questProgress[quest.id] ?? {};
     const allDone = quest.objectives.every((obj) => (progress[obj.id] ?? 0) >= obj.required);
     const region = game.allRegions.find((r) => r.id === quest.regionId);
@@ -84,7 +87,7 @@ export default function CodexScreen() {
           {
             backgroundColor: colors.card,
             borderColor: isCompleted ? '#4CAF50' : isActive ? colors.primary : colors.border,
-            opacity: isCompleted ? 0.6 : 1,
+            opacity: isCompleted ? 0.6 : regionLocked ? 0.5 : 1,
           },
         ]}
       >
@@ -96,7 +99,13 @@ export default function CodexScreen() {
             </Text>
           </View>
           {isCompleted && <Feather name="check-circle" size={18} color="#4CAF50" />}
-          {!isCompleted && !isActive && (
+          {!isCompleted && !isActive && regionLocked && (
+            <View style={[styles.activeBadge, { backgroundColor: colors.muted }]}>
+              <Feather name="lock" size={11} color={colors.mutedForeground} style={{ marginRight: 3 }} />
+              <Text style={[styles.activeBadgeText, { color: colors.mutedForeground }]}>Région verrouillée</Text>
+            </View>
+          )}
+          {!isCompleted && !isActive && !regionLocked && (
             <TouchableOpacity
               style={[styles.acceptBtn, { backgroundColor: colors.primary }]}
               onPress={() => { game.acceptQuest(quest.id); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
@@ -138,16 +147,16 @@ export default function CodexScreen() {
         {/* Rewards */}
         <View style={styles.questRewards}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <MaterialCommunityIcons name="gold" size={14} color={colors.accent} />
+            <Feather name="dollar-sign" size={14} color={colors.accent} />
             <Text style={[styles.questRewardItem, { color: colors.accent }]}>{quest.rewards.gold}g</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <MaterialCommunityIcons name="star" size={14} color={colors.primary} />
+            <Feather name="star" size={14} color={colors.primary} />
             <Text style={[styles.questRewardItem, { color: colors.primary }]}>{quest.rewards.xp} XP</Text>
           </View>
           {quest.rewards.unlockRegion && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <MaterialCommunityIcons name="map" size={14} color="#9C27B0" />
+              <Feather name="map" size={14} color="#9C27B0" />
               <Text style={[styles.questRewardItem, { color: '#9C27B0' }]}>Débloque région</Text>
             </View>
           )}
@@ -248,7 +257,7 @@ export default function CodexScreen() {
                 </Text>
                 {needsAlloy && (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#D4A53720', paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: '#D4A53760' }}>
-                    <MaterialCommunityIcons name="merge" size={10} color="#D4A537" />
+                    <Feather name="git-merge" size={10} color="#D4A537" />
                     <Text style={{ fontSize: 9, fontWeight: '700', color: '#D4A537' }}>ALLIAGE</Text>
                   </View>
                 )}
@@ -361,6 +370,7 @@ export default function CodexScreen() {
       <View style={[styles.tabRow, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
         {TABS.map((tab) => {
           const isActive = activeTab === tab.key;
+          const showBadge = tab.key === 'profil' && pendingCount > 0;
           return (
             <TouchableOpacity
               key={tab.key}
@@ -371,11 +381,16 @@ export default function CodexScreen() {
               onPress={() => setActiveTab(tab.key)}
               activeOpacity={0.7}
             >
-              <Feather
-                name={tab.icon}
-                size={20}
-                color={isActive ? colors.primary : colors.mutedForeground}
-              />
+              <View style={{ position: 'relative' }}>
+                <Feather
+                  name={tab.icon}
+                  size={20}
+                  color={isActive ? colors.primary : colors.mutedForeground}
+                />
+                {showBadge && (
+                  <View style={styles.tabDot} />
+                )}
+              </View>
               <Text
                 style={[
                   styles.tabText,
@@ -463,7 +478,9 @@ export default function CodexScreen() {
             </View>
             <View style={[styles.questSummarySep, { backgroundColor: colors.border }]} />
             <View style={styles.questSummaryItem}>
-              <Text style={[styles.questSummaryValue, { color: colors.foreground }]}>{game.allQuests.length}</Text>
+              <Text style={[styles.questSummaryValue, { color: colors.foreground }]}>
+                {game.allQuests.filter((q) => (q.unlockLevel ?? 0) <= game.player.level).length}
+              </Text>
               <Text style={[styles.questSummaryLabel, { color: colors.mutedForeground }]}>Total</Text>
             </View>
           </View>
@@ -474,18 +491,34 @@ export default function CodexScreen() {
           {activeQuests.map((q) => renderQuestEntry(q))}
           {/* Available quests (only those matching the player's current level) */}
           {(() => {
-            const available = game.allQuests.filter(
+            const notActive = game.allQuests.filter(
               (q) =>
                 !game.activeQuestIds.includes(q.id) &&
                 !game.completedQuestIds.includes(q.id) &&
                 (q.unlockLevel ?? 0) <= game.player.level,
             );
-            return available.length > 0 ? (
+            const available = notActive.filter(
+              (q) => !q.regionId || game.unlockedRegions.includes(q.regionId),
+            );
+            const regionLocked = notActive.filter(
+              (q) => q.regionId && !game.unlockedRegions.includes(q.regionId),
+            );
+            return (
               <>
-                <Text style={[styles.questGroupLabel, { color: colors.mutedForeground }]}>DISPONIBLES</Text>
-                {available.map((q) => renderQuestEntry({ ...q, progress: {} }))}
+                {available.length > 0 && (
+                  <>
+                    <Text style={[styles.questGroupLabel, { color: colors.mutedForeground }]}>DISPONIBLES</Text>
+                    {available.map((q) => renderQuestEntry({ ...q, progress: {} }))}
+                  </>
+                )}
+                {regionLocked.length > 0 && (
+                  <>
+                    <Text style={[styles.questGroupLabel, { color: colors.mutedForeground }]}>RÉGION REQUISE</Text>
+                    {regionLocked.map((q) => renderQuestEntry({ ...q, progress: {}, regionLocked: true }))}
+                  </>
+                )}
               </>
-            ) : null;
+            );
           })()}
           {/* Completed quests */}
           {completedCount > 0 && (
@@ -622,6 +655,15 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
+  tabDot: {
+    position: 'absolute',
+    top: -2,
+    right: -4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#E53935',
+  },
   listContent: { paddingHorizontal: 16, paddingTop: 12 },
   entryCard: {
     flexDirection: 'row',

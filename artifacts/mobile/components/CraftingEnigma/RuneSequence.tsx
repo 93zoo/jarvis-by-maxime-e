@@ -5,13 +5,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 
 const RUNES = [
-  { id: 'fire',      icon: 'fire' as const,          color: '#FF6B35', label: 'FEU' },
-  { id: 'ice',       icon: 'snowflake' as const,      color: '#81D4FA', label: 'GLACE' },
-  { id: 'lightning', icon: 'lightning-bolt' as const, color: '#FFD54F', label: 'FOUDRE' },
-  { id: 'earth',     icon: 'leaf' as const,           color: '#66BB6A', label: 'TERRE' },
+  { id: 'activity',      icon: 'activity' as const,       color: '#FF6B35', label: 'FEU' },
+  { id: 'ice',       icon: 'wind' as const,      color: '#81D4FA', label: 'GLACE' },
+  { id: 'lightning', icon: 'zap' as const,   color: '#FFD54F', label: 'FOUDRE' },
+  { id: 'earth',     icon: 'feather' as const,        color: '#66BB6A', label: 'TERRE' },
 ] as const;
 
 type Phase = 'waiting' | 'showing' | 'input' | 'done';
@@ -143,8 +143,8 @@ export default function RuneSequence({ difficulty, onSuccess, onFail }: Props) {
                 },
               ]}
             >
-              <MaterialCommunityIcons
-                name={isShowing ? rune.icon : (isDone ? 'check' : 'help-circle-outline')}
+              <Feather
+                name={isShowing ? rune.icon : (isDone ? 'check' : 'help-circle')}
                 size={16}
                 color={isShowing ? rune.color : isDone ? '#4CAF50' : 'rgba(255,255,255,0.2)'}
               />
@@ -177,7 +177,7 @@ export default function RuneSequence({ difficulty, onSuccess, onFail }: Props) {
               disabled={phase !== 'input' || doneRef.current}
               activeOpacity={0.75}
             >
-              <MaterialCommunityIcons name={rune.icon} size={32} color={rune.color} />
+              <Feather name={rune.icon} size={32} color={rune.color} />
               <Text style={[styles.runeLbl, { color: rune.color }]}>{rune.label}</Text>
             </TouchableOpacity>
           );

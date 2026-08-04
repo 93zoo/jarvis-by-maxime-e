@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useGame } from '@/context/GameContext';
@@ -134,7 +134,7 @@ export default function GuildeSection() {
         activeOpacity={0.8}
       >
         <View style={styles.headerLeft}>
-          <MaterialCommunityIcons name="hammer-wrench" size={18} color={colors.foreground} />
+          <Feather name="tool" size={18} color={colors.foreground} />
           <View>
             <Text style={[styles.headerTitle, { color: colors.foreground }]}>Guilde des Travailleurs</Text>
             <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
@@ -144,7 +144,7 @@ export default function GuildeSection() {
             </Text>
           </View>
         </View>
-        <MaterialCommunityIcons
+        <Feather
           name={expanded ? 'chevron-up' : 'chevron-down'}
           size={20}
           color={colors.mutedForeground}
@@ -236,8 +236,8 @@ export default function GuildeSection() {
 
                       {/* Harvest progress */}
                       <View style={[styles.harvestRow, { backgroundColor: colors.secondary }]}>
-                        <MaterialCommunityIcons
-                          name={base === 'miner' ? 'pickaxe' : 'axe'}
+                        <Feather
+                          name={base === 'miner' ? 'tool' : 'scissors'}
                           size={13}
                           color={isAtCap ? '#C9A227' : colors.mutedForeground}
                         />
@@ -258,7 +258,7 @@ export default function GuildeSection() {
                       </View>
                       {isAtCap ? (
                         <View style={[styles.harvestEtaRow]}>
-                          <MaterialCommunityIcons name="alert-circle" size={12} color="#C9A227" />
+                          <Feather name="alert-circle" size={12} color="#C9A227" />
                           <Text style={[styles.harvestEta, { color: '#C9A227', marginBottom: 0 }]}>
                             Récoltez maintenant pour ne pas perdre de ressources
                           </Text>
@@ -293,8 +293,8 @@ export default function GuildeSection() {
                           onPress={() => handleCollect(worker.id)}
                           activeOpacity={0.8}
                         >
-                          <MaterialCommunityIcons
-                            name="package-down"
+                          <Feather
+                            name="download"
                             size={14}
                             color={isAtCap ? '#000' : colors.primaryForeground}
                           />
@@ -316,7 +316,7 @@ export default function GuildeSection() {
                             onPress={() => handleUpgrade(worker.id)}
                             activeOpacity={0.8}
                           >
-                            <MaterialCommunityIcons name="arrow-up-circle-outline" size={14} color={colors.foreground} />
+                            <Feather name="arrow-up-circle" size={14} color={colors.foreground} />
                             <Text style={[styles.actionBtnText, { color: colors.foreground }]}>{upgradeCost}g</Text>
                           </TouchableOpacity>
                         ) : (
@@ -332,7 +332,7 @@ export default function GuildeSection() {
                               },
                             ]}
                           >
-                            <MaterialCommunityIcons name="crown" size={14} color="#D4AF37" />
+                            <Feather name="award" size={14} color="#D4AF37" />
                             <Text style={[styles.actionBtnText, { color: '#D4AF37' }]}>MAX</Text>
                           </View>
                         )}
@@ -359,8 +359,8 @@ export default function GuildeSection() {
                     onPress={() => handleHire(standardType)}
                     activeOpacity={0.8}
                   >
-                    <MaterialCommunityIcons
-                      name="plus-circle-outline"
+                    <Feather
+                      name="plus-circle"
                       size={14}
                       color={canAfford ? colors.primaryForeground : colors.mutedForeground}
                     />

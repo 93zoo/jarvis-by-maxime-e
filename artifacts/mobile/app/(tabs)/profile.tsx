@@ -23,7 +23,7 @@ import Reanimated, {
   FadeInDown,
   type SharedValue,
 } from 'react-native-reanimated';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from '@/lib/LinearGradientSafe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,7 +34,8 @@ import { useColors } from '@/hooks/useColors';
 import AudioManager from '@/utils/AudioManager';
 import { saveAudioSettings } from '@/utils/audioSettings';
 import type { Achievement, ForgeHistoryEntry, SessionSnapshot, SkillData, SkillType, TalentData } from '@/types/game';
-import { fetchLeaderboardRewards, isLeaderboardAvailable, type LeaderboardAward } from '@/lib/leaderboard';
+import { claimLeaderboardReward, fetchLeaderboardRewards, isLeaderboardAvailable, type LeaderboardAward } from '@/lib/leaderboard';
+import { useLeaderboardPending } from '@/context/LeaderboardContext';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const SKILL_ICONS: Record<SkillType, string> = {
@@ -580,7 +581,7 @@ function AnimatedSparkLine({
 const SPARKLINE_H = 60;
 const SPARKLINE_DOT = 5;
 
-type SparkMetric = 'level' | 'gold' | 'items';
+type SparkMetric = 'level' | 'cash' | 'items';
 
 interface MetricConfig {
   key: SparkMetric;
@@ -607,7 +608,7 @@ const SPARK_METRICS: MetricConfig[] = [
     yLabel: (v) => `Niv.${v}`,
   },
   {
-    key: 'gold',
+    key: 'cash',
     label: 'Or',
     title: 'OR EN CAISSE',
     icon: 'dollar-sign',
@@ -1827,7 +1828,7 @@ function StatsTabContent({ colors, game, titleHistory }: { colors: ReturnType<ty
           <Text style={[stStyles.infoLabel, { color: colors.mutedForeground }]}>Jours consécutifs</Text>
           <View style={stStyles.streakWrap}>
             <Text style={[stStyles.infoValue, { color: '#D4AF37' }]}>{streak}</Text>
-            <MaterialCommunityIcons name="star-four-points" size={10} color="#D4AF37" />
+            <Feather name="star" size={10} color="#D4AF37" />
           </View>
         </View>
         <View style={[stStyles.infoSep, { backgroundColor: colors.border }]} />
@@ -1868,6 +1869,11 @@ function StatsTabContent({ colors, game, titleHistory }: { colors: ReturnType<ty
           <Feather name="check-circle" size={20} color="#4CAF50" />
           <Text style={[stStyles.recordValue, { color: '#4CAF50' }]}>{player.totalOrdersDelivered ?? 0}</Text>
           <Text style={[stStyles.recordLabel, { color: colors.mutedForeground }]}>Commandes livrées</Text>
+        </View>
+        <View style={[stStyles.recordCard, { backgroundColor: colors.card, borderColor: '#9966CC44' }]}>
+          <Feather name="check-circle" size={20} color="#9966CC" />
+          <Text style={[stStyles.recordValue, { color: '#9966CC' }]}>{player.enigmaMasteredCount ?? 0}</Text>
+          <Text style={[stStyles.recordLabel, { color: colors.mutedForeground }]}>Défis réussis</Text>
         </View>
       </View>
 
@@ -2145,14 +2151,14 @@ export interface AvatarPreset {
 }
 
 export const AVATAR_PRESETS: AvatarPreset[] = [
-  { id: 'dwarf',    label: 'Nain',      icon: 'anvil', bg: '#5C3317', accent: '#D4851A' },
-  { id: 'elf',      label: 'Elfe',      icon: 'bow-arrow', bg: '#1B4332', accent: '#52B788' },
-  { id: 'knight',   label: 'Chevalier', icon: 'sword-cross', bg: '#1A2744', accent: '#6EA8FE' },
-  { id: 'merchant', label: 'Marchand',  icon: 'gold', bg: '#4A3200', accent: '#D4AF37' },
-  { id: 'mage',     label: 'Mage',      icon: 'crystal-ball', bg: '#2D1B4E', accent: '#C084FC' },
-  { id: 'warrior',  label: 'Guerrier',  icon: 'shield-sword', bg: '#3B0A0A', accent: '#F87171' },
-  { id: 'rogue',    label: 'Rôdeur',    icon: 'knife', bg: '#141A2E', accent: '#94A3B8' },
-  { id: 'paladin',  label: 'Paladin',   icon: 'star-shooting', bg: '#0C2340', accent: '#7DD3FC' },
+  { id: 'dwarf',    label: 'Nain',      icon: 'tool', bg: '#5C3317', accent: '#D4851A' },
+  { id: 'elf',      label: 'Elfe',      icon: 'activity', bg: '#1B4332', accent: '#52B788' },
+  { id: 'knight',   label: 'Chevalier', icon: 'alert-octagon', bg: '#1A2744', accent: '#6EA8FE' },
+  { id: 'merchant', label: 'Marchand',  icon: 'dollar-sign', bg: '#4A3200', accent: '#D4AF37' },
+  { id: 'mage',     label: 'Mage',      icon: 'globe', bg: '#2D1B4E', accent: '#C084FC' },
+  { id: 'warrior',  label: 'Guerrier',  icon: 'shield', bg: '#3B0A0A', accent: '#F87171' },
+  { id: 'rogue',    label: 'Rôdeur',    icon: 'scissors', bg: '#141A2E', accent: '#94A3B8' },
+  { id: 'paladin',  label: 'Paladin',   icon: 'star', bg: '#0C2340', accent: '#7DD3FC' },
 ];
 
 // ─── AvatarDisplay ────────────────────────────────────────────────────────────
@@ -2180,7 +2186,7 @@ function AvatarDisplay({
         justifyContent: 'center', alignItems: 'center',
         borderWidth: 2, borderColor: preset.accent + '88',
       }}>
-        <MaterialCommunityIcons name={preset.icon as any} size={size * 0.5} color={preset.accent} />
+        <Feather name={preset.icon as any} size={size * 0.5} color={preset.accent} />
       </View>
     );
   }
@@ -2359,7 +2365,7 @@ function CustomizeModal({
                       },
                     ]}
                   >
-                    <MaterialCommunityIcons name={preset.icon as any} size={22} color={preset.accent} />
+                    <Feather name={preset.icon as any} size={22} color={preset.accent} />
                     <Text style={[cmStyles.illustrationLabel, { color: selected ? preset.accent : '#ffffff99' }]}>
                       {preset.label}
                     </Text>
@@ -2552,9 +2558,9 @@ const cmStyles = StyleSheet.create({
 });
 
 const STAT_ICONS: Record<string, any> = {
-  max_stamina: 'arm-flex',
-  craft_speed: 'lightning-bolt',
-  rare_drop: 'diamond-stone',
+  max_stamina: 'activity',
+  craft_speed: 'zap',
+  rare_drop: 'hexagon',
 };
 
 // ─── Stat Upgrades Tab ───────────────────────────────────────────────────────
@@ -2619,7 +2625,7 @@ function StatUpgradesTabContent({ colors }: { colors: ReturnType<typeof useColor
             {/* Top row */}
             <View style={upgStyles.cardTop}>
               <View style={[upgStyles.emojiBox, { backgroundColor: def.color + '22' }]}>
-                <MaterialCommunityIcons name={STAT_ICONS[def.id] ?? 'star'} size={24} color={def.color} />
+                <Feather name={STAT_ICONS[def.id] ?? 'star'} size={24} color={def.color} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[upgStyles.cardName, { color: colors.foreground }]}>{def.name}</Text>
@@ -2707,7 +2713,116 @@ const upgStyles = StyleSheet.create({
   buyBtnText: { fontSize: 13, fontWeight: '700' },
 });
 
-// ─── Main Profile Screen ──────────────────────────────────────────────────────
+function LeaderboardRewardModal({
+  award,
+  onClaim,
+  onClose,
+  colors,
+  game,
+}: {
+  award: LeaderboardAward | null;
+  onClaim: () => void;
+  onClose: () => void;
+  colors: ReturnType<typeof useColors>;
+  game: ReturnType<typeof useGame>;
+}) {
+  const [claiming, setClaiming] = useState(false);
+  if (!award) return null;
+
+  const rankColor = award.rank === 1 ? '#D4AF37' : award.rank === 2 ? '#C0C0C0' : '#CD7F32';
+  const rankLabel = award.rank === 1 ? '1er' : award.rank === 2 ? '2ème' : '3ème';
+  const periodLabel = award.period === 'weekly' ? 'Classement Hebdomadaire' : 'Classement Quotidien';
+
+  const handleClaim = async () => {
+    if (claiming) return;
+    setClaiming(true);
+    try {
+      const playerId = await AsyncStorage.getItem('@fk_player_id');
+      if (!playerId) { setClaiming(false); return; }
+      const claimed = await claimLeaderboardReward(playerId, award.id);
+      if (claimed) {
+        if (claimed.gold > 0) game.addGold(claimed.gold);
+        if (claimed.materials && claimed.materials.length > 0) {
+          game.grantResources(claimed.materials.map((m) => ({ resourceId: m.id, qty: m.qty })));
+        }
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        onClaim();
+      } else {
+        // Already claimed or network error — dismiss without crediting
+        onClose();
+      }
+    } catch {
+      onClose();
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  return (
+    <Modal visible={!!award} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
+      <View style={lrStyles.overlay}>
+        <View style={[lrStyles.sheet, { backgroundColor: colors.card, borderColor: rankColor + '66' }]}>
+          {/* Trophy icon */}
+          <View style={[lrStyles.trophyWrap, { backgroundColor: rankColor + '22' }]}>
+            <Feather name="award" size={36} color={rankColor} />
+          </View>
+
+          <Text style={[lrStyles.headline, { color: colors.foreground }]}>Récompense de Classement !</Text>
+          <Text style={[lrStyles.period, { color: colors.mutedForeground }]}>{periodLabel}</Text>
+
+          {/* Rank badge */}
+          <View style={[lrStyles.rankBadge, { backgroundColor: rankColor + '22', borderColor: rankColor + '55' }]}>
+            <Feather name="award" size={14} color={rankColor} />
+            <Text style={[lrStyles.rankText, { color: rankColor }]}>{rankLabel} place · {award.title}</Text>
+          </View>
+
+          {/* Rewards */}
+          <View style={[lrStyles.rewardsBox, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+            <Text style={[lrStyles.rewardsTitle, { color: colors.foreground }]}>RÉCOMPENSES</Text>
+            {award.gold > 0 && (
+              <View style={lrStyles.rewardRow}>
+                <Text style={lrStyles.rewardEmoji}>🪙</Text>
+                <Text style={[lrStyles.rewardText, { color: '#D4AF37' }]}>{award.gold.toLocaleString()} or</Text>
+              </View>
+            )}
+            {(award.materials ?? []).map((mat) => {
+              const res = game.allResources.find((r) => r.id === mat.id);
+              return (
+                <View key={mat.id} style={lrStyles.rewardRow}>
+                  <Text style={lrStyles.rewardEmoji}>📦</Text>
+                  <Text style={[lrStyles.rewardText, { color: colors.foreground }]}>
+                    ×{mat.qty} {res?.name ?? mat.id}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+
+          {/* Claim button */}
+          <TouchableOpacity
+            style={[lrStyles.claimBtn, { backgroundColor: claiming ? colors.muted : rankColor, opacity: claiming ? 0.7 : 1 }]}
+            onPress={handleClaim}
+            disabled={claiming}
+            activeOpacity={0.8}
+          >
+            {claiming ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <Feather name="gift" size={16} color="#fff" />
+                <Text style={lrStyles.claimBtnText}>Réclamer</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity style={lrStyles.laterBtn} onPress={onClose}>
+            <Text style={[lrStyles.laterText, { color: colors.mutedForeground }]}>Plus tard</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 type ProfileTab = 'skills' | 'talents' | 'upgrades' | 'achievements' | 'stats';
 const ALL_PROFILE_TABS: readonly ProfileTab[] = ['skills', 'talents', 'upgrades', 'achievements', 'stats'];
 
@@ -2717,6 +2832,7 @@ export default function ProfileScreen({ tabs, title }: { tabs?: readonly Profile
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const game = useGame();
+  const { refreshPending } = useLeaderboardPending();
   const headerTopPad = Platform.OS === 'web' ? 67 : insets.top;
   const [activeTab, setActiveTab] = useState<ProfileTab>((tabs ?? ALL_PROFILE_TABS)[0]);
   const [selectedSkillId, setSelectedSkillId] = useState<SkillType | null>(null);
@@ -2726,6 +2842,8 @@ export default function ProfileScreen({ tabs, title }: { tabs?: readonly Profile
   const hasPromptedRef = useRef(false);
   const [leaderboardTitle, setLeaderboardTitle] = useState<string | null>(null);
   const [titleHistory, setTitleHistory] = useState<LeaderboardAward[]>([]);
+  const [pendingAwards, setPendingAwards] = useState<LeaderboardAward[]>([]);
+  const [claimingAward, setClaimingAward] = useState<LeaderboardAward | null>(null);
 
   // Auto-prompt customization on first session (name still at default)
   useEffect(() => {
@@ -2737,14 +2855,18 @@ export default function ProfileScreen({ tabs, title }: { tabs?: readonly Profile
     }
   }, [game.isLoaded, game.player.name]);
 
-  // Fetch leaderboard title and history
+  // Fetch leaderboard title, history and pending awards
   useEffect(() => {
     if (!game.isLoaded || !isLeaderboardAvailable()) return;
     AsyncStorage.getItem('@fk_player_id').then((pid) => {
       if (!pid) return;
-      return fetchLeaderboardRewards(pid).then(({ title, history }) => {
+      return fetchLeaderboardRewards(pid).then(({ title, history, pending }) => {
         setLeaderboardTitle(title);
         setTitleHistory(history);
+        if (pending.length > 0) {
+          setPendingAwards(pending);
+          setClaimingAward(pending[0]);
+        }
       });
     }).catch(() => {/* silent — leaderboard is best-effort */});
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -3041,6 +3163,35 @@ export default function ProfileScreen({ tabs, title }: { tabs?: readonly Profile
         onClose={() => setShowCustomize(false)}
         colors={colors}
       />
+
+      {/* Leaderboard reward claim modal */}
+      <LeaderboardRewardModal
+        award={claimingAward}
+        game={game}
+        colors={colors}
+        onClaim={() => {
+          // Mark the claimed award in local state and move to history
+          if (!claimingAward) return;
+          const claimedAward = { ...claimingAward, claimed: true };
+          setTitleHistory((prev) => {
+            // Avoid duplicates: replace if already present, else prepend
+            const exists = prev.some((a) => a.id === claimedAward.id);
+            return exists
+              ? prev.map((a) => a.id === claimedAward.id ? claimedAward : a)
+              : [claimedAward, ...prev];
+          });
+          const remaining = pendingAwards.filter((a) => a.id !== claimingAward.id);
+          setPendingAwards(remaining);
+          // Update the global badge count immediately
+          refreshPending();
+          // Show next pending award if any, otherwise close
+          setClaimingAward(remaining.length > 0 ? remaining[0] : null);
+        }}
+        onClose={() => {
+          // Dismiss without claiming — hide modal, keep pending for next session
+          setClaimingAward(null);
+        }}
+      />
     </View>
   );
 }
@@ -3121,4 +3272,23 @@ const styles = StyleSheet.create({
   achieveDesc: { fontSize: 10, lineHeight: 14 },
   achieveCategoryBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   achieveCategoryText: { fontSize: 9, fontWeight: '700', letterSpacing: 0.5 },
+});
+
+const lrStyles = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  sheet: { width: '100%', borderRadius: 20, padding: 24, borderWidth: 2, alignItems: 'center', gap: 14 },
+  trophyWrap: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center' },
+  headline: { fontSize: 20, fontWeight: '800', textAlign: 'center' },
+  period: { fontSize: 13, textAlign: 'center', marginTop: -6 },
+  rankBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1 },
+  rankText: { fontSize: 14, fontWeight: '700' },
+  rewardsBox: { width: '100%', borderRadius: 12, padding: 14, borderWidth: 1, gap: 8 },
+  rewardsTitle: { fontSize: 10, fontWeight: '800', letterSpacing: 2, marginBottom: 2 },
+  rewardRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  rewardEmoji: { fontSize: 16 },
+  rewardText: { fontSize: 15, fontWeight: '700' },
+  claimBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', paddingVertical: 14, borderRadius: 12 },
+  claimBtnText: { fontSize: 16, fontWeight: '800', color: '#fff' },
+  laterBtn: { paddingVertical: 8 },
+  laterText: { fontSize: 13 },
 });

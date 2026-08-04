@@ -530,6 +530,7 @@ function buildInitialPlayer(): Player {
     craftedLegendaryCount: 0,
     craftedExcellentCount: 0,
     craftedGoodCount: 0,
+    enigmaMasteredCount: 0,
     createdAt: Date.now(),
     streak: 1,
     lastPlayedDate: Date.now(),
@@ -1046,6 +1047,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         craftedLegendaryCount: s.player.craftedLegendaryCount ?? 0,
         craftedExcellentCount: s.player.craftedExcellentCount ?? 0,
         craftedGoodCount: s.player.craftedGoodCount ?? 0,
+        enigmaMasteredCount: s.player.enigmaMasteredCount ?? 0,
         bestSalePrice: s.player.bestSalePrice ?? 0,
         bestQualityScore: s.player.bestQualityScore ?? 0,
         lastPlayedDate: s.player.lastPlayedDate ?? 0,
@@ -1139,6 +1141,10 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           action.item.quality === 'good'
             ? (state.player.craftedGoodCount ?? 0) + 1
             : (state.player.craftedGoodCount ?? 0),
+        enigmaMasteredCount:
+          action.item.enigmaMastered
+            ? (state.player.enigmaMasteredCount ?? 0) + 1
+            : (state.player.enigmaMasteredCount ?? 0),
         bestQualityScore: Math.max(state.player.bestQualityScore ?? 0, action.item.qualityScore ?? 0),
       };
       const historyEntry: ForgeHistoryEntry = {
@@ -1394,11 +1400,12 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     }
     case 'EXPIRE_URGENT_ORDERS': {
       const now = Date.now();
-      // Remove ALL expired orders (urgent, special, and regular) — expired means
-      // deadline has passed and the order was not yet delivered (completed orders
-      // are removed at deliver time, so completed=true should never appear here).
+      // Remove expired orders, but respect player commitments:
+      // - Urgent/Special: removed when expired (time-critical by design)
+      // - Regular accepted: KEPT even past deadline (player crafted for it — let them deliver late)
+      // - Regular unaccepted: removed when expired (they are just UI clutter)
       const updated = state.activeOrders.filter(
-        (o) => o.completed || o.deadline > now,
+        (o) => o.completed || o.deadline > now || (o.accepted && !o.isUrgent && !o.isSpecial),
       );
       if (updated.length === state.activeOrders.length) return state;
       return { ...state, activeOrders: updated };
@@ -1482,6 +1489,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'ACCEPT_QUEST': {
       if (state.activeQuestIds.includes(action.questId)) return state;
       if (state.completedQuestIds.includes(action.questId)) return state;
+      // Block quests that belong to a locked region
+      const questToAccept = getQuests().find((q) => q.id === action.questId);
+      if (questToAccept?.regionId && !state.unlockedRegions.includes(questToAccept.regionId)) {
+        return state;
+      }
       const player = {
         ...state.player,
         totalQuestsAccepted: (state.player.totalQuestsAccepted ?? 0) + 1,
@@ -1857,6 +1869,10 @@ function gameReducer(state: GameState, action: GameAction): GameState {
             item.quality === 'good'
               ? (state.player.craftedGoodCount ?? 0) + 1
               : (state.player.craftedGoodCount ?? 0),
+          enigmaMasteredCount:
+            item.enigmaMastered
+              ? (state.player.enigmaMasteredCount ?? 0) + 1
+              : (state.player.enigmaMasteredCount ?? 0),
           bestQualityScore: Math.max(state.player.bestQualityScore ?? 0, item.qualityScore ?? 0),
         },
         forgeHistory: [apprenticeHistoryEntry, ...state.forgeHistory].slice(0, FORGE_HISTORY_MAX),
@@ -2156,6 +2172,7 @@ interface GameContextType {
   claimSetReward: (setId: string) => { success: boolean; gold: number };
   // Hideouts
   activeHideouts: ActiveHideout[];
+  hideoutLastCollected: Record<string, number>;
   collectHideout: (slotId: string, regionId: string) => { success: boolean; rewards: { resourceId: string; qty: number }[] };
   fightForMaterials: (regionId: string, playerTotal: number, enemyTotal: number, enemyId?: string) => CombatResult;
   // Guilde des Travailleurs
@@ -2993,6 +3010,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
               }
             }
           }
+          // Track boss kill for quest objectives (type: 'kill', targetId: regionId)
+          dispatch({
+            type: 'UPDATE_QUEST_PROGRESS',
+            objectiveType: 'kill',
+            targetId: regionId,
+            amount: 1,
+          });
         }
       } else {
         dispatch({ type: 'ADD_SKILL_XP', skill: 'combat', amount: 3 });
@@ -3049,12 +3073,19 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         const bonusGold = Math.round(order.goldReward * orderGoldBonus / 100);
         if (bonusGold > 0) dispatch({ type: 'ADD_GOLD', amount: bonusGold });
       }
+      // Enigma-mastered bonus: +7% of the base order reward
+      let enigmaBonusGold = 0;
+      if (item.enigmaMastered) {
+        enigmaBonusGold = Math.max(1, Math.round(order.goldReward * 0.07));
+        dispatch({ type: 'ADD_GOLD', amount: enigmaBonusGold });
+      }
       const bonusLine = onTime && order.isSpecial
         ? ` ⭐ +${order.specialBonusGold ?? 0}g et +${order.specialBonusXp ?? 0} XP bonus !`
         : onTime
         ? ` ⚡ +${order.urgentBonusGold ?? 0}g et +${order.urgentBonusXp ?? 0} XP bonus !`
         : '';
-      return { success: true, message: `Livraison effectuée avec succès !${bonusLine}` };
+      const maitriseLabel = enigmaBonusGold > 0 ? ` ✦ Bonus Maîtrise +${enigmaBonusGold}g` : '';
+      return { success: true, message: `Livraison effectuée avec succès !${bonusLine}${maitriseLabel}` };
     },
     [state.activeOrders, state.craftedItems, everCraftedRecipeIds],
   );
@@ -4058,6 +4089,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         unpinFromShowcase,
         // Hideouts
         activeHideouts: state.activeHideouts ?? [],
+        hideoutLastCollected: state.hideoutLastCollected ?? {},
         collectHideout,
         // Guilde des Travailleurs
         workers: state.workers ?? [],

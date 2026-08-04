@@ -22,7 +22,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useGame } from '@/context/GameContext';
 import {
@@ -38,8 +38,8 @@ interface ForgeEvent {
   id: ForgeEventId;
   /** Relative draw weight — higher = more common. */
   weight: number;
-  /** Ionicons icon name */
-  icon: React.ComponentProps<typeof Ionicons>['name'];
+  /** Feather icon name */
+  icon: React.ComponentProps<typeof Feather>['name'];
   color: string;
   label: string;
   /** Duration the bonus is active in milliseconds (0 = one-shot). */
@@ -47,8 +47,8 @@ interface ForgeEvent {
 }
 
 export const FORGE_EVENTS: ForgeEvent[] = [
-  { id: 'gem_chance',    weight: 2, icon: 'diamond',    color: '#AA44FF', label: 'Qualité de gemme forgée +20 pts (1h)',          durationMs: FE_COOLDOWN_MS },
-  { id: 'gold_bonus',    weight: 3, icon: 'cash',        color: '#FFD700', label: '+30 % de pièces sur chaque vente d\'objet (1h)', durationMs: FE_COOLDOWN_MS },
+  { id: 'gem_chance',    weight: 2, icon: 'hexagon',    color: '#AA44FF', label: 'Qualité de gemme forgée +20 pts (1h)',          durationMs: FE_COOLDOWN_MS },
+  { id: 'gold_bonus',    weight: 3, icon: 'dollar-sign',        color: '#FFD700', label: '+30 % de pièces sur chaque vente d\'objet (1h)', durationMs: FE_COOLDOWN_MS },
   { id: 'double_xp',     weight: 2, icon: 'star',        color: '#00CED1', label: 'Double XP lors des combats de boss (1h)',         durationMs: FE_COOLDOWN_MS },
   { id: 'free_chest',    weight: 1, icon: 'gift',        color: '#44FF88', label: 'Coffre de ressources offert — touchez pour ouvrir !', durationMs: 0           },
   { id: 'mystery_reward',weight: 1, icon: 'help-circle', color: '#FF69B4', label: 'Récompense mystère — touchez pour révéler !',       durationMs: 0           },
@@ -329,8 +329,8 @@ export default function ForgeEventBanner() {
 
         {/* Left icon */}
         <View style={[bs.iconWrap, { backgroundColor: bannerColor + '22' }]}>
-          <Ionicons
-            name={locked ? 'lock-closed' : event.icon}
+          <Feather
+            name={locked ? 'lock' : event.icon}
             size={18}
             color={bannerColor}
           />
@@ -341,7 +341,7 @@ export default function ForgeEventBanner() {
           <View style={bs.lockedContent}>
             <Text style={bs.lockedTitle}>Événement déjà utilisé</Text>
             <View style={bs.countdownRow}>
-              <Ionicons name="time-outline" size={12} color="#888" />
+              <Feather name="clock" size={12} color="#888" />
               <Text style={bs.countdownTxt}> Disponible dans {msToCountdown(remainingMs)}</Text>
             </View>
           </View>
@@ -361,8 +361,8 @@ export default function ForgeEventBanner() {
         {/* Right chevron or check */}
         <View style={bs.rightIcon}>
           {locked
-            ? <Ionicons name="checkmark-circle" size={16} color="#555" />
-            : <Ionicons name="chevron-forward" size={14} color={event.color + 'AA'} />}
+            ? <Feather name="check-circle" size={16} color="#555" />
+            : <Feather name="chevron-right" size={14} color={event.color + 'AA'} />}
         </View>
       </TouchableOpacity>
 

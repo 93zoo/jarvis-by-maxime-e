@@ -24,11 +24,17 @@ import * as Haptics from 'expo-haptics';
 
 // ─── Détection plateforme ────────────────────────────────────────────────────
 const IS_WEB     = Platform.OS === 'web';
-const IS_EXPO_GO = !IS_WEB && (Constants.appOwnership as string) === 'expo';
+// appOwnership==='expo' est déprécié et peut être null en SDK 50+ :
+// on vérifie aussi executionEnvironment==='storeClient'.
+const IS_EXPO_GO =
+  !IS_WEB &&
+  ((Constants.appOwnership as string) === 'expo' ||
+    Constants.executionEnvironment === 'storeClient');
 
 // ─── Lazy-load react-native-webview (natif seulement) ───────────────────────
+// Ne JAMAIS require() react-native-webview dans Expo Go : crash natif Android.
 let RNWebView: React.ComponentType<any> | null = null;
-if (!IS_WEB) {
+if (!IS_WEB && !IS_EXPO_GO) {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     RNWebView = require('react-native-webview').WebView;
@@ -355,7 +361,8 @@ function VideoSplash({ onDone }: { onDone: () => void }) {
 
 export default function StudioSplash({ onDone }: { onDone: () => void }) {
   if (IS_WEB)     return <FallbackSplash       onDone={onDone} />;
-  if (IS_EXPO_GO) return <WebViewVideoSplash   onDone={onDone} />;
+  // Expo Go Android : react-native-webview provoque un crash natif → FallbackSplash
+  if (IS_EXPO_GO) return <FallbackSplash       onDone={onDone} />;
   return                 <VideoSplash          onDone={onDone} />;
 }
 

@@ -735,8 +735,16 @@
     "id": "quest_volcano_5",
     "regionId": "dragon_lair",
     "title": "Écailles du Léviathan",
-    "description": "Un dragon ancien hante les couloirs de lave. Récupérez ses écailles pour forger une armure légendaire.",
+    "description": "Un dragon ancien hante les couloirs de lave. Affrontez le Dragon Ancestral et récupérez ses écailles pour forger une armure légendaire.",
     "objectives": [
+      {
+        "id": "obj_vol5_kill",
+        "description": "Vaincre le Dragon Ancestral",
+        "type": "kill",
+        "targetId": "dragon_lair",
+        "required": 1,
+        "current": 0
+      },
       {
         "id": "obj_vol5_scale",
         "description": "Collecter 3 écailles de dragon",

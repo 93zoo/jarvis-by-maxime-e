@@ -4,10 +4,9 @@
  * PanResponder drives Y/X rotation. Falls back to a 2D colored shape when WebGL unavailable.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { PanResponder, StyleSheet, Text, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { PanResponder, Platform, StyleSheet, Text, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import Constants from 'expo-constants';
-import { Platform } from 'react-native';
 import type { Item, ItemCategory } from '@/types/game';
 
 // expo-gl crashes Expo Go on Android at import time — lazy-require only in standalone/web
@@ -168,15 +167,15 @@ function colorForMaterial(matId: string): number {
 // ─── 2D fallback ─────────────────────────────────────────────────────────────
 function CategoryFallback({ category, color }: { category: ItemCategory; color: string }) {
   const icons: Record<ItemCategory, string> = {
-    sword: 'sword', axe: 'axe', hammer: 'hammer', lance: 'spear',
-    shield: 'shield', armor: 'shield-half-full', helmet: 'hard-hat',
-    ring: 'ring', amulet: 'necklace', dagger: 'knife', crown: 'crown',
-    tool: 'wrench', decoration: 'star-four-points',
+    sword: 'scissors', axe: 'scissors', hammer: 'tool', lance: 'triangle',
+    shield: 'shield', armor: 'shield', helmet: 'circle',
+    ring: 'disc', amulet: 'star', dagger: 'scissors', crown: 'award',
+    tool: 'tool', decoration: 'star',
   };
   return (
     <View style={[styles.fallback, { backgroundColor: `${color}18` }]}>
-      <MaterialCommunityIcons
-        name={(icons[category] ?? 'hammer') as any}
+      <Feather
+        name={(icons[category] ?? 'tool') as any}
         size={36}
         color={color}
       />
@@ -205,7 +204,9 @@ export default function ItemModel3D({ item, primaryMaterialId, height = 200 }: P
   const rotY = useRef(-0.35);
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const rotRef = useRef<any>(null);
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const cleanupRef = useRef<(() => void) | null>(null);
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const matColor = useMemo(
     () => colorForMaterial(primaryMaterialId ?? item.materials[0] ?? 'iron'),
     [primaryMaterialId, item.materials],

@@ -15,7 +15,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from '@/lib/LinearGradientSafe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -53,10 +53,10 @@ const REGION_COLORS: Record<string, string> = {
   dragon_lair: '#D50000',
 };
 
-const REGION_ICONS: Record<string, any> = {
-  village: 'home-group', forest: 'pine-tree', mountains: 'summit', mines: 'pickaxe',
-  swamp: 'water', desert: 'cactus', ruins: 'pillar', port: 'anchor',
-  volcano: 'volcano', castle: 'castle', dragon_lair: 'fire',
+const REGION_ICONS: Record<string, React.ComponentProps<typeof Feather>['name']> = {
+  village: 'home', forest: 'feather', mountains: 'triangle', mines: 'tool',
+  swamp: 'droplet', desert: 'sun', ruins: 'book', port: 'anchor',
+  volcano: 'activity', castle: 'home', dragon_lair: 'zap',
 };
 
 // Map positions as fractions of map container width/height
@@ -95,10 +95,10 @@ function getPhase(hour: number): DayPhase {
 }
 
 const PHASE_CONFIG: Record<DayPhase, { label: string; icon: any; tint: string }> = {
-  night: { label: 'Nuit', icon: 'moon-waning-crescent', tint: 'rgba(10,8,20,0.65)' },
-  dawn: { label: 'Aube', icon: 'weather-sunset-up', tint: 'rgba(60,25,10,0.35)' },
-  day: { label: 'Jour', icon: 'weather-sunny', tint: 'rgba(0,0,0,0)' },
-  dusk: { label: 'Crépuscule', icon: 'weather-sunset-down', tint: 'rgba(40,15,5,0.45)' },
+  night: { label: 'Nuit', icon: 'moon', tint: 'rgba(10,8,20,0.65)' },
+  dawn: { label: 'Aube', icon: 'sunrise', tint: 'rgba(60,25,10,0.35)' },
+  day: { label: 'Jour', icon: 'sun', tint: 'rgba(0,0,0,0)' },
+  dusk: { label: 'Crépuscule', icon: 'sunset', tint: 'rgba(40,15,5,0.45)' },
 };
 
 // Resource rarity → cooldown (ms)
@@ -190,9 +190,9 @@ function RegionNode({
         borderWidth: isUnlocked ? 2 : 1,
       }]}>
         {isUnlocked ? (
-          <MaterialCommunityIcons name={REGION_ICONS[region.id] ?? 'map-marker'} size={nodeSize * 0.42} color="#F2E4C4" />
+          <Feather name={REGION_ICONS[region.id] ?? 'map'} size={nodeSize * 0.42} color="#F2E4C4" />
         ) : (
-          <MaterialCommunityIcons name="lock" size={nodeSize * 0.35} color={canUnlock ? colors.accent : colors.mutedForeground} />
+          <Feather name="lock" size={nodeSize * 0.35} color={canUnlock ? colors.accent : colors.mutedForeground} />
         )}
       </View>
       {/* Exploration ring */}
@@ -406,7 +406,7 @@ function ExploreView({
         </TouchableOpacity>
         <View style={styles.exploreHeaderCenter}>
           <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(200,140,60,0.15)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(200,140,60,0.4)' }}>
-            <MaterialCommunityIcons name={REGION_ICONS[region.id] ?? 'map-marker'} size={24} color="#F2E4C4" />
+            <Feather name={REGION_ICONS[region.id] ?? 'map'} size={24} color="#F2E4C4" />
           </View>
           <View>
             <Text style={[styles.exploreTitle, { color: colors.foreground }]}>{region.name}</Text>
@@ -431,12 +431,12 @@ function ExploreView({
 
       {/* Boss info strip */}
       <LinearGradient colors={['rgba(183, 28, 28, 0.15)', 'rgba(183, 28, 28, 0.05)']} style={[styles.bossStrip, { borderBottomColor: colors.destructive + '40' }]}>
-        <MaterialCommunityIcons name="skull" size={16} color={colors.destructive} />
+        <Feather name="alert-octagon" size={16} color={colors.destructive} />
         <Text style={[styles.bossStripText, { color: colors.destructive, flex: 1 }]}>
           Boss: {region.boss.name} · Niv.{region.boss.level}
         </Text>
         <TouchableOpacity style={[styles.fightBtn, { backgroundColor: colors.destructive }]} onPress={() => openCombat(null)}>
-          <MaterialCommunityIcons name="sword-cross" size={14} color="#fff" />
+          <Feather name="alert-octagon" size={14} color="#fff" />
           <Text style={styles.fightBtnText}>Combattre</Text>
         </TouchableOpacity>
       </LinearGradient>
@@ -451,11 +451,11 @@ function ExploreView({
               style={[styles.enemyRow, { borderColor: colors.border }]}
               onPress={() => openCombat(enemy)}
             >
-              <MaterialCommunityIcons name="shield-sword" size={14} color="#FF6F00" />
+              <Feather name="shield" size={14} color="#FF6F00" />
               <Text style={[styles.enemyRowName, { color: colors.foreground }]}>{enemy.name}</Text>
               <Text style={[styles.enemyRowLevel, { color: '#FF6F00' }]}>Niv.{enemy.level}</Text>
               <View style={[styles.fightBtn, { backgroundColor: '#FF6F00' }]}>
-                <MaterialCommunityIcons name="sword-cross" size={12} color="#fff" />
+                <Feather name="alert-octagon" size={12} color="#fff" />
                 <Text style={styles.fightBtnText}>Attaquer</Text>
               </View>
             </TouchableOpacity>
@@ -480,7 +480,7 @@ function ExploreView({
           const cdSec = cdRemaining % 60;
           const hasQty = game.getInventoryQty(node.resourceId);
           return (
-            <Animated.View key={node.resourceId} entering={FadeInDown.delay(Math.min(idx * 40, 400)).springify()}>
+            <Animated.View key={`${key}_${idx}`} entering={FadeInDown.delay(Math.min(idx * 40, 400)).springify()}>
             <LinearGradient
               colors={['rgba(30,25,20,0.9)', 'rgba(15,12,10,0.95)']}
               style={[
@@ -618,9 +618,9 @@ function ExploreView({
                     {/* Rewards */}
                     {!isDone && (
                       <View style={styles.zoneRewards}>
-                        <MaterialCommunityIcons name="gold" size={12} color="#C9A227" />
+                        <Feather name="dollar-sign" size={12} color="#C9A227" />
                         <Text style={[styles.zoneRewardText, { color: '#C9A227' }]}>{quest.rewards.gold}</Text>
-                        <MaterialCommunityIcons name="star-circle" size={12} color={colors.accent} style={{ marginLeft: 8 }} />
+                        <Feather name="star" size={12} color={colors.accent} style={{ marginLeft: 8 }} />
                         <Text style={[styles.zoneRewardText, { color: colors.accent }]}>{quest.rewards.xp} XP</Text>
                       </View>
                     )}
@@ -635,14 +635,14 @@ function ExploreView({
       {/* Lore toast */}
       {loreText && (
         <Animated.View style={[styles.loreToast, loreStyle]} pointerEvents="none">
-          <MaterialCommunityIcons name="book-open-variant" size={13} color="#D4851A" style={{ marginRight: 6 }} />
+          <Feather name="book-open" size={13} color="#D4851A" style={{ marginRight: 6 }} />
           <Text style={[styles.loreToastText, { color: '#F2E4C4' }]} numberOfLines={3}>{loreText}</Text>
         </Animated.View>
       )}
 
       {/* Weight bar */}
       <View style={[styles.weightBar, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-        <MaterialCommunityIcons name="weight" size={14} color={colors.mutedForeground} />
+        <Feather name="activity" size={14} color={colors.mutedForeground} />
         <View style={[styles.weightTrack, { backgroundColor: colors.muted }]}>
           <View style={[styles.weightFill, {
             width: `${Math.min(100, Math.round((currentWeight / game.maxWeight) * 100))}%` as `${number}%`,
@@ -846,7 +846,7 @@ function WorldMapCanvas({
             onPress={() => onHideoutPress(hideout)}
             hitSlop={10}
           >
-            <MaterialCommunityIcons name="package-variant" size={16} color="#FFD700" />
+            <Feather name="box" size={16} color="#FFD700" />
           </Pressable>
         );
       })}
@@ -858,7 +858,7 @@ function WorldMapCanvas({
 
       {/* Phase indicator */}
       <View style={[styles.phaseLabel, { backgroundColor: 'rgba(12,9,6,0.85)', borderColor: 'rgba(200,140,60,0.3)', borderWidth: 1 }]}>
-        <MaterialCommunityIcons name={phaseConf.icon} size={18} color="#D4851A" style={{ marginRight: 6 }} />
+        <Feather name={phaseConf.icon} size={18} color="#D4851A" style={{ marginRight: 6 }} />
         <Text style={[styles.phaseLabelText, { color: '#D4851A' }]}>
           {phaseConf.label} · {String(gameHour).padStart(2, '0')}h00
         </Text>
@@ -1096,13 +1096,13 @@ function MarketModal({ visible, onClose, game, colors, bottomPad }: {
                     const sellPrice = Math.round(item.value * sellPct);
                     return (
                       <View key={item.instanceId} style={[mStyles.marketRow, { backgroundColor: colors.card, borderColor: item.enigmaMastered ? '#C084FC55' : colors.border, borderWidth: item.enigmaMastered ? 1.5 : 1 }]}>
-                        <MaterialCommunityIcons name="hammer" size={20} color={item.enigmaMastered ? '#C084FC' : colors.mutedForeground} />
+                        <Feather name="tool" size={20} color={item.enigmaMastered ? '#C084FC' : colors.mutedForeground} />
                         <View style={mStyles.resInfo}>
                           <Text style={[mStyles.resName, { color: colors.foreground }]}>{item.name}</Text>
                           <Text style={[mStyles.resStock, { color: colors.mutedForeground }]}>{item.category} · {item.quality} · {item.value}g</Text>
                           {item.enigmaMastered && (
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                              <MaterialCommunityIcons name="star-four-points" size={11} color="#C084FC" />
+                              <Feather name="star" size={11} color="#C084FC" />
                               <Text style={mStyles.enigmaLabel}>Forgé avec Maîtrise · +{Math.round((sellPct - 0.85) * 100)}% sur la vente</Text>
                             </View>
                           )}
@@ -1293,6 +1293,13 @@ export default function WorldScreen() {
 
   const qcIsReady = qcRemaining <= 0;
 
+  // Live clock for hideout countdown display
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
   const headerTopPad = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPad = insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 96;
 
@@ -1439,7 +1446,7 @@ export default function WorldScreen() {
           </TouchableOpacity>
           <View style={[styles.headerBadge, { backgroundColor: colors.secondary }]}>
             <Text style={[styles.headerBadgeText, { color: colors.mutedForeground }]}>
-              <MaterialCommunityIcons name={phaseConf.icon} size={14} color="#D4851A" /> {phaseConf.label}
+              <Feather name={phaseConf.icon} size={14} color="#D4851A" /> {phaseConf.label}
             </Text>
           </View>
           <View style={[styles.headerBadge, { backgroundColor: colors.secondary }]}>
@@ -1502,8 +1509,8 @@ export default function WorldScreen() {
                 onPress={() => handleRegionPress(region)}
                 activeOpacity={0.8}
               >
-                <MaterialCommunityIcons
-                  name={isUnlocked ? (REGION_ICONS[region.id] ?? 'map-marker') : 'lock'}
+                <Feather
+                  name={isUnlocked ? (REGION_ICONS[region.id] ?? 'map') : 'lock'}
                   size={20}
                   color={isUnlocked ? '#F2E4C4' : colors.mutedForeground}
                   style={{ marginRight: 2 }}
@@ -1515,7 +1522,7 @@ export default function WorldScreen() {
                     </Text>
                     {isUnlocked && game.completedRegions.includes(region.id) && (
                       <View style={[styles.unlockedBadge, { backgroundColor: '#FFD70028' }]}>
-                        <MaterialCommunityIcons name="trophy" size={10} color="#FFD700" style={{ marginRight: 2 }} /><Text style={[styles.unlockedText, { color: '#FFD700' }]}>COMPLÉTÉ</Text>
+                        <Feather name="award" size={10} color="#FFD700" style={{ marginRight: 2 }} /><Text style={[styles.unlockedText, { color: '#FFD700' }]}>COMPLÉTÉ</Text>
                       </View>
                     )}
                     {isUnlocked && !game.completedRegions.includes(region.id) && (
@@ -1594,7 +1601,7 @@ export default function WorldScreen() {
 
               {/* Region header */}
               <View style={styles.sheetHeader}>
-                <MaterialCommunityIcons name={REGION_ICONS[selectedRegion.id] ?? 'map-marker'} size={36} color="#F2E4C4" />
+                <Feather name={REGION_ICONS[selectedRegion.id] ?? 'map'} size={36} color="#F2E4C4" />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.sheetTitle, { color: colors.foreground }]}>{selectedRegion.name}</Text>
                   <Text style={[styles.sheetBiome, { color: colors.mutedForeground }]}>
@@ -1643,7 +1650,7 @@ export default function WorldScreen() {
                   <Text style={[styles.sheetLabel, { color: colors.primary }]}>GARDES</Text>
                   {selectedRegion.enemies.map((enemy) => (
                     <View key={enemy.id} style={[styles.bossCard, { backgroundColor: colors.secondary, borderColor: '#FF6F0040', marginBottom: 6 }]}>
-                      <MaterialCommunityIcons name="shield-sword" size={20} color="#FF6F00" />
+                      <Feather name="shield" size={20} color="#FF6F00" />
                       <View style={{ flex: 1 }}>
                         <Text style={[styles.bossName, { color: colors.foreground }]}>{enemy.name}</Text>
                         <Text style={[styles.bossDesc, { color: colors.mutedForeground }]}>{enemy.description}</Text>
@@ -1657,13 +1664,55 @@ export default function WorldScreen() {
               {/* Boss */}
               <Text style={[styles.sheetLabel, { color: colors.primary }]}>BOSS</Text>
               <View style={[styles.bossCard, { backgroundColor: colors.secondary, borderColor: colors.destructive + '40' }]}>
-                <MaterialCommunityIcons name="skull-crossbones" size={22} color={colors.destructive} />
+                <Feather name="alert-octagon" size={22} color={colors.destructive} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.bossName, { color: colors.foreground }]}>{selectedRegion.boss.name}</Text>
                   <Text style={[styles.bossDesc, { color: colors.mutedForeground }]}>{selectedRegion.boss.description}</Text>
                 </View>
                 <Text style={[styles.bossLevel, { color: colors.destructive }]}>Niv.{selectedRegion.boss.level}</Text>
               </View>
+
+              {/* Hideout countdown */}
+              {selectedRegion.hideouts && selectedRegion.hideouts.length > 0 && (
+                <View style={{ marginBottom: 8 }}>
+                  <Text style={[styles.sheetLabel, { color: colors.primary }]}>CACHETTES</Text>
+                  {selectedRegion.hideouts.map((slot) => {
+                    const rc = REGION_COLORS[selectedRegion.id] ?? colors.primary;
+                    const isActive = validHideouts.some((h) => h.slotId === slot.id);
+                    if (isActive) {
+                      return (
+                        <View key={slot.id} style={[styles.hideoutRow, { backgroundColor: rc + '22', borderColor: rc + '55' }]}>
+                          <Feather name="gift" size={16} color={rc} />
+                          <Text style={[styles.hideoutText, { color: rc }]}>Cachette disponible ! 📦</Text>
+                        </View>
+                      );
+                    }
+                    const lastCollected = (game.hideoutLastCollected ?? {})[slot.id] ?? 0;
+                    const spawnAt = lastCollected + slot.spawnIntervalHours * 3_600_000;
+                    const msRemaining = spawnAt - nowTick;
+                    if (msRemaining <= 0) {
+                      return (
+                        <View key={slot.id} style={[styles.hideoutRow, { backgroundColor: rc + '22', borderColor: rc + '55' }]}>
+                          <Feather name="gift" size={16} color={rc} />
+                          <Text style={[styles.hideoutText, { color: rc }]}>Cachette disponible ! 📦</Text>
+                        </View>
+                      );
+                    }
+                    const totalSec = Math.ceil(msRemaining / 1000);
+                    const h = Math.floor(totalSec / 3600);
+                    const m = Math.floor((totalSec % 3600) / 60);
+                    const countdownStr = h > 0 ? `${h}h ${m}m` : `${m}m`;
+                    return (
+                      <View key={slot.id} style={[styles.hideoutRow, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+                        <Feather name="clock" size={16} color={colors.mutedForeground} />
+                        <Text style={[styles.hideoutText, { color: colors.mutedForeground }]}>
+                          Prochaine cachette : {countdownStr}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
 
               {/* Buttons */}
               <View style={styles.sheetBtns}>
@@ -1724,7 +1773,7 @@ export default function WorldScreen() {
             {/* Region completion banner */}
             {collectResult.regionCompleted && collectResult.completionRewards && (
               <View style={[styles.completionBanner, { backgroundColor: '#FFD70022', borderColor: '#FFD70066' }]}>
-                <MaterialCommunityIcons name="trophy" size={28} color="#FFD700" style={{ alignSelf: 'center' }} />
+                <Feather name="award" size={28} color="#FFD700" style={{ alignSelf: 'center' }} />
                 <Text style={[styles.completionTitle, { color: '#FFD700' }]}>Région explorée à 100 % !</Text>
                 <View style={styles.completionRewards}>
                   <Text style={[styles.completionRewardText, { color: colors.foreground }]}>
@@ -1742,7 +1791,7 @@ export default function WorldScreen() {
               </View>
             )}
 
-            <MaterialCommunityIcons name="bag-personal" size={32} color={colors.accent} style={{ alignSelf: 'center' }} />
+            <Feather name="shopping-bag" size={32} color={colors.accent} style={{ alignSelf: 'center' }} />
             <Text style={[styles.resultTitle, { color: colors.foreground }]}>Ressources collectées !</Text>
             {collectResult.drops.length === 0 ? (
               <Text style={[styles.resultEmpty, { color: colors.mutedForeground }]}>Rien trouvé… réessayez !</Text>
@@ -1845,7 +1894,9 @@ const styles = StyleSheet.create({
   resDot: { width: 8, height: 8, borderRadius: 4 },
   resName: { fontSize: 12 },
   resRate: { fontSize: 11 },
-  bossCard: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12, borderWidth: 1, gap: 10, marginBottom: 20 },
+  bossCard: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12, borderWidth: 1, gap: 10, marginBottom: 16 },
+  hideoutRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, marginBottom: 6 },
+  hideoutText: { fontSize: 13, fontWeight: '600' },
   bossName: { fontSize: 14, fontWeight: '600' },
   bossDesc: { fontSize: 11, marginTop: 2 },
   bossLevel: { fontSize: 14, fontWeight: '700' },
@@ -1997,11 +2048,11 @@ function RegionMinimap({
           >
             {hasHideout && (
               <View style={mmStyles.chestBadge}>
-                <MaterialCommunityIcons name="package-variant" size={11} color="#FFD700" />
+                <Feather name="box" size={11} color="#FFD700" />
               </View>
             )}
-            <MaterialCommunityIcons
-              name={isUnlocked ? (REGION_ICONS[region.id] ?? 'map-marker') : 'lock'}
+            <Feather
+              name={isUnlocked ? (REGION_ICONS[region.id] ?? 'map') : 'lock'}
               size={20}
               color={isUnlocked ? rc : canAccess ? colors.accent : colors.mutedForeground}
             />
@@ -2109,7 +2160,7 @@ function FouilleModal({
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
       <View style={fouStyles.overlay}>
         <View style={[fouStyles.box, { backgroundColor: colors.card, borderColor: rc + '80' }]}>
-          <MaterialCommunityIcons name="package-variant" size={52} color="#D4AF37" />
+          <Feather name="box" size={52} color="#D4AF37" />
           <Text style={[fouStyles.title, { color: colors.foreground }]}>
             {done ? (collected ? 'Trésor trouvé !' : 'Trop tard…') : 'Cachette découverte !'}
           </Text>
@@ -2128,7 +2179,7 @@ function FouilleModal({
                 onPress={handleCollect}
                 activeOpacity={0.8}
               >
-                <MaterialCommunityIcons name="bag-personal" size={18} color="#fff" />
+                <Feather name="shopping-bag" size={18} color="#fff" />
                 <Text style={fouStyles.collectBtnText}>Fouiller !</Text>
               </TouchableOpacity>
             </>

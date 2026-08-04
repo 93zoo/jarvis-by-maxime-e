@@ -17,7 +17,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { STUDIO } from '@/constants/studio';
 import type { CraftPhase } from '@/components/ForgeScene3D';
@@ -27,7 +27,7 @@ import type { CraftPhase } from '@/components/ForgeScene3D';
 type GuidePhase = 'IDLE' | 'RECIPE_SHEET' | 'HEATING' | 'HAMMERING' | 'COOLING';
 
 interface GuideConfig {
-  icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+  icon: React.ComponentProps<typeof Feather>['name'];
   color: string;
   message: string;
   detail: string;
@@ -36,35 +36,35 @@ interface GuideConfig {
 
 const GUIDE: Record<GuidePhase, GuideConfig> = {
   IDLE: {
-    icon: 'hammer-wrench',
+    icon: 'tool',
     color: STUDIO.gold,
     message: 'Appuie sur FORGER pour commencer',
     detail: 'Le bouton orange en bas de l\'écran',
     showArrow: true,
   },
   RECIPE_SHEET: {
-    icon: 'book-open-variant',
+    icon: 'book-open',
     color: '#7986CB',
     message: 'Choisis une recette de départ',
     detail: 'Elles sont gratuites — sélectionne celle que tu veux forger',
     showArrow: false,
   },
   HEATING: {
-    icon: 'fire',
+    icon: 'activity',
     color: '#F06A2B',
     message: 'Attends que la barre de chauffe soit pleine',
     detail: 'Le métal doit atteindre la bonne température',
     showArrow: false,
   },
   HAMMERING: {
-    icon: 'hammer',
+    icon: 'tool',
     color: '#D8B765',
     message: 'Frappe quand l\'aiguille passe dans la zone lumineuse',
     detail: 'Vise le centre pour décrocher un PARFAIT !',
     showArrow: false,
   },
   COOLING: {
-    icon: 'water',
+    icon: 'droplet',
     color: '#56B9DE',
     message: 'Appuie sur "SORTIR DU BAIN" dans la zone verte',
     detail: 'Ni trop tôt, ni trop tard pour une trempe parfaite',
@@ -106,7 +106,7 @@ function PulsedArrow({ color }: { color: string }) {
 
   return (
     <Animated.View style={style}>
-      <MaterialCommunityIcons name="chevron-down" size={30} color={color} />
+      <Feather name="chevron-down" size={30} color={color} />
     </Animated.View>
   );
 }
@@ -166,7 +166,7 @@ export default function ForgeGuidedOverlay({ craftPhase, showRecipeSheet, onDism
 
         {/* Icon */}
         <View style={s.iconWrap}>
-          <MaterialCommunityIcons name={config.icon} size={22} color={config.color} />
+          <Feather name={config.icon} size={22} color={config.color} />
         </View>
 
         {/* Text */}

@@ -1,272 +1,819 @@
 [
   {
-    "id": "forge_quality_1", "name": "Métal de Qualité", "description": "+5% qualité de base sur tous les crafts",
-    "effect": "qualityBonus:0.05", "tree": "forge", "tier": 0, "col": 0,
-    "requiredSkill": "forge", "requiredSkillLevel": 1, "prerequisiteIds": [], "icon": "award", "cost": 1
+    "id": "forge_quality_1",
+    "name": "Métal de Qualité",
+    "description": "+5% qualité de base sur tous les crafts",
+    "effect": "qualityBonus:0.05",
+    "tree": "forge",
+    "tier": 0,
+    "col": 0,
+    "requiredSkill": "forge",
+    "requiredSkillLevel": 1,
+    "prerequisiteIds": [],
+    "icon": "award",
+    "cost": 1
   },
   {
-    "id": "forge_speed_1", "name": "Main Agile", "description": "Zone de précision 10% plus large au mini-jeu",
-    "effect": "zoneBonus:0.10", "tree": "forge", "tier": 0, "col": 1,
-    "requiredSkill": "forge", "requiredSkillLevel": 1, "prerequisiteIds": [], "icon": "zap", "cost": 1
+    "id": "forge_speed_1",
+    "name": "Main Agile",
+    "description": "Zone de précision 10% plus large au mini-jeu",
+    "effect": "zoneBonus:0.10",
+    "tree": "forge",
+    "tier": 0,
+    "col": 1,
+    "requiredSkill": "forge",
+    "requiredSkillLevel": 1,
+    "prerequisiteIds": [],
+    "icon": "zap",
+    "cost": 1
   },
   {
-    "id": "forge_quality_2", "name": "Trempe Parfaite", "description": "+10% qualité de base sur tous les crafts",
-    "effect": "qualityBonus:0.10", "tree": "forge", "tier": 1, "col": 0,
-    "requiredSkill": "forge", "requiredSkillLevel": 5, "prerequisiteIds": ["forge_quality_1"], "icon": "droplet", "cost": 1
+    "id": "forge_quality_2",
+    "name": "Trempe Parfaite",
+    "description": "+10% qualité de base sur tous les crafts",
+    "effect": "qualityBonus:0.10",
+    "tree": "forge",
+    "tier": 1,
+    "col": 0,
+    "requiredSkill": "forge",
+    "requiredSkillLevel": 5,
+    "prerequisiteIds": [
+      "forge_quality_1"
+    ],
+    "icon": "droplet",
+    "cost": 1
   },
   {
-    "id": "forge_xp_1", "name": "Apprentissage Rapide", "description": "+20% XP de forge",
-    "effect": "forgeXPBonus:0.20", "tree": "forge", "tier": 1, "col": 1,
-    "requiredSkill": "forge", "requiredSkillLevel": 5, "prerequisiteIds": ["forge_speed_1"], "icon": "trending-up", "cost": 1
+    "id": "forge_xp_1",
+    "name": "Apprentissage Rapide",
+    "description": "+20% XP de forge",
+    "effect": "forgeXPBonus:0.20",
+    "tree": "forge",
+    "tier": 1,
+    "col": 1,
+    "requiredSkill": "forge",
+    "requiredSkillLevel": 5,
+    "prerequisiteIds": [
+      "forge_speed_1"
+    ],
+    "icon": "trending-up",
+    "cost": 1
   },
   {
-    "id": "forge_legendary_1", "name": "Touche de Génie", "description": "+8% chance d'obtenir un objet légendaire",
-    "effect": "legendaryChance:0.08", "tree": "forge", "tier": 2, "col": 0,
-    "requiredSkill": "forge", "requiredSkillLevel": 10, "prerequisiteIds": ["forge_quality_2"], "icon": "star", "cost": 2
+    "id": "forge_legendary_1",
+    "name": "Touche de Génie",
+    "description": "+8% chance d'obtenir un objet légendaire",
+    "effect": "legendaryChance:0.08",
+    "tree": "forge",
+    "tier": 2,
+    "col": 0,
+    "requiredSkill": "forge",
+    "requiredSkillLevel": 10,
+    "prerequisiteIds": [
+      "forge_quality_2"
+    ],
+    "icon": "star",
+    "cost": 2
   },
   {
-    "id": "forge_dual_1", "name": "Double Frappe", "description": "2 coups bonus offerts par craft",
-    "effect": "bonusStrikes:2", "tree": "forge", "tier": 2, "col": 1,
-    "requiredSkill": "forge", "requiredSkillLevel": 10, "prerequisiteIds": ["forge_xp_1"], "icon": "activity", "cost": 2
+    "id": "forge_dual_1",
+    "name": "Double Frappe",
+    "description": "2 coups bonus offerts par craft",
+    "effect": "bonusStrikes:2",
+    "tree": "forge",
+    "tier": 2,
+    "col": 1,
+    "requiredSkill": "forge",
+    "requiredSkillLevel": 10,
+    "prerequisiteIds": [
+      "forge_xp_1"
+    ],
+    "icon": "activity",
+    "cost": 2
   },
   {
-    "id": "forge_quality_3", "name": "Acier Parfait", "description": "+20% qualité de base sur tous les crafts",
-    "effect": "qualityBonus:0.20", "tree": "forge", "tier": 3, "col": 0,
-    "requiredSkill": "forge", "requiredSkillLevel": 20, "prerequisiteIds": ["forge_legendary_1"], "icon": "shield", "cost": 2
+    "id": "forge_quality_3",
+    "name": "Acier Parfait",
+    "description": "+20% qualité de base sur tous les crafts",
+    "effect": "qualityBonus:0.20",
+    "tree": "forge",
+    "tier": 3,
+    "col": 0,
+    "requiredSkill": "forge",
+    "requiredSkillLevel": 20,
+    "prerequisiteIds": [
+      "forge_legendary_1"
+    ],
+    "icon": "shield",
+    "cost": 2
   },
   {
-    "id": "forge_xp_2", "name": "Maîtrise Rapide", "description": "+35% XP de forge",
-    "effect": "forgeXPBonus:0.35", "tree": "forge", "tier": 3, "col": 1,
-    "requiredSkill": "forge", "requiredSkillLevel": 20, "prerequisiteIds": ["forge_dual_1"], "icon": "book-open", "cost": 2
+    "id": "forge_xp_2",
+    "name": "Maîtrise Rapide",
+    "description": "+35% XP de forge",
+    "effect": "forgeXPBonus:0.35",
+    "tree": "forge",
+    "tier": 3,
+    "col": 1,
+    "requiredSkill": "forge",
+    "requiredSkillLevel": 20,
+    "prerequisiteIds": [
+      "forge_dual_1"
+    ],
+    "icon": "book-open",
+    "cost": 2
   },
   {
-    "id": "forge_legendary_2", "name": "Main de Maître", "description": "+20% chance d'obtenir un objet légendaire",
-    "effect": "legendaryChance:0.20", "tree": "forge", "tier": 4, "col": 0,
-    "requiredSkill": "forge", "requiredSkillLevel": 30, "prerequisiteIds": ["forge_quality_3"], "icon": "sun", "cost": 3
+    "id": "forge_legendary_2",
+    "name": "Main de Maître",
+    "description": "+20% chance d'obtenir un objet légendaire",
+    "effect": "legendaryChance:0.20",
+    "tree": "forge",
+    "tier": 4,
+    "col": 0,
+    "requiredSkill": "forge",
+    "requiredSkillLevel": 30,
+    "prerequisiteIds": [
+      "forge_quality_3"
+    ],
+    "icon": "sun",
+    "cost": 3
   },
   {
-    "id": "forge_grand_master", "name": "Grand Maître Forgeron", "description": "Tous les objets forgés ont une qualité minimum 'bon'",
-    "effect": "minQualityGood:1", "tree": "forge", "tier": 4, "col": 1,
-    "requiredSkill": "forge", "requiredSkillLevel": 50, "prerequisiteIds": ["forge_legendary_2", "forge_xp_2"], "icon": "crown", "cost": 3
+    "id": "forge_grand_master",
+    "name": "Grand Maître Forgeron",
+    "description": "Tous les objets forgés ont une qualité minimum 'bon'",
+    "effect": "minQualityGood:1",
+    "tree": "forge",
+    "tier": 4,
+    "col": 1,
+    "requiredSkill": "forge",
+    "requiredSkillLevel": 50,
+    "prerequisiteIds": [
+      "forge_legendary_2",
+      "forge_xp_2"
+    ],
+    "icon": "award",
+    "cost": 3
   },
   {
     "id": "forge_enigma_master",
     "name": "Maître Artisan",
     "description": "Zone cible de l'énigme Précision +25% plus large",
     "effect": "enigmaZoneBonus:0.25",
-    "tree": "forge", "tier": 1, "col": 2,
-    "requiredSkill": "forge", "requiredSkillLevel": 5,
-    "prerequisiteIds": ["forge_speed_1"],
+    "tree": "forge",
+    "tier": 1,
+    "col": 2,
+    "requiredSkill": "forge",
+    "requiredSkillLevel": 5,
+    "prerequisiteIds": [
+      "forge_speed_1"
+    ],
     "icon": "target",
     "cost": 1
   },
-
   {
-    "id": "ext_yield_1", "name": "Bons Minerais", "description": "+1 ressource garantie par collecte",
-    "effect": "collectBonus:1", "tree": "extraction", "tier": 0, "col": 0,
-    "requiredSkill": "extraction", "requiredSkillLevel": 1, "prerequisiteIds": [], "icon": "package", "cost": 1
+    "id": "ext_yield_1",
+    "name": "Bons Minerais",
+    "description": "+1 ressource garantie par collecte",
+    "effect": "collectBonus:1",
+    "tree": "extraction",
+    "tier": 0,
+    "col": 0,
+    "requiredSkill": "extraction",
+    "requiredSkillLevel": 1,
+    "prerequisiteIds": [],
+    "icon": "package",
+    "cost": 1
   },
   {
-    "id": "ext_rare_1", "name": "Œil de Mineur", "description": "+10% chances de trouver des ressources rares",
-    "effect": "rareDropBonus:0.10", "tree": "extraction", "tier": 0, "col": 1,
-    "requiredSkill": "extraction", "requiredSkillLevel": 1, "prerequisiteIds": [], "icon": "eye", "cost": 1
+    "id": "ext_rare_1",
+    "name": "Œil de Mineur",
+    "description": "+10% chances de trouver des ressources rares",
+    "effect": "rareDropBonus:0.10",
+    "tree": "extraction",
+    "tier": 0,
+    "col": 1,
+    "requiredSkill": "extraction",
+    "requiredSkillLevel": 1,
+    "prerequisiteIds": [],
+    "icon": "eye",
+    "cost": 1
   },
   {
-    "id": "ext_yield_2", "name": "Extraction Efficace", "description": "+50% quantité de ressources collectées",
-    "effect": "collectYield:0.50", "tree": "extraction", "tier": 1, "col": 0,
-    "requiredSkill": "extraction", "requiredSkillLevel": 5, "prerequisiteIds": ["ext_yield_1"], "icon": "layers", "cost": 1
+    "id": "ext_yield_2",
+    "name": "Extraction Efficace",
+    "description": "+50% quantité de ressources collectées",
+    "effect": "collectYield:0.50",
+    "tree": "extraction",
+    "tier": 1,
+    "col": 0,
+    "requiredSkill": "extraction",
+    "requiredSkillLevel": 5,
+    "prerequisiteIds": [
+      "ext_yield_1"
+    ],
+    "icon": "layers",
+    "cost": 1
   },
   {
-    "id": "ext_rare_2", "name": "Flair du Prospecteur", "description": "+20% chances de ressources rares",
-    "effect": "rareDropBonus:0.20", "tree": "extraction", "tier": 1, "col": 1,
-    "requiredSkill": "extraction", "requiredSkillLevel": 5, "prerequisiteIds": ["ext_rare_1"], "icon": "search", "cost": 1
+    "id": "ext_rare_2",
+    "name": "Flair du Prospecteur",
+    "description": "+20% chances de ressources rares",
+    "effect": "rareDropBonus:0.20",
+    "tree": "extraction",
+    "tier": 1,
+    "col": 1,
+    "requiredSkill": "extraction",
+    "requiredSkillLevel": 5,
+    "prerequisiteIds": [
+      "ext_rare_1"
+    ],
+    "icon": "search",
+    "cost": 1
   },
   {
-    "id": "ext_xp_1", "name": "Mineur Aguerri", "description": "+25% XP d'extraction",
-    "effect": "extractionXPBonus:0.25", "tree": "extraction", "tier": 2, "col": 0,
-    "requiredSkill": "extraction", "requiredSkillLevel": 10, "prerequisiteIds": ["ext_yield_2"], "icon": "trending-up", "cost": 1
+    "id": "ext_xp_1",
+    "name": "Mineur Aguerri",
+    "description": "+25% XP d'extraction",
+    "effect": "extractionXPBonus:0.25",
+    "tree": "extraction",
+    "tier": 2,
+    "col": 0,
+    "requiredSkill": "extraction",
+    "requiredSkillLevel": 10,
+    "prerequisiteIds": [
+      "ext_yield_2"
+    ],
+    "icon": "trending-up",
+    "cost": 1
   },
   {
-    "id": "ext_gem_1", "name": "Chercheur de Gemmes", "description": "+15% chances de trouver des gemmes",
-    "effect": "gemDropBonus:0.15", "tree": "extraction", "tier": 2, "col": 1,
-    "requiredSkill": "extraction", "requiredSkillLevel": 10, "prerequisiteIds": ["ext_rare_2"], "icon": "aperture", "cost": 2
+    "id": "ext_gem_1",
+    "name": "Chercheur de Gemmes",
+    "description": "+15% chances de trouver des gemmes",
+    "effect": "gemDropBonus:0.15",
+    "tree": "extraction",
+    "tier": 2,
+    "col": 1,
+    "requiredSkill": "extraction",
+    "requiredSkillLevel": 10,
+    "prerequisiteIds": [
+      "ext_rare_2"
+    ],
+    "icon": "aperture",
+    "cost": 2
   },
   {
-    "id": "ext_yield_3", "name": "Veine Riche", "description": "+100% ressources collectées",
-    "effect": "collectYield:1.00", "tree": "extraction", "tier": 3, "col": 0,
-    "requiredSkill": "extraction", "requiredSkillLevel": 20, "prerequisiteIds": ["ext_xp_1"], "icon": "database", "cost": 2
+    "id": "ext_yield_3",
+    "name": "Veine Riche",
+    "description": "+100% ressources collectées",
+    "effect": "collectYield:1.00",
+    "tree": "extraction",
+    "tier": 3,
+    "col": 0,
+    "requiredSkill": "extraction",
+    "requiredSkillLevel": 20,
+    "prerequisiteIds": [
+      "ext_xp_1"
+    ],
+    "icon": "database",
+    "cost": 2
   },
   {
-    "id": "ext_rare_3", "name": "Instinct du Vieux Mineur", "description": "+35% chances de ressources rares et épiques",
-    "effect": "rareDropBonus:0.35", "tree": "extraction", "tier": 3, "col": 1,
-    "requiredSkill": "extraction", "requiredSkillLevel": 20, "prerequisiteIds": ["ext_gem_1"], "icon": "compass", "cost": 2
+    "id": "ext_rare_3",
+    "name": "Instinct du Vieux Mineur",
+    "description": "+35% chances de ressources rares et épiques",
+    "effect": "rareDropBonus:0.35",
+    "tree": "extraction",
+    "tier": 3,
+    "col": 1,
+    "requiredSkill": "extraction",
+    "requiredSkillLevel": 20,
+    "prerequisiteIds": [
+      "ext_gem_1"
+    ],
+    "icon": "compass",
+    "cost": 2
   },
   {
-    "id": "ext_master_1", "name": "Maître Mineur", "description": "Ressources rares obtenues en double quantité",
-    "effect": "rarex2:1", "tree": "extraction", "tier": 4, "col": 0,
-    "requiredSkill": "extraction", "requiredSkillLevel": 30, "prerequisiteIds": ["ext_yield_3"], "icon": "box", "cost": 3
+    "id": "ext_master_1",
+    "name": "Maître Mineur",
+    "description": "Ressources rares obtenues en double quantité",
+    "effect": "rarex2:1",
+    "tree": "extraction",
+    "tier": 4,
+    "col": 0,
+    "requiredSkill": "extraction",
+    "requiredSkillLevel": 30,
+    "prerequisiteIds": [
+      "ext_yield_3"
+    ],
+    "icon": "box",
+    "cost": 3
   },
   {
-    "id": "ext_master_2", "name": "Légende des Mines", "description": "Chaque expédition garantit au moins une ressource épique",
-    "effect": "epicGuarantee:1", "tree": "extraction", "tier": 4, "col": 1,
-    "requiredSkill": "extraction", "requiredSkillLevel": 50, "prerequisiteIds": ["ext_master_1", "ext_rare_3"], "icon": "diamond", "cost": 3
+    "id": "ext_master_2",
+    "name": "Légende des Mines",
+    "description": "Chaque expédition garantit au moins une ressource épique",
+    "effect": "epicGuarantee:1",
+    "tree": "extraction",
+    "tier": 4,
+    "col": 1,
+    "requiredSkill": "extraction",
+    "requiredSkillLevel": 50,
+    "prerequisiteIds": [
+      "ext_master_1",
+      "ext_rare_3"
+    ],
+    "icon": "hexagon",
+    "cost": 3
   },
   {
-    "id": "ext_fouilleur_1", "name": "Fouilleur", "description": "Fenêtre de collecte des cachettes étendue de 3 s à 6 s",
-    "effect": "hideoutWindowBonus:3000", "tree": "extraction", "tier": 2, "col": 2,
-    "requiredSkill": "extraction", "requiredSkillLevel": 10, "prerequisiteIds": ["ext_rare_2"], "icon": "archive", "cost": 2
-  },
-
-  {
-    "id": "com_price_1", "name": "Bon Négociant", "description": "Prix de vente +5%",
-    "effect": "sellPriceBonus:0.05", "tree": "commerce", "tier": 0, "col": 0,
-    "requiredSkill": "commerce", "requiredSkillLevel": 1, "prerequisiteIds": [], "icon": "dollar-sign", "cost": 1
-  },
-  {
-    "id": "com_rep_1", "name": "Sourire Commercial", "description": "Réputation NPC gagnée +10%",
-    "effect": "repGainBonus:0.10", "tree": "commerce", "tier": 0, "col": 1,
-    "requiredSkill": "commerce", "requiredSkillLevel": 1, "prerequisiteIds": [], "icon": "smile", "cost": 1
-  },
-  {
-    "id": "com_price_2", "name": "Marchand Habile", "description": "Prix de vente +12%",
-    "effect": "sellPriceBonus:0.12", "tree": "commerce", "tier": 1, "col": 0,
-    "requiredSkill": "commerce", "requiredSkillLevel": 5, "prerequisiteIds": ["com_price_1"], "icon": "bar-chart-2", "cost": 1
+    "id": "ext_fouilleur_1",
+    "name": "Fouilleur",
+    "description": "Fenêtre de collecte des cachettes étendue de 3 s à 6 s",
+    "effect": "hideoutWindowBonus:3000",
+    "tree": "extraction",
+    "tier": 2,
+    "col": 2,
+    "requiredSkill": "extraction",
+    "requiredSkillLevel": 10,
+    "prerequisiteIds": [
+      "ext_rare_2"
+    ],
+    "icon": "archive",
+    "cost": 2
   },
   {
-    "id": "com_order_1", "name": "Bonnes Relations", "description": "+1 commande NPC simultanée possible",
-    "effect": "maxOrders:1", "tree": "commerce", "tier": 1, "col": 1,
-    "requiredSkill": "commerce", "requiredSkillLevel": 5, "prerequisiteIds": ["com_rep_1"], "icon": "users", "cost": 1
+    "id": "com_price_1",
+    "name": "Bon Négociant",
+    "description": "Prix de vente +5%",
+    "effect": "sellPriceBonus:0.05",
+    "tree": "commerce",
+    "tier": 0,
+    "col": 0,
+    "requiredSkill": "commerce",
+    "requiredSkillLevel": 1,
+    "prerequisiteIds": [],
+    "icon": "dollar-sign",
+    "cost": 1
   },
   {
-    "id": "com_price_3", "name": "Négociateur", "description": "Prix de vente +20%",
-    "effect": "sellPriceBonus:0.20", "tree": "commerce", "tier": 2, "col": 0,
-    "requiredSkill": "commerce", "requiredSkillLevel": 10, "prerequisiteIds": ["com_price_2"], "icon": "trending-up", "cost": 2
+    "id": "com_rep_1",
+    "name": "Sourire Commercial",
+    "description": "Réputation NPC gagnée +10%",
+    "effect": "repGainBonus:0.10",
+    "tree": "commerce",
+    "tier": 0,
+    "col": 1,
+    "requiredSkill": "commerce",
+    "requiredSkillLevel": 1,
+    "prerequisiteIds": [],
+    "icon": "smile",
+    "cost": 1
   },
   {
-    "id": "com_npc_1", "name": "Clientèle Fidèle", "description": "Délais des commandes NPC +30%",
-    "effect": "orderDeadlineBonus:0.30", "tree": "commerce", "tier": 2, "col": 1,
-    "requiredSkill": "commerce", "requiredSkillLevel": 10, "prerequisiteIds": ["com_order_1"], "icon": "clock", "cost": 2
+    "id": "com_price_2",
+    "name": "Marchand Habile",
+    "description": "Prix de vente +12%",
+    "effect": "sellPriceBonus:0.12",
+    "tree": "commerce",
+    "tier": 1,
+    "col": 0,
+    "requiredSkill": "commerce",
+    "requiredSkillLevel": 5,
+    "prerequisiteIds": [
+      "com_price_1"
+    ],
+    "icon": "bar-chart-2",
+    "cost": 1
   },
   {
-    "id": "com_gold_1", "name": "Richesse Méritée", "description": "Or reçu des livraisons NPC +20%",
-    "effect": "orderGoldBonus:0.20", "tree": "commerce", "tier": 3, "col": 0,
-    "requiredSkill": "commerce", "requiredSkillLevel": 20, "prerequisiteIds": ["com_price_3"], "icon": "credit-card", "cost": 2
+    "id": "com_order_1",
+    "name": "Bonnes Relations",
+    "description": "+1 commande NPC simultanée possible",
+    "effect": "maxOrders:1",
+    "tree": "commerce",
+    "tier": 1,
+    "col": 1,
+    "requiredSkill": "commerce",
+    "requiredSkillLevel": 5,
+    "prerequisiteIds": [
+      "com_rep_1"
+    ],
+    "icon": "users",
+    "cost": 1
   },
   {
-    "id": "com_rep_2", "name": "Réputation Royale", "description": "Réputation NPC gagnée +25%",
-    "effect": "repGainBonus:0.25", "tree": "commerce", "tier": 3, "col": 1,
-    "requiredSkill": "commerce", "requiredSkillLevel": 20, "prerequisiteIds": ["com_npc_1"], "icon": "star", "cost": 2
+    "id": "com_price_3",
+    "name": "Négociateur",
+    "description": "Prix de vente +20%",
+    "effect": "sellPriceBonus:0.20",
+    "tree": "commerce",
+    "tier": 2,
+    "col": 0,
+    "requiredSkill": "commerce",
+    "requiredSkillLevel": 10,
+    "prerequisiteIds": [
+      "com_price_2"
+    ],
+    "icon": "trending-up",
+    "cost": 2
   },
   {
-    "id": "com_master_1", "name": "Magnat du Commerce", "description": "Prix de vente +35%",
-    "effect": "sellPriceBonus:0.35", "tree": "commerce", "tier": 4, "col": 0,
-    "requiredSkill": "commerce", "requiredSkillLevel": 30, "prerequisiteIds": ["com_gold_1"], "icon": "briefcase", "cost": 3
+    "id": "com_npc_1",
+    "name": "Clientèle Fidèle",
+    "description": "Délais des commandes NPC +30%",
+    "effect": "orderDeadlineBonus:0.30",
+    "tree": "commerce",
+    "tier": 2,
+    "col": 1,
+    "requiredSkill": "commerce",
+    "requiredSkillLevel": 10,
+    "prerequisiteIds": [
+      "com_order_1"
+    ],
+    "icon": "clock",
+    "cost": 2
   },
   {
-    "id": "com_master_2", "name": "Fournisseur du Roi", "description": "Accès aux commandes royales exclusives (+200% or)",
-    "effect": "royalOrders:1", "tree": "commerce", "tier": 4, "col": 1,
-    "requiredSkill": "commerce", "requiredSkillLevel": 50, "prerequisiteIds": ["com_master_1", "com_rep_2"], "icon": "crown", "cost": 3
-  },
-
-  {
-    "id": "con_cost_1", "name": "Matériaux Économisés", "description": "Coût des améliorations de forge -10%",
-    "effect": "upgradeCostReduction:0.10", "tree": "construction", "tier": 0, "col": 0,
-    "requiredSkill": "construction", "requiredSkillLevel": 1, "prerequisiteIds": [], "icon": "tool", "cost": 1
-  },
-  {
-    "id": "con_weight_1", "name": "Rangement Amélioré", "description": "Capacité d'inventaire +100 kg",
-    "effect": "weightBonus:100", "tree": "construction", "tier": 0, "col": 1,
-    "requiredSkill": "construction", "requiredSkillLevel": 1, "prerequisiteIds": [], "icon": "inbox", "cost": 1
-  },
-  {
-    "id": "con_cost_2", "name": "Architecte", "description": "Coût des améliorations de forge -20%",
-    "effect": "upgradeCostReduction:0.20", "tree": "construction", "tier": 1, "col": 0,
-    "requiredSkill": "construction", "requiredSkillLevel": 5, "prerequisiteIds": ["con_cost_1"], "icon": "cpu", "cost": 1
+    "id": "com_gold_1",
+    "name": "Richesse Méritée",
+    "description": "Or reçu des livraisons NPC +20%",
+    "effect": "orderGoldBonus:0.20",
+    "tree": "commerce",
+    "tier": 3,
+    "col": 0,
+    "requiredSkill": "commerce",
+    "requiredSkillLevel": 20,
+    "prerequisiteIds": [
+      "com_price_3"
+    ],
+    "icon": "credit-card",
+    "cost": 2
   },
   {
-    "id": "con_weight_2", "name": "Grand Entrepôt", "description": "Capacité d'inventaire +250 kg",
-    "effect": "weightBonus:250", "tree": "construction", "tier": 1, "col": 1,
-    "requiredSkill": "construction", "requiredSkillLevel": 5, "prerequisiteIds": ["con_weight_1"], "icon": "archive", "cost": 1
+    "id": "com_rep_2",
+    "name": "Réputation Royale",
+    "description": "Réputation NPC gagnée +25%",
+    "effect": "repGainBonus:0.25",
+    "tree": "commerce",
+    "tier": 3,
+    "col": 1,
+    "requiredSkill": "commerce",
+    "requiredSkillLevel": 20,
+    "prerequisiteIds": [
+      "com_npc_1"
+    ],
+    "icon": "star",
+    "cost": 2
   },
   {
-    "id": "con_slot_1", "name": "Établi Étendu", "description": "+2 favoris de recettes",
-    "effect": "recipeFavorites:2", "tree": "construction", "tier": 2, "col": 0,
-    "requiredSkill": "construction", "requiredSkillLevel": 10, "prerequisiteIds": ["con_cost_2"], "icon": "list", "cost": 2
+    "id": "com_master_1",
+    "name": "Magnat du Commerce",
+    "description": "Prix de vente +35%",
+    "effect": "sellPriceBonus:0.35",
+    "tree": "commerce",
+    "tier": 4,
+    "col": 0,
+    "requiredSkill": "commerce",
+    "requiredSkillLevel": 30,
+    "prerequisiteIds": [
+      "com_gold_1"
+    ],
+    "icon": "briefcase",
+    "cost": 3
   },
   {
-    "id": "con_speed_1", "name": "Forge Efficace", "description": "Temps de chauffe réduit de 15%",
-    "effect": "craftSpeedBonus:0.15", "tree": "construction", "tier": 2, "col": 1,
-    "requiredSkill": "construction", "requiredSkillLevel": 10, "prerequisiteIds": ["con_weight_2"], "icon": "fast-forward", "cost": 2
+    "id": "com_master_2",
+    "name": "Fournisseur du Roi",
+    "description": "Accès aux commandes royales exclusives (+200% or)",
+    "effect": "royalOrders:1",
+    "tree": "commerce",
+    "tier": 4,
+    "col": 1,
+    "requiredSkill": "commerce",
+    "requiredSkillLevel": 50,
+    "prerequisiteIds": [
+      "com_master_1",
+      "com_rep_2"
+    ],
+    "icon": "award",
+    "cost": 3
   },
   {
-    "id": "con_cost_3", "name": "Maître Bâtisseur", "description": "Coût des améliorations de forge -35%",
-    "effect": "upgradeCostReduction:0.35", "tree": "construction", "tier": 3, "col": 0,
-    "requiredSkill": "construction", "requiredSkillLevel": 20, "prerequisiteIds": ["con_slot_1"], "icon": "home", "cost": 2
+    "id": "con_cost_1",
+    "name": "Matériaux Économisés",
+    "description": "Coût des améliorations de forge -10%",
+    "effect": "upgradeCostReduction:0.10",
+    "tree": "construction",
+    "tier": 0,
+    "col": 0,
+    "requiredSkill": "construction",
+    "requiredSkillLevel": 1,
+    "prerequisiteIds": [],
+    "icon": "tool",
+    "cost": 1
   },
   {
-    "id": "con_weight_3", "name": "Coffre Magique", "description": "Capacité d'inventaire +500 kg",
-    "effect": "weightBonus:500", "tree": "construction", "tier": 3, "col": 1,
-    "requiredSkill": "construction", "requiredSkillLevel": 20, "prerequisiteIds": ["con_speed_1"], "icon": "server", "cost": 2
+    "id": "con_weight_1",
+    "name": "Rangement Amélioré",
+    "description": "Capacité d'inventaire +100 kg",
+    "effect": "weightBonus:100",
+    "tree": "construction",
+    "tier": 0,
+    "col": 1,
+    "requiredSkill": "construction",
+    "requiredSkillLevel": 1,
+    "prerequisiteIds": [],
+    "icon": "inbox",
+    "cost": 1
   },
   {
-    "id": "con_master_1", "name": "Génie de la Forge", "description": "Capacité d'inventaire +1000 kg",
-    "effect": "weightBonus:1000", "tree": "construction", "tier": 4, "col": 0,
-    "requiredSkill": "construction", "requiredSkillLevel": 30, "prerequisiteIds": ["con_cost_3"], "icon": "maximize", "cost": 3
+    "id": "con_cost_2",
+    "name": "Architecte",
+    "description": "Coût des améliorations de forge -20%",
+    "effect": "upgradeCostReduction:0.20",
+    "tree": "construction",
+    "tier": 1,
+    "col": 0,
+    "requiredSkill": "construction",
+    "requiredSkillLevel": 5,
+    "prerequisiteIds": [
+      "con_cost_1"
+    ],
+    "icon": "cpu",
+    "cost": 1
   },
   {
-    "id": "con_master_2", "name": "Forge Fortifiée", "description": "Toutes améliorations -50%, espace illimité",
-    "effect": "upgradeCostReduction:0.50", "tree": "construction", "tier": 4, "col": 1,
-    "requiredSkill": "construction", "requiredSkillLevel": 50, "prerequisiteIds": ["con_master_1", "con_weight_3"], "icon": "shield", "cost": 3
-  },
-
-  {
-    "id": "uni_xp_1", "name": "Apprenti Zélé", "description": "+10% XP dans toutes les compétences",
-    "effect": "allXPBonus:0.10", "tree": "universal", "tier": 0, "col": 0,
-    "requiredSkill": null, "requiredSkillLevel": 1, "prerequisiteIds": [], "icon": "book", "cost": 1
-  },
-  {
-    "id": "uni_gold_1", "name": "Bonne Fortune", "description": "+5% or de toutes les sources",
-    "effect": "allGoldBonus:0.05", "tree": "universal", "tier": 0, "col": 1,
-    "requiredSkill": null, "requiredSkillLevel": 1, "prerequisiteIds": [], "icon": "gift", "cost": 1
-  },
-  {
-    "id": "uni_xp_2", "name": "Soif d'Apprendre", "description": "+20% XP dans toutes les compétences",
-    "effect": "allXPBonus:0.20", "tree": "universal", "tier": 1, "col": 0,
-    "requiredSkill": null, "requiredSkillLevel": 5, "prerequisiteIds": ["uni_xp_1"], "icon": "book-open", "cost": 1
+    "id": "con_weight_2",
+    "name": "Grand Entrepôt",
+    "description": "Capacité d'inventaire +250 kg",
+    "effect": "weightBonus:250",
+    "tree": "construction",
+    "tier": 1,
+    "col": 1,
+    "requiredSkill": "construction",
+    "requiredSkillLevel": 5,
+    "prerequisiteIds": [
+      "con_weight_1"
+    ],
+    "icon": "archive",
+    "cost": 1
   },
   {
-    "id": "uni_gold_2", "name": "Main Dorée", "description": "+12% or de toutes les sources",
-    "effect": "allGoldBonus:0.12", "tree": "universal", "tier": 1, "col": 1,
-    "requiredSkill": null, "requiredSkillLevel": 5, "prerequisiteIds": ["uni_gold_1"], "icon": "dollar-sign", "cost": 1
+    "id": "con_slot_1",
+    "name": "Établi Étendu",
+    "description": "+2 favoris de recettes",
+    "effect": "recipeFavorites:2",
+    "tree": "construction",
+    "tier": 2,
+    "col": 0,
+    "requiredSkill": "construction",
+    "requiredSkillLevel": 10,
+    "prerequisiteIds": [
+      "con_cost_2"
+    ],
+    "icon": "list",
+    "cost": 2
   },
   {
-    "id": "uni_talent_1", "name": "Esprit Vif", "description": "Gagnez 1 point de talent immédiatement",
-    "effect": "bonusTalentPoint:1", "tree": "universal", "tier": 2, "col": 0,
-    "requiredSkill": null, "requiredSkillLevel": 10, "prerequisiteIds": ["uni_xp_2"], "icon": "zap", "cost": 2
+    "id": "con_speed_1",
+    "name": "Forge Efficace",
+    "description": "Temps de chauffe réduit de 15%",
+    "effect": "craftSpeedBonus:0.15",
+    "tree": "construction",
+    "tier": 2,
+    "col": 1,
+    "requiredSkill": "construction",
+    "requiredSkillLevel": 10,
+    "prerequisiteIds": [
+      "con_weight_2"
+    ],
+    "icon": "fast-forward",
+    "cost": 2
   },
   {
-    "id": "uni_multi_1", "name": "Polyvalence", "description": "+25% XP toutes compétences, +15% or",
-    "effect": "allXPBonus:0.25", "tree": "universal", "tier": 2, "col": 1,
-    "requiredSkill": null, "requiredSkillLevel": 10, "prerequisiteIds": ["uni_gold_2"], "icon": "layers", "cost": 2
+    "id": "con_cost_3",
+    "name": "Maître Bâtisseur",
+    "description": "Coût des améliorations de forge -35%",
+    "effect": "upgradeCostReduction:0.35",
+    "tree": "construction",
+    "tier": 3,
+    "col": 0,
+    "requiredSkill": "construction",
+    "requiredSkillLevel": 20,
+    "prerequisiteIds": [
+      "con_slot_1"
+    ],
+    "icon": "home",
+    "cost": 2
   },
   {
-    "id": "uni_xp_3", "name": "Maître Apprenti", "description": "+35% XP dans toutes les compétences",
-    "effect": "allXPBonus:0.35", "tree": "universal", "tier": 3, "col": 0,
-    "requiredSkill": null, "requiredSkillLevel": 20, "prerequisiteIds": ["uni_talent_1"], "icon": "trending-up", "cost": 2
+    "id": "con_weight_3",
+    "name": "Coffre Magique",
+    "description": "Capacité d'inventaire +500 kg",
+    "effect": "weightBonus:500",
+    "tree": "construction",
+    "tier": 3,
+    "col": 1,
+    "requiredSkill": "construction",
+    "requiredSkillLevel": 20,
+    "prerequisiteIds": [
+      "con_speed_1"
+    ],
+    "icon": "server",
+    "cost": 2
   },
   {
-    "id": "uni_gold_3", "name": "Fortune du Forgeron", "description": "+25% or de toutes les sources",
-    "effect": "allGoldBonus:0.25", "tree": "universal", "tier": 3, "col": 1,
-    "requiredSkill": null, "requiredSkillLevel": 20, "prerequisiteIds": ["uni_multi_1"], "icon": "sun", "cost": 2
+    "id": "con_master_1",
+    "name": "Génie de la Forge",
+    "description": "Capacité d'inventaire +1000 kg",
+    "effect": "weightBonus:1000",
+    "tree": "construction",
+    "tier": 4,
+    "col": 0,
+    "requiredSkill": "construction",
+    "requiredSkillLevel": 30,
+    "prerequisiteIds": [
+      "con_cost_3"
+    ],
+    "icon": "maximize",
+    "cost": 3
   },
   {
-    "id": "uni_master_1", "name": "Génie Omniscient", "description": "+50% XP toutes compétences, progression x2",
-    "effect": "allXPBonus:0.50", "tree": "universal", "tier": 4, "col": 0,
-    "requiredSkill": null, "requiredSkillLevel": 30, "prerequisiteIds": ["uni_xp_3"], "icon": "cpu", "cost": 3
+    "id": "con_master_2",
+    "name": "Forge Fortifiée",
+    "description": "Toutes améliorations -50%, espace illimité",
+    "effect": "upgradeCostReduction:0.50",
+    "tree": "construction",
+    "tier": 4,
+    "col": 1,
+    "requiredSkill": "construction",
+    "requiredSkillLevel": 50,
+    "prerequisiteIds": [
+      "con_master_1",
+      "con_weight_3"
+    ],
+    "icon": "shield",
+    "cost": 3
   },
   {
-    "id": "uni_master_2", "name": "Légende Vivante", "description": "Titre légendaire + tous les bonus au maximum",
-    "effect": "legendTitle:1", "tree": "universal", "tier": 4, "col": 1,
-    "requiredSkill": null, "requiredSkillLevel": 50, "prerequisiteIds": ["uni_master_1", "uni_gold_3"], "icon": "crown", "cost": 3
+    "id": "uni_xp_1",
+    "name": "Apprenti Zélé",
+    "description": "+10% XP dans toutes les compétences",
+    "effect": "allXPBonus:0.10",
+    "tree": "universal",
+    "tier": 0,
+    "col": 0,
+    "requiredSkill": null,
+    "requiredSkillLevel": 1,
+    "prerequisiteIds": [],
+    "icon": "book",
+    "cost": 1
+  },
+  {
+    "id": "uni_gold_1",
+    "name": "Bonne Fortune",
+    "description": "+5% or de toutes les sources",
+    "effect": "allGoldBonus:0.05",
+    "tree": "universal",
+    "tier": 0,
+    "col": 1,
+    "requiredSkill": null,
+    "requiredSkillLevel": 1,
+    "prerequisiteIds": [],
+    "icon": "gift",
+    "cost": 1
+  },
+  {
+    "id": "uni_xp_2",
+    "name": "Soif d'Apprendre",
+    "description": "+20% XP dans toutes les compétences",
+    "effect": "allXPBonus:0.20",
+    "tree": "universal",
+    "tier": 1,
+    "col": 0,
+    "requiredSkill": null,
+    "requiredSkillLevel": 5,
+    "prerequisiteIds": [
+      "uni_xp_1"
+    ],
+    "icon": "book-open",
+    "cost": 1
+  },
+  {
+    "id": "uni_gold_2",
+    "name": "Main Dorée",
+    "description": "+12% or de toutes les sources",
+    "effect": "allGoldBonus:0.12",
+    "tree": "universal",
+    "tier": 1,
+    "col": 1,
+    "requiredSkill": null,
+    "requiredSkillLevel": 5,
+    "prerequisiteIds": [
+      "uni_gold_1"
+    ],
+    "icon": "dollar-sign",
+    "cost": 1
+  },
+  {
+    "id": "uni_talent_1",
+    "name": "Esprit Vif",
+    "description": "Gagnez 1 point de talent immédiatement",
+    "effect": "bonusTalentPoint:1",
+    "tree": "universal",
+    "tier": 2,
+    "col": 0,
+    "requiredSkill": null,
+    "requiredSkillLevel": 10,
+    "prerequisiteIds": [
+      "uni_xp_2"
+    ],
+    "icon": "zap",
+    "cost": 2
+  },
+  {
+    "id": "uni_multi_1",
+    "name": "Polyvalence",
+    "description": "+25% XP toutes compétences, +15% or",
+    "effect": "allXPBonus:0.25",
+    "tree": "universal",
+    "tier": 2,
+    "col": 1,
+    "requiredSkill": null,
+    "requiredSkillLevel": 10,
+    "prerequisiteIds": [
+      "uni_gold_2"
+    ],
+    "icon": "layers",
+    "cost": 2
+  },
+  {
+    "id": "uni_xp_3",
+    "name": "Maître Apprenti",
+    "description": "+35% XP dans toutes les compétences",
+    "effect": "allXPBonus:0.35",
+    "tree": "universal",
+    "tier": 3,
+    "col": 0,
+    "requiredSkill": null,
+    "requiredSkillLevel": 20,
+    "prerequisiteIds": [
+      "uni_talent_1"
+    ],
+    "icon": "trending-up",
+    "cost": 2
+  },
+  {
+    "id": "uni_gold_3",
+    "name": "Fortune du Forgeron",
+    "description": "+25% or de toutes les sources",
+    "effect": "allGoldBonus:0.25",
+    "tree": "universal",
+    "tier": 3,
+    "col": 1,
+    "requiredSkill": null,
+    "requiredSkillLevel": 20,
+    "prerequisiteIds": [
+      "uni_multi_1"
+    ],
+    "icon": "sun",
+    "cost": 2
+  },
+  {
+    "id": "uni_master_1",
+    "name": "Génie Omniscient",
+    "description": "+50% XP toutes compétences, progression x2",
+    "effect": "allXPBonus:0.50",
+    "tree": "universal",
+    "tier": 4,
+    "col": 0,
+    "requiredSkill": null,
+    "requiredSkillLevel": 30,
+    "prerequisiteIds": [
+      "uni_xp_3"
+    ],
+    "icon": "cpu",
+    "cost": 3
+  },
+  {
+    "id": "uni_master_2",
+    "name": "Légende Vivante",
+    "description": "Titre légendaire + tous les bonus au maximum",
+    "effect": "legendTitle:1",
+    "tree": "universal",
+    "tier": 4,
+    "col": 1,
+    "requiredSkill": null,
+    "requiredSkillLevel": 50,
+    "prerequisiteIds": [
+      "uni_master_1",
+      "uni_gold_3"
+    ],
+    "icon": "award",
+    "cost": 3
   }
 ]

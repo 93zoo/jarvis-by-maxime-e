@@ -14,7 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 const { width: SW } = Dimensions.get('window');
@@ -43,15 +43,15 @@ const RESOURCE_GROUPS = [
 ];
 
 const RESOURCE_ICON: Record<string, any> = {
-  iron: 'anvil', copper: 'anvil', wood: 'pine-tree', stone: 'shield',
-  clay: 'hammer', coal: 'fire', bronze: 'sword', steel: 'sword',
-  silver: 'star-circle', gold_ore: 'gold', platinum: 'star-four-points',
-  mithril: 'star-four-points', obsidian: 'shield', crystal: 'diamond',
-  adamantium: 'shield', ruby: 'diamond', sapphire: 'diamond', emerald: 'diamond',
-  diamond: 'diamond', dragon_scale: 'fire', topaz: 'diamond',
-  amethyst: 'diamond', onyx: 'shield', brass: 'gold', electrum: 'lightning-bolt',
-  darksteel: 'sword-cross', mithrilite: 'star-four-points', dragonite: 'fire',
-  staralloy: 'star-four-points',
+  iron: 'tool', copper: 'tool', wood: 'feather', stone: 'shield',
+  clay: 'tool', coal: 'activity', bronze: 'scissors', steel: 'scissors',
+  silver: 'star', gold_ore: 'dollar-sign', platinum: 'star',
+  mithril: 'star', obsidian: 'shield', crystal: 'hexagon',
+  adamantium: 'shield', ruby: 'hexagon', sapphire: 'hexagon', emerald: 'hexagon',
+  diamond: 'hexagon', dragon_scale: 'activity', topaz: 'hexagon',
+  amethyst: 'hexagon', onyx: 'shield', brass: 'dollar-sign', electrum: 'zap',
+  darksteel: 'alert-octagon', mithrilite: 'star', dragonite: 'activity',
+  staralloy: 'star',
 };
 
 // ── Falling coin particle ─────────────────────────────────────────────────────
@@ -87,7 +87,7 @@ function Coin({ delay, startX }: { delay: number; startX: number }) {
     <Animated.View
       style={[styles.coin, { left: startX, opacity: op, transform: [{ translateY }] }]}
     >
-      <MaterialCommunityIcons name="gold" size={20} color={GOLD} />
+      <Feather name="dollar-sign" size={20} color={GOLD} />
     </Animated.View>
   );
 }
@@ -167,7 +167,7 @@ export default function BetaWelcomeModal({ visible, onClaim }: Props) {
         <View style={styles.card}>
           {/* Header glow ring */}
           <View style={styles.iconRing}>
-            <MaterialCommunityIcons name="hammer-wrench" size={36} color={GOLD} />
+            <Feather name="tool" size={36} color={GOLD} />
           </View>
 
           <Animated.Text style={[styles.title, { transform: [{ scale: titleScale }] }]}>
@@ -181,7 +181,7 @@ export default function BetaWelcomeModal({ visible, onClaim }: Props) {
           <View style={styles.rewardsBox}>
             {/* Gold */}
             <View style={styles.goldRow}>
-              <MaterialCommunityIcons name="gold" size={22} color={GOLD} />
+              <Feather name="dollar-sign" size={22} color={GOLD} />
               <Text style={styles.goldAmount}>+2 000 Or</Text>
             </View>
 
@@ -197,7 +197,7 @@ export default function BetaWelcomeModal({ visible, onClaim }: Props) {
                   <View style={styles.groupItems}>
                     {g.items.map((id) => (
                       <View key={id} style={styles.resourceChip}>
-                        <MaterialCommunityIcons name={RESOURCE_ICON[id] ?? 'package-variant'} size={14} color="#CCBBAA" />
+                        <Feather name={RESOURCE_ICON[id] ?? 'box'} size={14} color="#CCBBAA" />
                         <Text style={styles.resourceQty}>×20</Text>
                       </View>
                     ))}
@@ -217,7 +217,7 @@ export default function BetaWelcomeModal({ visible, onClaim }: Props) {
             onPress={handleClaim}
             activeOpacity={0.85}
           >
-            <MaterialCommunityIcons name="gift-open-outline" size={18} color={DARK} />
+            <Feather name="gift" size={18} color={DARK} />
             <Text style={styles.claimText}>Récupérer mon boost !</Text>
           </TouchableOpacity>
 

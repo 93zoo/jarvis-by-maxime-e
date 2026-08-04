@@ -15,7 +15,6 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from '@/lib/LinearGradientSafe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -53,6 +52,7 @@ import Reanimated, {
 } from 'react-native-reanimated';
 
 // ─── Quality helpers ─────────────────────────────────────────────────────────
+import { Feather } from '@expo/vector-icons';
 function qualityColor(q: Quality, colors: ReturnType<typeof useColors>): string {
   switch (q) {
     case 'legendary': return '#9966CC';
@@ -160,7 +160,7 @@ interface ForgeEvent {
 const FORGE_EVENTS: ForgeEvent[] = [
   {
     id: 'metal_en_fusion',
-    icon: 'fire',
+    icon: 'activity',
     name: 'Métal en fusion',
     description: '+12 au score de qualité final',
     effect: 'bonus_score',
@@ -170,7 +170,7 @@ const FORGE_EVENTS: ForgeEvent[] = [
   },
   {
     id: 'inspiration',
-    icon: 'lightning-bolt',
+    icon: 'zap',
     name: 'Inspiration !',
     description: 'Les frappes comptent ×1.5',
     effect: 'strike_multiplier',
@@ -180,7 +180,7 @@ const FORGE_EVENTS: ForgeEvent[] = [
   },
   {
     id: 'metal_elu',
-    icon: 'star-circle',
+    icon: 'star',
     name: 'Métal élu',
     description: 'Score de qualité minimum 65',
     effect: 'min_score',
@@ -190,7 +190,7 @@ const FORGE_EVENTS: ForgeEvent[] = [
   },
   {
     id: 'grace_divine',
-    icon: 'diamond',
+    icon: 'hexagon',
     name: 'Grâce divine',
     description: 'Score de qualité minimum 82 (Excellent garanti)',
     effect: 'min_score',
@@ -200,7 +200,7 @@ const FORGE_EVENTS: ForgeEvent[] = [
   },
   {
     id: 'fievre',
-    icon: 'weather-tornado',
+    icon: 'cloud-lightning',
     name: 'Fièvre du forgeron',
     description: '+28 au score de qualité final',
     effect: 'bonus_score',
@@ -583,15 +583,20 @@ function OrdersModal({
                   contentContainerStyle={{ paddingBottom: bottomPad }}
                   renderItem={({ item }) => (
                     <TouchableOpacity
-                      style={[oStyles.itemRow, { backgroundColor: colors.secondary, borderColor: colors.primary }]}
+                      style={[oStyles.itemRow, { backgroundColor: colors.secondary, borderColor: item.enigmaMastered ? '#7C3AED' : colors.primary, borderWidth: item.enigmaMastered ? 1.5 : 1 }]}
                       onPress={() => handleDeliver(item.instanceId)}
                       activeOpacity={0.8}
                     >
                       <View style={{ flex: 1 }}>
                         <Text style={[oStyles.itemName, { color: colors.foreground }]}>{item.name}</Text>
                         <Text style={[oStyles.itemMeta, { color: colors.mutedForeground }]}>{item.category} · {item.quality} · {item.value}g</Text>
+                        {item.enigmaMastered && (
+                          <Text style={{ fontSize: 10, fontWeight: '700', color: '#C084FC', marginTop: 2 }}>
+                            ✦ Bonus Maîtrise · +{Math.max(1, Math.round(selectedOrder!.goldReward * 0.07))}g sur la livraison
+                          </Text>
+                        )}
                       </View>
-                      <View style={[oStyles.deliverBtn, { backgroundColor: colors.primary }]}>
+                      <View style={[oStyles.deliverBtn, { backgroundColor: item.enigmaMastered ? '#7C3AED' : colors.primary }]}>
                         <Text style={[oStyles.deliverBtnText, { color: colors.primaryForeground }]}>Livrer</Text>
                       </View>
                     </TouchableOpacity>
@@ -643,7 +648,7 @@ function OrdersModal({
                     {order.isSpecial && (
                       <View style={oStyles.urgentBadgeRow}>
                         <View style={[oStyles.urgentBadge, { backgroundColor: specialExpired ? '#7B620022' : '#E8B84B22' }]}>
-                          <MaterialCommunityIcons name="star" size={11} color={specialExpired ? '#7B6200' : '#E8B84B'} />
+                          <Feather name="star" size={11} color={specialExpired ? '#7B6200' : '#E8B84B'} />
                           <Text style={[oStyles.urgentBadgeText, { color: specialExpired ? '#7B6200' : '#E8B84B' }]}>
                             {specialExpired ? 'EXPIRÉE' : 'COMMANDE ROYALE'}
                           </Text>
@@ -660,7 +665,7 @@ function OrdersModal({
                     {order.isUrgent && (
                       <View style={oStyles.urgentBadgeRow}>
                         <View style={[oStyles.urgentBadge, { backgroundColor: urgentTimerDone ? '#B71C1C22' : '#FF6D0022' }]}>
-                          <MaterialCommunityIcons name="lightning-bolt" size={12} color={urgentTimerDone ? '#FF5252' : '#FF6D00'} />
+                          <Feather name="zap" size={12} color={urgentTimerDone ? '#FF5252' : '#FF6D00'} />
                           <Text style={[oStyles.urgentBadgeText, { color: urgentTimerDone ? '#FF5252' : '#FF6D00' }]}>
                             {urgentTimerDone ? 'EXPIRÉ' : 'URGENT'}
                           </Text>
@@ -683,15 +688,15 @@ function OrdersModal({
                       <View style={oStyles.urgentBonusRow}>
                         <Text style={[oStyles.urgentBonusText, { color: colors.mutedForeground }]}>Si livré à temps :</Text>
                         <View style={[oStyles.urgentBonusChip, { backgroundColor: '#E8B84B20' }]}>
-                          <MaterialCommunityIcons name="star" size={11} color="#E8B84B" />
+                          <Feather name="star" size={11} color="#E8B84B" />
                           <Text style={[oStyles.urgentBonusText, { color: '#E8B84B' }]}>+{order.specialBonusGold ?? 0}g</Text>
                         </View>
                         <View style={[oStyles.urgentBonusChip, { backgroundColor: '#1565C020' }]}>
-                          <MaterialCommunityIcons name="star-four-points" size={11} color="#1E88E5" />
+                          <Feather name="star" size={11} color="#1E88E5" />
                           <Text style={[oStyles.urgentBonusText, { color: '#1E88E5' }]}>+{order.specialBonusXp ?? 0} XP</Text>
                         </View>
                         <View style={[oStyles.urgentBonusChip, { backgroundColor: '#4CAF5020' }]}>
-                          <MaterialCommunityIcons name="diamond" size={11} color="#4CAF50" />
+                          <Feather name="hexagon" size={11} color="#4CAF50" />
                           <Text style={[oStyles.urgentBonusText, { color: '#4CAF50' }]}>+{order.specialBonusRep ?? 0} rép.</Text>
                         </View>
                       </View>
@@ -702,11 +707,11 @@ function OrdersModal({
                       <View style={oStyles.urgentBonusRow}>
                         <Text style={[oStyles.urgentBonusText, { color: colors.mutedForeground }]}>Si livré à temps :</Text>
                         <View style={[oStyles.urgentBonusChip, { backgroundColor: '#FF6D0020' }]}>
-                          <MaterialCommunityIcons name="lightning-bolt" size={11} color="#FF8F00" />
+                          <Feather name="zap" size={11} color="#FF8F00" />
                           <Text style={[oStyles.urgentBonusText, { color: '#FF8F00' }]}>+{order.urgentBonusGold ?? 0}g</Text>
                         </View>
                         <View style={[oStyles.urgentBonusChip, { backgroundColor: '#1565C020' }]}>
-                          <MaterialCommunityIcons name="star-four-points" size={11} color="#1E88E5" />
+                          <Feather name="star" size={11} color="#1E88E5" />
                           <Text style={[oStyles.urgentBonusText, { color: '#1E88E5' }]}>+{order.urgentBonusXp ?? 0} XP</Text>
                         </View>
                       </View>
@@ -849,8 +854,8 @@ function OrdersModal({
 
 // ─── Forge Upgrades Modal ─────────────────────────────────────────────────────
 const ELEMENT_ICONS: Record<string, string> = {
-  forge_main: 'fire', furnace: 'factory', anvil: 'anvil',
-  workbench: 'table-furniture', decoration: 'palette', storage: 'package-variant',
+  forge_main: 'activity', furnace: 'thermometer', anvil: 'tool',
+  workbench: 'grid', decoration: 'sliders', storage: 'box',
 };
 
 const fuStyles = StyleSheet.create({
@@ -933,7 +938,7 @@ function ForgeUpgradesModal({
                   style={[fuStyles.elementCard, { backgroundColor: colors.secondary, borderColor: canAfford ? colors.primary : colors.border }]}
                 >
                   <View style={fuStyles.elementTop}>
-                    <MaterialCommunityIcons name={(ELEMENT_ICONS[upgradeData.id] ?? 'hammer') as any} size={22} color={colors.accent} style={{ width: 36, textAlign: 'center' } as any} />
+                    <Feather name={(ELEMENT_ICONS[upgradeData.id] ?? 'tool') as any} size={22} color={colors.accent} style={{ width: 36, textAlign: 'center' } as any} />
                     <View style={fuStyles.elementInfo}>
                       <Text style={[fuStyles.elementName, { color: colors.foreground }]}>{upgradeData.name}</Text>
                       <Text style={[fuStyles.elementBonus, { color: colors.mutedForeground }]}>
@@ -1246,7 +1251,7 @@ function ApprenticeCard({
                 activeOpacity={0.8}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <MaterialCommunityIcons name="star" size={12} color={filterSpecialty ? colors.accent : colors.mutedForeground} />
+                  <Feather name="star" size={12} color={filterSpecialty ? colors.accent : colors.mutedForeground} />
                   <Text style={[apStyles.specialtyToggleText, { color: filterSpecialty ? colors.accent : colors.mutedForeground }]}>
                     Spécialité seulement
                   </Text>
@@ -1277,7 +1282,7 @@ function ApprenticeCard({
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1 }}>
                   {isSpecialty && (
-                    <MaterialCommunityIcons name="star" size={12} color={colors.accent} />
+                    <Feather name="star" size={12} color={colors.accent} />
                   )}
                   <Text style={[
                     apStyles.pickerName,
@@ -1374,9 +1379,11 @@ export default function ForgeScreen() {
   const heatingBarStyle = useAnimatedStyle(() => ({
     width: heatingAnim.value * heatingTrackW.value,
   }));
+  // One-shot glow pulse when quench temperature enters the sweet spot
+  const quenchGlowSV = useSharedValue(0);
+  const quenchGlowStyle = useAnimatedStyle(() => ({ opacity: quenchGlowSV.value }));
   const [craftedItem, setCraftedItem] = useState<Item | null>(null);
   const [showRecipeSheet, setShowRecipeSheet] = useState(false);
-  const [lastHitLabel, setLastHitLabel] = useState<HitLabel | null>(null);
   const [showOrdersModal, setShowOrdersModal] = useState(false);
   const [deliverOrderId, setDeliverOrderId] = useState<string | null>(null);
   const [showUpgradesModal, setShowUpgradesModal] = useState(false);
@@ -1393,15 +1400,16 @@ export default function ForgeScreen() {
   const sceneRef = useRef<ForgeScene3DRef>(null);
   const forgePressRef = useRef(new Animated.Value(1));
   const forgeFloatRef = useRef(new Animated.Value(0));
-  const hitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // ── Quench gauge ──
   const [quenchProgress, setQuenchProgress] = useState(100); // 100=hot → 0=cold
   const [quenchTapped, setQuenchTapped] = useState(false);
   const [quenchLabel, setQuenchLabel] = useState<string | null>(null);
   const quenchProgressRef = useRef(100);
   const quenchDoneRef = useRef(false);
+  const quenchHintFiredRef = useRef(false);
   const prevAuctionResultIdsRef = useRef(new Set<string>());
   const prevMarketEventIdsRef = useRef(new Set<string>());
+  const prevPlayerLevelRef = useRef<number | null>(null);
   const runResultRef = useRef<((mod: number) => void) | null>(null);
   const activeRecipeRef = useRef<RecipeData | null>(null);
   const [pendingEnigma, setPendingEnigma] = useState<{ recipeId: string; qualityScore: number } | null>(null);
@@ -1443,7 +1451,7 @@ export default function ForgeScreen() {
           text: r.exceptionalLabel
             ? `Vente exceptionnelle ! ${r.itemName} — ${r.soldPrice} pO (${r.exceptionalLabel})`
             : `${r.itemName} vendu — ${r.soldPrice} pièces d'or !`,
-          iconName: 'cash',
+          iconName: 'dollar-sign',
           color: r.exceptionalLabel ? '#FFD700' : '#44CC66',
         })),
       ]);
@@ -1469,6 +1477,46 @@ export default function ForgeScreen() {
     }
     prevMarketEventIdsRef.current = new Set(game.activeMarketEvents.map(e => e.instanceId));
   }, [game.activeMarketEvents]);
+
+  // ── Quest unlock notification on level-up ─────────────────────────────────
+  useEffect(() => {
+    if (!game.isLoaded) return;
+    const currentLevel = game.player.level;
+    const prevLevel = prevPlayerLevelRef.current;
+
+    if (prevLevel === null) {
+      // First render after load — just snapshot the level, don't notify
+      prevPlayerLevelRef.current = currentLevel;
+      return;
+    }
+
+    if (currentLevel > prevLevel) {
+      // Count quests that just became available: unlockLevel crossed into range
+      const newlyUnlocked = game.allQuests.filter((q) => {
+        const ul = q.unlockLevel ?? 0;
+        return ul > prevLevel && ul <= currentLevel
+          && !game.completedQuestIds.includes(q.id)
+          && !game.activeQuestIds.includes(q.id);
+      });
+      if (newlyUnlocked.length > 0) {
+        const count = newlyUnlocked.length;
+        setBannerQueue(q => [
+          ...q,
+          {
+            id: `quest_unlock_lvl${currentLevel}_${Date.now()}`,
+            text: count === 1
+              ? '1 nouvelle quête disponible — consulte le Codex !'
+              : `${count} nouvelles quêtes disponibles — consulte le Codex !`,
+            iconName: 'book-open',
+            color: '#C9A227',
+          },
+        ]);
+      }
+    }
+
+    prevPlayerLevelRef.current = currentLevel;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game.player.level, game.isLoaded]);
 
   // Gentle floating-in-place bob for the FORGER artwork button
   useEffect(() => {
@@ -1596,6 +1644,8 @@ export default function ForgeScreen() {
 
     quenchProgressRef.current = 100;
     quenchDoneRef.current = false;
+    quenchHintFiredRef.current = false;
+    quenchGlowSV.value = 0;
     setQuenchProgress(100);
     setQuenchTapped(false);
     setQuenchLabel(null);
@@ -1667,6 +1717,18 @@ export default function ForgeScreen() {
     return () => { clearInterval(intervalId); runResultRef.current = null; };
   }, [craftPhase]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── One-shot quench hint: pulse the button glow on first entry into sweet spot ──
+  useEffect(() => {
+    if (craftPhase !== 'COOLING' || quenchTapped || quenchHintFiredRef.current) return;
+    if (quenchProgress <= 70 && quenchProgress >= 30) {
+      quenchHintFiredRef.current = true;
+      quenchGlowSV.value = withTiming(1, { duration: 180 }, () => {
+        'worklet';
+        quenchGlowSV.value = withTiming(0, { duration: 500 });
+      });
+    }
+  }, [quenchProgress, craftPhase, quenchTapped, quenchGlowSV]);
+
   // ─── Actions ─────────────────────────────────────────────────────────────
   const startCraft = (recipe: RecipeData) => {
     if (!game.canCraftRecipe(recipe.id)) return;
@@ -1714,9 +1776,6 @@ export default function ForgeScreen() {
     // finishes and the gesture system can register the next tap immediately —
     // no lag between strikes on slower phones.
     setTimeout(() => {
-      setLastHitLabel(finalLabel);
-      if (hitTimerRef.current) clearTimeout(hitTimerRef.current);
-      hitTimerRef.current = setTimeout(() => setLastHitLabel(null), 900);
       setSession((prev) => {
         const newStrikes = prev.strikesCompleted + 1;
         const newScores = [...prev.strikeScores, finalScore];
@@ -1762,7 +1821,6 @@ export default function ForgeScreen() {
     setSession(EMPTY_SESSION);
     setCraftedItem(null);
     heatingAnim.value = 0;
-    setLastHitLabel(null);
     setQuenchProgress(100);
     setQuenchTapped(false);
     setQuenchLabel(null);
@@ -1900,8 +1958,8 @@ export default function ForgeScreen() {
             activeOpacity={0.8}
             accessibilityLabel="Hôtel des Ventes"
           >
-            <Ionicons
-              name="storefront-outline"
+            <Feather
+              name="shopping-bag"
               size={13}
               color={game.auctionResults.some(r => !r.claimed) ? '#FFD700' : MEDIEVAL.textDim}
             />
@@ -1940,7 +1998,7 @@ export default function ForgeScreen() {
               const urgentCount = pendingOrders.filter((o) => (o.isUrgent || o.isSpecial) && o.deadline > Date.now()).length;
               return urgentCount > 0 ? (
                 <View style={oStyles.urgentHeaderBadge}>
-                  <MaterialCommunityIcons name="lightning-bolt" size={9} color="#fff" />
+                  <Feather name="zap" size={9} color="#fff" />
                 </View>
               ) : null;
             })()}
@@ -2063,19 +2121,6 @@ export default function ForgeScreen() {
           </View>
         )}
 
-        {/* Hit label flash */}
-        {lastHitLabel && (
-          <View style={[styles.hitFlash, { pointerEvents: 'none' }]}>
-            <Text
-              style={[
-                styles.hitFlashText,
-                { color: lastHitLabel === 'PARFAIT!' ? '#9966CC' : lastHitLabel === 'RATÉ' ? colors.destructive : colors.accent },
-              ]}
-            >
-              {lastHitLabel}
-            </Text>
-          </View>
-        )}
       </View>
 
       {/* ── Bottom action panel ── */}
@@ -2122,7 +2167,7 @@ export default function ForgeScreen() {
           <View style={{ paddingBottom: bottomPad }}>
             {showEventBanner && activeForgeEvent && (
               <View style={[styles.eventBanner, { borderColor: activeForgeEvent.color + '80', backgroundColor: activeForgeEvent.color + '18' }]}>
-                <MaterialCommunityIcons name={activeForgeEvent.icon as any} size={22} color={activeForgeEvent.color} />
+                <Feather name={activeForgeEvent.icon as any} size={22} color={activeForgeEvent.color} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.eventName, { color: activeForgeEvent.color }]}>{activeForgeEvent.name}</Text>
                   <Text style={[styles.eventDesc, { color: colors.mutedForeground }]}>{activeForgeEvent.description}</Text>
@@ -2194,9 +2239,9 @@ export default function ForgeScreen() {
               />
               {/* Zone labels row */}
               <View style={[StyleSheet.absoluteFill, styles.quenchZoneLabels]}>
-                <MaterialCommunityIcons name="fire" size={12} color="#E53935" style={{ opacity: 0.8 }} />
+                <Feather name="activity" size={12} color="#E53935" style={{ opacity: 0.8 }} />
                 <Text style={styles.quenchZoneSweet}>ZONE</Text>
-                <MaterialCommunityIcons name="snowflake" size={12} color="#48A0D0" style={{ opacity: 0.8 }} />
+                <Feather name="wind" size={12} color="#48A0D0" style={{ opacity: 0.8 }} />
               </View>
             </View>
 
@@ -2220,37 +2265,56 @@ export default function ForgeScreen() {
 
             {/* Action button / waiting */}
             {!quenchTapped ? (
-              <TouchableOpacity
-                style={[
-                  styles.quenchBtn,
-                  {
-                    borderColor:
-                      quenchProgress >= 30 && quenchProgress <= 70
-                        ? '#00D2BE'
-                        : 'rgba(255,255,255,0.18)',
-                    backgroundColor:
-                      quenchProgress >= 30 && quenchProgress <= 70
-                        ? 'rgba(0,210,190,0.18)'
-                        : 'rgba(255,255,255,0.06)',
-                  },
-                ]}
-                onPress={handleQuench}
-                activeOpacity={0.7}
-              >
-                <Text
+              <View style={{ position: 'relative' }}>
+                <TouchableOpacity
                   style={[
-                    styles.quenchBtnText,
+                    styles.quenchBtn,
                     {
-                      color:
+                      borderColor:
                         quenchProgress >= 30 && quenchProgress <= 70
                           ? '#00D2BE'
-                          : 'rgba(255,255,255,0.4)',
+                          : 'rgba(255,255,255,0.18)',
+                      backgroundColor:
+                        quenchProgress >= 30 && quenchProgress <= 70
+                          ? 'rgba(0,210,190,0.18)'
+                          : 'rgba(255,255,255,0.06)',
                     },
                   ]}
+                  onPress={handleQuench}
+                  activeOpacity={0.7}
                 >
-                  SORTIR DU BAIN
-                </Text>
-              </TouchableOpacity>
+                  <Text
+                    style={[
+                      styles.quenchBtnText,
+                      {
+                        color:
+                          quenchProgress >= 30 && quenchProgress <= 70
+                            ? '#00D2BE'
+                            : 'rgba(255,255,255,0.4)',
+                      },
+                    ]}
+                  >
+                    SORTIR DU BAIN
+                  </Text>
+                </TouchableOpacity>
+                {/* One-shot sweet-spot glow pulse — opacity driven by quenchGlowSV */}
+                <Reanimated.View
+                  pointerEvents="none"
+                  style={[
+                    StyleSheet.absoluteFill,
+                    {
+                      borderRadius: 14,
+                      borderWidth: 3,
+                      borderColor: '#00D2BE',
+                      shadowColor: '#00D2BE',
+                      shadowOpacity: 0.9,
+                      shadowRadius: 12,
+                      shadowOffset: { width: 0, height: 0 },
+                    },
+                    quenchGlowStyle,
+                  ]}
+                />
+              </View>
             ) : (
               <View style={styles.quenchWaiting}>
                 <Text style={styles.quenchWaitingText}>Finition en cours…</Text>
@@ -2541,7 +2605,7 @@ export default function ForgeScreen() {
               {/* Active forge event */}
               {activeForgeEvent && (
                 <View style={[styles.resultEventRow, { backgroundColor: activeForgeEvent.color + '22', borderColor: activeForgeEvent.color + '66' }]}>
-                  <MaterialCommunityIcons name={activeForgeEvent.icon as any} size={16} color={activeForgeEvent.color} />
+                  <Feather name={activeForgeEvent.icon as any} size={16} color={activeForgeEvent.color} />
                   <Text style={[styles.resultEventText, { color: activeForgeEvent.color }]}>
                     {activeForgeEvent.name} — {activeForgeEvent.description}
                   </Text>
@@ -3015,14 +3079,6 @@ const styles = StyleSheet.create({
   heatingTrack: { width: '100%', height: 8, borderRadius: 4, overflow: 'hidden' },
   heatingFill: { height: '100%', borderRadius: 4, minWidth: 4 },
   heatingPct: { fontSize: 14, fontWeight: '700' },
-
-  hitFlash: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    pointerEvents: 'none',
-  },
-  hitFlashText: { fontSize: 32, fontWeight: '900', letterSpacing: 3 },
 
   // Bottom panel
   bottomPanel: {},

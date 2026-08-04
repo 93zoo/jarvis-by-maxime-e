@@ -19,7 +19,8 @@ import { Animated, DimensionValue, Easing, ImageBackground, Platform, StyleSheet
 import { LinearGradient } from '@/lib/LinearGradientSafe';
 import Constants from 'expo-constants';
 
-// Many simultaneous Animated.loop() calls crash Android's native thread in Expo Go.
+// In Expo Go, 10 embers + 4 wisps + 5 dust + 2 main = 21 simultaneous Animated.loop()
+// calls → exceeds Android native thread limit → silent crash. Show static image only.
 const IS_EXPO_GO =
   Platform.OS !== 'web' &&
   ((Constants.appOwnership as string) === 'expo' ||
@@ -148,8 +149,7 @@ function Dust({ x, y, size, duration, delay }: { x: DimensionValue; y: Dimension
 
 // ─── Main backdrop ───────────────────────────────────────────────────────────
 export default function ForgeBackdrop() {
-  // Expo Go: skip ALL animations (many simultaneous Animated.loop() calls crash
-  // Android's native thread). Static image + vignettes only.
+  // Expo Go: skip ALL animations (21 loops crash Android native thread). Static image only.
   if (IS_EXPO_GO) {
     return (
       <View style={StyleSheet.absoluteFill} pointerEvents="none">

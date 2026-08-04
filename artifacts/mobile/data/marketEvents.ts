@@ -32,7 +32,7 @@ export const MARKET_EVENT_TYPES: MarketEventType[] = [
     id: 'war_declared',
     label: 'Guerre déclarée',
     bannerText: 'Guerre déclarée — les armes se vendent +40 % pendant 10 min !',
-    icon: 'flash',
+    icon: 'zap',
     color: '#FF4444',
     weight: 3,
     categoryMultipliers: {
@@ -50,7 +50,7 @@ export const MARKET_EVENT_TYPES: MarketEventType[] = [
     id: 'grand_tournament',
     label: 'Grand Tournoi',
     bannerText: 'Grand Tournoi annoncé — les armures et boucliers sont très recherchés !',
-    icon: 'trophy',
+    icon: 'award',
     color: '#FFD700',
     weight: 3,
     categoryMultipliers: {
@@ -65,7 +65,7 @@ export const MARKET_EVENT_TYPES: MarketEventType[] = [
     id: 'collector_in_town',
     label: 'Collectionneur',
     bannerText: 'Collectionneur en ville — les objets légendaires et épiques valent beaucoup plus !',
-    icon: 'diamond',
+    icon: 'hexagon',
     color: '#AA44FF',
     weight: 2,
     rarityMultipliers: {
@@ -120,7 +120,7 @@ export const MARKET_EVENT_TYPES: MarketEventType[] = [
     id: 'cold_winter',
     label: 'Hiver Rigoureux',
     bannerText: 'Hiver rigoureux — les armures lourdes et coiffures protectrices se vendent mieux.',
-    icon: 'snow',
+    icon: 'cloud-snow',
     color: '#88CCFF',
     weight: 2,
     categoryMultipliers: {
@@ -133,7 +133,7 @@ export const MARKET_EVENT_TYPES: MarketEventType[] = [
     id: 'mine_collapse',
     label: 'Effondrement Minier',
     bannerText: 'Effondrement dans les mines — les armes de métal et outils de forge en forte hausse !',
-    icon: 'hammer',
+    icon: 'tool',
     color: '#CC8844',
     weight: 2,
     categoryMultipliers: {
@@ -147,7 +147,7 @@ export const MARKET_EVENT_TYPES: MarketEventType[] = [
     id: 'trade_fair',
     label: 'Foire Marchande',
     bannerText: 'Grande Foire Marchande — tous les objets de qualité se vendent mieux !',
-    icon: 'storefront',
+    icon: 'shopping-bag',
     color: '#44CC88',
     weight: 3,
     rarityMultipliers: {
@@ -160,7 +160,7 @@ export const MARKET_EVENT_TYPES: MarketEventType[] = [
     id: 'noble_festival',
     label: 'Fête Nobiliaire',
     bannerText: 'Fête à la cour — bijoux, couronnes et ornements sont très convoités !',
-    icon: 'ribbon',
+    icon: 'tag',
     color: '#FF88CC',
     weight: 2,
     categoryMultipliers: {
@@ -174,7 +174,7 @@ export const MARKET_EVENT_TYPES: MarketEventType[] = [
     id: 'pirates_raid',
     label: 'Raid Pirate',
     bannerText: 'Les corsaires pillent les côtes — armes légères et défenses en forte demande !',
-    icon: 'boat',
+    icon: 'anchor',
     color: '#4488CC',
     weight: 2,
     categoryMultipliers: {
@@ -188,7 +188,7 @@ export const MARKET_EVENT_TYPES: MarketEventType[] = [
     id: 'mage_conclave',
     label: 'Conclave des Mages',
     bannerText: 'Conclave des Mages — anneaux, amulettes et objets enchantables très recherchés.',
-    icon: 'flask',
+    icon: 'droplet',
     color: '#8844FF',
     weight: 2,
     categoryMultipliers: {
